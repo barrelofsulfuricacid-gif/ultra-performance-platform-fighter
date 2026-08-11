@@ -111,6 +111,7 @@ def main() -> int:
     shards = checkpoint_pack.get("capture_shards")
     warm_budget = checkpoint_pack.get("warm_budget_seconds")
     cold_budget = checkpoint_pack.get("cold_budget_seconds", warm_budget)
+    capture_route = checkpoint_pack.get("capture_route", "damage-hit")
     expected_cases = [str(case["id"]) for case in manifest["checkpoint_cases"]]
     if (
         not isinstance(shards, list)
@@ -122,6 +123,7 @@ def main() -> int:
         or not isinstance(cold_budget, (int, float))
         or isinstance(cold_budget, bool)
         or float(cold_budget) < float(warm_budget)
+        or capture_route not in ("damage-hit", "common-hurt-geometry")
     ):
         raise SystemExit("checkpoint capture shards or wall budgets are invalid")
     captured_cases = [str(case) for shard in shards for case in shard]
@@ -184,7 +186,11 @@ def main() -> int:
                     str(shard_outputs[index]),
                     "--slippi-port",
                     str(args.base_port + index),
-                    "--damage-hit-only",
+                    (
+                        "--common-hurt-geometry-only"
+                        if capture_route == "common-hurt-geometry"
+                        else "--damage-hit-only"
+                    ),
                     f"--memory-probe-{args.memory_probe}",
                     "--oracle-exiai",
                     "--oracle-checkpoint-pack",

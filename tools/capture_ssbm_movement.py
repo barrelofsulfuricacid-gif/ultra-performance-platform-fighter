@@ -5003,7 +5003,7 @@ def read_surface_collision_memory_probe(
     """Read the source ECB/environment contact selected by fighter collision."""
 
     fighter = read_fighter_address(memory_engine, 0)
-    snapshot = BigEndianSnapshot.read(memory_engine, fighter, 0x88C)
+    snapshot = BigEndianSnapshot.read(memory_engine, fighter, 0x8AC)
     common = memory_engine.read_word(0x804D6554)
 
     def read_surface(offset: int) -> dict[str, object]:
@@ -5017,6 +5017,12 @@ def read_surface_collision_memory_probe(
     ecb = fighter + 0x794
     return {
         "fighter_address": fighter,
+        "fighter_animation_frame": snapshot.f32(fighter + 0x894),
+        "fighter_animation_rate": snapshot.f32(fighter + 0x89C),
+        "fighter_motion_id": snapshot.u32(fighter + 0x10),
+        "fighter_animation_id": snapshot.u32(fighter + 0x14),
+        "fighter_animation_blend_frames": snapshot.f32(fighter + 0x8A4),
+        "fighter_animation_blend_progress": snapshot.f32(fighter + 0x8A8),
         "environment_flags": snapshot.u32(fighter + 0x824),
         "previous_environment_flags": snapshot.u32(fighter + 0x828),
         "contact": snapshot.f32_vector(fighter + 0x830, 3),
@@ -7200,6 +7206,12 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     ),
                     "player_slot_address": "0x80453080",
                     "fields": {
+                        "fighter_animation_frame": "fighter+0x894",
+                        "fighter_animation_rate": "fighter+0x89c",
+                        "fighter_motion_id": "fighter+0x10",
+                        "fighter_animation_id": "fighter+0x14",
+                        "fighter_animation_blend_frames": "fighter+0x8a4",
+                        "fighter_animation_blend_progress": "fighter+0x8a8",
                         "environment_flags": "fighter+0x824",
                         "contact": "fighter+0x830",
                         "floor": "fighter+0x83c",
@@ -7456,14 +7468,20 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         or args.aerial_attack_landing_only
         or args.airborne_landing_only
         or args.shield_break_orientation_only
-        or (args.damage_hit_only and args.oracle_checkpoint_pack)
+        or (
+            args.oracle_checkpoint_pack
+            and (
+                args.damage_hit_only
+                or args.common_hurt_geometry_only
+            )
+        )
     ):
         parser.error(
             "--memory-probe-surface requires --platform-only, "
             "--platform-drop-ecb-only, --airborne-ecb-only, "
             "--aerial-attack-ecb-only, --aerial-attack-landing-only, "
             "--airborne-landing-only, --shield-break-orientation-only, or a "
-            "--damage-hit-only checkpoint pack"
+            "--damage-hit-only/--common-hurt-geometry-only checkpoint pack"
         )
     if args.memory_probe_hitbox and not (
         args.defense_state_only

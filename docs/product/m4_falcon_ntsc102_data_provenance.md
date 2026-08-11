@@ -1355,6 +1355,38 @@ indexed arrays and selected by one allocation-free adapter. No additional
 rollback state was introduced: the existing semantic prone orientation and
 resolved roll-motion orientation are the exact callback inputs.
 
+## Falcon CrouchWait collision poses
+
+The grounded-loop checkpoint pack now exposes the live fighter animation
+frame/rate, motion and animation IDs, six-frame blend state, and the complete
+`fighter+0x794` ECB. Its authoritative five-case capture has SHA-256
+`cb07f5c3bff1f55e7f223e3863822a6d023bb6adf9ad13b69918111fcb341ba6`.
+An independent one-case / 160-row process has SHA-256
+`6d66a2e7e88f6264fb4932c7395d0a1344f8548da5ec2b68100c244c7e749c82`.
+The reusable cyclic extractor accepts a capture starting at any point in the
+loop, validates adjacent modulo order and repeated-frame determinism, and
+canonicalizes all source frames `0..157`. Both captures reproduce semantic
+SHA-256
+`ba47ef2736a5677d1909262a20f32991b7c2515407fae26626d5869b95edd265`.
+
+`tools/data/ssbm_falcon_ground_loop_ecb.json` stores the complete source float
+and converted Q16.16 top, bottom, left, and right points. Its profile SHA-256 is
+`a1d4a9eb47dd16630812fbdb59eaaf377f3580e313436523d0ea81088cafceb3`.
+The importer pins the profile, authoritative capture, and semantic identities
+and emits a 158-entry immutable array. Production maps `SquatWait` action tick
+one to source animation frame zero, advances at one frame per update, wraps at
+158, and performs a direct array lookup from the canonical Q16 cursor. The
+existing cursor is now retained for all source-clock-owning actions rather
+than only velocity-driven Walk/Run, so save/load, inspection, and every ECB
+collision query observe the same frame without adding rollback state.
+
+WalkSlow, WalkMiddle, WalkFast, and Run do not yet consume the generic source
+ECB evaluator. Their fractional clock and six-frame HSD blending can move the
+joint-derived left/right span across the decomp's 10-unit symmetry predicate;
+exploratory source evaluation produced ordinary errors up to 0.142 Melee units
+and a 1.52-unit WalkMiddle branch outlier. This is an explicit open fidelity
+gap, not an imported or qualified collision route.
+
 ## Repository controls
 
 - Only the converted constants and independently written C state machine ship.

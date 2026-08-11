@@ -7,7 +7,7 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from ssbm_ecb_pose import (
     ECB_POINTS,
@@ -88,6 +88,86 @@ def extract_track(
         "first_displayed_frame": first_displayed_frame,
         "frame_count": last_displayed_frame - first_displayed_frame + 1,
         "frames": list(frames.values()),
+    }
+
+
+def extract_cyclic_track(
+    rows: list[dict[str, Any]],
+    track_id: str,
+    source_action: str,
+    label_substring: str,
+    frame_count: int,
+    frame_value: Callable[[dict[str, Any]], object] | None = None,
+) -> dict[str, Any]:
+    """Canonicalize one looping ECB motion into complete frame-index order."""
+
+    selected = [
+        row
+        for row in rows
+        if row.get("action") == source_action
+        and label_substring in str(row.get("label", ""))
+    ]
+    if not selected or frame_count <= 0:
+        raise ValueError(f"track {track_id!r} selected no cyclic rows")
+
+    def displayed_frame(row: dict[str, Any]) -> int:
+        raw = row.get("action_frame") if frame_value is None else frame_value(row)
+        if (
+            not isinstance(raw, (int, float))
+            or isinstance(raw, bool)
+            or float(raw) != int(raw)
+        ):
+            raise ValueError(f"track {track_id!r} has a non-integral loop frame")
+        return int(raw)
+
+    frames_by_index: dict[int, dict[str, Any]] = {}
+    previous_frame: int | None = None
+    for row in selected:
+        current_frame = displayed_frame(row)
+        if not 0 <= current_frame < frame_count:
+            raise ValueError(f"track {track_id!r} has an invalid loop frame")
+        if (
+            previous_frame is not None
+            and current_frame != (previous_frame + 1) % frame_count
+        ):
+            raise ValueError(
+                f"track {track_id!r} frame order diverged after {previous_frame}"
+            )
+        previous_frame = current_frame
+        surface = row.get("surface_collision_memory")
+        facing = row.get("facing")
+        if (
+            not isinstance(surface, dict)
+            or not isinstance(surface.get("ecb"), dict)
+            or facing not in (-1, 1)
+            or isinstance(facing, bool)
+        ):
+            raise ValueError(f"track {track_id!r} has an invalid ECB row")
+        source_ecb = canonical_source_ecb(surface["ecb"], int(facing))
+        current_q16 = pose_q16(source_ecb)
+        existing = frames_by_index.get(current_frame)
+        if existing is not None and existing["ecb_q16"] != current_q16:
+            raise ValueError(
+                f"track {track_id!r} frame {current_frame} is non-deterministic"
+            )
+        if existing is None:
+            frames_by_index[current_frame] = {
+                "displayed_frame": current_frame,
+                "source_ecb": source_ecb,
+                "ecb_q16": current_q16,
+            }
+    expected_frames = list(range(frame_count))
+    if sorted(frames_by_index) != expected_frames:
+        raise ValueError(f"track {track_id!r} is incomplete")
+    frames = [frames_by_index[index] for index in expected_frames]
+    return {
+        "id": track_id,
+        "source_action": source_action,
+        "canonical_facing": 1,
+        "label_substring": label_substring,
+        "first_displayed_frame": 0,
+        "frame_count": frame_count,
+        "frames": frames,
     }
 
 

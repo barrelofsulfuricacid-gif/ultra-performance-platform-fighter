@@ -104,6 +104,15 @@ GETUP_ECB_CAPTURE_SHA256 = (
 GETUP_ECB_SEMANTIC_SHA256 = (
     "f519d632a88bcb582cb68865dd9a58d27e862fe619fc05d76ff3252ad5204f19"
 )
+GROUND_LOOP_ECB_PROFILE_SHA256 = (
+    "a1d4a9eb47dd16630812fbdb59eaaf377f3580e313436523d0ea81088cafceb3"
+)
+GROUND_LOOP_ECB_CAPTURE_SHA256 = (
+    "cb07f5c3bff1f55e7f223e3863822a6d023bb6adf9ad13b69918111fcb341ba6"
+)
+GROUND_LOOP_ECB_SEMANTIC_SHA256 = (
+    "ba47ef2736a5677d1909262a20f32991b7c2515407fae26626d5869b95edd265"
+)
 BOUNCE_ECB_PROFILE_SHA256 = (
     "d6ccb5701f0bada0d7de1874004281e8ca46fcc0070db94e529d84d3fc637608"
 )
@@ -1380,6 +1389,7 @@ def generate(
     shield_break_ecb_profile: dict[str, Any],
     down_bound_ecb_profile: dict[str, Any],
     getup_ecb_profile: dict[str, Any],
+    ground_loop_ecb_profile: dict[str, Any],
 ) -> str:
     phases: list[tuple[int, int, int]] = []
     effects: list[dict[str, Any]] = []
@@ -1435,6 +1445,10 @@ def generate(
     getup_tracks = {
         str(track["id"]): track for track in getup_ecb_profile["tracks"]
     }
+    ground_loop_tracks = {
+        str(track["id"]): track for track in ground_loop_ecb_profile["tracks"]
+    }
+    crouch_wait_frames = tuple(ground_loop_tracks["crouch_wait"]["frames"])
 
     def getup_frames(track_id: str) -> tuple[dict[str, Any], ...]:
         return tuple(getup_tracks[track_id]["frames"])
@@ -2001,6 +2015,8 @@ def generate(
         + bytes.fromhex(DOWN_BOUND_ECB_SEMANTIC_SHA256)
         + bytes.fromhex(GETUP_ECB_PROFILE_SHA256)
         + bytes.fromhex(GETUP_ECB_SEMANTIC_SHA256)
+        + bytes.fromhex(GROUND_LOOP_ECB_PROFILE_SHA256)
+        + bytes.fromhex(GROUND_LOOP_ECB_SEMANTIC_SHA256)
         + b"".join(value.to_bytes(4, "big") for value in common_attribute_bits)
         + json.dumps(
             {
@@ -2137,6 +2153,19 @@ def generate(
                     )
                     for track_id, track in getup_tracks.items()
                 },
+                "falcon_ground_loop_ecb_capture_sha256": (
+                    GROUND_LOOP_ECB_CAPTURE_SHA256
+                ),
+                "falcon_ground_loop_ecb_semantic_sha256": (
+                    GROUND_LOOP_ECB_SEMANTIC_SHA256
+                ),
+                "falcon_crouch_wait_collision_pose_q16": tuple(
+                    tuple(
+                        tuple(frame["ecb_q16"][point])
+                        for point in ECB_POINTS
+                    )
+                    for frame in crouch_wait_frames
+                ),
                 "falcon_fall_special_collision_pose_melee": {
                     "bottom_y_from_origin": FALL_SPECIAL_ECB_BOTTOM_Y_MELEE,
                 },
@@ -2246,6 +2275,8 @@ def generate(
         f"/* DownBound ECB semantic SHA-256: {DOWN_BOUND_ECB_SEMANTIC_SHA256} */",
         f"/* getup ECB profile SHA-256: {GETUP_ECB_PROFILE_SHA256} */",
         f"/* getup ECB semantic SHA-256: {GETUP_ECB_SEMANTIC_SHA256} */",
+        f"/* ground-loop ECB profile SHA-256: {GROUND_LOOP_ECB_PROFILE_SHA256} */",
+        f"/* ground-loop ECB semantic SHA-256: {GROUND_LOOP_ECB_SEMANTIC_SHA256} */",
         f"/* complete Falcon source SHA-256: {complete_source_digest} */",
         f"/* complete 318-submotion catalog SHA-256: {submotion_catalog_digest} */",
         f"/* complete action-script SHA-256: {action_script_digest} */",
@@ -2619,6 +2650,12 @@ def generate(
             "    .falling_bottom_y_from_origin_q16 = INT32_C("
             f"{round(FALLING_ECB_BOTTOM_Y_MELEE * MELEE_Y_TO_SIM_Q16)}"
             "),",
+            "    .crouch_wait = {",
+            *(
+                f"        {render_ecb_pose_q16(frame)},"
+                for frame in crouch_wait_frames
+            ),
+            "    },",
             "    .down_bound_floor_contact_mask = {",
             "        "
             f"UINT32_C({DOWN_BOUND_BACK_FLOOR_CONTACT_MASK}), "
@@ -2947,6 +2984,14 @@ def main() -> int:
             ("getup_roll_backward_back", "GROUND_ROLL_BACKWARD_UP", 1, 35),
         ),
     )
+    ground_loop_ecb_profile = load_ecb_profile(
+        Path(__file__).with_name("data")
+        / "ssbm_falcon_ground_loop_ecb.json",
+        expected_profile_sha256=GROUND_LOOP_ECB_PROFILE_SHA256,
+        expected_capture_sha256=GROUND_LOOP_ECB_CAPTURE_SHA256,
+        expected_semantic_sha256=GROUND_LOOP_ECB_SEMANTIC_SHA256,
+        expected_tracks=(("crouch_wait", "CROUCHING", 0, 158),),
+    )
     digest = canonical_sha256(data)
     if digest != EXPECTED_CANONICAL_SHA256:
         raise SystemExit(f"unexpected Falcon frame-data SHA-256: {digest}")
@@ -2962,6 +3007,7 @@ def main() -> int:
         shield_break_ecb_profile,
         down_bound_ecb_profile,
         getup_ecb_profile,
+        ground_loop_ecb_profile,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(output, encoding="utf-8", newline="\n")

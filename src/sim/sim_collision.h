@@ -44,6 +44,11 @@ static inline int32_t pf_m4_collision_ratio_q16(
     int64_t numerator,
     int64_t denominator)
 {
+    uint64_t remainder;
+    uint64_t divisor;
+    uint32_t ratio_q16;
+    uint32_t bit;
+
     if (numerator <= INT64_C(0) || denominator <= INT64_C(0))
     {
         return INT32_C(0);
@@ -52,7 +57,29 @@ static inline int32_t pf_m4_collision_ratio_q16(
     {
         return INT32_C(65536);
     }
-    return (int32_t)((numerator * INT64_C(65536)) / denominator);
+    if (numerator <= INT64_MAX / INT64_C(65536))
+    {
+        return (int32_t)((numerator * INT64_C(65536)) / denominator);
+    }
+
+    /* numerator is smaller than the positive signed divisor, so doubling the
+     * unsigned remainder cannot overflow uint64_t. This fixed 16-step divide
+     * is the exact floor of numerator * 65536 / denominator without relying
+     * on compiler-specific 128-bit integers or signed-overflow behavior. */
+    remainder = (uint64_t)numerator;
+    divisor = (uint64_t)denominator;
+    ratio_q16 = UINT32_C(0);
+    for (bit = UINT32_C(0); bit < UINT32_C(16); ++bit)
+    {
+        remainder <<= UINT32_C(1);
+        ratio_q16 <<= UINT32_C(1);
+        if (remainder >= divisor)
+        {
+            remainder -= divisor;
+            ratio_q16 |= UINT32_C(1);
+        }
+    }
+    return (int32_t)ratio_q16;
 }
 
 /* Integer specialization of the executable's point-to-capsule case. The
@@ -127,7 +154,7 @@ static inline int pf_m4_collision_sphere_capsule_overlap_q16(
  * are reduced to 23 significant bits before the determinant, matching or
  * exceeding the source float precision while keeping every intermediate in
  * portable C17 int64_t. Final contact coordinates remain Q16.16. */
-static int pf_m4_collision_capsule_capsule_overlap_q16(
+static inline int pf_m4_collision_capsule_capsule_overlap_q16(
     const pf_m4_collision_capsule3_q16 *hit,
     const pf_m4_collision_capsule3_q16 *hurt)
 {

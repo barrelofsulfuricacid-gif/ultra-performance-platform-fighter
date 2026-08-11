@@ -192,17 +192,39 @@ static inline int pf_m4_action_retains_source_submotion(
            resume_owns_submotion);
 }
 
+static inline uint8_t pf_m4_effective_action_state(
+    uint8_t action_state,
+    uint8_t hitlag_resume_action)
+{
+    return action_state == (uint8_t)PF_M4_ACTION_HITLAG
+               ? hitlag_resume_action
+               : action_state;
+}
+
 static inline int pf_m4_action_uses_velocity_animation_clock(
     uint8_t action_state,
     uint8_t hitlag_resume_action)
 {
-    const uint8_t effective_action =
-        action_state == (uint8_t)PF_M4_ACTION_HITLAG
-            ? hitlag_resume_action
-            : action_state;
+    const uint8_t effective_action = pf_m4_effective_action_state(
+        action_state,
+        hitlag_resume_action);
 
     return effective_action == (uint8_t)PF_M4_ACTION_WALK ||
            effective_action == (uint8_t)PF_M4_ACTION_RUN;
+}
+
+static inline int pf_m4_action_uses_source_animation_clock(
+    uint8_t action_state,
+    uint8_t hitlag_resume_action)
+{
+    const uint8_t effective_action = pf_m4_effective_action_state(
+        action_state,
+        hitlag_resume_action);
+
+    return pf_m4_action_uses_velocity_animation_clock(
+               action_state,
+               hitlag_resume_action) ||
+           effective_action == (uint8_t)PF_M4_ACTION_CROUCH;
 }
 
 static inline int32_t pf_m4_multiply_q16(

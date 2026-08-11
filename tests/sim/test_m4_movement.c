@@ -4105,7 +4105,74 @@ static int run_ground_control_test(
         inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_CROUCH ||
         inspection.players[0].action_ticks != UINT16_C(1) ||
-        !step_duel(
+        inspection.players[0].source_submotion !=
+            (uint16_t)PF_M4_FALCON_SUBMOTION_SQUAT_WAIT ||
+        inspection.players[0].source_animation_frame_q16 != INT32_C(0) ||
+        inspection.players[0].source_animation_rate_q16 !=
+            (int32_t)PF_Q16_ONE)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=crouch-wait-clock-entry "
+            "action=%u ticks=%u submotion=%u frame=%d rate=%d\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks,
+            (unsigned int)inspection.players[0].source_submotion,
+            inspection.players[0].source_animation_frame_q16,
+            inspection.players[0].source_animation_rate_q16);
+        return 0;
+    }
+    if (!step_duel(
+            sim,
+            INT16_C(0),
+            INT16_MAX,
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_CROUCH ||
+        inspection.players[0].action_ticks != UINT16_C(2) ||
+        inspection.players[0].source_animation_frame_q16 !=
+            (int32_t)PF_Q16_ONE)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=crouch-wait-clock-advance "
+            "action=%u ticks=%u submotion=%u frame=%d rate=%d\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks,
+            (unsigned int)inspection.players[0].source_submotion,
+            inspection.players[0].source_animation_frame_q16,
+            inspection.players[0].source_animation_rate_q16);
+        return 0;
+    }
+    for (tick = UINT32_C(0);
+         tick < (uint32_t)PF_M4_FALCON_CROUCH_WAIT_ECB_FRAME_COUNT -
+                    UINT32_C(1);
+         ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                INT16_MAX,
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_CROUCH ||
+        inspection.players[0].source_animation_frame_q16 != INT32_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=crouch-wait-clock-wrap "
+            "ticks=%u frame=%d\n",
+            (unsigned int)inspection.players[0].action_ticks,
+            inspection.players[0].source_animation_frame_q16);
+        return 0;
+    }
+    if (!step_duel(
             sim,
             INT16_C(0),
             INT16_C(0),
@@ -4117,7 +4184,13 @@ static int run_ground_control_test(
     {
         (void)fprintf(
             stderr,
-            "m4-movement=fail operation=crouch-release-entry\n");
+            "m4-movement=fail operation=crouch-release-entry "
+            "action=%u ticks=%u submotion=%u frame=%d rate=%d\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks,
+            (unsigned int)inspection.players[0].source_submotion,
+            inspection.players[0].source_animation_frame_q16,
+            inspection.players[0].source_animation_rate_q16);
         return 0;
     }
     for (tick = UINT32_C(2);

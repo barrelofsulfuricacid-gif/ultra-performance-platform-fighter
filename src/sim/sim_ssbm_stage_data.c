@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #include "pf/m4.h"
+#include "sim_collision.h"
 
 #include "../../generated/data/m4_ssbm_ntsc102_hyrule_collision.inc"
 #include "../../generated/data/m4_ssbm_ntsc102_battlefield_collision.inc"
@@ -475,8 +476,9 @@ int pf_m4_ssbm_reference_stage_find_wall_point_contact(
         {
             continue;
         }
-        fraction_q16 = (uint32_t)(
-            (sweep_numerator * INT64_C(65536)) / denominator);
+        fraction_q16 = (uint32_t)pf_m4_collision_ratio_q16(
+            sweep_numerator,
+            denominator);
         if (nearest_support == UINT8_C(0) ||
             fraction_q16 < nearest_fraction_q16)
         {

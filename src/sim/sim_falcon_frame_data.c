@@ -69,6 +69,11 @@ _Static_assert(
     PF_M4_MELEE_STALE_MOVE_SLOT_COUNT == PF_SIM_STALE_MOVE_QUEUE_CAPACITY,
     "Imported Melee stale-move table must cover the runtime queue");
 _Static_assert(
+    sizeof(pf_m4_falcon_collision_pose_data.crouch_wait) /
+            sizeof(pf_m4_falcon_collision_pose_data.crouch_wait[0]) ==
+        (size_t)PF_M4_FALCON_CROUCH_WAIT_ECB_FRAME_COUNT,
+    "Falcon CrouchWait ECB cycle must be complete");
+_Static_assert(
     sizeof(pf_m4_falcon_collision_pose_data.airborne) /
             sizeof(pf_m4_falcon_collision_pose_data.airborne[0]) ==
         (size_t)PF_M4_FALCON_AIRBORNE_ECB_FRAME_COUNT,
@@ -523,6 +528,24 @@ pf_m4_falcon_reference_prone_ecb_pose(
                     .getup_roll[orientation_index][direction_index][frame_index];
     }
     return NULL;
+}
+
+const pf_m4_falcon_ecb_pose_q16 *
+pf_m4_falcon_reference_ground_loop_ecb_pose(
+    uint16_t source_submotion,
+    int32_t source_animation_frame_q16)
+{
+    uint16_t frame_index;
+
+    if (source_submotion != (uint16_t)PF_M4_FALCON_SUBMOTION_SQUAT_WAIT ||
+        source_animation_frame_q16 < INT32_C(0))
+    {
+        return NULL;
+    }
+    frame_index = (uint16_t)(
+        ((uint32_t)source_animation_frame_q16 >> UINT32_C(16)) %
+        PF_M4_FALCON_CROUCH_WAIT_ECB_FRAME_COUNT);
+    return &pf_m4_falcon_collision_pose_data.crouch_wait[frame_index];
 }
 
 const pf_m4_falcon_ecb_pose_q16 *

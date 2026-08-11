@@ -1872,6 +1872,8 @@ static int pf_m4_reference_ecb_pose_q16(
     const pf_m4_fighter_data *fighter,
     uint8_t action_state,
     uint16_t action_ticks,
+    uint16_t source_submotion,
+    int32_t source_animation_frame_q16,
     uint8_t prone_orientation,
     uint8_t prone_roll_motion_orientation,
     int8_t tech_direction,
@@ -1880,6 +1882,7 @@ static int pf_m4_reference_ecb_pose_q16(
 {
     const pf_m4_falcon_collision_pose *pose =
         pf_m4_falcon_reference_collision_pose();
+    const pf_m4_falcon_ecb_pose_q16 *ground_loop_pose;
     const pf_m4_falcon_ecb_pose_q16 *prone_pose;
     uint16_t frame_index;
 
@@ -1887,6 +1890,14 @@ static int pf_m4_reference_ecb_pose_q16(
         out_pose == NULL)
     {
         return 0;
+    }
+    ground_loop_pose = pf_m4_falcon_reference_ground_loop_ecb_pose(
+        source_submotion,
+        source_animation_frame_q16);
+    if (ground_loop_pose != NULL)
+    {
+        *out_pose = *ground_loop_pose;
+        return 1;
     }
     prone_pose = pf_m4_falcon_reference_prone_ecb_pose(
         action_state,
@@ -1985,6 +1996,7 @@ static int32_t pf_m4_floor_contact_bottom_extent_q16(
     uint8_t action_state,
     uint16_t action_ticks,
     uint16_t source_submotion,
+    int32_t source_animation_frame_q16,
     uint8_t prone_orientation,
     uint8_t prone_roll_motion_orientation,
     int8_t tech_direction,
@@ -2015,6 +2027,8 @@ static int32_t pf_m4_floor_contact_bottom_extent_q16(
             fighter,
             action_state,
             action_ticks,
+            source_submotion,
+            source_animation_frame_q16,
             prone_orientation,
             prone_roll_motion_orientation,
             tech_direction,
@@ -12716,6 +12730,8 @@ pf_status pf_m4_step_player(
             fighter,
             action_state,
             action_ticks,
+            source_submotion,
+            source_animation_frame_q16,
             scratch->prone_orientation[player_index],
             scratch->prone_roll_motion_orientation[player_index],
             scratch->tech_direction[player_index],
@@ -12777,17 +12793,22 @@ pf_status pf_m4_step_player(
                 int32_t future_position_y_q16 = INT32_C(0);
                 uint32_t contact_fraction_q16 = UINT32_C(0);
 
-                (void)pf_m4_reference_ecb_pose_q16(
+                if (!pf_m4_reference_ecb_pose_q16(
                     fighter,
-                    action_state,
-                    action_ticks > UINT16_C(0)
-                        ? (uint16_t)(action_ticks - UINT16_C(1))
-                        : UINT16_C(0),
-                    scratch->prone_orientation[player_index],
-                    scratch->prone_roll_motion_orientation[player_index],
-                    scratch->tech_direction[player_index],
-                    facing,
-                    &previous_wall_pose);
+                    pf_m4_effective_action_state(
+                        world->action_state[player_index],
+                        world->hitlag_resume_action[player_index]),
+                    world->action_ticks[player_index],
+                    world->source_submotion[player_index],
+                    world->source_animation_frame_q16[player_index],
+                    world->prone_orientation[player_index],
+                    world->prone_roll_motion_orientation[player_index],
+                    world->tech_direction[player_index],
+                    world->facing[player_index],
+                    &previous_wall_pose))
+                {
+                    previous_wall_pose = wall_pose;
+                }
                 pf_m4_ecb_world_wall_side_q16(
                     &previous_wall_pose,
                     facing,
@@ -13223,6 +13244,7 @@ pf_status pf_m4_step_player(
                 world->action_state[player_index],
                 world->action_ticks[player_index],
                 world->source_submotion[player_index],
+                world->source_animation_frame_q16[player_index],
                 world->prone_orientation[player_index],
                 world->prone_roll_motion_orientation[player_index],
                 world->tech_direction[player_index],
@@ -13237,6 +13259,7 @@ pf_status pf_m4_step_player(
                 action_state,
                 action_ticks,
                 source_submotion,
+                source_animation_frame_q16,
                 scratch->prone_orientation[player_index],
                 scratch->prone_roll_motion_orientation[player_index],
                 scratch->tech_direction[player_index],
@@ -13258,6 +13281,8 @@ pf_status pf_m4_step_player(
                 fighter,
                 action_state,
                 action_ticks,
+                source_submotion,
+                source_animation_frame_q16,
                 scratch->prone_orientation[player_index],
                 scratch->prone_roll_motion_orientation[player_index],
                 scratch->tech_direction[player_index],
@@ -13916,18 +13941,38 @@ pf_status pf_m4_step_player(
             return status;
         }
     }
+    else if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
+             action_state == (uint8_t)PF_M4_ACTION_CROUCH)
+    {
+        const int previous_crouch =
+            previous_action_state == (uint8_t)PF_M4_ACTION_CROUCH ||
+            (previous_action_state == (uint8_t)PF_M4_ACTION_HITLAG &&
+             previous_hitlag_resume_action ==
+                 (uint8_t)PF_M4_ACTION_CROUCH);
+        const int32_t cycle_q16 =
+            (int32_t)PF_M4_FALCON_CROUCH_WAIT_ECB_FRAME_COUNT *
+            (int32_t)PF_Q16_ONE;
+
+        source_submotion =
+            (uint16_t)PF_M4_FALCON_SUBMOTION_SQUAT_WAIT;
+        source_animation_frame_q16 =
+            previous_crouch != 0
+                ? previous_source_animation_frame_q16 +
+                      (int32_t)PF_Q16_ONE
+                : INT32_C(0);
+        if (source_animation_frame_q16 >= cycle_q16)
+        {
+            source_animation_frame_q16 -= cycle_q16;
+        }
+        source_animation_rate_q16 = (int32_t)PF_Q16_ONE;
+    }
     else
     {
         source_animation_frame_q16 = INT32_C(0);
         source_animation_rate_q16 = INT32_C(0);
     }
 
-    if (action_state == (uint8_t)PF_M4_ACTION_CROUCH)
-    {
-        source_submotion =
-            (uint16_t)PF_M4_FALCON_SUBMOTION_SQUAT_WAIT;
-    }
-    else if (action_state == (uint8_t)PF_M4_ACTION_TAUNT)
+    if (action_state == (uint8_t)PF_M4_ACTION_TAUNT)
     {
         source_submotion =
             facing > INT8_C(0)

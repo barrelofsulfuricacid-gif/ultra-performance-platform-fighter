@@ -28,6 +28,52 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
 
 **Working branch:** `agent/m4-combat-vertical-slice`
 
+## Implemented and verified in the 2026-08-11 CrouchWait ECB follow-up
+
+- Generalized the checkpoint shard runner so a manifest selects either the
+  damage-hit or common-hurt-geometry capture route. The merger now handles
+  both `_setup -> _observe` and `_place -> prefix` case families without a
+  Falcon-specific merge loop.
+- Extended the surface-memory probe with Falcon's live motion, animation,
+  fractional frame/rate, and blend fields. The reusable cyclic ECB extractor
+  canonicalizes captures that begin anywhere in a loop, rejects non-adjacent
+  modulo order, and proves repeated frames are deterministic.
+- The authoritative five-case / 303-row capture has SHA-256
+  `cb07f5c3bff1f55e7f223e3863822a6d023bb6adf9ad13b69918111fcb341ba6`.
+  A separate one-worker process captured 160 CrouchWait rows in 5.307388
+  seconds warm (9.062093 cold), with raw SHA-256
+  `6d66a2e7e88f6264fb4932c7395d0a1344f8548da5ec2b68100c244c7e749c82`.
+  Both independently reproduce all 158 frames under semantic SHA-256
+  `ba47ef2736a5677d1909262a20f32991b7c2515407fae26626d5869b95edd265`.
+- Production stores the exact four-point cycle in the generated Falcon table
+  and selects it in constant time from the existing source submotion and Q16
+  animation cursor. CrouchWait now owns a one-frame source animation clock;
+  tick canonicalization, save/load validation, inspection, floor, wall, and
+  ceiling queries all retain the same clock without a new rollback field.
+- The first Windows full gate found that the old canonicalizer deliberately
+  zeroed every non-Walk/Run cursor. Separating general source-clock ownership
+  from velocity-driven update semantics fixed that architectural gap. The
+  resulting verifier digest `a58e07aa84531219` repeated identically three
+  times before repinning. The final Windows and WSL Release gates pass 39/39.
+  The unchanged 21-domain / 117-case stored gate plus replay passes in 0.764
+  seconds on Windows and 1.433 seconds in WSL.
+- The first sanitizer run exposed a pre-existing signed overflow in the shared
+  Hyrule wall-contact fraction `(numerator * 65536) / denominator`. The common
+  collision ratio helper now uses the direct division for safe operands and an
+  exact fixed 16-step unsigned division only for the overflow range. Native
+  output remains bit-identical and the sanitizer-only arithmetic fault is gone.
+  Replacing the current ECB with the actual previous-tick pose then exposed an
+  uninitialized transition path when the previous action was `HITLAG`. A shared
+  inline effective-action helper now resolves the resume action and the wall
+  sweep has a deterministic fallback. Ten consecutive optimized WSL traces
+  reproduce digest `73f3dae4bf726aedd1e2ab37911818faa9b3fff4d1a19ed2a92a41148f142f5d`;
+  WSL ASan/UBSan passes 25/25 in 24.26 seconds.
+- Fractional Walk/Run ECBs remain explicitly open: source-evaluator probes
+  reached 0.142 Melee-unit ordinary error and a 1.52-unit WalkMiddle outlier
+  when a tiny pose delta crossed `mpColl_LoadECB_JObj`'s 10-unit symmetry
+  branch. Those motions remain on the existing collision path until the HSD
+  blend and branch behavior are exact.
+
 ## Implemented and verified in the 2026-08-11 DownWait/getup ECB follow-up
 
 - Added two projection-only Dolphin cases for rolls selected after entering

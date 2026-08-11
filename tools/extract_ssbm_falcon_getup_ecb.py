@@ -9,11 +9,9 @@ import json
 from pathlib import Path
 from typing import Any
 
-from extract_ssbm_ecb_pose_tracks import extract_track
+from extract_ssbm_ecb_pose_tracks import extract_cyclic_track, extract_track
 from ssbm_ecb_pose import (
-    canonical_source_ecb,
     canonical_sha256,
-    pose_q16,
     semantic_payload,
 )
 
@@ -40,82 +38,6 @@ def capture_rows(capture: dict[str, Any], label: str) -> list[dict[str, Any]]:
     if not isinstance(capture.get("surface_collision_memory_probe"), dict):
         raise ValueError(f"{label} capture has no surface-memory provenance")
     return rows
-
-
-def extract_cyclic_track(
-    rows: list[dict[str, Any]],
-    track_id: str,
-    source_action: str,
-    label_substring: str,
-    frame_count: int,
-) -> dict[str, Any]:
-    selected = [
-        row
-        for row in rows
-        if row.get("action") == source_action
-        and label_substring in str(row.get("label", ""))
-    ]
-    try:
-        start = next(
-            index
-            for index, row in enumerate(selected)
-            if float(row.get("action_frame", -1.0)) == 0.0
-        )
-    except StopIteration as error:
-        raise ValueError(f"track {track_id!r} has no frame-zero wrap") from error
-
-    frames: list[dict[str, Any]] = []
-    for displayed_frame, row in enumerate(selected[start : start + frame_count]):
-        if float(row.get("action_frame", -1.0)) != float(displayed_frame):
-            raise ValueError(
-                f"track {track_id!r} frame order diverged at {displayed_frame}"
-            )
-        surface = row.get("surface_collision_memory")
-        facing = row.get("facing")
-        if (
-            not isinstance(surface, dict)
-            or not isinstance(surface.get("ecb"), dict)
-            or facing not in (-1, 1)
-            or isinstance(facing, bool)
-        ):
-            raise ValueError(f"track {track_id!r} has an invalid ECB row")
-        source_ecb = canonical_source_ecb(surface["ecb"], int(facing))
-        frames.append(
-            {
-                "displayed_frame": displayed_frame,
-                "source_ecb": source_ecb,
-                "ecb_q16": pose_q16(source_ecb),
-            }
-        )
-    if len(frames) != frame_count:
-        raise ValueError(f"track {track_id!r} is incomplete")
-    for row in selected:
-        displayed_frame = int(float(row.get("action_frame", -1.0)))
-        if not 0 <= displayed_frame < frame_count:
-            raise ValueError(f"track {track_id!r} has an invalid loop frame")
-        surface = row.get("surface_collision_memory")
-        facing = row.get("facing")
-        if (
-            not isinstance(surface, dict)
-            or not isinstance(surface.get("ecb"), dict)
-            or facing not in (-1, 1)
-            or isinstance(facing, bool)
-        ):
-            raise ValueError(f"track {track_id!r} has an invalid ECB row")
-        source_ecb = canonical_source_ecb(surface["ecb"], int(facing))
-        if pose_q16(source_ecb) != frames[displayed_frame]["ecb_q16"]:
-            raise ValueError(
-                f"track {track_id!r} frame {displayed_frame} is non-deterministic"
-            )
-    return {
-        "id": track_id,
-        "source_action": source_action,
-        "canonical_facing": 1,
-        "label_substring": label_substring,
-        "first_displayed_frame": 0,
-        "frame_count": frame_count,
-        "frames": frames,
-    }
 
 
 def extract_tracks(capture: dict[str, Any]) -> list[dict[str, Any]]:

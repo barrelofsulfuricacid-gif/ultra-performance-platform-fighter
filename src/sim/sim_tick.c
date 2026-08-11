@@ -381,7 +381,7 @@ static void pf_m4_canonicalize_source_animation_state(
             continue;
         }
         if ((fighter->reference_frame_data_enabled == UINT8_C(0) &&
-             pf_m4_action_uses_velocity_animation_clock(
+             pf_m4_action_uses_source_animation_clock(
                  scratch->action_state[player_index],
                  scratch->hitlag_resume_action[player_index])) ||
             !pf_m4_action_retains_source_submotion(
@@ -391,7 +391,7 @@ static void pf_m4_canonicalize_source_animation_state(
             scratch->source_submotion[player_index] =
                 (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT;
         }
-        if (!pf_m4_action_uses_velocity_animation_clock(
+        if (!pf_m4_action_uses_source_animation_clock(
                 scratch->action_state[player_index],
                 scratch->hitlag_resume_action[player_index]))
         {

@@ -67,7 +67,14 @@ def main(argv: list[str] | None = None) -> int:
                 )
             if case_id in rows_by_case:
                 raise SystemExit(f"duplicate checkpoint shard case: {case_id}")
-            prefix = start_label.removesuffix("_setup") + "_observe"
+            if start_label.endswith("_setup"):
+                prefix = start_label.removesuffix("_setup") + "_observe"
+            elif start_label.endswith("_place"):
+                prefix = start_label.removesuffix("_place") + "_"
+            else:
+                raise SystemExit(
+                    f"unsupported checkpoint shard start label: {start_label}"
+                )
             rows_by_case[case_id] = [
                 row for row in capture["rows"] if row["label"].startswith(prefix)
             ]

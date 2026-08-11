@@ -268,7 +268,7 @@ static int32_t pf_m4_snapshot_canonical_source_animation_frame_q16(
     uint32_t player_index)
 {
     return world->active[player_index] != UINT8_C(0) &&
-                   pf_m4_action_uses_velocity_animation_clock(
+                   pf_m4_action_uses_source_animation_clock(
                        world->action_state[player_index],
                        world->hitlag_resume_action[player_index])
                ? world->source_animation_frame_q16[player_index]
@@ -280,7 +280,7 @@ static int32_t pf_m4_snapshot_canonical_source_animation_rate_q16(
     uint32_t player_index)
 {
     return world->active[player_index] != UINT8_C(0) &&
-                   pf_m4_action_uses_velocity_animation_clock(
+                   pf_m4_action_uses_source_animation_clock(
                        world->action_state[player_index],
                        world->hitlag_resume_action[player_index])
                ? world->source_animation_rate_q16[player_index]
@@ -2176,7 +2176,7 @@ static int pf_m4_snapshot_source_animation_clock_valid(
 
     if (active == UINT8_C(0) ||
         fighter->reference_frame_data_enabled == UINT8_C(0) ||
-        !pf_m4_action_uses_velocity_animation_clock(
+        !pf_m4_action_uses_source_animation_clock(
             action,
             resume_action))
     {

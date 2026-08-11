@@ -26865,6 +26865,22 @@ static int run_falcon_reference_table_test(void)
             (uint8_t)PF_M4_PRONE_NONE,
             INT8_C(0),
             INT8_C(1));
+    const pf_m4_falcon_ecb_pose_q16 *crouch_wait_first_ecb =
+        pf_m4_falcon_reference_ground_loop_ecb_pose(
+            PF_M4_FALCON_SUBMOTION_SQUAT_WAIT,
+            INT32_C(0));
+    const pf_m4_falcon_ecb_pose_q16 *crouch_wait_middle_ecb =
+        pf_m4_falcon_reference_ground_loop_ecb_pose(
+            PF_M4_FALCON_SUBMOTION_SQUAT_WAIT,
+            INT32_C(79) * INT32_C(65536));
+    const pf_m4_falcon_ecb_pose_q16 *crouch_wait_last_ecb =
+        pf_m4_falcon_reference_ground_loop_ecb_pose(
+            PF_M4_FALCON_SUBMOTION_SQUAT_WAIT,
+            INT32_C(157) * INT32_C(65536));
+    const pf_m4_falcon_ecb_pose_q16 *crouch_wait_wrap_ecb =
+        pf_m4_falcon_reference_ground_loop_ecb_pose(
+            PF_M4_FALCON_SUBMOTION_SQUAT_WAIT,
+            INT32_C(158) * INT32_C(65536));
     const pf_m4_falcon_ecb_pose_q16 *direct_up_forward_roll_ecb =
         pf_m4_falcon_reference_prone_ecb_pose(
             (uint8_t)PF_M4_ACTION_GETUP_ROLL,
@@ -27735,8 +27751,8 @@ static int run_falcon_reference_table_test(void)
         standing_hurt_capsules[0].height != UINT8_C(1) ||
         standing_hurt_capsules[0].grabbable != UINT8_C(1) ||
         complete_source_sha256 == NULL ||
-        complete_source_sha256[0] != UINT8_C(0x19) ||
-        complete_source_sha256[31] != UINT8_C(0x1d) ||
+        complete_source_sha256[0] != UINT8_C(0x2e) ||
+        complete_source_sha256[31] != UINT8_C(0xf1) ||
         common_attribute_bits == NULL ||
         common_attribute_count != UINT16_C(97) ||
         common_attribute_bits[0] != UINT32_C(0x3e19999a) ||
@@ -27796,6 +27812,23 @@ static int run_falcon_reference_table_test(void)
         air_dodge_attributes->item_throw_window_ticks != UINT16_C(3) ||
         air_dodge_attributes->ordinary_physics_begin_frame != UINT16_C(30) ||
         collision_pose == NULL ||
+        collision_pose->crouch_wait[0].top_y_from_origin_q16 !=
+            INT32_C(114073) ||
+        collision_pose->crouch_wait[157].right_x_from_origin_q16 !=
+            INT32_C(27060) ||
+        crouch_wait_first_ecb == NULL ||
+        crouch_wait_first_ecb->left_x_from_origin_q16 != INT32_C(-27044) ||
+        crouch_wait_middle_ecb == NULL ||
+        crouch_wait_middle_ecb->top_y_from_origin_q16 != INT32_C(114991) ||
+        crouch_wait_last_ecb == NULL ||
+        crouch_wait_last_ecb->top_y_from_origin_q16 != INT32_C(114077) ||
+        crouch_wait_wrap_ecb != crouch_wait_first_ecb ||
+        pf_m4_falcon_reference_ground_loop_ecb_pose(
+            PF_M4_FALCON_SUBMOTION_SQUAT,
+            INT32_C(0)) != NULL ||
+        pf_m4_falcon_reference_ground_loop_ecb_pose(
+            PF_M4_FALCON_SUBMOTION_SQUAT_WAIT,
+            INT32_C(-1)) != NULL ||
         collision_pose->air_dodge_bottom_y_from_origin_q16[0] !=
             INT32_C(0) ||
         collision_pose->air_dodge_bottom_y_from_origin_q16[47] !=
