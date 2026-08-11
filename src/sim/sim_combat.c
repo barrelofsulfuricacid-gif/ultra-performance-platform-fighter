@@ -2298,7 +2298,10 @@ static const pf_m4_reference_hurt_capsule *pf_m4_reference_hurt_pose(
     uint8_t action_state,
     uint8_t hitlag_resume_action,
     uint16_t source_submotion,
+    int32_t source_animation_frame_q16,
     uint16_t action_ticks,
+    pf_m4_reference_hurt_capsule
+        dynamic_capsules[PF_M4_HSD_POSE_MAX_CAPSULES],
     uint8_t *out_count)
 {
     pf_m4_falcon_move_index move_index;
@@ -2315,6 +2318,19 @@ static const pf_m4_reference_hurt_capsule *pf_m4_reference_hurt_pose(
         hitlag_resume_action != UINT8_C(0))
     {
         action_state = hitlag_resume_action;
+    }
+    if (grounded != UINT8_C(0) &&
+        (action_state == (uint8_t)PF_M4_ACTION_WALK ||
+         action_state == (uint8_t)PF_M4_ACTION_RUN))
+    {
+        return dynamic_capsules != NULL &&
+                       pf_m4_falcon_reference_dynamic_ground_hurt_capsules(
+                           source_submotion,
+                           source_animation_frame_q16,
+                           dynamic_capsules,
+                           out_count)
+                   ? dynamic_capsules
+                   : NULL;
     }
     if (grounded != UINT8_C(0) &&
         action_state == (uint8_t)PF_M4_ACTION_GROUND_IDLE)
@@ -2402,11 +2418,14 @@ uint8_t pf_m4_reference_world_hurt_capsules(
     uint8_t action_state,
     uint8_t hitlag_resume_action,
     uint16_t source_submotion,
+    int32_t source_animation_frame_q16,
     uint16_t action_ticks,
     pf_m4_hurt_capsule_inspection
         out_capsules[PF_M4_INSPECTION_HURT_CAPSULE_CAPACITY])
 {
     uint8_t capsule_count;
+    pf_m4_reference_hurt_capsule
+        dynamic_capsules[PF_M4_HSD_POSE_MAX_CAPSULES];
     const pf_m4_reference_hurt_capsule *source_capsules;
     uint8_t capsule_index;
     int8_t pose_facing;
@@ -2421,7 +2440,9 @@ uint8_t pf_m4_reference_world_hurt_capsules(
         action_state,
         hitlag_resume_action,
         source_submotion,
+        source_animation_frame_q16,
         action_ticks,
+        dynamic_capsules,
         &capsule_count);
     if (source_capsules == NULL ||
         capsule_count > UINT8_C(PF_M4_INSPECTION_HURT_CAPSULE_CAPACITY))
@@ -2500,6 +2521,8 @@ static int pf_m4_hitbox_overlaps_player(
     int32_t hitbox_bottom_q16)
 {
     uint8_t capsule_count;
+    pf_m4_reference_hurt_capsule
+        dynamic_capsules[PF_M4_HSD_POSE_MAX_CAPSULES];
     const pf_m4_reference_hurt_capsule *capsules =
         pf_m4_reference_hurt_pose(
             fighter,
@@ -2507,7 +2530,9 @@ static int pf_m4_hitbox_overlaps_player(
             scratch->action_state[target_index],
             scratch->hitlag_resume_action[target_index],
             scratch->source_submotion[target_index],
+            scratch->source_animation_frame_q16[target_index],
             scratch->action_ticks[target_index],
+            dynamic_capsules,
             &capsule_count);
 
     if (capsules != NULL)
@@ -2722,6 +2747,8 @@ static int pf_m4_hit_sphere_overlaps_player(
     const pf_m4_hit_sphere_inspection *sphere)
 {
     uint8_t capsule_count;
+    pf_m4_reference_hurt_capsule
+        dynamic_capsules[PF_M4_HSD_POSE_MAX_CAPSULES];
     const pf_m4_reference_hurt_capsule *capsules =
         pf_m4_reference_hurt_pose(
             fighter,
@@ -2729,7 +2756,9 @@ static int pf_m4_hit_sphere_overlaps_player(
             scratch->action_state[target_index],
             scratch->hitlag_resume_action[target_index],
             scratch->source_submotion[target_index],
+            scratch->source_animation_frame_q16[target_index],
             scratch->action_ticks[target_index],
+            dynamic_capsules,
             &capsule_count);
 
     if (capsules != NULL)
@@ -2786,6 +2815,8 @@ static int pf_m4_grab_sphere_overlaps_player(
     const pf_m4_hit_sphere_inspection *sphere)
 {
     uint8_t capsule_count;
+    pf_m4_reference_hurt_capsule
+        dynamic_capsules[PF_M4_HSD_POSE_MAX_CAPSULES];
     const pf_m4_reference_hurt_capsule *capsules =
         pf_m4_reference_hurt_pose(
             fighter,
@@ -2793,7 +2824,9 @@ static int pf_m4_grab_sphere_overlaps_player(
             scratch->action_state[target_index],
             scratch->hitlag_resume_action[target_index],
             scratch->source_submotion[target_index],
+            scratch->source_animation_frame_q16[target_index],
             scratch->action_ticks[target_index],
+            dynamic_capsules,
             &capsule_count);
 
     if (capsules != NULL)

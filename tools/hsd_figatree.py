@@ -212,10 +212,9 @@ def decode_figatree(archive: bytes) -> FigaTree:
 def sample_track(track: Track, frame: float) -> float:
     """Evaluate a decoded scalar track with HSD's interpolation rules."""
 
-    # A positive start value delays this track relative to the FigaTree clock.
-    # The translation-N tracks consumed by fighter root motion start at zero;
-    # retaining the offset here also keeps the generic reader well-defined.
-    frame -= track.start_frame
+    # HSD_FObjReqAnim initializes time to fobj->startframe + requested_frame.
+    # This is an additive phase offset, not a delay.
+    frame += track.start_frame
     keys = track.keys
     if not keys:
         return 0.0

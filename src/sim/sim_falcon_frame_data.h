@@ -1,6 +1,8 @@
 #ifndef PF_SIM_FALCON_FRAME_DATA_H
 #define PF_SIM_FALCON_FRAME_DATA_H
 
+#include "sim_hsd_pose.h"
+
 #include <stdint.h>
 
 #define PF_M4_FALCON_COMMON_ATTRIBUTE_COUNT UINT16_C(97)
@@ -827,6 +829,13 @@ pf_m4_falcon_reference_common_hurt_capsules_for_submotion_at_frame(
     uint8_t action_state,
     uint16_t source_submotion,
     uint16_t action_frame,
+    uint8_t *out_count);
+
+int pf_m4_falcon_reference_dynamic_ground_hurt_capsules(
+    uint16_t source_submotion,
+    int32_t source_animation_frame_q16,
+    pf_m4_reference_hurt_capsule
+        out_capsules[PF_M4_HSD_POSE_MAX_CAPSULES],
     uint8_t *out_count);
 
 int pf_m4_falcon_reference_move_for_action(

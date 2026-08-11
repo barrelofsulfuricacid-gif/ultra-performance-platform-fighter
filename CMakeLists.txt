@@ -88,10 +88,12 @@ set(
     src/sim/sim.c
     src/sim/sim_combat.c
     src/sim/sim_content.c
-      src/sim/sim_falcon_frame_data.c
-      src/sim/sim_ssbm_common_data.c
-      src/sim/sim_ssbm_stage_data.c
-      src/sim/sim_ssbm_damage.c
+    src/sim/sim_falcon_frame_data.c
+    src/sim/sim_hsd_pose.c
+    src/sim/sim_hsd_pose.h
+    src/sim/sim_ssbm_common_data.c
+    src/sim/sim_ssbm_stage_data.c
+    src/sim/sim_ssbm_damage.c
     src/sim/sim_event.c
     src/sim/sim_item.c
     src/sim/sim_projectile.c

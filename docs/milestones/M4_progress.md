@@ -5466,3 +5466,32 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   and completes in 0.433 seconds on WSL and 0.581 seconds on warm Windows. Both
   platforms pass the full stored gate, movement, combat, and deterministic
   replay without changing the pinned replay hashes.
+
+## 2026-08-10 velocity-driven Falcon ground-loop poses
+
+- Canonical Falcon state now retains the source submotion, fractional animation
+  cursor, and rate required by Melee's velocity-driven WalkSlow/Middle/Fast and
+  Run callbacks. Walk gait changes use the decomp phase-remap equation; the
+  shared stored numeric runner protects three clock cases / 111 source samples.
+- A prior-art sweep covered the pinned `doldecomp/melee` HSD runtime, the
+  repository's existing FigaTree parser, and current HSDLib before extending
+  the smallest reusable source-data path. The resulting generic importer maps
+  the complete 63-joint Falcon model and 63-entry runtime part layout to a
+  23-joint parent-closed subset for all 11 hurt capsules, then emits 205 FObj
+  tracks / 1,198 keys across the four ground-loop motions.
+- Exact `HSD_FObjReqAnim` behavior matters: each track's `startframe` is added
+  to the requested animation frame. Preserving the older subtractive helper
+  interpretation displaced WalkMiddle because two translation tracks start at
+  frame 52. The shared Python and C evaluators now use the additive rule.
+- A fresh 391-row headless/null/unlimited checkpoint pack records live motion,
+  animation, and six-frame default blend state. After blend completion, the
+  source evaluator agrees for all 51 WalkSlow, 31 WalkMiddle, and 20 Run
+  observations: 102 poses / 1,122 capsules with maximum 2-Q16 coordinate error.
+  Six stored observations / 66 capsules independently protect the production C
+  evaluator. WalkFast data ships but awaits a naturally reached live route.
+- Portable MSVC Release passes 35/35 with bounded two-way scheduling; WSL
+  Release passes 35/35, and WSL ASan/UBSan passes 25/25. The twenty-domain /
+  116-case stored gate plus replay completes in 0.700 seconds on Windows and
+  0.738 seconds in WSL. A five-repetition native benchmark records 983,690
+  representative 1v1 ticks/s and 568,368 maximum-combat ticks/s. The rebuilt
+  Emscripten playtest reaches a live tick-50 match with clean browser logs.

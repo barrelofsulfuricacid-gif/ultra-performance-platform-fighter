@@ -195,10 +195,15 @@ the same qualified semantic SHA-256
 `3c72296c3c1558d7df32228892f5b1adec4b4370e72e4d415fdc981cd2aa3ed3`.
 Six physical stored controls bind the production accessor under SHA-256
 `1a83c02e310c097ad609dd2e18787bec2b6589fc76f5daa039578b8e04f6a81f`.
-WalkSlow/Middle/Fast and Run observations are intentionally not admitted as
-pose tracks: the decomp derives their animation rate from ground velocity and
-remaps walk phase when changing gait, while production does not yet represent
-that dynamic animation cursor.
+Production now retains the decomp-driven WalkSlow/Middle/Fast and Run source
+submotion, fractional animation cursor, and rate, including gait-phase remap.
+Because these poses cannot use a static displayed-frame lookup, a shared
+deterministic Q16 HSD evaluator consumes the pinned compact source joint/FObj
+data. Independent source evaluation agrees with a fresh live capture for 51
+WalkSlow, 31 WalkMiddle, and 20 Run samples (1,122 capsules) within 2 Q16 units;
+six stored observations protect the production C evaluator. WalkFast data is
+imported but remains outside the empirical claim until a natural live route
+reaches that gait.
 The expanded route also covers common RunBrake IASA and crouch common-IASA
 entry: neutral A from all three crouch states; neutral B accepted only from
 `Squat`; and physical Z selecting `Catch` from `Squat` but `Attack11` from

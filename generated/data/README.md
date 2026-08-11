@@ -66,6 +66,18 @@ profile and generator counts; the Falcon Dive stored domain reuses this table
 for its frame-20 physical hit/miss theorem instead of retaining a partial
 JumpF-specific copy.
 
+`m4_ssbm_falcon_ground_loop_hsd.inc` is the compact source-data form for
+velocity-driven WalkSlow/Middle/Fast and Run poses. The generic generator reads
+the four hash-pinned owner-extracted fighter/model DATs, validates the complete
+model and runtime part layout, retains only the 23 parent-closed joints needed
+by Falcon's 11 hurt capsules, and emits four motions containing 205 FObj tracks
+and 1,198 keys. The character-independent Q16 runtime evaluator samples these
+tracks at the canonical fractional animation cursor; Falcon only binds its
+source submotion IDs and converts the shared capsule result. The companion
+`m4_ssbm_falcon_ground_loop_hsd_oracle.inc` contains six test observations,
+not a duplicate production pose table. The live source verifier independently
+compares the DAT evaluator against Dolphin after animation blending completes.
+
 `m4_ssbm_falcon_turn_hurt.inc` contains the 11 `Turn` and 22 `TurnRun`
 source poses, including TurnRun frame zero. Its import manifest pins both an
 accelerated and a no-fast-forward control capture with identical semantics.

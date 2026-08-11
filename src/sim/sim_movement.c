@@ -14452,6 +14452,7 @@ pf_status pf_m4_inspect(
                 player->action_state,
                 player->hitlag_resume_action,
                 sim->world.source_submotion[player_index],
+                sim->world.source_animation_frame_q16[player_index],
                 player->action_ticks,
                 player->hurt_capsules);
     }

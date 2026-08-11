@@ -1,4 +1,5 @@
 #include "sim_falcon_frame_data.h"
+#include "sim_hsd_pose.h"
 
 #include "pf/m4.h"
 
@@ -11,6 +12,7 @@
 #include "../../generated/data/m4_ssbm_falcon_airborne_hurt.inc"
 #include "../../generated/data/m4_ssbm_falcon_turn_hurt.inc"
 #include "../../generated/data/m4_ssbm_falcon_crouch_taunt_hurt.inc"
+#include "../../generated/data/m4_ssbm_falcon_ground_loop_hsd.inc"
 
 _Static_assert(
     (size_t)PF_M4_FALCON_LEDGE_HURT_COUNT ==
@@ -900,6 +902,56 @@ pf_m4_falcon_reference_common_hurt_capsules_at_frame(
             UINT16_C(0),
             action_frame,
             out_count);
+}
+
+int pf_m4_falcon_reference_dynamic_ground_hurt_capsules(
+    uint16_t source_submotion,
+    int32_t source_animation_frame_q16,
+    pf_m4_reference_hurt_capsule
+        out_capsules[PF_M4_HSD_POSE_MAX_CAPSULES],
+    uint8_t *out_count)
+{
+    pf_m4_hsd_evaluated_capsule evaluated[PF_M4_HSD_POSE_MAX_CAPSULES];
+    uint8_t count;
+    uint8_t capsule_index;
+
+    if (out_capsules == NULL || out_count == NULL ||
+        !pf_m4_hsd_evaluate_hurt_pose(
+            &pf_m4_falcon_ground_loop_hsd_data,
+            source_submotion,
+            source_animation_frame_q16,
+            evaluated,
+            &count))
+    {
+        if (out_count != NULL)
+        {
+            *out_count = UINT8_C(0);
+        }
+        return 0;
+    }
+    for (capsule_index = UINT8_C(0);
+         capsule_index < count;
+         ++capsule_index)
+    {
+        const pf_m4_hsd_evaluated_capsule *source =
+            &evaluated[capsule_index];
+        pf_m4_reference_hurt_capsule *destination =
+            &out_capsules[capsule_index];
+
+        destination->endpoint_a_x_q16 = source->endpoint_a_q16[0];
+        destination->endpoint_a_y_q16 = source->endpoint_a_q16[1];
+        destination->endpoint_a_z_q16 = source->endpoint_a_q16[2];
+        destination->endpoint_b_x_q16 = source->endpoint_b_q16[0];
+        destination->endpoint_b_y_q16 = source->endpoint_b_q16[1];
+        destination->endpoint_b_z_q16 = source->endpoint_b_q16[2];
+        destination->radius_q16 = source->radius_q16;
+        destination->hurtbox_id = source->hurtbox_id;
+        destination->height = source->height;
+        destination->grabbable = source->grabbable;
+        destination->reserved = UINT8_C(0);
+    }
+    *out_count = count;
+    return 1;
 }
 
 const pf_m4_reference_hurt_capsule *

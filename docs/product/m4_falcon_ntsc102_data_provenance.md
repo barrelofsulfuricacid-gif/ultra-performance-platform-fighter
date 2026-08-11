@@ -1231,11 +1231,36 @@ the independent production accessor serializes to SHA-256
 `1a83c02e310c097ad609dd2e18787bec2b6589fc76f5daa039578b8e04f6a81f`.
 Six physical hit/miss controls cover the three retained submotion identities.
 
-The same raw pack records WalkSlow/Middle/Fast and Run only as diagnostic clock
-probes. `ftWalkCommon_800DFDDC` derives animation rate from ground velocity and
-`ftWalkCommon_800DFEC8` changes gait while remapping animation phase. Because
-production does not yet retain that dynamic animation cursor, those rows are
-not canonicalized into pose tracks and are not claimed as qualified coverage.
+The same raw pack records the velocity-driven WalkSlow/Middle/Fast and Run
+animation clocks. `ftWalkCommon_800DFDDC` derives animation rate from ground
+velocity and `ftWalkCommon_800DFEC8` changes gait while remapping animation
+phase. Production now retains source submotion, fractional animation cursor,
+and rate in canonical rollback state; three stored cases protect 111 clock
+samples through the character-independent numeric runner.
+
+Walk and Run hurt geometry cannot be represented by a static one-pose-per-tick
+table. `tools/generate_ssbm_dynamic_hurt_pose_include.py` therefore reads the
+owner-extracted `PlCa.dat`, `PlCaAJ.dat`, `PlCo.dat`, and `PlCaNr.dat`, validates
+their pinned SHA-256 values, maps Falcon's 63 model joints through the complete
+63-entry runtime part layout, closes the 11 hurt capsules over their 23 required
+ancestor joints, and emits the original 205 FObj tracks / 1,198 keys for four
+motions. The generated semantic data SHA-256 is
+`ea9603efe949a0d30673ccd119c97034cd08c5b85a0f3a2b066c843bdb49520c`.
+The shared runtime evaluator implements the HSD FObj interpolation and Euler
+SRT hierarchy in deterministic Q16.16. In particular, it follows
+`HSD_FObjReqAnim` by adding each FObj `startframe` to the requested animation
+frame; subtracting it produces a large, motion-specific WalkMiddle error.
+
+A fresh live headless/null/unlimited capture with SHA-256
+`5d8b9090e8f03ffaac02ae1a69465c718da45a6159b0d2bf307eb00ea88ec3e5`
+also records motion ID, animation ID, and blend state. After the source six-frame
+default blend finishes, the independent Python source evaluator agrees for all
+51 WalkSlow, 31 WalkMiddle, and 20 Run observations: 102 poses / 1,122 capsules,
+with maximum coordinate error 2 Q16 units under an 8-Q16 qualification bound.
+Six observations from the original clock capture are stored as a separate C
+oracle with a 64-Q16 deterministic-runtime bound. WalkFast source tracks are
+imported but are not yet claimed live-qualified because this capture never
+naturally enters that gait.
 
 ## Repository controls
 

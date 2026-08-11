@@ -35,6 +35,23 @@
 #include "../../generated/data/m4_ssbm_falcon_slope_ledge_response_oracle.inc"
 #include "../../generated/data/m4_ssbm_falcon_ledge_options_oracle.inc"
 
+typedef struct pf_m4_hsd_hurt_oracle_case
+{
+    const char *id;
+    uint16_t source_submotion;
+    int32_t source_animation_frame_q16;
+    pf_m4_reference_hurt_capsule capsules[PF_M4_HSD_POSE_MAX_CAPSULES];
+} pf_m4_hsd_hurt_oracle_case;
+
+typedef int (*pf_m4_hsd_hurt_pose_evaluator)(
+    uint16_t source_submotion,
+    int32_t source_animation_frame_q16,
+    pf_m4_reference_hurt_capsule
+        out_capsules[PF_M4_HSD_POSE_MAX_CAPSULES],
+    uint8_t *out_count);
+
+#include "../../generated/data/m4_ssbm_falcon_ground_loop_hsd_oracle.inc"
+
 #define TEST_MEMORY_BYTES 4096U
 #define TEST_MEMORY_ALIGNMENT 64U
 #define TEST_SAVE_CAPACITY 1024U
@@ -14282,6 +14299,7 @@ static int reference_falcon_turn_hurt_pose_facing_case(
         stored_case->target_action,
         UINT8_C(0),
         stored_case->target_source_submotion,
+        (int32_t)stored_case->action_frame * INT32_C(65536),
         phase->action_ticks,
         world_capsules);
     int candidate_facing;
@@ -29098,6 +29116,104 @@ static int run_battlefield_stage_catalog_test(void)
     return 1;
 }
 
+static int run_hsd_hurt_pose_oracle(
+    const pf_m4_hsd_hurt_oracle_case *cases,
+    uint8_t case_count,
+    uint8_t expected_capsule_count,
+    int32_t coordinate_tolerance_q16,
+    pf_m4_hsd_hurt_pose_evaluator evaluate)
+{
+    uint8_t case_index;
+
+    for (case_index = UINT8_C(0);
+         case_index < case_count;
+         ++case_index)
+    {
+        const pf_m4_hsd_hurt_oracle_case *oracle = &cases[case_index];
+        pf_m4_reference_hurt_capsule
+            actual[PF_M4_HSD_POSE_MAX_CAPSULES];
+        uint8_t actual_count;
+        uint8_t capsule_index;
+
+        if (!evaluate(
+                oracle->source_submotion,
+                oracle->source_animation_frame_q16,
+                actual,
+                &actual_count) ||
+            actual_count != expected_capsule_count)
+        {
+            (void)fprintf(
+                stderr,
+                "case=%s dynamic-hurt-pose-evaluation-failed count=%u\n",
+                oracle->id,
+                (unsigned int)actual_count);
+            return 0;
+        }
+        for (capsule_index = UINT8_C(0);
+             capsule_index < actual_count;
+             ++capsule_index)
+        {
+            const pf_m4_reference_hurt_capsule *left =
+                &actual[capsule_index];
+            const pf_m4_reference_hurt_capsule *right =
+                &oracle->capsules[capsule_index];
+            const int32_t left_values[7] = {
+                left->endpoint_a_x_q16,
+                left->endpoint_a_y_q16,
+                left->endpoint_a_z_q16,
+                left->endpoint_b_x_q16,
+                left->endpoint_b_y_q16,
+                left->endpoint_b_z_q16,
+                left->radius_q16};
+            const int32_t right_values[7] = {
+                right->endpoint_a_x_q16,
+                right->endpoint_a_y_q16,
+                right->endpoint_a_z_q16,
+                right->endpoint_b_x_q16,
+                right->endpoint_b_y_q16,
+                right->endpoint_b_z_q16,
+                right->radius_q16};
+            uint8_t field_index;
+
+            if (left->hurtbox_id != right->hurtbox_id ||
+                left->height != right->height ||
+                left->grabbable != right->grabbable)
+            {
+                return fail("dynamic-ground-hurt-pose-metadata");
+            }
+            for (field_index = UINT8_C(0);
+                 field_index < UINT8_C(7);
+                 ++field_index)
+            {
+                int64_t difference =
+                    (int64_t)left_values[field_index] -
+                    (int64_t)right_values[field_index];
+
+                if (difference < INT64_C(0))
+                {
+                    difference = -difference;
+                }
+                if (difference >
+                    (int64_t)coordinate_tolerance_q16)
+                {
+                    (void)fprintf(
+                        stderr,
+                        "case=%s capsule=%u field=%u expected=%" PRId32
+                        " actual=%" PRId32 " difference=%" PRId64 "\n",
+                        oracle->id,
+                        (unsigned int)capsule_index,
+                        (unsigned int)field_index,
+                        right_values[field_index],
+                        left_values[field_index],
+                        difference);
+                    return 0;
+                }
+            }
+        }
+    }
+    return 1;
+}
+
 int main(int argc, char **argv)
 {
     pf_m4_content content;
@@ -29814,6 +29930,12 @@ int main(int argc, char **argv)
             &shield_poke_view) ||
         !run_reference_shield_boundary_test() ||
         !run_reference_moving_hit_sweep_test() ||
+        !run_hsd_hurt_pose_oracle(
+            pf_m4_falcon_ground_loop_hsd_oracle_cases,
+            PF_M4_FALCON_GROUND_LOOP_HSD_ORACLE_CASE_COUNT,
+            PF_M4_FALCON_GROUND_LOOP_HSD_ORACLE_CAPSULE_COUNT,
+            PF_M4_FALCON_GROUND_LOOP_HSD_ORACLE_TOLERANCE_Q16,
+            pf_m4_falcon_reference_dynamic_ground_hurt_capsules) ||
         !run_reference_common_hurt_stored_oracle(0) ||
         !run_reference_falcon_grounded_loop_hurt_stored_oracle(0) ||
         !run_reference_falcon_dive_grab_stored_oracle(0) ||
