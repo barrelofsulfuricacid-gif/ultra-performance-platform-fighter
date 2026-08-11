@@ -1483,3 +1483,31 @@ translation units.
 - Every later imported table must extend this document with source, revision,
   raw value, conversion, and destination field.
 - A formal IP/originality review is required before public release.
+
+## Falcon ordinary guard hurt and ECB poses
+
+Pinned `ftCo_Guard.c` establishes three different pose clocks. `GuardOn`
+enters with `Ft_MF_SkipAnim`; `ftCo_80091E78` manually interpolates Wait toward
+the shield skeleton for eight updates while the public animation frame remains
+`-1`. `Guard` freezes the terminal manual pose, also at public frame `-1`.
+`GuardOff` is ordinary submotion 39 and exposes displayed frames 0-15. Raw HSD
+sampling matches GuardOff within one Q16 unit but differs from live GuardOn by
+9,594-31,608 Q16, so the executable manual poses are retained explicitly.
+
+Two independent 40-row captures have raw SHA-256
+`e9141d1ce253bee82233d9545cf20145d594d60510cee5ea77b19ca5e12390b9`
+and `88943aab9a5d70c79570ab108f9a9183fd69d3a0bde8c9d2ee38a641a089b1ef`.
+Both regenerate 25 hurt poses / 275 capsules under semantic SHA-256
+`4db8c524835e969b5b34fda81e53b59d6af99aa68d13e7203086c6441a41abde`
+and 25 complete four-point ECB poses under semantic SHA-256
+`a1bd5b9937cb342a053415ecc674b36dc5a01fb575ed688b32f8e097e1b209c1`.
+The committed hurt and ECB profile SHA-256 values are respectively
+`e1d76de8fac684d0976fa464d5906a145aeb340a99c0f88490da3574231c763b`
+and `4ac108b18b77438b84760dd0dbea1ac830e8b5f323429aaeb01ecd4b66e48165`.
+
+The complete Falcon source digest is now
+`3f3eac0d534cb2f29c9a6a4d6fd9156aeb48162d8acb918a5e41eeeb10cb0988`.
+Production selects the immutable profiles from action plus retained source
+submotion in constant time. GuardSetOff/shield stun uses a callback-derived
+dynamic animation rate and is explicitly outside this profile rather than
+being approximated with Guard or raw HSD geometry.

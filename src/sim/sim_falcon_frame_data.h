@@ -41,6 +41,9 @@
 #define PF_M4_FALCON_SHIELD_BREAK_DOWN_ECB_FRAME_COUNT UINT16_C(26)
 #define PF_M4_FALCON_SHIELD_BREAK_STAND_ECB_FRAME_COUNT UINT16_C(30)
 #define PF_M4_FALCON_SHIELD_BREAK_STUN_ECB_FRAME_COUNT UINT16_C(100)
+#define PF_M4_FALCON_GUARD_ON_FRAME_COUNT UINT16_C(8)
+#define PF_M4_FALCON_GUARD_FRAME_COUNT UINT16_C(1)
+#define PF_M4_FALCON_GUARD_OFF_FRAME_COUNT UINT16_C(16)
 #define PF_M4_FALCON_CEILING_BOUNCE_ECB_FRAME_COUNT UINT16_C(9)
 #define PF_M4_FALCON_WALL_BOUNCE_ECB_FRAME_COUNT UINT16_C(51)
 #define PF_M4_FALCON_LEDGE_OPTION_SUBMOTION_FIRST UINT16_C(219)
@@ -138,7 +141,10 @@ typedef enum pf_m4_falcon_submotion_index
     PF_M4_FALCON_SUBMOTION_SQUAT_WAIT = 31,
     PF_M4_FALCON_SUBMOTION_SQUAT_REVERSE = 34,
     PF_M4_FALCON_SUBMOTION_LANDING_FALL_SPECIAL = 36,
+    PF_M4_FALCON_SUBMOTION_GUARD_ON = 37,
+    PF_M4_FALCON_SUBMOTION_GUARD = 38,
     PF_M4_FALCON_SUBMOTION_GUARD_OFF = 39,
+    PF_M4_FALCON_SUBMOTION_GUARD_SET_OFF = 40,
     PF_M4_FALCON_SUBMOTION_SPOT_DODGE = 41,
     PF_M4_FALCON_SUBMOTION_ROLL_FORWARD = 42,
     PF_M4_FALCON_SUBMOTION_ROLL_BACKWARD = 43,
@@ -232,6 +238,11 @@ typedef enum pf_m4_falcon_common_hurt_index
 enum
 {
     PF_M4_FALCON_LEDGE_HURT_TRACK_COUNT = 10
+};
+
+enum
+{
+    PF_M4_FALCON_GUARD_HURT_TRACK_COUNT = 3
 };
 
 typedef struct pf_m4_falcon_submotion_data
@@ -634,6 +645,12 @@ typedef struct pf_m4_falcon_collision_pose
         PF_M4_FALCON_SHIELD_BREAK_STAND_ECB_FRAME_COUNT];
     pf_m4_falcon_ecb_pose_q16 shield_break_stun[
         PF_M4_FALCON_SHIELD_BREAK_STUN_ECB_FRAME_COUNT];
+    pf_m4_falcon_ecb_pose_q16 guard_on[
+        PF_M4_FALCON_GUARD_ON_FRAME_COUNT];
+    pf_m4_falcon_ecb_pose_q16 guard[
+        PF_M4_FALCON_GUARD_FRAME_COUNT];
+    pf_m4_falcon_ecb_pose_q16 guard_off[
+        PF_M4_FALCON_GUARD_OFF_FRAME_COUNT];
     pf_m4_falcon_ecb_pose_q16 ceiling_bounce[
         PF_M4_FALCON_CEILING_BOUNCE_ECB_FRAME_COUNT];
     pf_m4_falcon_ecb_pose_q16 wall_bounce[
@@ -799,6 +816,12 @@ pf_m4_falcon_reference_prone_ecb_pose(
     uint8_t prone_roll_motion_orientation,
     int8_t tech_direction,
     int8_t facing);
+
+const pf_m4_falcon_ecb_pose_q16 *
+pf_m4_falcon_reference_guard_ecb_pose(
+    uint8_t action_state,
+    uint16_t source_submotion,
+    uint16_t action_ticks);
 
 int pf_m4_falcon_reference_ecb_apply_bottom_lock_q16(
     int32_t locked_bottom_y_q16,

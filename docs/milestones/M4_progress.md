@@ -5795,3 +5795,43 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   transition fact. Save size is 1,747 bytes and deterministic replay size is
   42,519 bytes. The full WSL Release suite passes 40/40 in 5.67 seconds and the
   strict native Windows MSVC suite passes 40/40 in 8.35 seconds.
+## 2026-08-11 ordinary guard pose fidelity
+
+- The pinned decomp shows that Falcon `GuardOn` is not its raw FigaTree.
+  `ftCo_80091E78` manually blends Wait toward the shield skeleton across eight
+  `Ft_MF_SkipAnim` updates, `Guard` freezes that terminal pose, and `GuardOff`
+  advances normal HSD frames 0-15. The generic hurt and ECB extractors now
+  support explicit observation-order and fixed-frame tracks for this reusable
+  hidden-clock pattern.
+- Two independent 40-row headless captures regenerate identical 25-pose hurt
+  and ECB semantics. Hurt profile / semantic SHA-256 values are
+  `e1d76de8fac684d0976fa464d5906a145aeb340a99c0f88490da3574231c763b` /
+  `4db8c524835e969b5b34fda81e53b59d6af99aa68d13e7203086c6441a41abde`;
+  ECB profile / semantic values are
+  `4ac108b18b77438b84760dd0dbea1ac830e8b5f323429aaeb01ecd4b66e48165` /
+  `a1bd5b9937cb342a053415ecc674b36dc5a01fb575ed688b32f8e097e1b209c1`.
+- Production retains GuardOn, Guard, GuardOff, and GuardSetOff source identities
+  through movement, combat, snapshot validation, save/load, and hitlag. The
+  exact O(1) accessor supplies 275 hurt capsules and 25 complete four-point
+  ECBs without new canonical state. GuardSetOff's dynamic-rate geometry is
+  deliberately not claimed by this slice.
+- The common-hurt physical manifest now declares all 16 boundaries actually
+  executed by the checkpoint pack. The checkpoint runner reapplies position
+  and RNG writes after restore acknowledgement; previously those writes could
+  target the discarded pre-restore state. Two corrected full captures produce
+  the same 714-pose source SHA-256
+  `9688be9b0ca0d0eacac5ba26714968acdcc3b19aaac9449778c108275b1c940b`,
+  and the live dash discriminator passes at margins `+0.289212401` /
+  `-0.156798480`. The production accessor SHA-256 is
+  `0641ed13ea1d179e214f5629b4f8d7b93e226091b9925d6e31dfe53645c74c36`.
+  Correct full-pack warm measurements are 14.10-15.05 seconds for 323 rows;
+  focused guard-only qualification remains about 0.15 seconds warm.
+- The canonical source-submotion field now records guard identity, so replay
+  bytes change while the tick-240 final-state and event digests remain stable.
+  The reviewed replay corpus SHA-256 is
+  `e327a55b18221e35eb106a70de7cae48db1c38068e38fa13fc9680ba4e4759a4`;
+  two independent verifier soaks reproduce digest `83f2bdc274c8920a`.
+- Strict Release gates pass 38/38 on Windows in 3.54 seconds and 40/40 in WSL
+  in 3.12 seconds. The full 21-domain / 117-case stored-equivalence plus replay
+  gate passes in 910.252 ms on Windows and 814.570 ms in WSL, below its
+  two-second post-build budget.

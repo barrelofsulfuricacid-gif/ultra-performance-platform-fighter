@@ -59,6 +59,15 @@ and one nearby miss placement. The physical routes remain supplemental
 checkpoint projections, so they do not duplicate capsules or lengthen the
 default ledge trace pack.
 
+`m4_ssbm_falcon_guard_hurt.inc` is the same generic bounded-pose format for
+Falcon's eight manually blended `GuardOn` updates, frozen `Guard` terminal
+pose, and ordinary 16-frame `GuardOff` motion. The hash-pinned import manifest
+binds 25 poses / 275 capsules; the companion generated Falcon frame-data table
+owns the independently qualified 25 complete four-point ECB poses. Production
+selects both by retained source submotion and action tick with no runtime file
+parsing or new rollback state. `GuardSetOff` is intentionally excluded because
+its shield-stun callback supplies a dynamic animation rate.
+
 `m4_ssbm_falcon_airborne_hurt.inc` is the same generic format for Falcon's
 complete JumpF, JumpB, JumpAerialF, JumpAerialB, Fall, and FallAerial tracks.
 `tools/ssbm_falcon_airborne_hurt_import.json` pins the canonical 186-pose
@@ -106,7 +115,7 @@ digests, and hit/miss cases before emitting immutable rows. Hash-pinned bounded
 pose profiles are consumed directly, so the ledge frame ranges are not copied
 into a second manifest; only their source-submotion bindings are character-
 specific. It contains no second copy of hurt capsules. A thin Falcon adapter
-lets the shared C runner hash both production hurt-pose tables through the same
+lets the shared C runner hash every production hurt-pose table through the same
 accessor, so a stale or modified production table fails the pinned digest.
 
 `m4_ssbm_falcon_punch_oracle.inc` is test-only generated metadata for the

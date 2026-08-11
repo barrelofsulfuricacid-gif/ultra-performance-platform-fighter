@@ -32,6 +32,7 @@ def extract_track(
     label_prefix: str | None = None,
     pending_pose_facing_frame: int | None = None,
     use_display_pose: bool = False,
+    frame_mode: str = "action",
 ) -> dict[str, Any]:
     frames: dict[int, tuple[tuple[int, ...], ...]] = {}
     collision_trace_frames = collision_trace_frames or {}
@@ -45,6 +46,7 @@ def extract_track(
         "opponent_fighter_position" if opponent else "fighter_position"
     )
     pending_pose_facing_rows = 0
+    selected_index = 0
     for row in rows:
         if label_prefix is not None and not str(row.get("label", "")).startswith(
             label_prefix
@@ -62,14 +64,22 @@ def extract_track(
         if collision_frame is None:
             if row.get(action_key) != source_action:
                 continue
-            raw_frame = row.get(action_frame_key)
-            if (
-                not isinstance(raw_frame, (int, float))
-                or isinstance(raw_frame, bool)
-                or float(raw_frame) != int(raw_frame)
-            ):
-                raise ValueError(f"track {track_id!r} has a non-integral frame")
-            displayed_frame = int(raw_frame)
+            if frame_mode == "sequential":
+                displayed_frame = first_displayed_frame + selected_index
+            elif frame_mode == "fixed":
+                displayed_frame = first_displayed_frame
+            else:
+                raw_frame = row.get(action_frame_key)
+                if (
+                    not isinstance(raw_frame, (int, float))
+                    or isinstance(raw_frame, bool)
+                    or float(raw_frame) != int(raw_frame)
+                ):
+                    raise ValueError(
+                        f"track {track_id!r} has a non-integral frame"
+                    )
+                displayed_frame = int(raw_frame)
+            selected_index += 1
         else:
             displayed_frame = collision_frame
         if not first_displayed_frame <= displayed_frame <= last_displayed_frame:
@@ -202,6 +212,18 @@ def main() -> int:
             "instead of collision-authoritative endpoints"
         ),
     )
+    parser.add_argument(
+        "--sequential-frame-track",
+        action="append",
+        metavar="TRACK_ID",
+        help="derive hidden/manual source frames from selected row order",
+    )
+    parser.add_argument(
+        "--fixed-frame-track",
+        action="append",
+        metavar="TRACK_ID",
+        help="map every selected row to the declared first frame",
+    )
     args = parser.parse_args()
 
     capture_bytes = args.capture.read_bytes()
@@ -240,6 +262,10 @@ def main() -> int:
         pending_pose_facing_by_track[track_id] = displayed_frame
 
     display_pose_tracks = set(args.display_pose_track or [])
+    sequential_frame_tracks = set(args.sequential_frame_track or [])
+    fixed_frame_tracks = set(args.fixed_frame_track or [])
+    if sequential_frame_tracks & fixed_frame_tracks:
+        raise SystemExit("a track cannot use both sequential and fixed frames")
     for track_id, raw_displayed, raw_trace in (
         args.opponent_collision_frame or []
     ):
@@ -298,6 +324,11 @@ def main() -> int:
                 label_prefix=label_prefix_by_track.get(raw_id),
                 pending_pose_facing_frame=pending_pose_facing_by_track.get(raw_id),
                 use_display_pose=raw_id in display_pose_tracks,
+                frame_mode=(
+                    "sequential"
+                    if raw_id in sequential_frame_tracks
+                    else "fixed" if raw_id in fixed_frame_tracks else "action"
+                ),
             )
         )
         track_ids.add(raw_id)
@@ -326,6 +357,14 @@ def main() -> int:
         raise SystemExit(
             "display-pose tracks reference unknown tracks: "
             + ", ".join(sorted(unknown_display_tracks))
+        )
+    unknown_frame_tracks = (
+        sequential_frame_tracks | fixed_frame_tracks
+    ) - track_ids
+    if unknown_frame_tracks:
+        raise SystemExit(
+            "frame modes reference unknown tracks: "
+            + ", ".join(sorted(unknown_frame_tracks))
         )
     if len(roles) != 1:
         raise SystemExit("one profile may not mix fighter and opponent tracks")

@@ -83,6 +83,15 @@ SHIELD_BREAK_ECB_CAPTURE_SHA256 = (
 SHIELD_BREAK_ECB_SEMANTIC_SHA256 = (
     "11b28d22f68f7bb87c99dbc5f949f5456d1a69ab7bfa78360927ecb334064eeb"
 )
+GUARD_ECB_PROFILE_SHA256 = (
+    "4ac108b18b77438b84760dd0dbea1ac830e8b5f323429aaeb01ecd4b66e48165"
+)
+GUARD_ECB_CAPTURE_SHA256 = (
+    "e9141d1ce253bee82233d9545cf20145d594d60510cee5ea77b19ca5e12390b9"
+)
+GUARD_ECB_SEMANTIC_SHA256 = (
+    "a1bd5b9937cb342a053415ecc674b36dc5a01fb575ed688b32f8e097e1b209c1"
+)
 DOWN_BOUND_ECB_PROFILE_SHA256 = (
     "a51838128df5c2df0df68a1df507b05ef868217d76b1c5fe57471f094d084f28"
 )
@@ -1172,6 +1181,7 @@ def generate(
     airborne_ecb_profile: dict[str, Any],
     aerial_attack_ecb_profile: dict[str, Any],
     shield_break_ecb_profile: dict[str, Any],
+    guard_ecb_profile: dict[str, Any],
     down_bound_ecb_profile: dict[str, Any],
     getup_ecb_profile: dict[str, Any],
     ground_loop_ecb_profile: dict[str, Any],
@@ -1227,6 +1237,12 @@ def generate(
     shield_break_stun_frames = tuple(
         shield_break_tracks["shield-break-stun"]["frames"]
     )
+    guard_tracks = {
+        str(track["id"]): track for track in guard_ecb_profile["tracks"]
+    }
+    guard_on_frames = tuple(guard_tracks["guard_on"]["frames"])
+    guard_frames = tuple(guard_tracks["guard"]["frames"])
+    guard_off_frames = tuple(guard_tracks["guard_off"]["frames"])
     down_bound_tracks = {
         str(track["id"]): track for track in down_bound_ecb_profile["tracks"]
     }
@@ -1805,6 +1821,8 @@ def generate(
         + bytes.fromhex(AERIAL_ATTACK_ECB_SEMANTIC_SHA256)
         + bytes.fromhex(SHIELD_BREAK_ECB_PROFILE_SHA256)
         + bytes.fromhex(SHIELD_BREAK_ECB_SEMANTIC_SHA256)
+        + bytes.fromhex(GUARD_ECB_PROFILE_SHA256)
+        + bytes.fromhex(GUARD_ECB_SEMANTIC_SHA256)
         + bytes.fromhex(DOWN_BOUND_ECB_PROFILE_SHA256)
         + bytes.fromhex(DOWN_BOUND_ECB_SEMANTIC_SHA256)
         + bytes.fromhex(GETUP_ECB_PROFILE_SHA256)
@@ -1904,6 +1922,22 @@ def generate(
                     )
                     for frame in shield_break_fly_frames
                 ),
+                "falcon_guard_ecb_capture_sha256": (
+                    GUARD_ECB_CAPTURE_SHA256
+                ),
+                "falcon_guard_ecb_semantic_sha256": (
+                    GUARD_ECB_SEMANTIC_SHA256
+                ),
+                "falcon_guard_collision_pose_q16": {
+                    track_id: tuple(
+                        tuple(
+                            tuple(frame["ecb_q16"][point])
+                            for point in ECB_POINTS
+                        )
+                        for frame in track["frames"]
+                    )
+                    for track_id, track in guard_tracks.items()
+                },
                 "falcon_down_bound_ecb_capture_sha256": (
                     DOWN_BOUND_ECB_CAPTURE_SHA256
                 ),
@@ -2054,6 +2088,8 @@ def generate(
         f"/* bounce ECB semantic SHA-256: {BOUNCE_ECB_SEMANTIC_SHA256} */",
         f"/* shield-break ECB profile SHA-256: {SHIELD_BREAK_ECB_PROFILE_SHA256} */",
         f"/* shield-break ECB semantic SHA-256: {SHIELD_BREAK_ECB_SEMANTIC_SHA256} */",
+        f"/* guard ECB profile SHA-256: {GUARD_ECB_PROFILE_SHA256} */",
+        f"/* guard ECB semantic SHA-256: {GUARD_ECB_SEMANTIC_SHA256} */",
         f"/* DownBound ECB profile SHA-256: {DOWN_BOUND_ECB_PROFILE_SHA256} */",
         f"/* DownBound ECB semantic SHA-256: {DOWN_BOUND_ECB_SEMANTIC_SHA256} */",
         f"/* getup ECB profile SHA-256: {GETUP_ECB_PROFILE_SHA256} */",
@@ -2548,6 +2584,24 @@ def generate(
                 for frame in shield_break_stun_frames
             ),
             "    },",
+            "    .guard_on = {",
+            *(
+                f"        {render_ecb_pose_q16(frame)},"
+                for frame in guard_on_frames
+            ),
+            "    },",
+            "    .guard = {",
+            *(
+                f"        {render_ecb_pose_q16(frame)},"
+                for frame in guard_frames
+            ),
+            "    },",
+            "    .guard_off = {",
+            *(
+                f"        {render_ecb_pose_q16(frame)},"
+                for frame in guard_off_frames
+            ),
+            "    },",
             "    .ceiling_bounce = {",
             *(
                 f"        {render_ecb_pose_q16(frame)},"
@@ -2728,6 +2782,18 @@ def main() -> int:
             ("shield-break-stun", "SHIELD_BREAK_TEETER", 0, 100),
         ),
     )
+    guard_ecb_profile = load_ecb_profile(
+        Path(__file__).with_name("data")
+        / "ssbm_falcon_guard_ecb.json",
+        expected_profile_sha256=GUARD_ECB_PROFILE_SHA256,
+        expected_capture_sha256=GUARD_ECB_CAPTURE_SHA256,
+        expected_semantic_sha256=GUARD_ECB_SEMANTIC_SHA256,
+        expected_tracks=(
+            ("guard_on", "SHIELD_START", 0, 8),
+            ("guard", "SHIELD", 0, 1),
+            ("guard_off", "SHIELD_RELEASE", 0, 16),
+        ),
+    )
     down_bound_ecb_profile = load_ecb_profile(
         Path(__file__).with_name("data")
         / "ssbm_falcon_down_bound_ecb.json",
@@ -2779,6 +2845,7 @@ def main() -> int:
         airborne_ecb_profile,
         aerial_attack_ecb_profile,
         shield_break_ecb_profile,
+        guard_ecb_profile,
         down_bound_ecb_profile,
         getup_ecb_profile,
         ground_loop_ecb_profile,

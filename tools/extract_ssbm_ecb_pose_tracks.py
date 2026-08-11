@@ -35,6 +35,7 @@ def extract_track(
     label_substring: str,
     first_displayed_frame: int,
     last_displayed_frame: int,
+    frame_mode: str = "action",
 ) -> dict[str, Any]:
     selected = [
         row
@@ -47,15 +48,20 @@ def extract_track(
 
     frames: dict[int, dict[str, Any]] = {}
     last_new_frame = first_displayed_frame - 1
-    for row in selected:
-        action_frame = row.get("action_frame")
-        if (
-            not isinstance(action_frame, (int, float))
-            or isinstance(action_frame, bool)
-            or float(action_frame) != int(action_frame)
-        ):
-            raise ValueError(f"track {track_id!r} has a non-integral frame")
-        displayed_frame = int(action_frame)
+    for selected_index, row in enumerate(selected):
+        if frame_mode == "sequential":
+            displayed_frame = first_displayed_frame + selected_index
+        elif frame_mode == "fixed":
+            displayed_frame = first_displayed_frame
+        else:
+            action_frame = row.get("action_frame")
+            if (
+                not isinstance(action_frame, (int, float))
+                or isinstance(action_frame, bool)
+                or float(action_frame) != int(action_frame)
+            ):
+                raise ValueError(f"track {track_id!r} has a non-integral frame")
+            displayed_frame = int(action_frame)
         raw_facing = row.get("facing")
         if raw_facing not in (-1, 1) or isinstance(raw_facing, bool):
             raise ValueError(f"track {track_id!r} has invalid facing")
@@ -191,6 +197,18 @@ def main() -> int:
             "FIRST_FRAME before LAST_FRAME for a nonzero displayed-frame origin"
         ),
     )
+    parser.add_argument(
+        "--sequential-frame-track",
+        action="append",
+        metavar="TRACK_ID",
+        help="derive hidden/manual source frames from selected row order",
+    )
+    parser.add_argument(
+        "--fixed-frame-track",
+        action="append",
+        metavar="TRACK_ID",
+        help="map every selected row to the declared first frame",
+    )
     args = parser.parse_args()
 
     capture_bytes = args.capture.read_bytes()
@@ -201,6 +219,10 @@ def main() -> int:
 
     tracks: list[dict[str, Any]] = []
     track_ids: set[str] = set()
+    sequential_frame_tracks = set(args.sequential_frame_track or [])
+    fixed_frame_tracks = set(args.fixed_frame_track or [])
+    if sequential_frame_tracks & fixed_frame_tracks:
+        raise SystemExit("a track cannot use both sequential and fixed frames")
     for raw_track in args.track:
         if len(raw_track) == 4:
             raw_id, source_action, label_substring, raw_last_frame = raw_track
@@ -250,9 +272,23 @@ def main() -> int:
                 label_substring,
                 first_frame,
                 last_frame,
+                (
+                    "sequential"
+                    if raw_id in sequential_frame_tracks
+                    else "fixed" if raw_id in fixed_frame_tracks else "action"
+                ),
             )
         )
         track_ids.add(raw_id)
+
+    unknown_frame_tracks = (
+        sequential_frame_tracks | fixed_frame_tracks
+    ) - track_ids
+    if unknown_frame_tracks:
+        raise SystemExit(
+            "frame modes reference unknown tracks: "
+            + ", ".join(sorted(unknown_frame_tracks))
+        )
 
     semantic = semantic_payload(tracks)
     profile = {

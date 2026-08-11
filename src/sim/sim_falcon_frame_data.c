@@ -12,6 +12,7 @@
 #include "../../generated/data/m4_ssbm_falcon_airborne_hurt.inc"
 #include "../../generated/data/m4_ssbm_falcon_turn_hurt.inc"
 #include "../../generated/data/m4_ssbm_falcon_crouch_taunt_hurt.inc"
+#include "../../generated/data/m4_ssbm_falcon_guard_hurt.inc"
 #include "../../generated/data/m4_ssbm_falcon_ground_loop_hsd.inc"
 
 _Static_assert(
@@ -124,6 +125,21 @@ _Static_assert(
             sizeof(pf_m4_falcon_collision_pose_data.shield_break_stun[0]) ==
         (size_t)PF_M4_FALCON_SHIELD_BREAK_STUN_ECB_FRAME_COUNT,
     "Falcon Furafura ECB table must be complete");
+_Static_assert(
+    sizeof(pf_m4_falcon_collision_pose_data.guard_on) /
+            sizeof(pf_m4_falcon_collision_pose_data.guard_on[0]) ==
+        (size_t)PF_M4_FALCON_GUARD_ON_FRAME_COUNT,
+    "Falcon GuardOn ECB table must be complete");
+_Static_assert(
+    sizeof(pf_m4_falcon_collision_pose_data.guard) /
+            sizeof(pf_m4_falcon_collision_pose_data.guard[0]) ==
+        (size_t)PF_M4_FALCON_GUARD_FRAME_COUNT,
+    "Falcon Guard ECB table must be complete");
+_Static_assert(
+    sizeof(pf_m4_falcon_collision_pose_data.guard_off) /
+            sizeof(pf_m4_falcon_collision_pose_data.guard_off[0]) ==
+        (size_t)PF_M4_FALCON_GUARD_OFF_FRAME_COUNT,
+    "Falcon GuardOff ECB table must be complete");
 _Static_assert(
     sizeof(pf_m4_falcon_collision_pose_data.ceiling_bounce) /
             sizeof(pf_m4_falcon_collision_pose_data.ceiling_bounce[0]) ==
@@ -444,6 +460,43 @@ const pf_m4_falcon_collision_pose *
 pf_m4_falcon_reference_collision_pose(void)
 {
     return &pf_m4_falcon_collision_pose_data;
+}
+
+const pf_m4_falcon_ecb_pose_q16 *
+pf_m4_falcon_reference_guard_ecb_pose(
+    uint8_t action_state,
+    uint16_t source_submotion,
+    uint16_t action_ticks)
+{
+    if (action_state == (uint8_t)PF_M4_ACTION_SHIELD)
+    {
+        if (source_submotion ==
+            (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD_ON)
+        {
+            const uint16_t frame =
+                action_ticks < PF_M4_FALCON_GUARD_ON_FRAME_COUNT
+                    ? action_ticks
+                    : (uint16_t)(PF_M4_FALCON_GUARD_ON_FRAME_COUNT -
+                                 UINT16_C(1));
+            return &pf_m4_falcon_collision_pose_data.guard_on[frame];
+        }
+        if (source_submotion == (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD)
+        {
+            return &pf_m4_falcon_collision_pose_data.guard[0];
+        }
+    }
+    if (action_state == (uint8_t)PF_M4_ACTION_SHIELD_RELEASE &&
+        source_submotion ==
+            (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD_OFF)
+    {
+        const uint16_t frame =
+            action_ticks < PF_M4_FALCON_GUARD_OFF_FRAME_COUNT
+                ? action_ticks
+                : (uint16_t)(PF_M4_FALCON_GUARD_OFF_FRAME_COUNT -
+                             UINT16_C(1));
+        return &pf_m4_falcon_collision_pose_data.guard_off[frame];
+    }
+    return NULL;
 }
 
 static int pf_m4_falcon_prone_pose_orientation_index(
@@ -1761,6 +1814,46 @@ pf_m4_falcon_reference_common_hurt_capsules_for_submotion_at_frame(
                 action_frame,
                 out_count);
         }
+    }
+    if (action_state == (uint8_t)PF_M4_ACTION_SHIELD)
+    {
+        uint8_t guard_track;
+
+        if (source_submotion ==
+            (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD_ON)
+        {
+            guard_track = PF_M4_FALCON_GUARD_HURT_GUARD_ON;
+        }
+        else if (source_submotion ==
+                 (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD)
+        {
+            guard_track = PF_M4_FALCON_GUARD_HURT_GUARD;
+        }
+        else
+        {
+            guard_track = PF_M4_FALCON_GUARD_HURT_COUNT;
+        }
+        if (guard_track != PF_M4_FALCON_GUARD_HURT_COUNT)
+        {
+            return pf_m4_falcon_reference_hurt_track_at_frame(
+                &pf_m4_falcon_guard_hurt_moves[guard_track],
+                pf_m4_falcon_guard_hurt_frames,
+                pf_m4_falcon_guard_hurt_capsules,
+                action_frame,
+                out_count);
+        }
+    }
+    if (action_state == (uint8_t)PF_M4_ACTION_SHIELD_RELEASE &&
+        source_submotion ==
+            (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD_OFF)
+    {
+        return pf_m4_falcon_reference_hurt_track_at_frame(
+            &pf_m4_falcon_guard_hurt_moves[
+                PF_M4_FALCON_GUARD_HURT_GUARD_OFF],
+            pf_m4_falcon_guard_hurt_frames,
+            pf_m4_falcon_guard_hurt_capsules,
+            action_frame,
+            out_count);
     }
     if (action_state == (uint8_t)PF_M4_ACTION_AIRBORNE)
     {

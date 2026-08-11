@@ -2272,6 +2272,7 @@ static inline int8_t pf_m4_reference_hurt_pose_facing(
 
 static inline uint16_t pf_m4_reference_common_hurt_frame(
     uint8_t action_state,
+    uint16_t source_submotion,
     uint16_t action_ticks)
 {
     /* Dash, RunBrake, and squat transitions enter the movement scratch at
@@ -2283,6 +2284,13 @@ static inline uint16_t pf_m4_reference_common_hurt_frame(
     }
     switch ((pf_m4_action_state)action_state)
     {
+        case PF_M4_ACTION_SHIELD:
+            return source_submotion ==
+                           (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD_ON
+                       ? action_ticks
+                       : UINT16_C(0);
+        case PF_M4_ACTION_SHIELD_RELEASE:
+            return action_ticks;
         case PF_M4_ACTION_RUN_TURNAROUND:
             return action_ticks == UINT16_C(0)
                        ? UINT16_C(0)
@@ -2389,6 +2397,7 @@ static const pf_m4_reference_hurt_capsule *pf_m4_reference_hurt_pose(
                 source_submotion,
                 pf_m4_reference_common_hurt_frame(
                     action_state,
+                    source_submotion,
                     action_ticks),
                 out_count);
 

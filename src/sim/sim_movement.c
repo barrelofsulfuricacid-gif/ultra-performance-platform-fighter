@@ -2315,6 +2315,7 @@ static int pf_m4_reference_ecb_pose_q16(
     const pf_m4_falcon_collision_pose *pose =
         pf_m4_falcon_reference_collision_pose();
     const pf_m4_falcon_ecb_pose_q16 *prone_pose;
+    const pf_m4_falcon_ecb_pose_q16 *guard_pose;
     const pf_m4_falcon_ecb_pose_q16 *airborne_pose;
     uint16_t frame_index;
     int32_t locked_bottom_y_q16 =
@@ -2427,6 +2428,13 @@ static int pf_m4_reference_ecb_pose_q16(
                 : UINT16_C(0),
             PF_M4_FALCON_SHIELD_BREAK_STUN_ECB_FRAME_COUNT);
         *out_pose = pose->shield_break_stun[frame_index];
+        return 1;
+    }
+    guard_pose = pf_m4_falcon_reference_guard_ecb_pose(
+        action_state, source_submotion, action_ticks);
+    if (guard_pose != NULL)
+    {
+        *out_pose = *guard_pose;
         return 1;
     }
     if (pf_m4_falcon_reference_hsd_ecb_pose(
@@ -14726,6 +14734,23 @@ pf_status pf_m4_step_player(
             facing > INT8_C(0)
                 ? (uint16_t)PF_M4_FALCON_SUBMOTION_APPEAL_RIGHT
                 : (uint16_t)PF_M4_FALCON_SUBMOTION_APPEAL_LEFT;
+    }
+    else if (action_state == (uint8_t)PF_M4_ACTION_SHIELD)
+    {
+        source_submotion =
+            action_ticks < fighter->shield_minimum_hold_ticks
+                ? (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD_ON
+                : (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD;
+    }
+    else if (action_state == (uint8_t)PF_M4_ACTION_SHIELD_RELEASE)
+    {
+        source_submotion =
+            (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD_OFF;
+    }
+    else if (action_state == (uint8_t)PF_M4_ACTION_SHIELD_STUN)
+    {
+        source_submotion =
+            (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD_SET_OFF;
     }
     else if (action_state == (uint8_t)PF_M4_ACTION_STANDING_TURN)
     {

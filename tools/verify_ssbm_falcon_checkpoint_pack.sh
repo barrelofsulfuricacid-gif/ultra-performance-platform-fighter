@@ -68,7 +68,9 @@ awk -v seconds="${warm_seconds}" -v budget="${warm_budget_seconds}" \
     "${decomp_root}/src/melee/ft/chara/ftCommon/ftCo_Landing.c" \
     --checkpoint-pack \
     --additional-hurt-profile \
-    "${repo_root}/tools/data/ssbm_falcon_ledge_hurt.json"
+    "${repo_root}/tools/data/ssbm_falcon_ledge_hurt.json" \
+    --additional-hurt-profile \
+    "${repo_root}/tools/data/ssbm_falcon_guard_hurt.json"
 
 printf 'ssbm-falcon-checkpoint-pack=pass warm_seconds=%s output=%s\n' \
     "${warm_seconds}" "${output}"

@@ -1632,6 +1632,7 @@ def input_trace(
                 "common_hurt_dash_place",
                 "common_hurt_standing_turn_place",
                 "common_hurt_run_turn_place",
+                "common_hurt_guard_place",
                 "common_hurt_crouch_place",
                 "common_hurt_spot_dodge_shield",
                 "common_hurt_crouch_wait_place",
@@ -1807,6 +1808,28 @@ def input_trace(
         # landing before entering the grounded EscapeN route; otherwise the
         # same down+shield sample correctly becomes EscapeAir instead.
         repeat("common_hurt_knee_bend_recover", 110)
+        # GuardOn and Guard do not expose useful action frames through
+        # libmelee, so retain their collision-authoritative animation cursor
+        # from the memory probe.  Release then supplies GuardOff's complete
+        # ordinary action clock.  Keep this route isolated from the escape
+        # cases below so a held shoulder cannot leak into their entry edge.
+        reset_common_hurt_route("common_hurt_guard")
+        trace.append(
+            command(
+                "common_hurt_guard_place",
+                fighter_x_override=-20.0,
+                fighter_y_override=0.0001,
+                opponent_x_override=60.0,
+                opponent_y_override=0.0001,
+            )
+        )
+        repeat("common_hurt_guard_settle", 10)
+        repeat(
+            "common_hurt_guard_hold",
+            24,
+            left_shoulder=1.0,
+        )
+        repeat("common_hurt_guard_release", 20)
         repeat(
             "common_hurt_spot_dodge_shield",
             10,
@@ -6429,6 +6452,66 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 or controller_sample.get("opponent_facing_override") is not None
                 or controller_sample.get("source_random_seed_override") is not None
             )
+
+        def apply_memory_overrides(
+            fighter_overrides: tuple[tuple[int, int, object], ...],
+            source_random_seed_override: object,
+        ) -> None:
+            if any(value is not None for _, _, value in fighter_overrides):
+                if memory_engine is None:
+                    raise RuntimeError(
+                        "fighter state override requires a memory probe"
+                    )
+                fighter_addresses = (
+                    read_fighter_address(memory_engine, 0),
+                    read_fighter_address(memory_engine, 1),
+                )
+                for fighter_index, fighter_address in enumerate(
+                    fighter_addresses
+                ):
+                    writes = sorted(
+                        (offset, float(value))
+                        for owner, offset, value in fighter_overrides
+                        if owner == fighter_index and value is not None
+                    )
+                    while writes:
+                        first_offset, first_value = writes.pop(0)
+                        values = [first_value]
+                        next_offset = first_offset + 4
+                        while writes and writes[0][0] == next_offset:
+                            _, value = writes.pop(0)
+                            values.append(value)
+                            next_offset += 4
+                        memory_engine.write_bytes(
+                            fighter_address + first_offset,
+                            b"".join(struct.pack(">f", value) for value in values),
+                        )
+            if source_random_seed_override is not None:
+                if memory_engine is None:
+                    raise RuntimeError(
+                        "source RNG initialization requires a memory probe"
+                    )
+                seed_pointer = memory_engine.read_word(
+                    HSD_RANDOM_SEED_POINTER_ADDRESS
+                )
+                if seed_pointer != HSD_RANDOM_SEED_ADDRESS:
+                    raise RuntimeError(
+                        "unexpected HSD random seed pointer: "
+                        f"0x{seed_pointer:08x}"
+                    )
+                memory_engine.write_word(
+                    HSD_RANDOM_SEED_ADDRESS,
+                    source_random_seed_override,
+                )
+                restored_seed = memory_engine.read_word(
+                    HSD_RANDOM_SEED_ADDRESS
+                )
+                if restored_seed != source_random_seed_override:
+                    raise RuntimeError(
+                        "failed to initialize HSD random seed: "
+                        f"0x{restored_seed:08x}"
+                    )
+
         for command_index, sample in enumerate(commands):
             if bool(sample.get("restore_before", False)):
                 if console._process is None:
@@ -6569,49 +6652,13 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     (0, 0x718, reset_x),
                     (0, 0x71C, reset_y),
                 )
-            if any(value is not None for _, _, value in fighter_overrides):
-                if memory_engine is None:
-                    raise RuntimeError(
-                        "fighter state override requires a memory probe"
-                    )
-                fighter_addresses = (
-                    read_fighter_address(memory_engine, 0),
-                    read_fighter_address(memory_engine, 1),
-                )
-                for fighter_index, offset, value in fighter_overrides:
-                    if value is not None:
-                        memory_engine.write_float(
-                            fighter_addresses[fighter_index] + offset,
-                            float(value),
-                        )
             source_random_seed_override = sample[
                 "source_random_seed_override"
             ]
-            if source_random_seed_override is not None:
-                if memory_engine is None:
-                    raise RuntimeError(
-                        "source RNG initialization requires a memory probe"
-                    )
-                seed_pointer = memory_engine.read_word(
-                    HSD_RANDOM_SEED_POINTER_ADDRESS
+            if pending_restore is None:
+                apply_memory_overrides(
+                    fighter_overrides, source_random_seed_override
                 )
-                if seed_pointer != HSD_RANDOM_SEED_ADDRESS:
-                    raise RuntimeError(
-                        "unexpected HSD random seed pointer: "
-                        f"0x{seed_pointer:08x}"
-                    )
-                memory_engine.write_word(
-                    HSD_RANDOM_SEED_ADDRESS,
-                    source_random_seed_override,
-                )
-                restored_seed = memory_engine.read_word(
-                    HSD_RANDOM_SEED_ADDRESS
-                )
-                if restored_seed != source_random_seed_override:
-                    raise RuntimeError(
-                        "failed to initialize HSD random seed: "
-                        f"0x{restored_seed:08x}"
-                    )
             input_was_buffered = buffered_input_frames != 0
             if input_was_buffered:
                 attached_controllers = console.controllers
@@ -6644,6 +6691,13 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                         f"({sample['label']})"
                     ) from error
                 pending_restore = None
+                # The load is acknowledged only after this EXI boundary. Any
+                # direct writes made before the step targeted the discarded
+                # pre-restore state, so apply them once to the restored state
+                # before recording the case boundary.
+                apply_memory_overrides(
+                    fighter_overrides, source_random_seed_override
+                )
                 if args.oracle_checkpoint_pack:
                     print(
                         "ssbm-checkpoint-restore=pass "

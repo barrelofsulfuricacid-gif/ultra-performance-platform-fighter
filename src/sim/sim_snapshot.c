@@ -2250,6 +2250,45 @@ static int pf_m4_snapshot_source_submotion_valid_for_action(
                     (uint16_t)PF_M4_FALCON_SUBMOTION_APPEAL_LEFT) &&
                action_ticks <= UINT16_C(60);
     }
+    else if (effective_action == (uint8_t)PF_M4_ACTION_SHIELD)
+    {
+        if (action == (uint8_t)PF_M4_ACTION_HITLAG)
+        {
+            return submotion ==
+                       (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD_ON ||
+                   submotion ==
+                       (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD;
+        }
+        if (action_ticks < PF_M4_FALCON_GUARD_ON_FRAME_COUNT)
+        {
+            return submotion ==
+                   (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD_ON;
+        }
+        return submotion == (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD;
+    }
+    else if (effective_action == (uint8_t)PF_M4_ACTION_SHIELD_RELEASE)
+    {
+        return submotion ==
+                   (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD_OFF &&
+               action_ticks < PF_M4_FALCON_GUARD_OFF_FRAME_COUNT;
+    }
+    else if (effective_action == (uint8_t)PF_M4_ACTION_SHIELD_STUN)
+    {
+        if (action == (uint8_t)PF_M4_ACTION_HITLAG)
+        {
+            /* Hitlag freezes the collision pose that received the shield
+             * impact. The GuardSetOff identity is installed only when the
+             * deferred shield-stun update resumes. */
+            return submotion ==
+                       (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD_ON ||
+                   submotion ==
+                       (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD ||
+                   submotion ==
+                       (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD_SET_OFF;
+        }
+        return submotion ==
+               (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD_SET_OFF;
+    }
     else if (effective_action == (uint8_t)PF_M4_ACTION_SHIELD_BREAK)
     {
         identity_valid =

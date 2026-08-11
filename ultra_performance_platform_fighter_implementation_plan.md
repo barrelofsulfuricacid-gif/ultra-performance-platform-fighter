@@ -712,6 +712,17 @@ meet the separate three-second changed-domain target. Additional behavior
 domains must join the same registry as their live evidence becomes
 source-complete.
 
+The same domain now consumes hash-pinned ledge and ordinary-guard profiles for
+714 production-accessed poses without duplicating capsule data. GuardOn uses
+the source's hidden eight-update `Ft_MF_SkipAnim` manual blend clock, Guard is
+its frozen terminal pose, and GuardOff uses ordinary displayed frames 0-15;
+hurt capsules and complete four-point ECBs are qualified independently in two
+fresh captures. The current full common-hurt checkpoint pack declares all 16
+physical boundaries / 323 rows and has a 16-second warm guardrail, while
+focused changed-domain projections remain the normal edit loop. Restored-state
+position/RNG writes are applied after load acknowledgement. GuardSetOff's
+dynamic-rate shield-stun geometry remains explicitly open.
+
 Turn and TurnRun now use a separate focused two-case pack rather than
 lengthening the common-hurt session beyond its stable rollback window. The
 accelerated and no-fast-forward control captures each contain 39 rows and

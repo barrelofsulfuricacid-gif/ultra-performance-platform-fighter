@@ -67,7 +67,7 @@ def sha256(path: Path) -> str:
 
 def checkpoint_capture_contract(manifest: dict[str, Any]) -> dict[str, Any]:
     """Return only fields that define the physical checkpoint capture."""
-    return {
+    contract = {
         key: manifest.get(key)
         for key in (
             "schema",
@@ -75,12 +75,17 @@ def checkpoint_capture_contract(manifest: dict[str, Any]) -> dict[str, Any]:
             "domain",
             "character",
             "oracle",
-            "checkpoint_pack",
             "checkpoint_cases",
             "pose_tracks",
             "collision_qualification",
         )
     }
+    checkpoint_pack = dict(manifest.get("checkpoint_pack") or {})
+    contract["checkpoint_pack"] = {
+        key: checkpoint_pack.get(key)
+        for key in ("protocol", "capture_plan")
+    }
+    return contract
 
 
 def active_hurtboxes(memory: dict[str, Any], key: str) -> list[dict[str, Any]]:
@@ -657,7 +662,11 @@ def main() -> int:
     parser.add_argument("fall_special_source", type=Path)
     parser.add_argument("landing_source", type=Path)
     parser.add_argument("--checkpoint-pack", action="store_true")
-    parser.add_argument("--additional-hurt-profile", type=Path)
+    parser.add_argument(
+        "--additional-hurt-profile",
+        action="append",
+        type=Path,
+    )
     parser.add_argument("--ledge-collision-capture", type=Path)
     parser.add_argument("--ledge-coverage-manifest", type=Path)
     parser.add_argument("--ledge-import-manifest", type=Path)
@@ -725,40 +734,57 @@ def main() -> int:
     expected_checkpoint_pack = dict(
         expected_coverage_manifest["checkpoint_pack"]
     )
-    additional_hurt_profile: dict[str, Any] | None = None
+    additional_hurt_profiles: list[dict[str, Any]] = []
     if args.additional_hurt_profile is not None:
         declarations = expected_coverage_manifest["stored_oracle"].get(
             "pose_profiles", []
         )
-        if not isinstance(declarations, list) or len(declarations) != 1:
+        if (
+            not isinstance(declarations, list)
+            or len(declarations) != len(args.additional_hurt_profile)
+        ):
             raise SystemExit("unexpected stored hurt-pose profile declaration")
-        declaration = dict(declarations[0])
-        profile_bytes = args.additional_hurt_profile.read_bytes()
-        profile_digest = hashlib.sha256(profile_bytes).hexdigest()
-        additional_hurt_profile = json.loads(profile_bytes)
-        profile_tracks = additional_hurt_profile.get("tracks")
-        if (
-            profile_digest != declaration.get("profile_sha256")
-            or additional_hurt_profile.get("schema") != 1
-            or additional_hurt_profile.get("scope")
-            != "ssbm-bounded-hurt-pose-tracks"
-            or additional_hurt_profile.get("fighter") != "CPTFALCON"
-            or additional_hurt_profile.get("capture_sha256")
-            != declaration.get("capture_sha256")
-            or not isinstance(profile_tracks, list)
-        ):
-            raise SystemExit("unexpected additional hurt-pose profile provenance")
-        semantic_digest = canonical_json_sha256(
-            hurt_pose_tracks_semantic_payload(profile_tracks)
-        )
-        if (
-            semantic_digest != declaration.get("semantic_sha256")
-            or semantic_digest != additional_hurt_profile.get("semantic_sha256")
-        ):
-            raise SystemExit(
-                "unexpected additional hurt-pose semantic SHA-256: "
-                f"{semantic_digest}"
+        declarations_by_digest = {
+            str(declaration["profile_sha256"]): declaration
+            for declaration in declarations
+        }
+        supplied_profiles: dict[str, dict[str, Any]] = {}
+        for profile_path in args.additional_hurt_profile:
+            profile_bytes = profile_path.read_bytes()
+            profile_digest = hashlib.sha256(profile_bytes).hexdigest()
+            declaration = declarations_by_digest.get(profile_digest)
+            profile = json.loads(profile_bytes)
+            profile_tracks = profile.get("tracks")
+            if (
+                declaration is None
+                or profile_digest in supplied_profiles
+                or profile.get("schema") != 1
+                or profile.get("scope")
+                != "ssbm-bounded-hurt-pose-tracks"
+                or profile.get("fighter") != "CPTFALCON"
+                or profile.get("capture_sha256")
+                != declaration.get("capture_sha256")
+                or not isinstance(profile_tracks, list)
+            ):
+                raise SystemExit(
+                    "unexpected additional hurt-pose profile provenance"
+                )
+            semantic_digest = canonical_json_sha256(
+                hurt_pose_tracks_semantic_payload(profile_tracks)
             )
+            if (
+                semantic_digest != declaration.get("semantic_sha256")
+                or semantic_digest != profile.get("semantic_sha256")
+            ):
+                raise SystemExit(
+                    "unexpected additional hurt-pose semantic SHA-256: "
+                    f"{semantic_digest}"
+                )
+            supplied_profiles[profile_digest] = profile
+        additional_hurt_profiles = [
+            supplied_profiles[str(declaration["profile_sha256"])]
+            for declaration in declarations
+        ]
     expected_case_labels = [
         str(case["start_label"])
         for case in expected_coverage_manifest["checkpoint_cases"]
@@ -961,7 +987,7 @@ def main() -> int:
                 )
                 for row in action_rows
             )
-        if additional_hurt_profile is not None:
+        for additional_hurt_profile in additional_hurt_profiles:
             for profile_track in additional_hurt_profile["tracks"]:
                 action = str(profile_track["source_action"])
                 canonical_poses.extend(
@@ -983,7 +1009,7 @@ def main() -> int:
         ).hexdigest()
         expected_pose_digest = (
             str(expected_coverage_manifest["stored_oracle"]["source_pose_sha256"])
-            if additional_hurt_profile is not None
+            if additional_hurt_profiles
             else EXPECTED_CHECKPOINT_POSE_SHA256
         )
         if pose_digest != expected_pose_digest:
@@ -1026,12 +1052,25 @@ def main() -> int:
     if args.checkpoint_pack:
         ledge_collision_result: tuple[str, float, float, float] | None = None
         if args.ledge_collision_capture is not None:
-            if additional_hurt_profile is None:
+            if not additional_hurt_profiles:
+                raise SystemExit("ledge collision profile was not loaded")
+            ledge_hurt_profile = next(
+                (
+                    profile
+                    for profile in additional_hurt_profiles
+                    if any(
+                        str(track.get("source_action", "")).startswith("EDGE_")
+                        for track in profile["tracks"]
+                    )
+                ),
+                None,
+            )
+            if ledge_hurt_profile is None:
                 raise SystemExit("ledge collision profile was not loaded")
             ledge_collision_result = verify_ledge_collision_discriminator(
                 args.ledge_collision_capture,
                 args.ledge_coverage_manifest,
-                additional_hurt_profile,
+                ledge_hurt_profile,
                 dict(
                     json.loads(
                         args.ledge_import_manifest.read_text(encoding="utf-8")

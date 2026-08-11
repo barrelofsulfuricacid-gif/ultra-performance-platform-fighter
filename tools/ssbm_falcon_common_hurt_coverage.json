@@ -6,8 +6,8 @@
   "oracle": "SSBM GALE01 NTSC-U revision 2",
   "checkpoint_pack": {
     "protocol": "rebased-slippi-state-file-control-v1",
-    "expected_rows": 283,
-    "warm_budget_seconds": 3.0,
+    "expected_rows": 323,
+    "warm_budget_seconds": 16.0,
     "capture_plan": {
       "record_actions_by_label": {
         "common_hurt_dash_hold": ["DASHING"],
@@ -16,6 +16,8 @@
         "common_hurt_crouch_release": ["CROUCH_END"],
         "common_hurt_knee_bend_hold": ["KNEE_BEND"],
         "common_hurt_knee_bend_recover": ["LANDING"],
+        "common_hurt_guard_hold": ["SHIELD_START", "SHIELD_REFLECT", "SHIELD"],
+        "common_hurt_guard_release": ["SHIELD_RELEASE"],
         "common_hurt_spot_dodge_hold": ["SPOTDODGE"],
         "common_hurt_roll_forward_hold": ["ROLL_FORWARD"],
         "common_hurt_roll_backward_hold": ["ROLL_BACKWARD"],
@@ -30,6 +32,8 @@
         "common_hurt_crouch_release": 10,
         "common_hurt_knee_bend_hold": 4,
         "common_hurt_knee_bend_recover": 79,
+        "common_hurt_guard_hold": 24,
+        "common_hurt_guard_release": 16,
         "common_hurt_spot_dodge_shield": 1,
         "common_hurt_spot_dodge_hold": 32,
         "common_hurt_roll_forward_shield": 1,
@@ -52,14 +56,19 @@
     "paths": [
       "generated/data/m4_falcon_ntsc102_frame_data.inc",
       "generated/data/m4_falcon_ntsc102_hit_geometry.inc",
+      "generated/data/m4_ssbm_falcon_guard_hurt.inc",
       "generated/data/m4_ssbm_falcon_ledge_hurt.inc",
       "generated/data/m4_ssbm_falcon_common_hurt_oracle.inc",
       "tools/capture_ssbm_falcon_ledge_hurt_poses.sh",
       "tools/data/ssbm_falcon_ledge_hurt.json",
+      "tools/data/ssbm_falcon_guard_ecb.json",
+      "tools/data/ssbm_falcon_guard_hurt.json",
+      "tools/extract_ssbm_ecb_pose_tracks.py",
       "tools/extract_ssbm_hurt_pose_tracks.py",
       "tools/generate_ssbm_hurt_pose_include.py",
       "tools/import_ssbm_falcon_frame_data.py",
       "tools/import_ssbm_falcon_hit_geometry.py",
+      "tools/ssbm_falcon_guard_hurt_import.json",
       "tools/ssbm_falcon_ledge_hurt_import.json",
       "tools/ssbm_falcon_common_hurt_coverage.json",
       "tools/verify_ssbm_falcon_checkpoint_pack.sh",
@@ -76,6 +85,10 @@
     {
       "id": "crouch-kneebend-landing-poses",
       "start_label": "common_hurt_crouch_place"
+    },
+    {
+      "id": "guard-poses",
+      "start_label": "common_hurt_guard_place"
     },
     {
       "id": "spot-dodge-poses",
@@ -100,6 +113,34 @@
     {
       "id": "dash-live-collision-miss",
       "start_label": "common_hurt_dash_collision_miss_place"
+    },
+    {
+      "id": "crouch-wait-poses",
+      "start_label": "common_hurt_crouch_wait_place"
+    },
+    {
+      "id": "walk-slow-poses",
+      "start_label": "common_hurt_walk_slow_place"
+    },
+    {
+      "id": "walk-middle-poses",
+      "start_label": "common_hurt_walk_middle_place"
+    },
+    {
+      "id": "walk-fast-poses",
+      "start_label": "common_hurt_walk_fast_place"
+    },
+    {
+      "id": "run-poses",
+      "start_label": "common_hurt_run_place"
+    },
+    {
+      "id": "taunt-right-poses",
+      "start_label": "common_hurt_taunt_right_place"
+    },
+    {
+      "id": "taunt-left-poses",
+      "start_label": "common_hurt_taunt_left_place"
     }
   ],
   "pose_tracks": [
@@ -196,17 +237,33 @@
           "ledge_jump_slow_1": "LEDGE_JUMP_SLOW_1",
           "ledge_jump_slow_2": "LEDGE_JUMP_SLOW_2"
         }
+      },
+      {
+        "path": "data/ssbm_falcon_guard_hurt.json",
+        "profile_sha256": "e1d76de8fac684d0976fa464d5906a145aeb340a99c0f88490da3574231c763b",
+        "capture_sha256": "e9141d1ce253bee82233d9545cf20145d594d60510cee5ea77b19ca5e12390b9",
+        "semantic_sha256": "4db8c524835e969b5b34fda81e53b59d6af99aa68d13e7203086c6441a41abde",
+        "track_submotions": {
+          "guard_on": "GUARD_ON",
+          "guard": "GUARD",
+          "guard_off": "GUARD_OFF"
+        },
+        "track_first_action_frames": {
+          "guard_on": 0,
+          "guard": 0,
+          "guard_off": 0
+        }
       }
     ],
-    "source_pose_sha256": "2aadf4b37b26796bdbc08fe026b234542f2c61914a4488e35e0dccd72a72e151",
+    "source_pose_sha256": "9688be9b0ca0d0eacac5ba26714968acdcc3b19aaac9449778c108275b1c940b",
     "production_pose_serialization": "action-name-nul,source-frame-u16le,capsule-count-u8,capsules-seven-i32le-four-u8-v1",
-    "production_pose_sha256": "d691705692841bfabb8a2407ab31037bf398b097fc461574ecd07954e16a4331",
-    "expected_pose_count": 689,
+    "production_pose_sha256": "0641ed13ea1d179e214f5629b4f8d7b93e226091b9925d6e31dfe53645c74c36",
+    "expected_pose_count": 714,
     "expected_capsules_per_pose": 11,
     "c": {
       "symbol_prefix": "pf_m4_ssbm_falcon_common_hurt",
       "macro_prefix": "PF_M4_SSBM_FALCON_COMMON_HURT",
-      "track_count_expression": "PF_M4_FALCON_COMMON_HURT_COUNT + PF_M4_FALCON_LEDGE_HURT_TRACK_COUNT",
+      "track_count_expression": "PF_M4_FALCON_COMMON_HURT_COUNT + PF_M4_FALCON_LEDGE_HURT_TRACK_COUNT + PF_M4_FALCON_GUARD_HURT_TRACK_COUNT",
       "actions": {
         "DASHING": "PF_M4_ACTION_INITIAL_DASH",
         "RUN_BRAKE": "PF_M4_ACTION_RUN_BRAKE",
@@ -235,7 +292,10 @@
         "SPOT_DODGE": "PF_M4_ACTION_SPOT_DODGE",
         "AIR_DODGE": "PF_M4_ACTION_AIR_DODGE",
         "FALL_SPECIAL": "PF_M4_ACTION_FALL_SPECIAL",
-        "SPECIAL_LANDING": "PF_M4_ACTION_SPECIAL_LANDING"
+        "SPECIAL_LANDING": "PF_M4_ACTION_SPECIAL_LANDING",
+        "SHIELD_START": "PF_M4_ACTION_SHIELD",
+        "SHIELD": "PF_M4_ACTION_SHIELD",
+        "SHIELD_RELEASE": "PF_M4_ACTION_SHIELD_RELEASE"
       },
       "submotions": {
         "LEDGE_CLIMB_QUICK": "PF_M4_FALCON_SUBMOTION_LEDGE_CLIMB_QUICK",
@@ -247,7 +307,10 @@
         "LEDGE_JUMP_QUICK_1": "PF_M4_FALCON_SUBMOTION_LEDGE_JUMP_QUICK_1",
         "LEDGE_JUMP_QUICK_2": "PF_M4_FALCON_SUBMOTION_LEDGE_JUMP_QUICK_2",
         "LEDGE_JUMP_SLOW_1": "PF_M4_FALCON_SUBMOTION_LEDGE_JUMP_SLOW_1",
-        "LEDGE_JUMP_SLOW_2": "PF_M4_FALCON_SUBMOTION_LEDGE_JUMP_SLOW_2"
+        "LEDGE_JUMP_SLOW_2": "PF_M4_FALCON_SUBMOTION_LEDGE_JUMP_SLOW_2",
+        "GUARD_ON": "PF_M4_FALCON_SUBMOTION_GUARD_ON",
+        "GUARD": "PF_M4_FALCON_SUBMOTION_GUARD",
+        "GUARD_OFF": "PF_M4_FALCON_SUBMOTION_GUARD_OFF"
       },
       "buttons": {
         "jump": "PF_INPUT_BUTTON_JUMP"

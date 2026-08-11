@@ -26967,6 +26967,21 @@ static int run_falcon_reference_table_test(void)
             (uint8_t)PF_M4_PRONE_NONE,
             INT8_C(0),
             INT8_C(1));
+    const pf_m4_falcon_ecb_pose_q16 *guard_on_first_ecb =
+        pf_m4_falcon_reference_guard_ecb_pose(
+            (uint8_t)PF_M4_ACTION_SHIELD,
+            (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD_ON,
+            UINT16_C(0));
+    const pf_m4_falcon_ecb_pose_q16 *guard_ecb =
+        pf_m4_falcon_reference_guard_ecb_pose(
+            (uint8_t)PF_M4_ACTION_SHIELD,
+            (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD,
+            UINT16_C(99));
+    const pf_m4_falcon_ecb_pose_q16 *guard_off_last_ecb =
+        pf_m4_falcon_reference_guard_ecb_pose(
+            (uint8_t)PF_M4_ACTION_SHIELD_RELEASE,
+            (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD_OFF,
+            UINT16_MAX);
     pf_m4_falcon_ecb_pose_q16 crouch_wait_first_ecb;
     pf_m4_falcon_ecb_pose_q16 crouch_wait_middle_ecb;
     pf_m4_falcon_ecb_pose_q16 crouch_wait_last_ecb;
@@ -27869,8 +27884,8 @@ static int run_falcon_reference_table_test(void)
         standing_hurt_capsules[0].height != UINT8_C(1) ||
         standing_hurt_capsules[0].grabbable != UINT8_C(1) ||
         complete_source_sha256 == NULL ||
-        complete_source_sha256[0] != UINT8_C(0x28) ||
-        complete_source_sha256[31] != UINT8_C(0x64) ||
+        complete_source_sha256[0] != UINT8_C(0x3f) ||
+        complete_source_sha256[31] != UINT8_C(0x88) ||
         common_attribute_bits == NULL ||
         common_attribute_count != UINT16_C(97) ||
         common_attribute_bits[0] != UINT32_C(0x3e19999a) ||
@@ -27987,6 +28002,16 @@ static int run_falcon_reference_table_test(void)
             INT32_C(59303) ||
         collision_pose->shield_break_fly[41].right_x_from_origin_q16 !=
             INT32_C(31725) ||
+        guard_on_first_ecb == NULL ||
+        guard_on_first_ecb->top_y_from_origin_q16 != INT32_C(179511) ||
+        guard_ecb == NULL ||
+        guard_ecb->right_y_from_origin_q16 != INT32_C(81482) ||
+        guard_off_last_ecb == NULL ||
+        guard_off_last_ecb->left_x_from_origin_q16 != INT32_C(-30309) ||
+        pf_m4_falcon_reference_guard_ecb_pose(
+            (uint8_t)PF_M4_ACTION_SHIELD_STUN,
+            (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD_SET_OFF,
+            UINT16_C(0)) != NULL ||
         collision_pose->down_bound[0][0].top_y_from_origin_q16 !=
             INT32_C(108930) ||
         collision_pose->down_bound[0][25].right_x_from_origin_q16 !=

@@ -155,6 +155,9 @@ static inline int pf_m4_action_retains_source_submotion(
         action_state == (uint8_t)PF_M4_ACTION_RUN_TURNAROUND ||
         action_state == (uint8_t)PF_M4_ACTION_CROUCH ||
         action_state == (uint8_t)PF_M4_ACTION_TAUNT ||
+        action_state == (uint8_t)PF_M4_ACTION_SHIELD ||
+        action_state == (uint8_t)PF_M4_ACTION_SHIELD_RELEASE ||
+        action_state == (uint8_t)PF_M4_ACTION_SHIELD_STUN ||
         action_state == (uint8_t)PF_M4_ACTION_SHIELD_BREAK ||
         action_state == (uint8_t)PF_M4_ACTION_SHIELD_BREAK_DOWN ||
         action_state == (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STAND ||
@@ -178,6 +181,9 @@ static inline int pf_m4_action_retains_source_submotion(
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_RUN_TURNAROUND ||
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_CROUCH ||
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_TAUNT ||
+        hitlag_resume_action == (uint8_t)PF_M4_ACTION_SHIELD ||
+        hitlag_resume_action == (uint8_t)PF_M4_ACTION_SHIELD_RELEASE ||
+        hitlag_resume_action == (uint8_t)PF_M4_ACTION_SHIELD_STUN ||
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_SHIELD_BREAK ||
         hitlag_resume_action ==
             (uint8_t)PF_M4_ACTION_SHIELD_BREAK_DOWN ||
