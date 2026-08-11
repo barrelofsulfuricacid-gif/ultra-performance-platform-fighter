@@ -24,9 +24,9 @@ separately because a stored pass cannot establish new SSBM truth.
 | --- | --- | --- |
 | Fast stored equivalence | done for twenty-one registered domains plus focused Wait lifecycle | The registry contains 117 cases plus deterministic replay. The pose domains hash 1,290 production poses: 714 common/ledge/guard, 33 Turn/TurnRun, 186 ordinary-airborne, 79 Pummel/CaptureWaitHi/CaptureDamageHi, and 278 CrouchWait/Appeal poses. Raptor Boost adds 502 field-masked numeric samples, Falcon Kick adds 399, natural movement adds 520, the five aerial-landing routes add 685, and passive shield break adds 500. Independent domains run concurrently while output retains manifest order. Eight fractional ground-loop, three direct Wait, six SquatRv-to-Wait entry, 32 Wait2/Wait3 lifecycle, and nine pressure-derived GuardSetOff observations use shared C pose gates. The Wait lifecycle also has its own focused 440-tick/38-pose native CTest. |
 | Fast live Dolphin oracle | done for the current registered domains | Registered packs use headless/null/unlimited ExiAI and checkpoint-isolated cases. The focused Turn/TurnRun pack captures 39 rows in 0.228 seconds warm with fast-forward and 0.565 seconds with fast-forward disabled; both produce semantic SHA `1cc3543b1363ecb5c7427c36f4d8d8a2826f9fb7c5281877f54108e1ffe281a2`. Generic label-based projection reduces the WalkFast changed-domain capture from seven cases / 423 rows / 4.820601 seconds warm to one case / 32 rows / 0.160820 seconds warm. The full common-hurt pack now owns all 16 physical boundaries / 323 rows and measures 14.10-15.05 seconds warm; the focused guard-only capture is about 0.15 seconds warm. Restored-state memory overrides are reapplied after the load acknowledgement, so placement and RNG writes can no longer target the discarded pre-restore state. Unsafe cross-invocation observer reconnection is rejected. |
-| Falcon bounded hurt poses | common, complete Wait lifecycle, guard, turn, ledge, ordinary airborne, pummel/capture, crouch-wait, taunt, dynamic ground-loop, GuardSetOff, shield-break, and all 26 ordinary-action ECB routes imported | Base Wait's natural SquatRv entry and six-update blend remain qualified within one Q16 unit. Two byte-identical 440-row lifecycle captures now add every Wait2/Wait3 frame, exact 70/20/10 weighted HSD-RNG selection, same-secondary rejection, zero-blend variant entry, and six-update return/restart blends. The shared HSD evaluator matches 145 direct variant poses / 1,595 capsules plus ECB within one Q16 unit. Its action-owned extension matches 2,086 paired live observations / 1,850 unique frames for all three jabs, every rapid-jab phase, Dash Attack, all five forward tilts, Up/Down Tilt, three real forward-smash angles, Up/Down Smash, both grabs, and all five aerial attacks at maximum one-Q16 error for every qualified component. Existing guard, Turn/TurnRun, ledge, airborne, pummel/capture, grounded-loop, GuardSetOff, and shield-break qualifications remain intact. |
+| Falcon bounded hurt poses | common, complete Wait lifecycle, guard, turn, ledge, ordinary airborne, pummel/capture, crouch-wait, taunt, dynamic ground-loop, GuardSetOff, shield-break, all 26 ordinary-action ECB routes, and all 15 ordinary damage motions imported | Base Wait's natural SquatRv entry and six-update blend remain qualified within one Q16 unit. Two byte-identical 440-row lifecycle captures now add every Wait2/Wait3 frame, exact 70/20/10 weighted HSD-RNG selection, same-secondary rejection, zero-blend variant entry, and six-update return/restart blends. The shared HSD evaluator matches 145 direct variant poses / 1,595 capsules plus ECB within one Q16 unit. Its action-owned extension matches 2,086 paired live observations / 1,850 unique frames for all three jabs, every rapid-jab phase, Dash Attack, all five forward tilts, Up/Down Tilt, three real forward-smash angles, Up/Down Smash, both grabs, and all five aerial attacks at maximum one-Q16 error for every qualified component. DamageN2 adds two independent 72-row physical captures: 276 qualified pose observations / 3,036 capsules and every post-entry damage-owned ECB agree within one Q16 unit. Existing guard, Turn/TurnRun, ledge, airborne, pummel/capture, grounded-loop, GuardSetOff, and shield-break qualifications remain intact. |
 | Falcon movement and combat | partial | Captured routes include wall/ceiling response, flat-floor missed/neutral/directional techs, both Up/Down prone/getup orientations, grounded player push from both ports/directions, imported Hyrule slope/DownBound/ordinary-ledge response, the exact common-data `x480` down-input ledge rejection boundary, all eight quick/slow ledge options, exact 640/480-frame CliffWait timeout and regrab cooldown, ordinary Jump/Fall airborne animation clocks, Falcon Punch's complete ground/air clocks and qualified air-physics tail, Raptor Boost's five complete fighter routes plus its live-only native Capsule branch, all six Falcon Kick routes, and a source-qualified complete Battlefield collision/environment catalog. Production imports complete Jump/Fall and all five aerial-attack HSD tracks, all 198 ShieldBreakFly/DownD/StandD/Furafura frames, all 25 GuardOn/Guard/GuardOff poses, both 26-frame DownBound tracks, both 70-frame DownWait loops, both neutral getups, both getup attacks, all four prone-orientation/direction roll tracks, and the complete 158-frame CrouchWait ECB cycle. The shared common-air conversion owns the decomp's ten-update previous-bottom ECB lock; aerial attacks no longer use a route-captured bottom table. All 26 ordinary action routes derive collision ECBs from the allocation-free evaluator, with 925 runtime poses covered by the native primitive. A generated submotion flag selects Melee's TransN-stripped or model-root ECB reference space without action-specific branches. A fresh 165-frame natural Falcon Dive miss route passes the identical-input comparator with the documented 640-Q16 position envelope. FallSpecial additionally reproduces the decomp's velocity-selected neutral/forward/back target, switch-update double blend, stable-update single blend, and persistent bottom-lock state. The former Raptor/Falcon Dive/FallSpecial/aerial-attack authored ECB arrays are removed. Broader special-action acquisition coverage stays open. |
-| Common damage response | qualified for open-air launch | Six-case live Dolphin trace and generic stored numeric trace pass. Ground and collision response remain separate domains. |
+| Common damage response | numeric response plus ordinary damage animation identity/geometry qualified for represented routes | The six-case live Dolphin trace and generic stored numeric trace pass. Production now ports the decomp's pre-launch ground/air, knockback-level, and collided-hurtbox-height motion table; source frame one is held through hitlag and advances on resumed updates. DamageN2 live pose/ECB evidence and the existing flat-ground DamageLw1 stored route exercise the production path. DamageFlyTop/Roll selection, the mixed-ownership hit-entry ECB row, and broader attack/stage routes remain open. |
 | Separate knockback velocity and decay | open-air and flat-ground routes qualified | A pinned 64-row late DashAttack route agrees for 15 damage samples on action/frame, grounded/tumble, damage, timers, self velocity, projected knockback, and `xF0_ground_kb_vel` within 0.001 source units. Canonical save/load, replay, Windows, WSL, and sanitizers pass. |
 | Remaining Falcon gaps | not complete | Work through every incomplete row in `docs/product/m4_ssbm_fidelity_audit.md`; do not infer whole-character equivalence from one domain. |
 | Native Battlefield frontend | implemented locally; hands-on gate remains | The SDL target runs the real simulation at fixed 60 Hz, supports 2P Duel and 4P Teams plus 1-8 stocks through the core config contract, renders the complete source-derived 23-line Battlefield catalog and blast-zone inset, and visualizes fighters, crouch, shields, hitboxes, exact 11-capsule source hurt poses, damage, stocks, and actions. Strict MSVC, WSL, smoke, and screenshot QA pass. One real-controller hands-on pass remains. |
@@ -35,8 +35,10 @@ separately because a stored pass cannot establish new SSBM truth.
 The complete frame-data generator is source-closed against the current
 qualified shield-break profile: two regenerations produce include SHA-256
 `e936f0edef8cdab44a6507d8b1c7f5474ea1950ead5a82a1f5f9d2a2e9478ebe`.
-The active implementation slice is live-qualified damage-action hurt/ECB
-geometry; its numeric damage response was already qualified separately.
+The active implementation slice is the remaining common-damage callback
+surface after ordinary damage-action identity and geometry: DamageFlyTop/Roll
+selection, explicit hit-entry ECB callback ordering, and broader physical
+damage routes. Numeric response remains qualified separately.
 
 ## Completed and verified: complete base/secondary Wait lifecycle
 
@@ -1681,6 +1683,56 @@ other stage/pushbox topologies.
 - [x] Rebuild and pass all 41 Release CTests on both native Windows and WSL.
   The complete 21-domain / 117-case stored gate plus replay passes in 1,120.723
   ms on Windows and 1,486.147 ms in WSL, under the existing two-second budget.
+
+### Validated: ordinary damage animation identity and imported HSD geometry
+
+- [x] Sweep pinned decomp revision `9509dc0`, current upstream revision
+  `d882af9`, and Falcon's complete DAT motions before implementation.
+  `ftCo_8008DCE0` selects the ordinary damage motion from pre-launch
+  ground/air state, knockback level, and collided hurtbox height. Ground-to-air
+  conversion does not reselect the motion. `Fighter_ChangeMotionState` plus
+  `ftAnim_8006EBA4` exposes source frame one immediately with no entry blend.
+- [x] Reuse the existing full collision-memory probe; no browser probe or new
+  Dolphin protocol was added. Two independent 138-row physical captures have
+  raw SHA-256
+  `e34454e4f4cd7c3e02d46285820ce8210b9c002f6a32242577fba98aa9f0e437`
+  and
+  `24dc8291bcfe9ca8e470bda95e34e97242eb1138a5fc356eef91746777201401`.
+  Their 72 DamageN2 rows share the exact source-frame pattern: frame one is
+  held through hitlag, then frames 2-10 advance one per resumed update.
+- [x] Extend the reusable source qualifier with manifest-owned repeated frame
+  patterns, label exclusions, capture-owned grounded/ECB-lock state, and
+  component diagnostics. Across both captures, 276 pose observations / 3,036
+  hurt capsules agree within one Q16 unit. The 132 rows after the hit-entry map
+  callback also reproduce all four ECB points within one Q16 unit. The six
+  mixed-ownership entry rows remain explicitly excluded: the new action and
+  skeleton are already visible while collision still owns the preceding ECB.
+- [x] Import raw submotions 165-179 into the existing parent-closed profile.
+  It now contains 66 motions, 4,381 tracks, and 44,149 keys under decoded-data
+  SHA-256
+  `d013285272bfe3c4ad7a52218d24dbc7aabda24293289fbc06445fd51ae68109`.
+  Production threads the first accepted hurtbox's height through the existing
+  collision winner reduction, uses one constant source table, and reuses the
+  canonical animation cursor and allocation-free HSD evaluator without new
+  rollback fields, runtime parsing, floating point, or duplicate pose data.
+- [x] Extend the existing flat-ground knockback oracle rather than creating a
+  new framework. It asserts DamageLw1 selection, frame-one hitlag freeze,
+  resumed source-clock progression, every live production hurt capsule, and
+  mid-damage canonical save/load. All 24 ground/air, damage-level, and hurtbox-
+  height table entries are also checked against the decomp table.
+- [x] Requalify deterministic dependents after the intentional source-identity
+  change. Replay corpus/final/event SHA-256 values are now
+  `2959415d4b85951e441b516720d2818bdab4b27b05ebda5465158cc4e1b420b7` /
+  `7d031c271e05fb0041fa749488689175fb6b775f44d58a794bc1aa1e1c47bd48` /
+  `55581ad6489814368e540e8eb96779ece01d840b1dd6ce7899afd1c4f724ac6bd`.
+  The Hyrule slope/ledge production digest is
+  `60aa1b284c7a5002d2e9980fc52f054b64b18e84f6608be50a119e6820f70215`;
+  all source samples remain within their existing strict/Q16 envelopes.
+- [x] Pass Windows MinGW Release 39/39 and WSL Release 41/41. The complete
+  21-domain / 117-case stored gate plus replay passes in 898.577 ms on Windows
+  and 825.175 ms in WSL, below the two-second edit-loop budget; focused WSL
+  ASan/UBSan combat also passes. The character-importer skill now owns the
+  reusable damage-motion and mixed callback-ownership procedure.
 
 ## Completion gate
 

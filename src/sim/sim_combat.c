@@ -2801,7 +2801,8 @@ static int pf_m4_hit_sphere_overlaps_reference_pose(
     const pf_m4_hit_sphere_inspection *sphere,
     const pf_m4_reference_hurt_capsule *capsules,
     uint8_t capsule_count,
-    int grabbable_only)
+    int grabbable_only,
+    uint8_t *out_hurtbox_height)
 {
     const int8_t pose_facing = pf_m4_reference_hurt_pose_facing(
         fighter,
@@ -2841,18 +2842,23 @@ static int pf_m4_hit_sphere_overlaps_reference_pose(
                 &collision_hit,
                 &capsule))
         {
+            if (out_hurtbox_height != NULL)
+            {
+                *out_hurtbox_height = capsules[capsule_index].height;
+            }
             return 1;
         }
     }
     return 0;
 }
 
-static int pf_m4_hit_sphere_overlaps_player(
+static int pf_m4_hit_sphere_overlaps_player_with_height(
     const pf_m4_fighter_data *fighter,
     const pf_sim_scratch *scratch,
     uint32_t target_index,
     const pf_m4_hit_sphere_inspection *previous_sphere,
-    const pf_m4_hit_sphere_inspection *sphere)
+    const pf_m4_hit_sphere_inspection *sphere,
+    uint8_t *out_hurtbox_height)
 {
     uint8_t capsule_count;
     pf_m4_reference_hurt_capsule
@@ -2884,7 +2890,8 @@ static int pf_m4_hit_sphere_overlaps_player(
             sphere,
             capsules,
             capsule_count,
-            0);
+            0,
+            out_hurtbox_height);
     }
     const int32_t hurtbox_left =
         scratch->position_x_q16[target_index] -
@@ -2915,9 +2922,33 @@ static int pf_m4_hit_sphere_overlaps_player(
     const int64_t delta_y =
         (int64_t)sphere->center_y_q16 - (int64_t)nearest_y;
 
-    return delta_x * delta_x + delta_y * delta_y <=
-           (int64_t)sphere->radius_q16 *
-               (int64_t)sphere->radius_q16;
+    if (delta_x * delta_x + delta_y * delta_y <=
+        (int64_t)sphere->radius_q16 *
+            (int64_t)sphere->radius_q16)
+    {
+        if (out_hurtbox_height != NULL)
+        {
+            *out_hurtbox_height = UINT8_C(1);
+        }
+        return 1;
+    }
+    return 0;
+}
+
+static int pf_m4_hit_sphere_overlaps_player(
+    const pf_m4_fighter_data *fighter,
+    const pf_sim_scratch *scratch,
+    uint32_t target_index,
+    const pf_m4_hit_sphere_inspection *previous_sphere,
+    const pf_m4_hit_sphere_inspection *sphere)
+{
+    return pf_m4_hit_sphere_overlaps_player_with_height(
+        fighter,
+        scratch,
+        target_index,
+        previous_sphere,
+        sphere,
+        NULL);
 }
 
 static int pf_m4_grab_sphere_overlaps_player(
@@ -2957,7 +2988,8 @@ static int pf_m4_grab_sphere_overlaps_player(
             sphere,
             capsules,
             capsule_count,
-            1);
+            1,
+            NULL);
     }
     return pf_m4_hit_sphere_overlaps_player(
         fighter,
@@ -3524,6 +3556,7 @@ static pf_status pf_m4_apply_hit_reaction(
     int velocity_is_weighted,
     int launch_grounded,
     uint8_t damage_level,
+    uint8_t hurtbox_height,
     uint8_t meteor_cancellable,
     pf_sim_event_type event_type,
     uint16_t event_detail)
@@ -3541,6 +3574,8 @@ static pf_status pf_m4_apply_hit_reaction(
         scratch->knockback_velocity_x_q16[target_index];
     const int32_t previous_knockback_velocity_y_q16 =
         scratch->knockback_velocity_y_q16[target_index];
+    const uint8_t damage_source_grounded =
+        scratch->grounded[target_index];
 
     if (velocity_is_weighted == 0)
     {
@@ -3744,6 +3779,25 @@ static pf_status pf_m4_apply_hit_reaction(
                              ? damage_level
                              : UINT8_C(2)))
             : (uint8_t)PF_M4_ACTION_HITSTUN;
+    if (content->fighter.reference_frame_data_enabled != UINT8_C(0) &&
+        armored == 0 && reset == 0)
+    {
+        uint16_t damage_submotion;
+
+        if (!pf_m4_falcon_reference_damage_submotion(
+                damage_source_grounded,
+                damage_level,
+                hurtbox_height,
+                &damage_submotion))
+        {
+            return PF_STATUS_DETERMINISTIC_FAULT;
+        }
+        scratch->source_submotion[target_index] = damage_submotion;
+        scratch->source_animation_frame_q16[target_index] =
+            (int32_t)PF_Q16_ONE;
+        scratch->source_animation_rate_q16[target_index] =
+            (int32_t)PF_Q16_ONE;
+    }
     /* DamageFly is airborne from its entry frame, including the hitlag-held
      * rows before its physics callback first advances.  Ground damage keeps
      * the source floor only when the imported knockback result selected a
@@ -3983,6 +4037,7 @@ static pf_status pf_m4_resolve_falcon_dive_capture(
                 1,
                 0,
                 UINT8_C(0),
+                UINT8_C(1),
                 UINT8_C(0),
                 PF_SIM_EVENT_THROW,
                 (uint16_t)PF_M4_ACTION_FALCON_DIVE_THROW) != PF_STATUS_OK)
@@ -4425,6 +4480,7 @@ static pf_status pf_m4_resolve_grabs(
                         velocity_is_weighted,
                         launch_grounded,
                         damage_level,
+                        UINT8_C(1),
                         meteor_cancellable,
                         PF_SIM_EVENT_THROW,
                         (uint16_t)holder_action) != PF_STATUS_OK)
@@ -4904,6 +4960,7 @@ static pf_status pf_m4_resolve_item_combat(
                     0,
                     0,
                     UINT8_C(0),
+                    UINT8_C(1),
                     UINT8_C(0),
                     PF_SIM_EVENT_ITEM_HIT,
                     (uint16_t)scratch->item_throw_direction) !=
@@ -5196,6 +5253,7 @@ static pf_status pf_m4_resolve_projectile_combat(
                     0,
                     0,
                     UINT8_C(0),
+                    UINT8_C(1),
                     UINT8_C(0),
                     PF_SIM_EVENT_PROJECTILE_HIT,
                     (uint16_t)PF_M4_ACTION_PROJECTILE_FIRE_GROUND) !=
@@ -5358,6 +5416,7 @@ static int pf_m4_select_reference_target_hit(
     uint16_t cancelled_group_mask,
     pf_m4_attack_runtime *out_attack,
     uint8_t *out_group,
+    uint8_t *out_hurtbox_height,
     int *out_shield_overlap)
 {
     uint8_t sphere_index;
@@ -5365,7 +5424,8 @@ static int pf_m4_select_reference_target_hit(
     if (content == NULL || world == NULL || scratch == NULL ||
         base_attack == NULL || spheres == NULL ||
         previous_spheres == NULL || out_attack == NULL ||
-        out_group == NULL || out_shield_overlap == NULL)
+        out_group == NULL || out_hurtbox_height == NULL ||
+        out_shield_overlap == NULL)
     {
         return -1;
     }
@@ -5406,12 +5466,13 @@ static int pf_m4_select_reference_target_hit(
             previous_attacker_position_y_q16,
             previous_sphere,
             sphere);
-        player_overlap = pf_m4_hit_sphere_overlaps_player(
+        player_overlap = pf_m4_hit_sphere_overlaps_player_with_height(
             &content->fighter,
             scratch,
             target_index,
             previous_sphere,
-            sphere);
+            sphere,
+            out_hurtbox_height);
         effect = pf_m4_falcon_reference_effect(
             geometry_move,
             sphere->effect_index);
@@ -5469,6 +5530,8 @@ pf_status pf_m4_resolve_combat(
         target_attack[PF_SIM_MAX_PLAYERS][PF_SIM_MAX_PLAYERS];
     uint8_t
         target_attack_group[PF_SIM_MAX_PLAYERS][PF_SIM_MAX_PLAYERS];
+    uint8_t
+        target_hurtbox_height[PF_SIM_MAX_PLAYERS][PF_SIM_MAX_PLAYERS];
     pf_m4_hit_sphere_inspection
         attacker_spheres[PF_SIM_MAX_PLAYERS]
                         [PF_M4_INSPECTION_HIT_SPHERE_CAPACITY];
@@ -5515,6 +5578,7 @@ pf_status pf_m4_resolve_combat(
     (void)memset(rebound_source, UINT8_MAX, sizeof(rebound_source));
     (void)memset(cancelled_group_mask, 0, sizeof(cancelled_group_mask));
     (void)memset(target_attack_group, UINT8_MAX, sizeof(target_attack_group));
+    (void)memset(target_hurtbox_height, 1, sizeof(target_hurtbox_height));
     (void)memset(
         attacker_sphere_count,
         0,
@@ -5696,6 +5760,7 @@ pf_status pf_m4_resolve_combat(
                     UINT16_C(0),
                     &target_attack[target_index][attacker_index],
                     &target_attack_group[target_index][attacker_index],
+                    &target_hurtbox_height[target_index][attacker_index],
                     &shield_overlap);
 
                 if (selection < 0)
@@ -6025,6 +6090,7 @@ pf_status pf_m4_resolve_combat(
                     cancelled_group_mask[attacker_index],
                     &target_attack[target_index][attacker_index],
                     &target_attack_group[target_index][attacker_index],
+                    &target_hurtbox_height[target_index][attacker_index],
                     &shield_overlap);
                 if (selection < 0)
                 {
@@ -6351,6 +6417,7 @@ pf_status pf_m4_resolve_combat(
                     velocity_is_weighted,
                     launch_grounded,
                     damage_level,
+                    target_hurtbox_height[target_index][best_owner],
                     meteor_cancellable,
                     PF_SIM_EVENT_HIT,
                     (uint16_t)attacker_action[best_owner]) != PF_STATUS_OK)

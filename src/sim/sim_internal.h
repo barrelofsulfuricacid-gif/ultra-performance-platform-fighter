@@ -172,6 +172,7 @@ static inline int pf_m4_action_retains_source_submotion(
         action_state == (uint8_t)PF_M4_ACTION_PUMMEL ||
         action_state == (uint8_t)PF_M4_ACTION_GRABBED ||
         action_state == (uint8_t)PF_M4_ACTION_GRAB_RELEASE ||
+        pf_m4_action_is_damage(action_state) ||
         pf_m4_action_uses_ledge(action_state) ||
         pf_m4_action_uses_fall_special_pose(action_state) ||
         pf_m4_action_uses_direct_hsd_pose(action_state);
@@ -203,6 +204,7 @@ static inline int pf_m4_action_retains_source_submotion(
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_PUMMEL ||
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_GRABBED ||
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_GRAB_RELEASE ||
+        pf_m4_action_is_damage(hitlag_resume_action) ||
         pf_m4_action_uses_ledge(hitlag_resume_action) ||
         pf_m4_action_uses_fall_special_pose(hitlag_resume_action) ||
         pf_m4_action_uses_direct_hsd_pose(hitlag_resume_action);
@@ -262,6 +264,7 @@ static inline int pf_m4_action_uses_source_animation_clock(
            effective_action == (uint8_t)PF_M4_ACTION_SHIELD_STUN ||
            effective_action ==
                (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN ||
+           pf_m4_action_is_damage(effective_action) ||
            pf_m4_action_uses_fall_special_pose(effective_action) ||
            pf_m4_action_uses_direct_hsd_pose(effective_action);
 }

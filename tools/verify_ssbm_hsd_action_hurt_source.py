@@ -232,9 +232,18 @@ def main() -> int:
             action = str(case["source_action"])
             submotion = int(case["submotion_index"])
             label = case.get("label")
+            excluded_label_suffixes = case.get("excluded_label_suffixes", [])
             require(
                 label is None or isinstance(label, str),
                 f"{capture_name}/{action}: invalid label filter",
+            )
+            require(
+                isinstance(excluded_label_suffixes, list)
+                and all(
+                    isinstance(suffix, str) and suffix
+                    for suffix in excluded_label_suffixes
+                ),
+                f"{capture_name}/{action}: invalid excluded label suffixes",
             )
             minimum_frame_q16 = case.get("minimum_source_frame_exclusive_q16")
             maximum_frame_q16 = case.get("maximum_source_frame_inclusive_q16")
@@ -242,6 +251,9 @@ def main() -> int:
             for row in rows:
                 if row.get("action") != action or (
                     label is not None and row.get("label") != label
+                ) or any(
+                    str(row.get("label", "")).endswith(suffix)
+                    for suffix in excluded_label_suffixes
                 ):
                     continue
                 memory = row.get("hitbox_memory")
@@ -281,6 +293,13 @@ def main() -> int:
                 for row in selected
             ]
             expected_frames_q16 = case.get("expected_source_frames_q16")
+            expected_frame_pattern_q16 = case.get(
+                "expected_source_frame_pattern_q16"
+            )
+            require(
+                expected_frames_q16 is None or expected_frame_pattern_q16 is None,
+                f"{capture_name}/{action}: source-frame expectations overlap",
+            )
             if expected_frames_q16 is not None:
                 require(
                     isinstance(expected_frames_q16, list)
@@ -298,6 +317,34 @@ def main() -> int:
                         )
                     ),
                     f"{capture_name}/{action}: source-frame sequence differs",
+                )
+            elif expected_frame_pattern_q16 is not None:
+                repetitions = case.get("expected_source_frame_pattern_repetitions")
+                require(
+                    isinstance(expected_frame_pattern_q16, list)
+                    and expected_frame_pattern_q16
+                    and all(
+                        isinstance(value, int)
+                        for value in expected_frame_pattern_q16
+                    )
+                    and isinstance(repetitions, int)
+                    and repetitions > 0,
+                    f"{capture_name}/{action}: invalid source-frame pattern",
+                )
+                expected_frames_q16 = (
+                    expected_frame_pattern_q16 * repetitions
+                )
+                require(
+                    len(expected_frames_q16) == len(selected)
+                    and all(
+                        abs(actual - expected) <= frame_tolerance
+                        for actual, expected in zip(
+                            source_frames_q16,
+                            expected_frames_q16,
+                            strict=True,
+                        )
+                    ),
+                    f"{capture_name}/{action}: source-frame pattern differs",
                 )
             else:
                 first_source_frame = int(case["first_source_frame"])
@@ -360,6 +407,21 @@ def main() -> int:
                 )
             case_maximum = 0
             case_ecb_maximum = 0
+            compared_ecb_components = case.get(
+                "compared_ecb_components",
+                ["top", "bottom", "right", "left"],
+            )
+            require(
+                isinstance(compared_ecb_components, list)
+                and compared_ecb_components
+                and len(set(compared_ecb_components))
+                    == len(compared_ecb_components)
+                and all(
+                    component in ("top", "bottom", "right", "left")
+                    for component in compared_ecb_components
+                ),
+                f"{capture_name}/{action}: invalid compared ECB components",
+            )
             for row in selected:
                 case_maximum = max(
                     case_maximum,
@@ -375,7 +437,7 @@ def main() -> int:
                         f"{capture_name}/{action}",
                     ),
                 )
-                if compare_ecb:
+                if compare_ecb and bool(case.get("compare_ecb", True)):
                     memory = row["hitbox_memory"]
                     frame = float(memory["fighter_animation_frame"])
                     facing = int(row["facing"])
@@ -398,16 +460,31 @@ def main() -> int:
                         if animation_flags[submotion]
                         & FIGHTER_ANIMATION_TRANSLATION_FLAG
                         else None,
+                        bool(row["grounded"])
+                        if bool(case.get("ecb_grounded_from_capture", False))
+                        else True,
+                        0
+                        if bool(case.get("ecb_lock_ticks_from_capture", False))
+                        and int(memory.get("fighter_ecb_lock_ticks", 0)) > 0
+                        else None,
                     )
-                    ecb_difference = max(
-                        abs(actual_ecb[point][axis] - expected_ecb[point][axis])
-                        for point in ("top", "bottom", "right", "left")
-                        for axis in (0, 1)
-                    )
+                    ecb_component_differences = {
+                        point: max(
+                            abs(
+                                actual_ecb[point][axis]
+                                - expected_ecb[point][axis]
+                            )
+                            for axis in (0, 1)
+                        )
+                        for point in compared_ecb_components
+                    }
+                    ecb_difference = max(ecb_component_differences.values())
                     require(
                         ecb_difference <= tolerance,
                         f"{capture_name}/{action}: trace={row['trace_frame']} "
-                        f"ECB Q16 difference={ecb_difference}",
+                        f"ECB Q16 difference={ecb_difference} "
+                        f"components={ecb_component_differences} "
+                        f"actual={actual_ecb} expected={expected_ecb}",
                     )
                     case_ecb_maximum = max(case_ecb_maximum, ecb_difference)
             print(

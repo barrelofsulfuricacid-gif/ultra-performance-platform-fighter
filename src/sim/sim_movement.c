@@ -14867,6 +14867,52 @@ pf_status pf_m4_step_player(
         }
     }
     else if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
+             pf_m4_action_is_damage(
+                 pf_m4_effective_action_state(
+                     action_state,
+                     scratch->hitlag_resume_action[player_index])))
+    {
+        const uint8_t previous_effective_action =
+            pf_m4_effective_action_state(
+                previous_action_state,
+                previous_hitlag_resume_action);
+        const pf_m4_falcon_submotion_data *damage_motion;
+
+        if (pf_m4_action_is_damage(previous_effective_action))
+        {
+            source_submotion = previous_source_submotion;
+            source_animation_frame_q16 =
+                previous_source_animation_frame_q16;
+        }
+        damage_motion =
+            pf_m4_falcon_reference_submotion(source_submotion);
+        if (damage_motion == NULL ||
+            source_submotion <
+                (uint16_t)PF_M4_FALCON_SUBMOTION_DAMAGE_HIGH_1 ||
+            source_submotion >
+                (uint16_t)PF_M4_FALCON_SUBMOTION_DAMAGE_FLY_LOW ||
+            damage_motion->animation_frame_count == UINT16_C(0))
+        {
+            return PF_STATUS_DETERMINISTIC_FAULT;
+        }
+        source_animation_rate_q16 = (int32_t)PF_Q16_ONE;
+        if (action_state != (uint8_t)PF_M4_ACTION_HITLAG)
+        {
+            const int64_t terminal_frame_q16 =
+                (int64_t)(damage_motion->animation_frame_count -
+                          UINT16_C(1)) *
+                (int64_t)PF_Q16_ONE;
+            const int64_t next_frame_q16 =
+                (int64_t)source_animation_frame_q16 +
+                (int64_t)source_animation_rate_q16;
+
+            source_animation_frame_q16 =
+                (int32_t)(next_frame_q16 < terminal_frame_q16
+                              ? next_frame_q16
+                              : terminal_frame_q16);
+        }
+    }
+    else if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
              pf_m4_effective_action_state(
                  action_state,
                  scratch->hitlag_resume_action[player_index]) ==

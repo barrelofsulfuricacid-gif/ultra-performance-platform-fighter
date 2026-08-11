@@ -177,6 +177,38 @@ const pf_m4_falcon_submotion_data *pf_m4_falcon_reference_submotion(
     return &pf_m4_falcon_submotions[submotion_index];
 }
 
+int pf_m4_falcon_reference_damage_submotion(
+    uint8_t source_grounded,
+    uint8_t damage_level,
+    uint8_t hurtbox_height,
+    uint16_t *out_submotion_index)
+{
+    static const uint16_t damage_submotions[2][4][3] = {
+        {
+            { UINT16_C(171), UINT16_C(168), UINT16_C(165) },
+            { UINT16_C(172), UINT16_C(169), UINT16_C(166) },
+            { UINT16_C(173), UINT16_C(170), UINT16_C(167) },
+            { UINT16_C(179), UINT16_C(178), UINT16_C(177) },
+        },
+        {
+            { UINT16_C(174), UINT16_C(174), UINT16_C(174) },
+            { UINT16_C(175), UINT16_C(175), UINT16_C(175) },
+            { UINT16_C(176), UINT16_C(176), UINT16_C(176) },
+            { UINT16_C(179), UINT16_C(178), UINT16_C(177) },
+        },
+    };
+
+    if (out_submotion_index == NULL || source_grounded > UINT8_C(1) ||
+        damage_level > UINT8_C(3) || hurtbox_height > UINT8_C(2))
+    {
+        return 0;
+    }
+    *out_submotion_index =
+        damage_submotions[source_grounded == UINT8_C(0) ? 1 : 0]
+                         [damage_level][hurtbox_height];
+    return 1;
+}
+
 const pf_m4_falcon_script_event *pf_m4_falcon_reference_submotion_event(
     uint16_t submotion_index,
     uint16_t event_index,
@@ -1692,6 +1724,19 @@ int pf_m4_falcon_reference_retained_hsd_pose(
     }
     switch ((pf_m4_action_state)action_state)
     {
+    case PF_M4_ACTION_HITSTUN:
+    case PF_M4_ACTION_DAMAGE_LOW_1:
+    case PF_M4_ACTION_DAMAGE_LOW_2:
+    case PF_M4_ACTION_DAMAGE_LOW_3:
+        expected_submotion = source_submotion;
+        if (source_submotion <
+                (uint16_t)PF_M4_FALCON_SUBMOTION_DAMAGE_HIGH_1 ||
+            source_submotion >
+                (uint16_t)PF_M4_FALCON_SUBMOTION_DAMAGE_FLY_LOW)
+        {
+            return 0;
+        }
+        break;
     case PF_M4_ACTION_SHIELD_STUN:
         expected_submotion =
             (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD_SET_OFF;
@@ -1723,7 +1768,11 @@ int pf_m4_falcon_reference_retained_hsd_pose(
         return 0;
     }
     *out_frame_q16 =
-        action_state == (uint8_t)PF_M4_ACTION_SHIELD_STUN ||
+        action_state == (uint8_t)PF_M4_ACTION_HITSTUN ||
+            action_state == (uint8_t)PF_M4_ACTION_DAMAGE_LOW_1 ||
+            action_state == (uint8_t)PF_M4_ACTION_DAMAGE_LOW_2 ||
+            action_state == (uint8_t)PF_M4_ACTION_DAMAGE_LOW_3 ||
+            action_state == (uint8_t)PF_M4_ACTION_SHIELD_STUN ||
             action_state == (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN
             ? source_animation_frame_q16
             : (int32_t)action_ticks * PF_Q16_ONE;

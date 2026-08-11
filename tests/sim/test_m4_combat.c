@@ -14727,27 +14727,22 @@ static int make_shield_break_content(
         "shield-break-content-view");
 }
 
-static int shield_break_hurt_pose_matches_source(
+static int retained_hsd_hurt_pose_matches_source(
     const pf_m4_fighter_data *fighter,
     const pf_m4_player_inspection *player)
 {
     pf_m4_reference_hurt_capsule
         local[PF_M4_HSD_POSE_MAX_CAPSULES];
+    const uint8_t effective_action =
+        player->action_state == (uint8_t)PF_M4_ACTION_HITLAG &&
+                player->hitlag_resume_action != UINT8_C(0)
+            ? player->hitlag_resume_action
+            : player->action_state;
     uint8_t count = UINT8_C(0);
     uint8_t capsule_index;
 
-    if (player->action_state != (uint8_t)PF_M4_ACTION_SHIELD_BREAK &&
-        player->action_state !=
-            (uint8_t)PF_M4_ACTION_SHIELD_BREAK_DOWN &&
-        player->action_state !=
-            (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STAND &&
-        player->action_state !=
-            (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN)
-    {
-        return 1;
-    }
     if (!pf_m4_falcon_reference_retained_hsd_hurt_capsules(
-            player->action_state,
+            effective_action,
             player->source_submotion,
             player->action_ticks,
             player->source_animation_frame_q16,
@@ -14791,6 +14786,23 @@ static int shield_break_hurt_pose_matches_source(
         }
     }
     return 1;
+}
+
+static int shield_break_hurt_pose_matches_source(
+    const pf_m4_fighter_data *fighter,
+    const pf_m4_player_inspection *player)
+{
+    if (player->action_state != (uint8_t)PF_M4_ACTION_SHIELD_BREAK &&
+        player->action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD_BREAK_DOWN &&
+        player->action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STAND &&
+        player->action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN)
+    {
+        return 1;
+    }
+    return retained_hsd_hurt_pose_matches_source(fighter, player);
 }
 
 static int advance_shield_break_to_stun(
@@ -15365,6 +15377,20 @@ static int start_reaction_hit(
 
 static int run_ssbm_damage_source_test(const pf_m4_content *content)
 {
+    static const uint16_t expected_damage_submotions[2][4][3] = {
+        {
+            { UINT16_C(171), UINT16_C(168), UINT16_C(165) },
+            { UINT16_C(172), UINT16_C(169), UINT16_C(166) },
+            { UINT16_C(173), UINT16_C(170), UINT16_C(167) },
+            { UINT16_C(179), UINT16_C(178), UINT16_C(177) },
+        },
+        {
+            { UINT16_C(174), UINT16_C(174), UINT16_C(174) },
+            { UINT16_C(175), UINT16_C(175), UINT16_C(175) },
+            { UINT16_C(176), UINT16_C(176), UINT16_C(176) },
+            { UINT16_C(179), UINT16_C(178), UINT16_C(177) },
+        },
+    };
     const pf_m4_ssbm_damage_response_attributes *source =
         pf_m4_ssbm_common_reference_damage_response();
     const uint32_t *raw_words;
@@ -15381,6 +15407,9 @@ static int run_ssbm_damage_source_test(const pf_m4_content *content)
     int32_t decayed_y = -INT32_C(11369);
     int64_t full_vertical;
     int64_t half_vertical;
+    uint8_t grounded_index;
+    uint8_t damage_level;
+    uint8_t hurtbox_height;
 
     raw_words = pf_m4_ssbm_common_reference_raw_words(&raw_word_count);
     if (source == NULL || raw_words == NULL ||
@@ -15517,6 +15546,37 @@ static int run_ssbm_damage_source_test(const pf_m4_content *content)
             parallel_x,
             parallel_y);
         return fail("ssbm-di-squared-projection");
+    }
+    for (grounded_index = UINT8_C(0);
+         grounded_index < UINT8_C(2);
+         ++grounded_index)
+    {
+        for (damage_level = UINT8_C(0);
+             damage_level < UINT8_C(4);
+             ++damage_level)
+        {
+            for (hurtbox_height = UINT8_C(0);
+                 hurtbox_height < UINT8_C(3);
+                 ++hurtbox_height)
+            {
+                uint16_t submotion = UINT16_MAX;
+
+                if (!pf_m4_falcon_reference_damage_submotion(
+                        grounded_index == UINT8_C(0)
+                            ? UINT8_C(1)
+                            : UINT8_C(0),
+                        damage_level,
+                        hurtbox_height,
+                        &submotion) ||
+                    submotion !=
+                        expected_damage_submotions[grounded_index]
+                                                    [damage_level]
+                                                    [hurtbox_height])
+                {
+                    return fail("ssbm-damage-motion-selection-table");
+                }
+            }
+        }
     }
     return 1;
 }
@@ -16393,13 +16453,24 @@ static uint8_t run_ssbm_ground_knockback_trace_case(
         inspection.players[1].action_state !=
             (uint8_t)PF_M4_ACTION_HITLAG ||
         inspection.players[1].hitlag_resume_action !=
-            (uint8_t)PF_M4_ACTION_DAMAGE_LOW_1)
+            (uint8_t)PF_M4_ACTION_DAMAGE_LOW_1 ||
+        inspection.players[1].source_submotion !=
+            (uint16_t)PF_M4_FALCON_SUBMOTION_DAMAGE_LOW_1 ||
+        inspection.players[1].source_animation_frame_q16 !=
+            (int32_t)PF_Q16_ONE ||
+        inspection.players[1].source_animation_rate_q16 !=
+            (int32_t)PF_Q16_ONE ||
+        !retained_hsd_hurt_pose_matches_source(
+            &content.fighter,
+            &inspection.players[1]))
     {
         (void)fprintf(
             stderr,
             "m4-ssbm-ground-knockback=fail operation=route"
             " hit=%d attacker_action=%u attacker_tick=%u"
-            " target_action=%u resume=%u damage=%u hitlag=%u hitstun=%u\n",
+            " target_action=%u resume=%u damage=%u hitlag=%u hitstun=%u"
+            " source=%u source_frame=%" PRId32 " source_rate=%" PRId32
+            " hurt_pose=%d\n",
             hit != NULL,
             (unsigned int)inspection.players[0].action_state,
             (unsigned int)inspection.players[0].action_ticks,
@@ -16407,7 +16478,13 @@ static uint8_t run_ssbm_ground_knockback_trace_case(
             (unsigned int)inspection.players[1].hitlag_resume_action,
             (unsigned int)(inspection.players[1].damage_q16 / UINT32_C(65536)),
             (unsigned int)inspection.players[1].hitlag_ticks,
-            (unsigned int)inspection.players[1].hitstun_ticks);
+            (unsigned int)inspection.players[1].hitstun_ticks,
+            (unsigned int)inspection.players[1].source_submotion,
+            inspection.players[1].source_animation_frame_q16,
+            inspection.players[1].source_animation_rate_q16,
+            retained_hsd_hurt_pose_matches_source(
+                &content.fighter,
+                &inspection.players[1]));
         return UINT8_C(0);
     }
 
@@ -16420,6 +16497,11 @@ static uint8_t run_ssbm_ground_knockback_trace_case(
     {
         pf_ssbm_stored_trace_sample *sample =
             &out_samples[sample_index];
+        const int32_t expected_source_frame_q16 =
+            (sample_index < UINT8_C(5)
+                 ? INT32_C(1)
+                 : (int32_t)sample_index - INT32_C(3)) *
+            (int32_t)PF_Q16_ONE;
 
         if (sample_index != UINT8_C(0))
         {
@@ -16443,6 +16525,18 @@ static uint8_t run_ssbm_ground_knockback_trace_case(
             hit_x,
             hit_y,
             sample);
+        if (inspection.players[1].source_submotion !=
+                (uint16_t)PF_M4_FALCON_SUBMOTION_DAMAGE_LOW_1 ||
+            inspection.players[1].source_animation_frame_q16 !=
+                expected_source_frame_q16 ||
+            inspection.players[1].source_animation_rate_q16 !=
+                (int32_t)PF_Q16_ONE ||
+            !retained_hsd_hurt_pose_matches_source(
+                &content.fighter,
+                &inspection.players[1]))
+        {
+            return UINT8_C(0);
+        }
         if (context != NULL && *(const int *)context != 0)
         {
             (void)printf(
@@ -16451,7 +16545,9 @@ static uint8_t run_ssbm_ground_knockback_trace_case(
                 " damage=%u hitlag=%u hitstun=%u dx=%" PRId32
                 " dy=%" PRId32 " self_vx=%" PRId32
                 " self_vy=%" PRId32 " kb_vx=%" PRId32
-                " kb_vy=%" PRId32 " ground_kb=%" PRId32 "\n",
+                " kb_vy=%" PRId32 " ground_kb=%" PRId32
+                " source=%u source_frame=%" PRId32
+                " source_rate=%" PRId32 "\n",
                 stored_case->id,
                 (unsigned int)sample_index + 1U,
                 (unsigned int)sample->action_state,
@@ -16468,7 +16564,10 @@ static uint8_t run_ssbm_ground_knockback_trace_case(
                 sample->self_velocity_y_q16,
                 sample->knockback_velocity_x_q16,
                 sample->knockback_velocity_y_q16,
-                sample->ground_knockback_velocity_q16);
+                sample->ground_knockback_velocity_q16,
+                (unsigned int)inspection.players[1].source_submotion,
+                inspection.players[1].source_animation_frame_q16,
+                inspection.players[1].source_animation_rate_q16);
         }
         if (sample_index == UINT8_C(5))
         {
@@ -16489,7 +16588,16 @@ static uint8_t run_ssbm_ground_knockback_trace_case(
                 loaded_inspection.players[1].action_state !=
                     sample->action_state ||
                 loaded_inspection.players[1].action_ticks !=
-                    sample->action_ticks)
+                    sample->action_ticks ||
+                loaded_inspection.players[1].source_submotion !=
+                    inspection.players[1].source_submotion ||
+                loaded_inspection.players[1].source_animation_frame_q16 !=
+                    inspection.players[1].source_animation_frame_q16 ||
+                loaded_inspection.players[1].source_animation_rate_q16 !=
+                    inspection.players[1].source_animation_rate_q16 ||
+                !retained_hsd_hurt_pose_matches_source(
+                    &content.fighter,
+                    &loaded_inspection.players[1]))
             {
                 return UINT8_C(0);
             }
@@ -21244,7 +21352,9 @@ static int run_deterministic_trace(const pf_content_view *view)
                     " platform_drop=%u attack_mask=%u stale_registered=%u"
                     " kb=(%" PRId32 ",%" PRId32 ") ground_kb=%" PRId32
                     " damage_jump=%u shield_held=%u shield_strength=%u"
-                    " powershield=%u sdi=(%d,%d) prone=%u/%u\n",
+                    " powershield=%u sdi=(%d,%d) prone=%u/%u"
+                    " source_clock=(%" PRId32 ",%" PRId32 ")"
+                    " ecb_lock=%u/%" PRId32 "\n",
                     (unsigned int)left->world
                         .previous_directional_input_flags[player_index],
                     (unsigned int)left->world.source_submotion[player_index],
@@ -21271,7 +21381,12 @@ static int run_deterministic_trace(const pf_content_view *view)
                     (unsigned int)inspection.players[player_index]
                         .prone_orientation,
                     (unsigned int)left->world
-                        .prone_roll_motion_orientation[player_index]);
+                        .prone_roll_motion_orientation[player_index],
+                    left->world.source_animation_frame_q16[player_index],
+                    left->world.source_animation_rate_q16[player_index],
+                    (unsigned int)left->world
+                        .ecb_bottom_lock_ticks[player_index],
+                    left->world.ecb_locked_bottom_y_q16[player_index]);
             }
             return fail("deterministic-combat-trace");
         }

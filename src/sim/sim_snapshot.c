@@ -2270,6 +2270,15 @@ static int pf_m4_snapshot_source_submotion_valid_for_action(
                    &ignored_frame_q16) &&
                submotion == expected_submotion;
     }
+    else if (pf_m4_action_is_damage(effective_action))
+    {
+        return reference_frame_data_enabled != UINT8_C(0) &&
+               motion != NULL &&
+               submotion >=
+                   (uint16_t)PF_M4_FALCON_SUBMOTION_DAMAGE_HIGH_1 &&
+               submotion <=
+                   (uint16_t)PF_M4_FALCON_SUBMOTION_DAMAGE_FLY_LOW;
+    }
     else if (effective_action == (uint8_t)PF_M4_ACTION_TAUNT)
     {
         return (submotion ==
@@ -3489,7 +3498,10 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 (world->ecb_bottom_lock_ticks[player_index] == UINT8_C(0) &&
                  world->ecb_locked_bottom_y_q16[player_index] != INT32_C(0)) ||
                 (world->ecb_bottom_lock_ticks[player_index] != UINT8_C(0) &&
-                 world->ecb_locked_bottom_y_q16[player_index] < INT32_C(0)) ||
+                 (world->ecb_locked_bottom_y_q16[player_index] <
+                      -world->arena_ceiling_q16 ||
+                  world->ecb_locked_bottom_y_q16[player_index] >
+                      world->arena_ceiling_q16)) ||
                 world->fast_fall[player_index] > UINT8_C(1) ||
                 (world->facing[player_index] != INT8_C(-1) &&
                  world->facing[player_index] != INT8_C(1)) ||

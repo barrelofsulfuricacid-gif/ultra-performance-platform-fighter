@@ -6066,3 +6066,42 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   The complete Falcon source digest is
   `1e26a7fcb73c506e7dd446119896f6df90bdea0bb244c178066b4f19f5b72946`;
   runtime numeric tables are unchanged.
+
+## 2026-08-11 ordinary damage HSD pose routing
+
+- Pinned/current `ftCo_Damage.c` analysis establishes the reusable selector:
+  pre-launch ground/air state, knockback level, and collided hurtbox height
+  choose Falcon raw submotions 165-179. Ground-to-air conversion retains that
+  choice. The source enters displayed frame one immediately, freezes it during
+  hitlag, and advances one frame per resumed update.
+- Reused the existing full collision-memory probe. Independent 138-row
+  captures have SHA-256
+  `e34454e4f4cd7c3e02d46285820ce8210b9c002f6a32242577fba98aa9f0e437`
+  and
+  `24dc8291bcfe9ca8e470bda95e34e97242eb1138a5fc356eef91746777201401`.
+  The source qualifier checks 276 DamageN2 pose observations / 3,036 capsules
+  plus 132 post-entry ECB rows; maximum hurt and ECB error is one Q16 unit.
+- Extended the shared manifest/verifier with repeated source-frame patterns,
+  label exclusions, and capture-owned grounded/ECB-lock state. The six
+  `_pre_hit` ECB rows remain explicitly mixed ownership: the damage skeleton
+  has switched before the map callback replaces the preceding desired ECB.
+- The existing parent-closed profile now has 66 motions, 4,381 tracks, and
+  44,149 keys under decoded-data SHA-256
+  `d013285272bfe3c4ad7a52218d24dbc7aabda24293289fbc06445fd51ae68109`.
+  Production preserves the first accepted hurtbox height through collision
+  reduction, selects the source motion from one constant table, and shares the
+  allocation-free HSD evaluator with collision and inspection. No new rollback
+  field, duplicate pose table, runtime parser, allocation, or float was added.
+- The existing flat-ground knockback oracle now asserts DamageLw1 selection,
+  hitlag clock freeze, resumed progression, every imported production hurt
+  capsule, and mid-damage save/load. It also checks all 24 entries of the
+  ground/air x knockback-level x hurtbox-height selection table.
+- Windows MinGW Release passes 39/39; WSL Release passes 41/41. The complete
+  21-domain / 117-case stored gate plus replay passes in 898.577 ms on Windows
+  and 825.175 ms in WSL; focused WSL ASan/UBSan combat also passes.
+  Deterministic replay corpus/final/event SHA-256 values are
+  `2959415d4b85951e441b516720d2818bdab4b27b05ebda5465158cc4e1b420b7` /
+  `7d031c271e05fb0041fa749488689175fb6b775f44d58a794bc1aa1e1c47bd48` /
+  `55581ad6489814368e540e8eb96779ece01d840b1dd6ce7899afd1c4f724ac6bd`.
+  DamageFlyTop/Roll selection, explicit hit-entry ECB callback ownership, and
+  broader physical damage routes remain open.

@@ -1637,3 +1637,52 @@ Both existing ordinary-action captures qualify all five Rapid Jab Start frames
 exactly. The complete ordinary-action source theorem now owns 26 motions,
 2,086 observations, and 1,850 unique frames with maximum one-Q16 error; the
 native production primitive exercises all 925 represented action poses.
+
+## Falcon ordinary damage animation identity and HSD geometry
+
+Pinned `ftCo_Damage.c` revision
+`9509dc04406fb2028bfab01243841ba4787c0fb7` and current upstream revision
+`d882af9` agree on the ordinary damage-motion table and callback order.
+`ftCo_8008DCE0` indexes the table with the ground/air state captured before
+launch conversion, knockback level 0-3, and the collided hurtbox height 0-2.
+Falcon's resulting raw submotions are 165-179 (`DamageHi1` through
+`DamageFlyLw`). `Fighter_ChangeMotionState(..., 0x40, 0, 1, 0)` followed by
+`ftAnim_8006EBA4` makes source frame one visible immediately with no blend.
+The selected frame remains frozen during hitlag and advances by one on each
+resumed animation update.
+
+The existing full collision-memory probe produced independent 138-row files
+with SHA-256
+`e34454e4f4cd7c3e02d46285820ce8210b9c002f6a32242577fba98aa9f0e437`
+and
+`24dc8291bcfe9ca8e470bda95e34e97242eb1138a5fc356eef91746777201401`.
+Each contains 72 `DamageN2` rows with six repetitions of source frames
+`1,1,1,2,3,4,5,6,7,8,9,10`. The generic HSD source verifier compares both
+captures: 276 selected pose observations / 3,036 hurt capsules have maximum
+one-Q16 coordinate error. After excluding each case's `_pre_hit` entry row,
+132 ECB observations also match all four source-derived points within one Q16
+unit. The exclusion is a callback boundary, not a geometry tolerance: the
+entry row exposes the new action/skeleton while `fighter+0x794` still contains
+the preceding map callback's desired ECB.
+
+The generated parent-closed profile now contains 66 motions, 4,381 FObj
+tracks, and 44,149 keys under decoded-data SHA-256
+`d013285272bfe3c4ad7a52218d24dbc7aabda24293289fbc06445fd51ae68109`.
+Production keeps the hurtbox height selected by the collision narrow phase,
+looks up the raw damage submotion through the decomp table, and evaluates the
+same immutable HSD profile used by ordinary attacks, specials, guard, and
+movement. Generic rectangle fallback uses middle height explicitly. The
+existing source-animation cursor is sufficient for rollback; no damage-only
+pose array, parser, allocation, host floating point, or new snapshot field is
+introduced.
+
+The existing flat-ground late-DashAttack oracle now checks the production
+`DamageLw1` source identity, frame-one hitlag freeze, resumed frames 2-11,
+source-derived hurt capsules, and mid-damage save/load. The intentional source
+identity update changes the deterministic replay corpus SHA-256 to
+`2959415d4b85951e441b516720d2818bdab4b27b05ebda5465158cc4e1b420b7`;
+final-state and event SHA-256 remain
+`7d031c271e05fb0041fa749488689175fb6b775f44d58a794bc1aa1e1c47bd48`
+and `55581ad6489814368e540e8eb96779ece01d840b1dd6ce7899afd1c4f724ac6bd`.
+DamageFlyTop/DamageFlyRoll selection and explicit production ownership of the
+mixed hit-entry ECB row remain outside this qualified slice.

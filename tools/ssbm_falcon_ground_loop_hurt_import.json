@@ -55,6 +55,21 @@
     { "submotion_index": 70, "c_submotion": "UINT16_C(70)", "action_frame_offset": 0 },
     { "submotion_index": 71, "c_submotion": "UINT16_C(71)", "action_frame_offset": 0 },
     { "submotion_index": 72, "c_submotion": "UINT16_C(72)", "action_frame_offset": 0 },
+    { "submotion_index": 165, "c_submotion": "PF_M4_FALCON_SUBMOTION_DAMAGE_HIGH_1", "action_frame_offset": 0 },
+    { "submotion_index": 166, "c_submotion": "UINT16_C(166)", "action_frame_offset": 0 },
+    { "submotion_index": 167, "c_submotion": "UINT16_C(167)", "action_frame_offset": 0 },
+    { "submotion_index": 168, "c_submotion": "PF_M4_FALCON_SUBMOTION_DAMAGE_NEUTRAL_1", "action_frame_offset": 0 },
+    { "submotion_index": 169, "c_submotion": "PF_M4_FALCON_SUBMOTION_DAMAGE_NEUTRAL_2", "action_frame_offset": 0 },
+    { "submotion_index": 170, "c_submotion": "UINT16_C(170)", "action_frame_offset": 0 },
+    { "submotion_index": 171, "c_submotion": "PF_M4_FALCON_SUBMOTION_DAMAGE_LOW_1", "action_frame_offset": 0 },
+    { "submotion_index": 172, "c_submotion": "UINT16_C(172)", "action_frame_offset": 0 },
+    { "submotion_index": 173, "c_submotion": "UINT16_C(173)", "action_frame_offset": 0 },
+    { "submotion_index": 174, "c_submotion": "PF_M4_FALCON_SUBMOTION_DAMAGE_AIR_1", "action_frame_offset": 0 },
+    { "submotion_index": 175, "c_submotion": "UINT16_C(175)", "action_frame_offset": 0 },
+    { "submotion_index": 176, "c_submotion": "UINT16_C(176)", "action_frame_offset": 0 },
+    { "submotion_index": 177, "c_submotion": "PF_M4_FALCON_SUBMOTION_DAMAGE_FLY_HIGH", "action_frame_offset": 0 },
+    { "submotion_index": 178, "c_submotion": "PF_M4_FALCON_SUBMOTION_DAMAGE_FLY_NEUTRAL", "action_frame_offset": 0 },
+    { "submotion_index": 179, "c_submotion": "PF_M4_FALCON_SUBMOTION_DAMAGE_FLY_LOW", "action_frame_offset": 0 },
     { "submotion_index": 205, "c_submotion": "PF_M4_FALCON_SUBMOTION_FURAFURA" },
     { "submotion_index": 242, "c_submotion": "UINT16_C(242)", "action_frame_offset": -1 },
     { "submotion_index": 243, "c_submotion": "UINT16_C(243)", "action_frame_offset": -1 },
@@ -94,18 +109,61 @@
     "source_joint_count": 63,
     "runtime_part_count": 63,
     "joint_count": 25,
-    "motion_count": 51,
+    "motion_count": 66,
     "wait_animation_count": 3,
     "compact_motion_count": 6,
-    "track_count": 3424,
-    "key_count": 37533,
+    "track_count": 4381,
+    "key_count": 44149,
     "capsule_count": 11,
     "rotation_joint_count": 19,
     "translation_joint_count": 6,
     "copy_target_joint_count": 1,
     "joint_point_set_count": 1,
     "pose_branch_count": 1,
-    "data_sha256": "2e1bec542d6c3ae6ce21f814039bab2b81caf05f2eac03b05ecd0d0118189bd2"
+    "data_sha256": "d013285272bfe3c4ad7a52218d24dbc7aabda24293289fbc06445fd51ae68109"
+  },
+  "damage_pose_qualification": {
+    "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
+    "dolphin_release_artifact_sha256": "87e9ef6d80ed03354a1647d0616016dbc91399aa9e86a69ae5a398edd0a0c2bd",
+    "probe_engine_version": "1.3.1",
+    "decomp_revision": "9509dc04406fb2028bfab01243841ba4787c0fb7",
+    "capture_route_field": "damage_hit_route",
+    "coordinate_tolerance_q16": 8,
+    "compare_ecb": true,
+    "ecb_joint_point_set_id": "ecb",
+    "captures": [
+      {
+        "id": "damage-response-pose-control",
+        "sha256": "e34454e4f4cd7c3e02d46285820ce8210b9c002f6a32242577fba98aa9f0e437"
+      },
+      {
+        "id": "damage-response-pose-repeat",
+        "sha256": "24dc8291bcfe9ca8e470bda95e34e97242eb1138a5fc356eef91746777201401",
+        "repeat_of": "damage-response-pose-control"
+      }
+    ],
+    "cases": [
+      {
+        "source_action": "DAMAGE_NEUTRAL_2",
+        "submotion_index": 169,
+        "compare_ecb": false,
+        "expected_source_frame_pattern_q16": [65536, 65536, 65536, 131072, 196608, 262144, 327680, 393216, 458752, 524288, 589824, 655360],
+        "expected_source_frame_pattern_repetitions": 6,
+        "expected_animation_rate_q16": 65536,
+        "expected_samples": 72
+      },
+      {
+        "source_action": "DAMAGE_NEUTRAL_2",
+        "submotion_index": 169,
+        "excluded_label_suffixes": ["_pre_hit"],
+        "ecb_grounded_from_capture": true,
+        "ecb_lock_ticks_from_capture": true,
+        "expected_source_frame_pattern_q16": [65536, 65536, 131072, 196608, 262144, 327680, 393216, 458752, 524288, 589824, 655360],
+        "expected_source_frame_pattern_repetitions": 6,
+        "expected_animation_rate_q16": 65536,
+        "expected_samples": 66
+      }
+    ]
   },
   "action_hurt_qualification": {
     "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",

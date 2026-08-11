@@ -7,7 +7,14 @@
 
 #define PF_M4_FALCON_COMMON_ATTRIBUTE_COUNT UINT16_C(97)
 #define PF_M4_FALCON_SUBMOTION_COUNT UINT16_C(318)
+#define PF_M4_FALCON_SUBMOTION_DAMAGE_HIGH_1 UINT16_C(165)
+#define PF_M4_FALCON_SUBMOTION_DAMAGE_NEUTRAL_1 UINT16_C(168)
+#define PF_M4_FALCON_SUBMOTION_DAMAGE_NEUTRAL_2 UINT16_C(169)
 #define PF_M4_FALCON_SUBMOTION_DAMAGE_LOW_1 UINT16_C(171)
+#define PF_M4_FALCON_SUBMOTION_DAMAGE_AIR_1 UINT16_C(174)
+#define PF_M4_FALCON_SUBMOTION_DAMAGE_FLY_HIGH UINT16_C(177)
+#define PF_M4_FALCON_SUBMOTION_DAMAGE_FLY_NEUTRAL UINT16_C(178)
+#define PF_M4_FALCON_SUBMOTION_DAMAGE_FLY_LOW UINT16_C(179)
 #define PF_M4_FALCON_SCRIPT_EVENT_COUNT UINT16_C(2056)
 #define PF_M4_FALCON_SCRIPT_BYTE_COUNT UINT16_C(16516)
 #define PF_M4_FALCON_TRANSLATION_SAMPLE_COUNT UINT16_C(2536)
@@ -751,6 +758,11 @@ pf_m4_falcon_reference_animation_decode_summary(void);
 
 const pf_m4_falcon_submotion_data *pf_m4_falcon_reference_submotion(
     uint16_t submotion_index);
+int pf_m4_falcon_reference_damage_submotion(
+    uint8_t source_grounded,
+    uint8_t damage_level,
+    uint8_t hurtbox_height,
+    uint16_t *out_submotion_index);
 
 const pf_m4_falcon_script_event *pf_m4_falcon_reference_submotion_event(
     uint16_t submotion_index,
