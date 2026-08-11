@@ -87,6 +87,8 @@ def generate(raw: bytes) -> str:
     teeter_turn_axis_threshold = -f32(0x034)
     teeter_walk_axis_threshold = f32(0x474)
     walk_axis_threshold = f32(0x024)
+    walk_middle_speed_ratio = f32(0x028)
+    walk_fast_speed_ratio = f32(0x02C)
     aerial_neutral_x_threshold = f32(0x0DC)
     aerial_neutral_y_threshold = f32(0x0E0)
     c_stick_horizontal_smash_threshold = f32(0x03C)
@@ -187,6 +189,7 @@ def generate(raw: bytes) -> str:
         or not 0.0 < teeter_turn_axis_threshold <= 1.0
         or not 0.0 < teeter_walk_axis_threshold <= 1.0
         or not 0.0 < walk_axis_threshold <= 1.0
+        or not 0.0 < walk_middle_speed_ratio < walk_fast_speed_ratio <= 1.0
         or not 0.0 < aerial_neutral_x_threshold <= 1.0
         or not 0.0 < aerial_neutral_y_threshold <= 1.0
         or not 0.0 < c_stick_horizontal_smash_threshold <= 1.0
@@ -408,6 +411,8 @@ def generate(raw: bytes) -> str:
             teeter_walk_axis_threshold * 32767.0
         ),
         "walk_axis_threshold": round(walk_axis_threshold * 32767.0),
+        "walk_middle_speed_ratio_q16": q16(walk_middle_speed_ratio),
+        "walk_fast_speed_ratio_q16": q16(walk_fast_speed_ratio),
         "aerial_neutral_x_threshold": round(
             aerial_neutral_x_threshold * 32767.0
         ),
@@ -628,6 +633,8 @@ def generate(raw: bytes) -> str:
             f"    UINT16_C({ground_input_attributes['teeter_turn_axis_threshold']}),",
             f"    UINT16_C({ground_input_attributes['teeter_walk_axis_threshold']}),",
             f"    UINT16_C({ground_input_attributes['walk_axis_threshold']}),",
+            f"    UINT16_C({ground_input_attributes['walk_middle_speed_ratio_q16']}),",
+            f"    UINT16_C({ground_input_attributes['walk_fast_speed_ratio_q16']}),",
             f"    UINT16_C({ground_input_attributes['aerial_neutral_x_threshold']}),",
             f"    UINT16_C({ground_input_attributes['aerial_neutral_y_threshold']}),",
             f"    UINT16_C({ground_input_attributes['c_stick_horizontal_smash_threshold']}),",

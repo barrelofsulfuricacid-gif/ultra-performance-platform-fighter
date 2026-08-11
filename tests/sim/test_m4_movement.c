@@ -442,7 +442,7 @@ static int run_air_dodge_snapshot_test(
             pf_sim_query_save_size(source, &required_bytes),
             PF_STATUS_OK,
             "air-dodge-query-save-size") ||
-        required_bytes != (size_t)915)
+        required_bytes != (size_t)947)
     {
         return 0;
     }
@@ -1188,7 +1188,7 @@ static int run_ledge_cancel_snapshot_test(
             pf_sim_query_save_size(source, &required_bytes),
             PF_STATUS_OK,
             "ledge-cancel-query-save-size") ||
-        required_bytes != (size_t)915)
+        required_bytes != (size_t)947)
     {
         return 0;
     }
@@ -1456,7 +1456,7 @@ static int run_ground_dodge_snapshot_test(
             pf_sim_query_save_size(source, &required_bytes),
             PF_STATUS_OK,
             "ground-dodge-query-save-size") ||
-        required_bytes != (size_t)915)
+        required_bytes != (size_t)947)
     {
         return 0;
     }
@@ -2533,6 +2533,35 @@ static int run_content_contract_test(
         return 0;
     }
 
+    if (default_content->fighter.slow_walk_animation_scaling_q16 !=
+            falcon_attributes->slow_walk_animation_scaling_q16 ||
+        default_content->fighter.middle_walk_animation_scaling_q16 !=
+            falcon_attributes->middle_walk_animation_scaling_q16 ||
+        default_content->fighter.fast_walk_animation_scaling_q16 !=
+            falcon_attributes->fast_walk_animation_scaling_q16 ||
+        default_content->fighter.run_animation_scaling_q16 !=
+            falcon_attributes->run_animation_scaling_q16 ||
+        default_content->fighter.walk_middle_speed_ratio_q16 !=
+            UINT16_C(26214) ||
+        default_content->fighter.walk_fast_speed_ratio_q16 !=
+            UINT16_C(52429))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=ground-animation-source-data\n");
+        return 0;
+    }
+
+    invalid_content.fighter.slow_walk_animation_scaling_q16 = INT32_C(1);
+    if (!expect_status(
+            pf_m4_validate_content(&invalid_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-overflowing-ground-animation-rate"))
+    {
+        return 0;
+    }
+
+    invalid_content = *default_content;
     invalid_content.fighter.full_hop_speed_q16 =
         invalid_content.fighter.short_hop_speed_q16;
     if (!expect_status(
@@ -5119,7 +5148,7 @@ static int run_fox_trot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "fox-trot-query-save-size") ||
-        save_size != (size_t)915)
+        save_size != (size_t)947)
     {
         (void)fprintf(
             stderr,
@@ -5399,7 +5428,7 @@ static int run_moonwalk_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "moonwalk-query-save-size") ||
-        save_size != (size_t)915)
+        save_size != (size_t)947)
     {
         (void)fprintf(
             stderr,
@@ -5951,7 +5980,7 @@ static int run_teeter_cancel_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "teeter-query-save-size") ||
-        save_size != (size_t)915)
+        save_size != (size_t)947)
     {
         return 0;
     }
@@ -6325,7 +6354,7 @@ static int run_taunt_cancel_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "taunt-query-save-size") ||
-        save_size != (size_t)915)
+        save_size != (size_t)947)
     {
         (void)fprintf(
             stderr,
@@ -6522,7 +6551,7 @@ static int run_stage_humping_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "stage-humping-query-save-size") ||
-        save_size != (size_t)915)
+        save_size != (size_t)947)
     {
         (void)fprintf(
             stderr,
@@ -6876,7 +6905,7 @@ static int run_pivot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "pivot-query-save-size") ||
-        save_size != (size_t)915)
+        save_size != (size_t)947)
     {
         (void)fprintf(
             stderr,
@@ -7200,7 +7229,7 @@ static int run_dash_cancel_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "dash-cancel-query-save-size") ||
-        save_size != (size_t)915)
+        save_size != (size_t)947)
     {
         (void)fprintf(
             stderr,
@@ -7874,7 +7903,7 @@ static int run_instant_double_jump_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "idj-query-save-size") ||
-        save_size != (size_t)915)
+        save_size != (size_t)947)
     {
         return 0;
     }
@@ -8222,7 +8251,7 @@ static int run_double_jump_cancel_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "double-jump-cancel-query-save-size") ||
-        save_size != (size_t)915)
+        save_size != (size_t)947)
     {
         return 0;
     }
@@ -9044,7 +9073,7 @@ static int run_aerial_trigger_snapshot_test(
             pf_sim_query_save_size(source, &required_bytes),
             PF_STATUS_OK,
             "aerial-query-save-size") ||
-        required_bytes != (size_t)915)
+        required_bytes != (size_t)947)
     {
         return 0;
     }
@@ -9916,7 +9945,7 @@ static int run_upper_platform_test(
             pf_sim_save(source, &destination),
             PF_STATUS_OK,
             "upper-platform-save") ||
-        destination.size != (size_t)915)
+        destination.size != (size_t)947)
     {
         return 0;
     }
@@ -10239,7 +10268,7 @@ static int run_shield_platform_drop_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "shield-platform-drop-query-save-size") ||
-        save_size != (size_t)915)
+        save_size != (size_t)947)
     {
         return 0;
     }
@@ -11712,7 +11741,7 @@ static int run_scar_jump_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "scar-jump-save-size") ||
-        save_size != (size_t)915)
+        save_size != (size_t)947)
     {
         return 0;
     }
@@ -11938,7 +11967,7 @@ static int run_edge_hop_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "edge-hop-query-save-size") ||
-        save_size != (size_t)915)
+        save_size != (size_t)947)
     {
         return 0;
     }
@@ -12274,7 +12303,7 @@ static int run_edge_dash_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "edge-dash-query-save-size") ||
-        save_size != (size_t)915)
+        save_size != (size_t)947)
     {
         (void)fprintf(
             stderr,
@@ -12767,7 +12796,7 @@ static int run_planking_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "planking-query-save-size") ||
-        save_size != (size_t)915)
+        save_size != (size_t)947)
     {
         (void)fprintf(
             stderr,
@@ -14100,7 +14129,7 @@ static int run_vector_ascent_test(const pf_m4_content *base_content)
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "vector-ascent-save-size") ||
-        save_size != (size_t)915)
+        save_size != (size_t)947)
     {
         return 0;
     }

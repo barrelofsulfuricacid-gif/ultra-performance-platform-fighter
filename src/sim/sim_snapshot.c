@@ -9,7 +9,7 @@
 #include <string.h>
 
 #define PF_SIM_SAVE_HEADER_BYTES ((size_t)140)
-#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)775)
+#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)807)
 #define PF_SIM_SAVE_TOTAL_BYTES \
     (PF_SIM_SAVE_HEADER_BYTES + PF_SIM_SAVE_PAYLOAD_BYTES)
 
@@ -32,7 +32,7 @@ typedef struct pf_byte_reader
 
 static const uint8_t pf_save_magic[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x53), UINT8_C(0x41),
-    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x35), UINT8_C(0x38)};
+    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x35), UINT8_C(0x39)};
 
 static const uint8_t pf_config_hash_domain[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x43), UINT8_C(0x46),
@@ -263,6 +263,30 @@ static uint16_t pf_m4_snapshot_canonical_source_submotion(
                : (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT;
 }
 
+static int32_t pf_m4_snapshot_canonical_source_animation_frame_q16(
+    const pf_world_state *world,
+    uint32_t player_index)
+{
+    return world->active[player_index] != UINT8_C(0) &&
+                   pf_m4_action_uses_velocity_animation_clock(
+                       world->action_state[player_index],
+                       world->hitlag_resume_action[player_index])
+               ? world->source_animation_frame_q16[player_index]
+               : INT32_C(0);
+}
+
+static int32_t pf_m4_snapshot_canonical_source_animation_rate_q16(
+    const pf_world_state *world,
+    uint32_t player_index)
+{
+    return world->active[player_index] != UINT8_C(0) &&
+                   pf_m4_action_uses_velocity_animation_clock(
+                       world->action_state[player_index],
+                       world->hitlag_resume_action[player_index])
+               ? world->source_animation_rate_q16[player_index]
+               : INT32_C(0);
+}
+
 static void pf_write_payload(
     pf_byte_writer *writer,
     const pf_world_state *world)
@@ -350,6 +374,26 @@ static void pf_write_payload(
         pf_writer_u16(
             writer,
             pf_m4_snapshot_canonical_source_submotion(
+                world,
+                player_index));
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        pf_writer_i32(
+            writer,
+            pf_m4_snapshot_canonical_source_animation_frame_q16(
+                world,
+                player_index));
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        pf_writer_i32(
+            writer,
+            pf_m4_snapshot_canonical_source_animation_rate_q16(
                 world,
                 player_index));
     }
@@ -955,6 +999,20 @@ static void pf_read_payload(
          ++player_index)
     {
         world->source_submotion[player_index] = pf_reader_u16(reader);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        world->source_animation_frame_q16[player_index] =
+            pf_reader_i32(reader);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        world->source_animation_rate_q16[player_index] =
+            pf_reader_i32(reader);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
@@ -1920,12 +1978,29 @@ static int pf_m4_snapshot_source_submotion_valid_for_action(
     int identity_valid = 0;
 
     if (reference_frame_data_enabled == UINT8_C(0) &&
-        pf_m4_action_uses_ledge(effective_action))
+        (pf_m4_action_uses_ledge(effective_action) ||
+         effective_action == (uint8_t)PF_M4_ACTION_WALK ||
+         effective_action == (uint8_t)PF_M4_ACTION_RUN))
     {
         return submotion ==
                (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT;
     }
-    if (effective_action == (uint8_t)PF_M4_ACTION_AIRBORNE ||
+    if (effective_action == (uint8_t)PF_M4_ACTION_WALK)
+    {
+        return motion != NULL &&
+               (submotion ==
+                    (uint16_t)PF_M4_FALCON_SUBMOTION_WALK_SLOW ||
+                submotion ==
+                    (uint16_t)PF_M4_FALCON_SUBMOTION_WALK_MIDDLE ||
+                submotion ==
+                    (uint16_t)PF_M4_FALCON_SUBMOTION_WALK_FAST);
+    }
+    else if (effective_action == (uint8_t)PF_M4_ACTION_RUN)
+    {
+        return motion != NULL &&
+               submotion == (uint16_t)PF_M4_FALCON_SUBMOTION_RUN;
+    }
+    else if (effective_action == (uint8_t)PF_M4_ACTION_AIRBORNE ||
         effective_action == (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP)
     {
         identity_valid =
@@ -2088,6 +2163,35 @@ static int pf_m4_snapshot_source_submotion_valid_for_action(
            action_ticks < motion->animation_frame_count;
 }
 
+static int pf_m4_snapshot_source_animation_clock_valid(
+    const pf_m4_fighter_data *fighter,
+    uint8_t active,
+    uint8_t action,
+    uint8_t resume_action,
+    uint16_t submotion,
+    int32_t frame_q16,
+    int32_t rate_q16)
+{
+    const pf_m4_falcon_submotion_data *motion;
+
+    if (active == UINT8_C(0) ||
+        fighter->reference_frame_data_enabled == UINT8_C(0) ||
+        !pf_m4_action_uses_velocity_animation_clock(
+            action,
+            resume_action))
+    {
+        return frame_q16 == INT32_C(0) && rate_q16 == INT32_C(0);
+    }
+    motion = pf_m4_falcon_reference_submotion(submotion);
+    return motion != NULL &&
+           motion->animation_frame_count != UINT16_C(0) &&
+           frame_q16 >= INT32_C(0) &&
+           rate_q16 >= INT32_C(0) &&
+           (int64_t)frame_q16 <
+               (int64_t)motion->animation_frame_count *
+                   (int64_t)PF_Q16_ONE;
+}
+
 static uint32_t pf_m4_snapshot_ledge_attack_ticks(
     const pf_m4_fighter_data *fighter,
     uint16_t source_submotion)
@@ -2168,6 +2272,17 @@ static int pf_m4_snapshot_content_state_consistent(
             {
                 return 0;
             }
+        }
+        if (!pf_m4_snapshot_source_animation_clock_valid(
+                &content->fighter,
+                world->active[player_index],
+                action,
+                resume_action,
+                source_submotion,
+                world->source_animation_frame_q16[player_index],
+                world->source_animation_rate_q16[player_index]))
+        {
+            return 0;
         }
         const uint32_t ledge_attack_ticks =
             pf_m4_snapshot_ledge_attack_ticks(
@@ -3426,6 +3541,10 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                      INT32_C(0) ||
                  world->action_ticks[player_index] != UINT16_C(0) ||
                  world->source_submotion[player_index] != UINT16_C(0) ||
+                 world->source_animation_frame_q16[player_index] !=
+                     INT32_C(0) ||
+                 world->source_animation_rate_q16[player_index] !=
+                     INT32_C(0) ||
                  world->respawn_count[player_index] != UINT16_C(0) ||
                  world->team[player_index] != UINT8_C(0) ||
                  world->grounded[player_index] != UINT8_C(0) ||
@@ -3953,7 +4072,15 @@ pf_status pf_sim_load(
         if (candidate.source_submotion[player_index] !=
             pf_m4_snapshot_canonical_source_submotion(
                 &candidate,
-                player_index))
+                player_index) ||
+            candidate.source_animation_frame_q16[player_index] !=
+                pf_m4_snapshot_canonical_source_animation_frame_q16(
+                    &candidate,
+                    player_index) ||
+            candidate.source_animation_rate_q16[player_index] !=
+                pf_m4_snapshot_canonical_source_animation_rate_q16(
+                    &candidate,
+                    player_index))
         {
             return PF_STATUS_INVALID_STATE;
         }

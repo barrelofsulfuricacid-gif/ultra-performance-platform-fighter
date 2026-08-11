@@ -143,6 +143,8 @@ static inline int pf_m4_action_retains_source_submotion(
     uint8_t hitlag_resume_action)
 {
     const int action_owns_submotion =
+        action_state == (uint8_t)PF_M4_ACTION_WALK ||
+        action_state == (uint8_t)PF_M4_ACTION_RUN ||
         action_state == (uint8_t)PF_M4_ACTION_AIRBORNE ||
         action_state == (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP ||
         action_state == (uint8_t)PF_M4_ACTION_STANDING_TURN ||
@@ -161,6 +163,8 @@ static inline int pf_m4_action_retains_source_submotion(
         action_state == (uint8_t)PF_M4_ACTION_GRAB_RELEASE ||
         pf_m4_action_uses_ledge(action_state);
     const int resume_owns_submotion =
+        hitlag_resume_action == (uint8_t)PF_M4_ACTION_WALK ||
+        hitlag_resume_action == (uint8_t)PF_M4_ACTION_RUN ||
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_AIRBORNE ||
         hitlag_resume_action ==
             (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP ||
@@ -185,7 +189,20 @@ static inline int pf_m4_action_retains_source_submotion(
 
     return action_owns_submotion ||
            (action_state == (uint8_t)PF_M4_ACTION_HITLAG &&
-            resume_owns_submotion);
+           resume_owns_submotion);
+}
+
+static inline int pf_m4_action_uses_velocity_animation_clock(
+    uint8_t action_state,
+    uint8_t hitlag_resume_action)
+{
+    const uint8_t effective_action =
+        action_state == (uint8_t)PF_M4_ACTION_HITLAG
+            ? hitlag_resume_action
+            : action_state;
+
+    return effective_action == (uint8_t)PF_M4_ACTION_WALK ||
+           effective_action == (uint8_t)PF_M4_ACTION_RUN;
 }
 
 static inline int32_t pf_m4_multiply_q16(
@@ -294,6 +311,8 @@ typedef struct pf_world_state
     uint16_t match_falls[PF_SIM_MAX_PLAYERS];
     uint16_t action_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t source_submotion[PF_SIM_MAX_PLAYERS];
+    int32_t source_animation_frame_q16[PF_SIM_MAX_PLAYERS];
+    int32_t source_animation_rate_q16[PF_SIM_MAX_PLAYERS];
     uint16_t respawn_count[PF_SIM_MAX_PLAYERS];
     uint16_t respawn_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t respawn_invulnerability_ticks[PF_SIM_MAX_PLAYERS];
@@ -405,6 +424,8 @@ typedef struct pf_sim_scratch
     uint16_t match_falls[PF_SIM_MAX_PLAYERS];
     uint16_t action_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t source_submotion[PF_SIM_MAX_PLAYERS];
+    int32_t source_animation_frame_q16[PF_SIM_MAX_PLAYERS];
+    int32_t source_animation_rate_q16[PF_SIM_MAX_PLAYERS];
     uint16_t respawn_count[PF_SIM_MAX_PLAYERS];
     uint16_t respawn_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t respawn_invulnerability_ticks[PF_SIM_MAX_PLAYERS];

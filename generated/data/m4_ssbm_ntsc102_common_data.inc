@@ -199,11 +199,13 @@ static const pf_m4_ssbm_ground_input_attributes
 pf_m4_ssbm_ground_input_attribute_data = {
     INT32_C(6839),
     INT32_C(6839),
-    INT32_C(23254),
+    INT32_C(23255),
     INT32_C(655),
     UINT16_C(8192),
     UINT16_C(24575),
     UINT16_C(5898),
+    UINT16_C(26214),
+    UINT16_C(52429),
     UINT16_C(8192),
     UINT16_C(8192),
     UINT16_C(26214),
@@ -242,7 +244,7 @@ pf_m4_ssbm_clank_attribute_data = {
     INT32_C(19661),
     INT32_C(196608),
     INT32_C(48),
-    INT32_C(3420),
+    INT32_C(3419),
     UINT16_C(9),
     UINT16_C(0),
 };

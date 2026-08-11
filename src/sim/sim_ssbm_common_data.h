@@ -108,6 +108,8 @@ typedef struct pf_m4_ssbm_ground_input_attributes
     uint16_t teeter_turn_axis_threshold;
     uint16_t teeter_walk_axis_threshold;
     uint16_t walk_axis_threshold;
+    uint16_t walk_middle_speed_ratio_q16;
+    uint16_t walk_fast_speed_ratio_q16;
     uint16_t aerial_neutral_x_threshold;
     uint16_t aerial_neutral_y_threshold;
     uint16_t c_stick_horizontal_smash_threshold;

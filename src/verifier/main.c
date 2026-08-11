@@ -26,7 +26,7 @@
 #define PF_VERIFIER_M4_MATCH_CHECKPOINT_TICK 24U
 #define PF_VERIFIER_M4_REPLAY_CAPACITY (256U * 1024U)
 #define PF_VERIFIER_M4_MATCH_EXPECTED_DIGEST \
-    UINT64_C(0xdad815158666d9aa)
+    UINT64_C(0x773de0f58acbba04)
 
 typedef struct pf_verifier_storage
 {
@@ -739,6 +739,34 @@ static int run_m4_match_soak_invariant(pf_verifier_checks *checks)
                     pf_status_name(twin_hash_status),
                     primary_result.fault_flags,
                     primary_result.completed_tick);
+                if (pf_m4_inspect(primary, &inspection) == PF_STATUS_OK)
+                {
+                    uint32_t player_index;
+
+                    for (player_index = UINT32_C(0);
+                         player_index <
+                             (uint32_t)PF_VERIFIER_M4_MATCH_PLAYERS;
+                         ++player_index)
+                    {
+                        const pf_m4_player_inspection *player =
+                            &inspection.players[player_index];
+
+                        (void)fprintf(
+                            stderr,
+                            " player=%" PRIu32 " active=%u action=%u"
+                            " resume=%u submotion=%u frame=%" PRId32
+                            " rate=%" PRId32 " ticks=%u hitlag=%u\n",
+                            player_index,
+                            (unsigned int)player->active,
+                            (unsigned int)player->action_state,
+                            (unsigned int)player->hitlag_resume_action,
+                            (unsigned int)player->source_submotion,
+                            player->source_animation_frame_q16,
+                            player->source_animation_rate_q16,
+                            (unsigned int)player->action_ticks,
+                            (unsigned int)player->hitlag_ticks);
+                    }
+                }
                 passed = 0;
                 break;
             }

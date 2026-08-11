@@ -1031,7 +1031,9 @@ int main(int argc, char **argv)
     (void)puts(
         "trace_frame,input_x,input_y,input_c_x,input_c_y,left_trigger,"
         "right_trigger,buttons,tick,"
-        "action_state,action_ticks,facing,grounded,support,"
+        "action_state,action_ticks,source_submotion,"
+        "source_animation_frame_q16,source_animation_rate_q16,"
+        "facing,grounded,support,"
         "surface_normal_source_x_q16,surface_normal_source_y_q16,"
         "dash_direction,previous_strong_direction,position_x_q16_from_origin,"
         "position_y_q16_from_origin,"
@@ -1145,7 +1147,7 @@ int main(int argc, char **argv)
         }
         (void)printf(
             "%" PRIu32 ",%d,%d,%d,%d,%u,%u,%" PRIu64 ",%" PRIu64
-            ",%u,%u,%d,%u,%u,%" PRId32 ",%" PRId32 ",%d,%d,%" PRId32 ",%" PRId32 ",%" PRId32 ",%" PRId32
+            ",%u,%u,%u,%" PRId32 ",%" PRId32 ",%d,%u,%u,%" PRId32 ",%" PRId32 ",%d,%d,%" PRId32 ",%" PRId32 ",%" PRId32 ",%" PRId32
             ",%" PRId32
             ",%" PRIu32 ",%u,%u,%u,%" PRId32 ",%" PRId32 ",%" PRId32
             ",%" PRId32 ",%u,%u,%u,%u,%u,%u,%u,%u,%d,%u,%" PRId32 ",%" PRId32
@@ -1161,6 +1163,9 @@ int main(int argc, char **argv)
             inspection.tick,
             (unsigned int)inspection.players[0].action_state,
             (unsigned int)inspection.players[0].action_ticks,
+            (unsigned int)inspection.players[0].source_submotion,
+            inspection.players[0].source_animation_frame_q16,
+            inspection.players[0].source_animation_rate_q16,
             (int)inspection.players[0].facing,
             (unsigned int)inspection.players[0].grounded,
             (unsigned int)inspection.players[0].support,

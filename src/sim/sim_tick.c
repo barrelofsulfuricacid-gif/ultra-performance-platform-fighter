@@ -1,4 +1,5 @@
 #include "sim_internal.h"
+#include "sim_falcon_frame_data.h"
 
 #include <stdint.h>
 #include <string.h>
@@ -361,6 +362,45 @@ static pf_status pf_m4_emit_action_transitions(
         NULL);
 }
 
+static void pf_m4_canonicalize_source_animation_state(
+    const pf_m4_fighter_data *fighter,
+    const pf_world_state *world,
+    pf_sim_scratch *scratch)
+{
+    uint32_t player_index;
+
+    for (player_index = UINT32_C(0);
+         player_index < (uint32_t)world->player_count;
+         ++player_index)
+    {
+        if (scratch->active[player_index] == UINT8_C(0))
+        {
+            scratch->source_submotion[player_index] = UINT16_C(0);
+            scratch->source_animation_frame_q16[player_index] = INT32_C(0);
+            scratch->source_animation_rate_q16[player_index] = INT32_C(0);
+            continue;
+        }
+        if ((fighter->reference_frame_data_enabled == UINT8_C(0) &&
+             pf_m4_action_uses_velocity_animation_clock(
+                 scratch->action_state[player_index],
+                 scratch->hitlag_resume_action[player_index])) ||
+            !pf_m4_action_retains_source_submotion(
+                scratch->action_state[player_index],
+                scratch->hitlag_resume_action[player_index]))
+        {
+            scratch->source_submotion[player_index] =
+                (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT;
+        }
+        if (!pf_m4_action_uses_velocity_animation_clock(
+                scratch->action_state[player_index],
+                scratch->hitlag_resume_action[player_index]))
+        {
+            scratch->source_animation_frame_q16[player_index] = INT32_C(0);
+            scratch->source_animation_rate_q16[player_index] = INT32_C(0);
+        }
+    }
+}
+
 pf_status pf_sim_tick_impl(
     pf_sim *sim,
     const pf_input_frame *inputs,
@@ -576,6 +616,11 @@ pf_status pf_sim_tick_impl(
         return status;
     }
 
+    pf_m4_canonicalize_source_animation_state(
+        &sim->content.fighter,
+        world,
+        scratch);
+
     status = pf_m4_emit_action_transitions(
         world,
         scratch,
@@ -606,6 +651,10 @@ pf_status pf_sim_tick_impl(
             scratch->action_ticks[player_index];
         world->source_submotion[player_index] =
             scratch->source_submotion[player_index];
+        world->source_animation_frame_q16[player_index] =
+            scratch->source_animation_frame_q16[player_index];
+        world->source_animation_rate_q16[player_index] =
+            scratch->source_animation_rate_q16[player_index];
         world->respawn_count[player_index] =
             scratch->respawn_count[player_index];
         world->respawn_ticks[player_index] =

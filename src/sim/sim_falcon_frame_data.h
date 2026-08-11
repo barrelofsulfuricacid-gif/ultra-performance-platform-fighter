@@ -101,6 +101,9 @@ typedef enum pf_m4_falcon_move_index
 typedef enum pf_m4_falcon_submotion_index
 {
     PF_M4_FALCON_SUBMOTION_WAIT = 2,
+    PF_M4_FALCON_SUBMOTION_WALK_SLOW = 7,
+    PF_M4_FALCON_SUBMOTION_WALK_MIDDLE = 8,
+    PF_M4_FALCON_SUBMOTION_WALK_FAST = 9,
     PF_M4_FALCON_SUBMOTION_TURN = 10,
     PF_M4_FALCON_SUBMOTION_TURN_RUN = 11,
     PF_M4_FALCON_SUBMOTION_DASH = 12,
@@ -341,6 +344,10 @@ typedef struct pf_m4_falcon_common_attributes
     int32_t initial_walk_velocity_q16;
     int32_t walk_acceleration_q16;
     int32_t walk_maximum_velocity_q16;
+    int32_t slow_walk_animation_scaling_q16;
+    int32_t middle_walk_animation_scaling_q16;
+    int32_t fast_walk_animation_scaling_q16;
+    int32_t run_animation_scaling_q16;
     int32_t friction_q16;
     int32_t dash_initial_velocity_q16;
     int32_t dash_run_acceleration_a_q16;

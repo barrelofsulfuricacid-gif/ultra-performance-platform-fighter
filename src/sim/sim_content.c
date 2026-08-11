@@ -748,6 +748,14 @@ static int pf_m4_getup_roll_timing_is_valid(
            timing->reserved == UINT16_C(0);
 }
 
+static int pf_m4_velocity_animation_scaling_is_valid(int32_t scaling_q16)
+{
+    return scaling_q16 > INT32_C(0) &&
+           (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16 *
+                   (int64_t)PF_Q16_ONE <=
+               (int64_t)INT32_MAX * (int64_t)scaling_q16;
+}
+
 static void pf_m4_hash_throw(
     pf_sha256 *hash,
     const pf_m4_throw_data *throw_data)
@@ -956,6 +964,12 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_i32(hash, fighter->initial_dash_speed_q16);
     pf_m4_hash_i32(hash, fighter->walk_initial_velocity_q16);
     pf_m4_hash_i32(hash, fighter->walk_acceleration_q16);
+    pf_m4_hash_i32(hash, fighter->slow_walk_animation_scaling_q16);
+    pf_m4_hash_i32(hash, fighter->middle_walk_animation_scaling_q16);
+    pf_m4_hash_i32(hash, fighter->fast_walk_animation_scaling_q16);
+    pf_m4_hash_i32(hash, fighter->run_animation_scaling_q16);
+    pf_m4_hash_u16(hash, fighter->walk_middle_speed_ratio_q16);
+    pf_m4_hash_u16(hash, fighter->walk_fast_speed_ratio_q16);
     pf_m4_hash_i32(hash, fighter->dash_run_base_acceleration_q16);
     pf_m4_hash_i32(hash, fighter->ground_max_horizontal_speed_q16);
     pf_m4_hash_i32(hash, fighter->walk_acceleration_taper_q16);
@@ -1807,6 +1821,18 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
         falcon_attributes->initial_walk_velocity_q16;
     fighter->walk_acceleration_q16 =
         falcon_attributes->walk_acceleration_q16;
+    fighter->slow_walk_animation_scaling_q16 =
+        falcon_attributes->slow_walk_animation_scaling_q16;
+    fighter->middle_walk_animation_scaling_q16 =
+        falcon_attributes->middle_walk_animation_scaling_q16;
+    fighter->fast_walk_animation_scaling_q16 =
+        falcon_attributes->fast_walk_animation_scaling_q16;
+    fighter->run_animation_scaling_q16 =
+        falcon_attributes->run_animation_scaling_q16;
+    fighter->walk_middle_speed_ratio_q16 =
+        ground_input->walk_middle_speed_ratio_q16;
+    fighter->walk_fast_speed_ratio_q16 =
+        ground_input->walk_fast_speed_ratio_q16;
     fighter->dash_run_base_acceleration_q16 =
         falcon_attributes->dash_run_acceleration_b_q16;
     fighter->ground_max_horizontal_speed_q16 =
@@ -2952,6 +2978,17 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->initial_dash_speed_q16 <= INT32_C(0) ||
         fighter->walk_initial_velocity_q16 <= INT32_C(0) ||
         fighter->walk_acceleration_q16 <= INT32_C(0) ||
+        !pf_m4_velocity_animation_scaling_is_valid(
+            fighter->slow_walk_animation_scaling_q16) ||
+        !pf_m4_velocity_animation_scaling_is_valid(
+            fighter->middle_walk_animation_scaling_q16) ||
+        !pf_m4_velocity_animation_scaling_is_valid(
+            fighter->fast_walk_animation_scaling_q16) ||
+        !pf_m4_velocity_animation_scaling_is_valid(
+            fighter->run_animation_scaling_q16) ||
+        fighter->walk_middle_speed_ratio_q16 == UINT16_C(0) ||
+        fighter->walk_middle_speed_ratio_q16 >=
+            fighter->walk_fast_speed_ratio_q16 ||
         fighter->dash_run_base_acceleration_q16 <= INT32_C(0) ||
         fighter->ground_max_horizontal_speed_q16 <
             fighter->initial_dash_speed_q16 ||
@@ -3334,6 +3371,14 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->walk_initial_velocity_q16 >
             PF_SIM_MAX_MOTION_SPEED_Q16 ||
         fighter->walk_acceleration_q16 >
+            PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        fighter->slow_walk_animation_scaling_q16 >
+            PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        fighter->middle_walk_animation_scaling_q16 >
+            PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        fighter->fast_walk_animation_scaling_q16 >
+            PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        fighter->run_animation_scaling_q16 >
             PF_SIM_MAX_MOTION_SPEED_Q16 ||
         fighter->dash_run_base_acceleration_q16 >
             PF_SIM_MAX_MOTION_SPEED_Q16 ||

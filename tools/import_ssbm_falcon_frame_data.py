@@ -1380,9 +1380,16 @@ def generate(
             for event in subaction["events"]
             if int(str(event["commandId"]), 16) == 0xE0
         ]
-        if len(commands) != 1 or len(commands[0]) != 8:
-            raise ValueError(f"{key}: expected one complete Smash Charge command")
-        command_word = struct.unpack_from(">I", commands[0], 0)[0]
+        unique_commands = set(commands)
+        if (
+            not commands
+            or len(unique_commands) != 1
+            or len(next(iter(unique_commands))) != 8
+        ):
+            raise ValueError(
+                f"{key}: expected one unique complete Smash Charge command"
+            )
+        command_word = struct.unpack_from(">I", next(iter(unique_commands)), 0)[0]
         smash_charge_rows.append(
             ((command_word >> 16) & 0x3FF, command_word & 0xFFFF)
         )
@@ -1751,6 +1758,18 @@ def generate(
         ),
         "walk_maximum_velocity_q16": round(
             raw_f32(common_attribute_bits, 2) * MELEE_X_TO_SIM_Q16
+        ),
+        "slow_walk_animation_scaling_q16": round(
+            raw_f32(common_attribute_bits, 3) * MELEE_X_TO_SIM_Q16
+        ),
+        "middle_walk_animation_scaling_q16": round(
+            raw_f32(common_attribute_bits, 4) * MELEE_X_TO_SIM_Q16
+        ),
+        "fast_walk_animation_scaling_q16": round(
+            raw_f32(common_attribute_bits, 5) * MELEE_X_TO_SIM_Q16
+        ),
+        "run_animation_scaling_q16": round(
+            raw_f32(common_attribute_bits, 11) * MELEE_X_TO_SIM_Q16
         ),
         "friction_q16": round(raw_f32(common_attribute_bits, 6) * MELEE_X_TO_SIM_Q16),
         "dash_initial_velocity_q16": round(

@@ -551,7 +551,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.snapshot
             PROPERTIES PASS_REGULAR_EXPRESSION
-                       "sim-snapshot=pass bytes=915 hash_algorithm=sha256")
+                       "sim-snapshot=pass bytes=947 hash_algorithm=sha256")
 
     add_executable(m4_movement_test tests/sim/test_m4_movement.c)
     target_link_libraries(m4_movement_test PRIVATE sim)
@@ -564,7 +564,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.m4_movement
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-movement=pass content_schema=76 deterministic_ticks=20000 movement_core=pass tap_jump=1 jump_takeoff_momentum=1 player_push=1 teeter_cancel=1 taunt_cancel=1 double_jump_cancel=skipped vector_ascent=1 ledge_roll=1 emergent_technique_tests=skipped")
+                   "m4-movement=pass content_schema=77 deterministic_ticks=20000 movement_core=pass tap_jump=1 jump_takeoff_momentum=1 player_push=1 teeter_cancel=1 taunt_cancel=1 double_jump_cancel=skipped vector_ascent=1 ledge_roll=1 emergent_technique_tests=skipped")
 
     add_executable(
         m4_combat_test
@@ -581,7 +581,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.m4_combat
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-combat=pass content_schema=76 deterministic_ticks=20000 combat_core=pass journal_invariants=74 weight=1 stale_move=1 prone_getup_roll=2 directional_ground_attacks=1 smash_charge=1 light_shield=1 shield_geometry=1 shield_sdi=1 ssbm_damage=1 directional_aerials=1 ledge_attack=1 crouch_cancel=1 double_jump_cancel_counter=skipped approach=1 spacing=1 mindgame=1 jab_cancel=1 pummel=1 directional_throws=1 chain_grab=1 team_resolution=1 team_wobble=skipped emergent_technique_tests=skipped")
+                   "m4-combat=pass content_schema=77 deterministic_ticks=20000 combat_core=pass journal_invariants=74 weight=1 stale_move=1 prone_getup_roll=2 directional_ground_attacks=1 smash_charge=1 light_shield=1 shield_geometry=1 shield_sdi=1 ssbm_damage=1 directional_aerials=1 ledge_attack=1 crouch_cancel=1 double_jump_cancel_counter=skipped approach=1 spacing=1 mindgame=1 jab_cancel=1 pummel=1 directional_throws=1 chain_grab=1 team_resolution=1 team_wobble=skipped emergent_technique_tests=skipped")
 
     add_test(
         NAME sim.m4_ssbm_falcon_common_hurt
@@ -632,6 +632,18 @@ if(BUILD_TESTING)
             sim.m4_ssbm_falcon_kick
             PROPERTIES PASS_REGULAR_EXPRESSION
                        "ssbm-stored-equivalence=pass domains=falcon-down-special generated_checks=1 stored_cases=6 replay=pass")
+
+        add_test(
+            NAME sim.m4_ssbm_falcon_ground_animation_clock
+            COMMAND
+                "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_ssbm_falcon_ground_animation_clock.py"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/data/ssbm_falcon_ground_animation_clock.json"
+                "$<TARGET_FILE:m4_movement_trace>")
+        set_tests_properties(
+            sim.m4_ssbm_falcon_ground_animation_clock
+            PROPERTIES PASS_REGULAR_EXPRESSION
+                       "ssbm-falcon-ground-animation-clock=pass cases=3 samples=111 native_alignments=0,0,5")
     endif()
 
     add_test(
@@ -701,7 +713,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.m4_item
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-item=pass content_schema=76 state_schema=69 save_bytes=915 item_invariants=44 bat_drop=1 glide_toss=1 jump_cancel_throw=1 directional_throws=4 replay=1 rl=1")
+                   "m4-item=pass content_schema=77 state_schema=70 save_bytes=947 item_invariants=44 bat_drop=1 glide_toss=1 jump_cancel_throw=1 directional_throws=4 replay=1 rl=1")
 
     add_executable(
         m4_projectile_test
@@ -718,7 +730,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.m4_projectile
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-projectile=pass content_schema=76 state_schema=69 save_bytes=915 projectile_invariants=46 short_hop_laser=1 powershield_reflect=1 replay=1 rl=1 emergent_technique_tests=skipped")
+                   "m4-projectile=pass content_schema=77 state_schema=70 save_bytes=947 projectile_invariants=46 short_hop_laser=1 powershield_reflect=1 replay=1 rl=1 emergent_technique_tests=skipped")
 
     add_executable(
         m4_reflector_test
@@ -735,7 +747,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.m4_reflector
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-reflector=pass content_schema=76 state_schema=69 save_bytes=915 reflector_invariants=32 shine_spike=1 projectile_reflect=1 replay=1 rl=1")
+                   "m4-reflector=pass content_schema=77 state_schema=70 save_bytes=947 reflector_invariants=32 shine_spike=1 projectile_reflect=1 replay=1 rl=1")
 
     add_executable(
         m4_charge_test
@@ -755,7 +767,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.m4_charge
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-charge=pass content_schema=76 state_schema=69 save_bytes=915 charge_invariants=28 charge_storage_cancel=1 resumed_release=1 replay=1 rl=1")
+                   "m4-charge=pass content_schema=77 state_schema=70 save_bytes=947 charge_invariants=28 charge_storage_cancel=1 resumed_release=1 replay=1 rl=1")
 
     add_executable(m4_match_test tests/sim/test_m4_match.c)
     target_link_libraries(m4_match_test PRIVATE sim)
@@ -809,7 +821,7 @@ if(BUILD_TESTING)
         set_tests_properties(
             sim.replay_corpus
             PROPERTIES PASS_REGULAR_EXPRESSION
-                       "sim-replay=pass ticks=240 players=4 bytes=41687")
+                       "sim-replay=pass ticks=240 players=4 bytes=41719")
     endif()
 
     if(PF_BUILD_HEADLESS)
