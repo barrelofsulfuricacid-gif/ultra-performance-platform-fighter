@@ -3034,6 +3034,7 @@ static int pf_m4_player_state_consistent(
                  action == (uint8_t)PF_M4_ACTION_LEDGE_ROLL ||
                  action == (uint8_t)PF_M4_ACTION_LEDGE_ATTACK ||
                  action == (uint8_t)PF_M4_ACTION_HITLAG ||
+                 action == (uint8_t)PF_M4_ACTION_HITSTUN ||
                  (pf_m4_snapshot_action_is_landing(action) &&
                   world->action_ticks[player_index] == UINT16_C(0)) ||
                  ((action == (uint8_t)PF_M4_ACTION_KNOCKDOWN ||
@@ -3786,15 +3787,10 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                   hitstun_is_active != 0 ||
                   world->grounded[player_index] == UINT8_C(0))) ||
                 (hitlag == UINT16_C(0) &&
-                 action == (uint8_t)PF_M4_ACTION_HITSTUN &&
-                 hitstun == UINT16_C(0)) ||
-                (hitlag == UINT16_C(0) &&
                  hitstun_is_active != 0 &&
                  !pf_m4_action_is_damage(action) &&
                  action != (uint8_t)PF_M4_ACTION_RESET_BOUND &&
                  !pf_m4_snapshot_action_is_surface_bounce(action)) ||
-                (action == (uint8_t)PF_M4_ACTION_HITSTUN &&
-                 world->grounded[player_index] != UINT8_C(0)) ||
                 (pf_m4_action_is_ground_damage(action) &&
                  (world->grounded[player_index] == UINT8_C(0) ||
                   world->support[player_index] ==

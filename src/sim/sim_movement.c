@@ -1137,6 +1137,47 @@ static pf_status pf_m4_advance_ground_damage_animation(
     return PF_STATUS_OK;
 }
 
+static pf_status pf_m4_advance_retained_damage_animation(
+    uint16_t source_submotion,
+    uint8_t grounded,
+    uint8_t *action_state,
+    uint16_t *action_ticks,
+    uint16_t hitstun_ticks,
+    uint16_t *next_submotion)
+{
+    const pf_m4_falcon_submotion_data *motion =
+        pf_m4_falcon_reference_submotion(source_submotion);
+
+    if (action_state == NULL || action_ticks == NULL ||
+        next_submotion == NULL ||
+        source_submotion <
+            (uint16_t)PF_M4_FALCON_SUBMOTION_DAMAGE_HIGH_1 ||
+        source_submotion >
+            (uint16_t)PF_M4_FALCON_SUBMOTION_DAMAGE_FLY_ROLL ||
+        motion == NULL || motion->gameplay_frame_count == UINT16_C(0))
+    {
+        return PF_STATUS_DETERMINISTIC_FAULT;
+    }
+    if (*action_ticks < UINT16_MAX)
+    {
+        ++*action_ticks;
+    }
+    if (*action_ticks >= motion->gameplay_frame_count &&
+        hitstun_ticks == UINT16_C(0))
+    {
+        *action_state =
+            grounded != UINT8_C(0)
+                ? (uint8_t)PF_M4_ACTION_GROUND_IDLE
+                : (uint8_t)PF_M4_ACTION_AIRBORNE;
+        *action_ticks = UINT16_C(0);
+        *next_submotion =
+            grounded != UINT8_C(0)
+                ? (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT
+                : (uint16_t)PF_M4_FALCON_SUBMOTION_FALL;
+    }
+    return PF_STATUS_OK;
+}
+
 static int32_t pf_m4_clamp_i32(int32_t value, int32_t minimum, int32_t maximum)
 {
     return value < minimum ? minimum : value > maximum ? maximum : value;
@@ -5494,6 +5535,9 @@ static void pf_m4_land_from_air(
     int8_t *dash_direction)
 {
     const pf_m4_fighter_data *fighter = &content->fighter;
+    pf_m4_ssbm_damage_floor_response damage_floor_response =
+        PF_M4_SSBM_DAMAGE_FLOOR_LANDING;
+    int force_down_bound = 0;
     const int8_t roll_direction =
         pf_m4_axis_direction(
             horizontal_input,
@@ -5791,27 +5835,59 @@ static void pf_m4_land_from_air(
 
     if (scratch->tumble[player_index] == UINT8_C(0))
     {
-        /* ftCo_Landing_Enter_Basic changes ground/air state without
-         * rewriting x8c_kb_vel or initializing xF0_ground_kb_vel. Preserve
-         * both entry channels; the following global knockback update derives
-         * xF0, decays it, and projects x8c onto the live floor tangent. */
-        scratch->hitstun_ticks[player_index] = UINT16_C(0);
-        pf_m4_land(
-            fighter,
-            surface_y_q16,
-            surface,
-            position_y,
-            velocity_y,
-            action_ticks,
-            grounded,
-            action_state,
-            support,
-            air_jumps_remaining,
-            short_hop_latched,
-            fast_fall,
-            dash_direction);
-        scratch->tech_direction[player_index] = INT8_C(0);
-        return;
+        if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
+            *action_state == (uint8_t)PF_M4_ACTION_HITSTUN)
+        {
+            damage_floor_response =
+                pf_m4_ssbm_select_damage_floor_response_q16(
+                    scratch->knockback_velocity_x_q16[player_index],
+                    scratch->knockback_velocity_y_q16[player_index],
+                    UINT8_C(0));
+        }
+        if (damage_floor_response ==
+            PF_M4_SSBM_DAMAGE_FLOOR_KEEP_ACTION)
+        {
+            /* ftCommon_8007D7FC changes only the kinetic state. Damage_Coll
+             * retains the current damage motion, clock, hitstun timer, self
+             * velocity, and full x8c vector below common-data x1E4. */
+            *position_y = surface_y_q16 - fighter->half_height_q16;
+            *grounded = UINT8_C(1);
+            *support = surface;
+            *air_jumps_remaining = fighter->air_jump_count;
+            *short_hop_latched = UINT8_C(0);
+            *fast_fall = UINT8_C(0);
+            *dash_direction = INT8_C(0);
+            scratch->tech_direction[player_index] = INT8_C(0);
+            return;
+        }
+        force_down_bound =
+            damage_floor_response ==
+            PF_M4_SSBM_DAMAGE_FLOOR_DOWN_BOUND;
+        if (force_down_bound == 0)
+        {
+            /* ftCo_Landing_Enter_Basic changes ground/air state without
+             * rewriting x8c_kb_vel or initializing xF0_ground_kb_vel.
+             * Preserve both entry channels; the following global knockback
+             * update derives xF0, decays it, and projects x8c onto the live
+             * floor tangent. */
+            scratch->hitstun_ticks[player_index] = UINT16_C(0);
+            pf_m4_land(
+                fighter,
+                surface_y_q16,
+                surface,
+                position_y,
+                velocity_y,
+                action_ticks,
+                grounded,
+                action_state,
+                support,
+                air_jumps_remaining,
+                short_hop_latched,
+                fast_fall,
+                dash_direction);
+            scratch->tech_direction[player_index] = INT8_C(0);
+            return;
+        }
     }
 
     *position_y = surface_y_q16 - fighter->half_height_q16;
@@ -5825,7 +5901,8 @@ static void pf_m4_land_from_air(
     scratch->tumble[player_index] = UINT8_C(0);
     scratch->ground_knockback_velocity_q16[player_index] = INT32_C(0);
 
-    if (scratch->tech_window_ticks[player_index] > UINT16_C(0))
+    if (force_down_bound == 0 &&
+        scratch->tech_window_ticks[player_index] > UINT16_C(0))
     {
         scratch->tech_window_ticks[player_index] = UINT16_C(0);
         if (roll_direction == INT8_C(0))
@@ -5882,7 +5959,7 @@ static int pf_m4_action_can_start_grab(uint8_t action_state)
            action_state == (uint8_t)PF_M4_ACTION_TEETER ||
            action_state == (uint8_t)PF_M4_ACTION_SHIELD ||
            action_state == (uint8_t)PF_M4_ACTION_JUMP_SQUAT ||
-           pf_m4_action_is_ground_damage(action_state);
+           pf_m4_action_is_damage(action_state);
 }
 
 static int pf_m4_action_can_start_dash_attack(
@@ -5906,7 +5983,7 @@ static int pf_m4_action_can_start_taunt(uint8_t action_state)
            action_state == (uint8_t)PF_M4_ACTION_CROUCH_END ||
            action_state == (uint8_t)PF_M4_ACTION_STANDING_TURN ||
            action_state == (uint8_t)PF_M4_ACTION_TEETER ||
-           pf_m4_action_is_ground_damage(action_state);
+           pf_m4_action_is_damage(action_state);
 }
 
 static int pf_m4_normal_landing_is_interruptible(
@@ -6475,7 +6552,7 @@ static int pf_m4_reference_action_allows_special(
            action_state == (uint8_t)PF_M4_ACTION_RUN ||
            action_state == (uint8_t)PF_M4_ACTION_STANDING_TURN ||
            action_state == (uint8_t)PF_M4_ACTION_CROUCH_START ||
-           pf_m4_action_is_ground_damage(action_state) ||
+           pf_m4_action_is_damage(action_state) ||
            (action_state == (uint8_t)PF_M4_ACTION_LANDING &&
             normal_landing_interruptible != 0);
 }
@@ -8026,23 +8103,20 @@ pf_status pf_m4_step_player(
             scratch->hitstun_ticks[player_index] = UINT16_C(0);
             scratch->damage_jump_buffer_ticks[player_index] =
                 UINT16_C(0);
-            if (action_state == (uint8_t)PF_M4_ACTION_HITSTUN)
+            if (fighter->reference_frame_data_enabled == UINT8_C(0) &&
+                action_state == (uint8_t)PF_M4_ACTION_HITSTUN)
             {
                 action_state =
                     grounded != UINT8_C(0)
                         ? (uint8_t)PF_M4_ACTION_GROUND_IDLE
                         : (uint8_t)PF_M4_ACTION_AIRBORNE;
                 action_ticks = UINT16_C(0);
-                source_submotion =
-                    grounded != UINT8_C(0)
-                        ? (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT
-                        : (uint16_t)PF_M4_FALCON_SUBMOTION_FALL;
             }
             /* Damage_IASA synthesizes X/Y from the stored x14 timer and
              * then enters the ordinary Wait/Fall IASA table. Preserve that
-             * request until those tables reach their jump callback: special,
-             * escape, attack, and taunt inputs must retain their source
-             * priority and must not consume an air jump first. */
+             * request until those tables reach their jump callback. A
+             * neutral sample retains the Damage action and sourced animation
+             * until Damage_Anim itself runs out of frames. */
             damage_released_jump_requested = requested_jump;
             hitstun_locked = 0;
         }
@@ -11247,6 +11321,30 @@ pf_status pf_m4_step_player(
         }
     }
     else if (!ledge_motion_handled &&
+             grounded != UINT8_C(0) &&
+             fighter->reference_frame_data_enabled != UINT8_C(0) &&
+             action_state == (uint8_t)PF_M4_ACTION_HITSTUN)
+    {
+        /* An airborne Damage action can cross the floor below x1E4 without
+         * changing motion state. Its ground physics is ordinary friction;
+         * Damage_Anim remains authoritative for the terminal transition. */
+        velocity_x = pf_m4_approach(
+            velocity_x,
+            INT32_C(0),
+            fighter->traction_q16);
+        status = pf_m4_advance_retained_damage_animation(
+            source_submotion,
+            grounded,
+            &action_state,
+            &action_ticks,
+            scratch->hitstun_ticks[player_index],
+            &source_submotion);
+        if (status != PF_STATUS_OK)
+        {
+            return status;
+        }
+    }
+    else if (!ledge_motion_handled &&
              !hitstun_locked &&
              grounded != UINT8_C(0) &&
              action_state == (uint8_t)PF_M4_ACTION_LANDING)
@@ -13307,13 +13405,24 @@ pf_status pf_m4_step_player(
                 }
                 else if (action_state ==
                              (uint8_t)PF_M4_ACTION_HITSTUN &&
-                         (uint32_t)action_ticks + UINT32_C(1) <
-                             PF_M4_FALCON_DAMAGE_FLY_ECB_FRAME_COUNT)
+                         fighter->reference_frame_data_enabled !=
+                             UINT8_C(0))
                 {
                     /* DamageFall's released IASA uses the ordinary Fall
                      * table, but a neutral sample leaves the current damage
-                     * animation running until its final sourced frame. */
-                    ++action_ticks;
+                     * animation running until that selected submotion's
+                     * final sourced frame. */
+                    status = pf_m4_advance_retained_damage_animation(
+                        source_submotion,
+                        grounded,
+                        &action_state,
+                        &action_ticks,
+                        scratch->hitstun_ticks[player_index],
+                        &source_submotion);
+                    if (status != PF_STATUS_OK)
+                    {
+                        return status;
+                    }
                 }
                 else
                 {
@@ -14643,18 +14752,6 @@ pf_status pf_m4_step_player(
             {
                 return status;
             }
-        }
-        else if (scratch->hitstun_ticks[player_index] == UINT16_C(0) &&
-            action_state == (uint8_t)PF_M4_ACTION_HITSTUN &&
-            (grounded != UINT8_C(0) ||
-             action_ticks >=
-                 PF_M4_FALCON_DAMAGE_FLY_ECB_FRAME_COUNT))
-        {
-            action_state =
-                grounded != UINT8_C(0)
-                    ? (uint8_t)PF_M4_ACTION_LANDING
-                    : (uint8_t)PF_M4_ACTION_AIRBORNE;
-            action_ticks = UINT16_C(0);
         }
     }
 

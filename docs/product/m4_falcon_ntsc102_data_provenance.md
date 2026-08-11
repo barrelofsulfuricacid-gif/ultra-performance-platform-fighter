@@ -1793,3 +1793,23 @@ for grounded slope damage, and
 for Hyrule slope/ledge response. Release suites pass 41/41 on Windows and WSL,
 focused WSL ASan/UBSan combat passes, and the deterministic verifier soak
 golden is `f965394d7f9f082a` on both platforms without counter changes.
+
+## Falcon non-tumble damage floor selector
+
+Pinned `ftCo_Damage_Coll` source and current upstream agree on the three-way
+floor response. The generated common-data object imports raw words `x1E0`
+`0x40a00000` (5.0) and `x1E4` `0x3f000000` (0.5). Production converts its
+anisotropic Q16 velocity back to Melee coordinates, compares squared
+magnitudes at the exact inclusive boundaries, and selects DownBound, basic
+Landing, or keep-current-Damage without runtime floating point.
+
+The existing Hyrule line-36 physical pack was extended to three cases / 90
+rows with a real Falcon Jab route. Its last airborne magnitude is below 0.5;
+the source lands on sample 16 while retaining DamageN2, reaches the sourced
+terminal damage frame on sample 24, and enters Wait on sample 25. Two fresh
+captures share semantic source SHA-256
+`69fc76c7f72e92fedf00e78f54dc22d244c6d4583323e770ef16cda3d2f3587c`;
+the matched production trace is
+`79c5fa9423a2db5894e6613d5bf122caa33f697f7316bc276f96ed5e3ac1a654`.
+This extends an existing actual-input theorem rather than introducing a web
+probe, synthetic source truth, duplicate action table, or rollback field.

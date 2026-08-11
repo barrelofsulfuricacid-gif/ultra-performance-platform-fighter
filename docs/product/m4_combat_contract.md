@@ -2446,3 +2446,11 @@ requires exactly one stock loss and the full 60-tick inactive wait, then
 requires exact revival-platform spawn and descent, rejects a pre-end attack,
 drops through ordinary horizontal input at the endpoint, and observes the full
 120-tick post-drop invulnerability timer plus typed `REVIVAL_DROP` event.
+
+For reference-data non-tumble damage, floor contact follows the source common
+selector rather than an unconditional Landing. The runtime compares isotropic
+knockback magnitude against imported `PlCo` thresholds 5.0 and 0.5: the high
+branch enters DownBound, the middle branch enters basic Landing, and the low
+branch keeps the selected Damage action. Hitstun release does not end that
+action; its imported source submotion runs to its terminal frame while
+ground/air physics and knockback-channel updates continue independently.

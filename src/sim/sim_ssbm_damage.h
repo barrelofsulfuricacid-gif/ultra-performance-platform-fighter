@@ -12,6 +12,13 @@ typedef enum pf_m4_ssbm_damage_motion_kind
     PF_M4_SSBM_DAMAGE_MOTION_FLY_ROLL = 2
 } pf_m4_ssbm_damage_motion_kind;
 
+typedef enum pf_m4_ssbm_damage_floor_response
+{
+    PF_M4_SSBM_DAMAGE_FLOOR_KEEP_ACTION = 0,
+    PF_M4_SSBM_DAMAGE_FLOOR_LANDING = 1,
+    PF_M4_SSBM_DAMAGE_FLOOR_DOWN_BOUND = 2
+} pf_m4_ssbm_damage_floor_response;
+
 pf_status pf_m4_ssbm_select_damage_motion(
     uint8_t launch_grounded,
     uint8_t damage_level,
@@ -20,6 +27,12 @@ pf_status pf_m4_ssbm_select_damage_motion(
     int32_t launch_velocity_y_q16,
     uint64_t *rng_state,
     pf_m4_ssbm_damage_motion_kind *out_motion);
+
+pf_m4_ssbm_damage_floor_response
+pf_m4_ssbm_select_damage_floor_response_q16(
+    int32_t knockback_velocity_x_q16,
+    int32_t knockback_velocity_y_q16,
+    uint8_t force_down_bound);
 
 pf_status pf_m4_ssbm_resolve_ground_damage_launch_q16(
     int32_t source_normal_x_q16,

@@ -350,3 +350,16 @@ unexposed scalar, and the shared basic-Landing path retains both incoming
 knockback components with a zero scalar on its entry row.
 This closes the represented line-36 slope-damage branch; wider attack, floor,
 and stage combinations remain outside the claim.
+
+Current non-tumble floor-selector addendum: generated common data now includes
+the exact `ftCo_Damage_Coll` x1E0/x1E4 thresholds (5.0/0.5), and reference
+production preserves the selected Damage submotion after hitstun release. The
+existing Hyrule pack is three cases / 90 rows: a real low-speed Falcon Jab
+lands below 0.5 while remaining DamageN2 through its sourced terminal frame,
+then enters Wait. Two fresh captures share source semantic SHA-256
+`69fc76c7f72e92fedf00e78f54dc22d244c6d4583323e770ef16cda3d2f3587c`;
+matched production SHA-256 is
+`79c5fa9423a2db5894e6613d5bf122caa33f697f7316bc276f96ed5e3ac1a654`.
+The 5.0 DownBound boundary is protected by exact native threshold tests because
+ordinary actual-input knockback reaches tumbling routes before exposing that
+non-tumble branch. Wider attack, stage, and interrupt combinations remain open.

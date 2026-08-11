@@ -45,6 +45,8 @@ typedef struct pf_m4_ssbm_damage_response_attributes
     uint16_t damage_velocity_replace_window_ticks;
     uint16_t damage_jump_buffer_window_ticks;
     int32_t damage_fly_top_horizontal_ratio_q16;
+    int32_t damage_floor_down_speed_q16;
+    int32_t damage_floor_landing_speed_q16;
     int32_t ground_damage_steep_angle_sine_q16;
     int32_t ground_damage_vertical_reflection_q16;
     uint16_t damage_fly_roll_damage_threshold;

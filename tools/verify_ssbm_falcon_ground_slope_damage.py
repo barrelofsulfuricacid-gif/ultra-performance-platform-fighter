@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from pathlib import Path
 from typing import Any
 
@@ -32,9 +33,11 @@ EXPECTED_DAMAGE_SOURCE_SHA256 = (
 ROUTE = "surface_response"
 GROUND_CASE = "hyrule_line36_forward_tilt_grounded_projection"
 AIR_CASE = "hyrule_line36_forward_tilt_airborne_departure"
-CASE_IDS = (GROUND_CASE, AIR_CASE)
+JAB_CASE = "hyrule_line36_jab_low_speed_keep_damage"
+CASE_IDS = (GROUND_CASE, AIR_CASE, JAB_CASE)
 SAMPLES_PER_CASE = 30
 
+ACTION_GROUND_IDLE = 0
 ACTION_CROUCH = 4
 ACTION_LANDING = 7
 ACTION_HITLAG = 13
@@ -62,6 +65,7 @@ def source_cases(capture: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
 def qualify_source(cases: dict[str, list[dict[str, Any]]]) -> None:
     ground = cases[GROUND_CASE]
     air = cases[AIR_CASE]
+    jab = cases[JAB_CASE]
     expected_ground_actions = [
         *(["CROUCH_START"] * 5),
         *(["DAMAGE_NEUTRAL_2"] * 13),
@@ -74,6 +78,10 @@ def qualify_source(cases: dict[str, list[dict[str, Any]]]) -> None:
         *(["LANDING"] * 4),
         *(["CROUCHING"] * 17),
     ]
+    expected_jab_actions = [
+        *(["DAMAGE_NEUTRAL_2"] * 24),
+        *(["STANDING"] * 6),
+    ]
     require_equal(
         [row["action"] for row in ground],
         expected_ground_actions,
@@ -84,12 +92,23 @@ def qualify_source(cases: dict[str, list[dict[str, Any]]]) -> None:
         expected_air_actions,
         "airborne slope action boundary",
     )
+    require_equal(
+        [row["action"] for row in jab],
+        expected_jab_actions,
+        "low-speed keep-damage action boundary",
+    )
     for case_id, rows in cases.items():
         if not all(
             row["surface_collision_memory"]["surfaces"]["floor"]["index"]
             == 36
-            and row["opponent_action"] == "FTILT_MID"
-            and int(row["damage_percent"]) in (0, 11)
+            and row["opponent_action"]
+                in (
+                    ("NEUTRAL_ATTACK_1", "STANDING")
+                    if case_id == JAB_CASE
+                    else ("FTILT_MID",)
+                )
+            and int(row["damage_percent"])
+                in ((0, 2) if case_id == JAB_CASE else (0, 11))
             for row in rows
         ):
             raise SystemExit(f"{case_id}: setup invariant mismatch")
@@ -107,6 +126,24 @@ def qualify_source(cases: dict[str, list[dict[str, Any]]]) -> None:
         and float(air_hit["attack_velocity_y"]) == 0.0
     ):
         raise SystemExit("slope projection/departure discriminator mismatch")
+    landing_index = next(
+        index for index, row in enumerate(air) if row["action"] == "LANDING"
+    )
+    if not (
+        landing_index > 0
+        and math.hypot(
+            float(air[landing_index - 1]["attack_velocity_x"]),
+            float(air[landing_index - 1]["attack_velocity_y"]),
+        ) >= 0.5
+        and not bool(jab[14]["grounded"])
+        and bool(jab[15]["grounded"])
+        and jab[15]["action"] == "DAMAGE_NEUTRAL_2"
+        and math.hypot(
+            float(jab[14]["attack_velocity_x"]),
+            float(jab[14]["attack_velocity_y"]),
+        ) < 0.5
+    ):
+        raise SystemExit("damage floor magnitude selector mismatch")
     require_equal(
         [int(row["hitlag_left"]) for row in ground[5:9]],
         [4, 3, 2, 1],
@@ -156,7 +193,7 @@ def semantic_source_digest(
     )
 
 
-def mapped_action(row: dict[str, Any]) -> int:
+def mapped_action(case_id: str, row: dict[str, Any]) -> int:
     action = str(row["action"])
     if action == "CROUCH_START":
         return ACTION_CROUCH_START
@@ -167,7 +204,11 @@ def mapped_action(row: dict[str, Any]) -> int:
     if action == "DAMAGE_NEUTRAL_2":
         if int(row["hitlag_left"]) > 0:
             return ACTION_HITLAG
+        if case_id == JAB_CASE:
+            return ACTION_HITSTUN
         return ACTION_DAMAGE_LOW_2 if bool(row["grounded"]) else ACTION_HITSTUN
+    if action == "STANDING":
+        return ACTION_GROUND_IDLE
     raise SystemExit(f"unmapped source action {action}")
 
 
@@ -198,7 +239,11 @@ def compare_sim(
         ):
             label = f"{case_id} sample {index}"
             require_equal(actual["sample"], index, f"{label} index")
-            require_equal(actual["action"], mapped_action(row), f"{label} action")
+            require_equal(
+                actual["action"],
+                mapped_action(case_id, row),
+                f"{label} action",
+            )
             require_equal(
                 actual["grounded"], int(bool(row["grounded"])),
                 f"{label} grounded",

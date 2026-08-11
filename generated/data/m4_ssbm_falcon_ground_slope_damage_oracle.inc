@@ -78,22 +78,61 @@ _Static_assert(
         UINT16_C(30),
     "stored trace input lanes are incomplete for hyrule_line36_forward_tilt_airborne_departure");
 
+static const pf_ssbm_stored_trace_input
+pf_m4_ssbm_falcon_ground_slope_damage_hyrule_line36_jab_low_speed_keep_damage_inputs[] = {
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+};
+_Static_assert(
+    sizeof(pf_m4_ssbm_falcon_ground_slope_damage_hyrule_line36_jab_low_speed_keep_damage_inputs) / sizeof(pf_m4_ssbm_falcon_ground_slope_damage_hyrule_line36_jab_low_speed_keep_damage_inputs[0]) ==
+        UINT16_C(30),
+    "stored trace input lanes are incomplete for hyrule_line36_jab_low_speed_keep_damage");
+
 static const pf_ssbm_stored_trace_case
 pf_m4_ssbm_falcon_ground_slope_damage_cases[] = {
     { "hyrule_line36_forward_tilt_grounded_projection", pf_m4_ssbm_falcon_ground_slope_damage_hyrule_line36_forward_tilt_grounded_projection_inputs, UINT8_C(0), INT8_C(1), UINT32_C(0), UINT8_C(30) },
     { "hyrule_line36_forward_tilt_airborne_departure", pf_m4_ssbm_falcon_ground_slope_damage_hyrule_line36_forward_tilt_airborne_departure_inputs, UINT8_C(1), INT8_C(-1), UINT32_C(0), UINT8_C(30) },
+    { "hyrule_line36_jab_low_speed_keep_damage", pf_m4_ssbm_falcon_ground_slope_damage_hyrule_line36_jab_low_speed_keep_damage_inputs, UINT8_C(2), INT8_C(1), UINT32_C(0), UINT8_C(30) },
 };
 
-#define PF_M4_SSBM_FALCON_GROUND_SLOPE_DAMAGE_CASE_COUNT UINT16_C(2)
+#define PF_M4_SSBM_FALCON_GROUND_SLOPE_DAMAGE_CASE_COUNT UINT16_C(3)
 #define PF_M4_SSBM_FALCON_GROUND_SLOPE_DAMAGE_SAMPLES_PER_CASE UINT8_C(30)
-#define PF_M4_SSBM_FALCON_GROUND_SLOPE_DAMAGE_TOTAL_SAMPLE_COUNT UINT16_C(60)
+#define PF_M4_SSBM_FALCON_GROUND_SLOPE_DAMAGE_TOTAL_SAMPLE_COUNT UINT16_C(90)
 #define PF_M4_SSBM_FALCON_GROUND_SLOPE_DAMAGE_LANES_PER_SAMPLE UINT8_C(1)
 #define PF_M4_SSBM_FALCON_GROUND_SLOPE_DAMAGE_SERIALIZED_FIELDS \
     (PF_SSBM_TRACE_POSITION_X | PF_SSBM_TRACE_POSITION_Y | PF_SSBM_TRACE_SELF_VELOCITY_X | PF_SSBM_TRACE_SELF_VELOCITY_Y | PF_SSBM_TRACE_KNOCKBACK_VELOCITY_X | PF_SSBM_TRACE_KNOCKBACK_VELOCITY_Y | PF_SSBM_TRACE_GROUND_KNOCKBACK_VELOCITY | PF_SSBM_TRACE_ACTION_TICKS | PF_SSBM_TRACE_HITLAG_TICKS | PF_SSBM_TRACE_HITSTUN_TICKS | PF_SSBM_TRACE_ACTION_STATE | PF_SSBM_TRACE_HITLAG_RESUME_ACTION | PF_SSBM_TRACE_GROUNDED | PF_SSBM_TRACE_TUMBLE | PF_SSBM_TRACE_FACING)
 #define PF_M4_SSBM_FALCON_GROUND_SLOPE_DAMAGE_SOURCE_TRACE_SHA256 \
-    "657b816faa98658d10be6783b912a380cf88c24ccc1120d0a5836f61e6aa6ac9"
+    "69fc76c7f72e92fedf00e78f54dc22d244c6d4583323e770ef16cda3d2f3587c"
 #define PF_M4_SSBM_FALCON_GROUND_SLOPE_DAMAGE_PRODUCTION_TRACE_SHA256 \
-    "15b3705d0c7a6e9c83d3a540c6b90da4af835676011a2726fdb360a3e8fdf05e"
+    "79c5fa9423a2db5894e6613d5bf122caa33f697f7316bc276f96ed5e3ac1a654"
 
 _Static_assert(
     sizeof(pf_m4_ssbm_falcon_ground_slope_damage_cases) /

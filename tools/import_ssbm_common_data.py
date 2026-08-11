@@ -139,6 +139,8 @@ def generate(raw: bytes) -> str:
     meteor_cancel_invulnerability_ticks = 12
     damage_velocity_replace_window_ticks = i32(0x0FC)
     damage_jump_buffer_window_ticks = f32(0x1D0)
+    damage_floor_down_speed = f32(0x1E0)
+    damage_floor_landing_speed = f32(0x1E4)
     damage_fly_top_min_angle = f32(0x234)
     damage_fly_top_max_angle = f32(0x238)
     damage_fly_roll_damage_threshold = i32(0x23C)
@@ -249,6 +251,7 @@ def generate(raw: bytes) -> str:
         or not 0 < damage_velocity_replace_window_ticks <= 0xFFFF
         or not damage_jump_buffer_window_ticks.is_integer()
         or not 0 < damage_jump_buffer_window_ticks <= 0xFFFF
+        or not 0.0 < damage_floor_landing_speed < damage_floor_down_speed
         or not 0.0 < damage_fly_top_min_angle < math.pi / 2.0
         or not math.pi / 2.0 < damage_fly_top_max_angle < math.pi
         or not math.isclose(
@@ -340,6 +343,10 @@ def generate(raw: bytes) -> str:
         ),
         "damage_jump_buffer_window_ticks": int(
             damage_jump_buffer_window_ticks
+        ),
+        "damage_floor_down_speed_q16": q16(damage_floor_down_speed),
+        "damage_floor_landing_speed_q16": q16(
+            damage_floor_landing_speed
         ),
         "damage_fly_top_horizontal_ratio_q16": q16(
             math.tan(math.pi / 2.0 - damage_fly_top_min_angle)
@@ -613,6 +620,8 @@ def generate(raw: bytes) -> str:
             f"    UINT16_C({attributes['damage_velocity_replace_window_ticks']}),",
             f"    UINT16_C({attributes['damage_jump_buffer_window_ticks']}),",
             f"    INT32_C({attributes['damage_fly_top_horizontal_ratio_q16']}),",
+            f"    INT32_C({attributes['damage_floor_down_speed_q16']}),",
+            f"    INT32_C({attributes['damage_floor_landing_speed_q16']}),",
             f"    INT32_C({attributes['ground_damage_steep_angle_sine_q16']}),",
             f"    INT32_C({attributes['ground_damage_vertical_reflection_q16']}),",
             f"    UINT16_C({attributes['damage_fly_roll_damage_threshold']}),",

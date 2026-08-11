@@ -6195,3 +6195,33 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   pass 41/41 on both platforms, focused WSL ASan/UBSan combat passes, and the
   verifier soak digest is `f965394d7f9f082a` on both Windows and WSL with its
   match/event/rollback/replay counters unchanged.
+
+## 2026-08-11 non-tumble damage floor selector and retained lifecycle
+
+- Pinned decomp `9509dc0` and current upstream `d882af9` agree on
+  `ftCo_Damage_Coll`: after floor contact, forced-down or isotropic `x8c`
+  magnitude at least common-data `x1E0` enters DownBound, magnitude at least
+  `x1E4` enters basic Landing, and a smaller vector changes only kinetic state
+  while retaining the current Damage action.
+- The common-data importer now owns exact raw words `x1E0=0x40a00000` (5.0)
+  and `x1E4=0x3f000000` (0.5). Production undoes the simulation's anisotropic
+  scaling and compares squared Q16 magnitudes, preserving inclusive source
+  boundaries without `sqrt`, host floating point, allocation, duplicated
+  tables, or new rollback state.
+- Reference-data Damage actions no longer terminate merely because hitstun
+  reached zero or a below-0.5 route touched down. The selected Falcon source
+  submotion remains authoritative through its imported terminal frame, while
+  ground physics updates velocity ownership independently. Authored fighter
+  behavior retains its previous release policy.
+- The existing Hyrule line-36 pack now includes an actual-input low-speed Jab.
+  It lands while remaining DamageN2 on sample 16, continues through sample 24,
+  and enters Wait on sample 25. Two fresh 90-row captures pass with source
+  semantic SHA-256
+  `69fc76c7f72e92fedf00e78f54dc22d244c6d4583323e770ef16cda3d2f3587c`;
+  production SHA-256 is
+  `79c5fa9423a2db5894e6613d5bf122caa33f697f7316bc276f96ed5e3ac1a654`.
+  Their warm durations were 1.531242 and 1.257497 seconds.
+- The registered gate now covers 22 domains / 120 cases. It passes with replay
+  in 1,161.588 ms on native Windows and 1,025.755 ms in WSL, retaining the
+  two-second budget. Rebuilt Release suites pass 41/41 on native Windows and
+  WSL; the full 20,000-tick WSL ASan/UBSan combat trace also passes.

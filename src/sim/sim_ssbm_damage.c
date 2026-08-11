@@ -14,6 +14,53 @@ static int64_t pf_m4_ssbm_abs_i64(int64_t value)
     return value < INT64_C(0) ? -value : value;
 }
 
+pf_m4_ssbm_damage_floor_response
+pf_m4_ssbm_select_damage_floor_response_q16(
+    int32_t knockback_velocity_x_q16,
+    int32_t knockback_velocity_y_q16,
+    uint8_t force_down_bound)
+{
+    const pf_m4_ssbm_damage_response_attributes *common =
+        pf_m4_ssbm_common_reference_damage_response();
+    const int64_t source_x =
+        (int64_t)knockback_velocity_x_q16 * INT64_C(115) /
+        INT64_C(12);
+    const int64_t source_y =
+        -(int64_t)knockback_velocity_y_q16 * INT64_C(62) /
+        INT64_C(11);
+    uint64_t magnitude_squared;
+    uint64_t threshold_squared;
+
+    if (force_down_bound != UINT8_C(0) ||
+        pf_m4_ssbm_abs_i64(source_x) >=
+            common->damage_floor_down_speed_q16 ||
+        pf_m4_ssbm_abs_i64(source_y) >=
+            common->damage_floor_down_speed_q16)
+    {
+        return PF_M4_SSBM_DAMAGE_FLOOR_DOWN_BOUND;
+    }
+
+    /* ftCo_Damage_Coll compares the isotropic Melee x8c magnitude. Both
+     * components are below x1E0 here, so the squared comparison is exact and
+     * cannot overflow; no runtime square root or floating point is needed. */
+    magnitude_squared =
+        (uint64_t)(source_x * source_x) +
+        (uint64_t)(source_y * source_y);
+    threshold_squared =
+        (uint64_t)common->damage_floor_down_speed_q16 *
+        (uint64_t)common->damage_floor_down_speed_q16;
+    if (magnitude_squared >= threshold_squared)
+    {
+        return PF_M4_SSBM_DAMAGE_FLOOR_DOWN_BOUND;
+    }
+    threshold_squared =
+        (uint64_t)common->damage_floor_landing_speed_q16 *
+        (uint64_t)common->damage_floor_landing_speed_q16;
+    return magnitude_squared >= threshold_squared
+               ? PF_M4_SSBM_DAMAGE_FLOOR_LANDING
+               : PF_M4_SSBM_DAMAGE_FLOOR_KEEP_ACTION;
+}
+
 pf_status pf_m4_ssbm_resolve_ground_damage_launch_q16(
     int32_t source_normal_x_q16,
     int32_t source_normal_y_q16,

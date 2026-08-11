@@ -6,7 +6,7 @@
   "oracle": "SSBM GALE01 NTSC-U revision 2",
   "checkpoint_pack": {
     "protocol": "rebased-slippi-state-file-control-v1",
-    "expected_rows": 60,
+    "expected_rows": 90,
     "warm_budget_seconds": 3.0,
     "capture_plan": {
       "record_response_only": true,
@@ -46,6 +46,23 @@
           "impact_y": null,
           "impact_main": [0, -32767],
           "observe_ticks": 30
+        },
+        {
+          "id": "hyrule_line36_jab_low_speed_keep_damage",
+          "damage_percent": 0.0,
+          "target_start": [160.0, 10.0],
+          "opponent_start": [170.0, 10.0],
+          "approach_main": 0,
+          "attack_main": [0, 0],
+          "target_facing": 1,
+          "opponent_facing": -1,
+          "settle_ticks": 55,
+          "approach_ticks": 1,
+          "post_hit_ticks": 1,
+          "impact_x": null,
+          "impact_y": null,
+          "impact_main": [0, 0],
+          "observe_ticks": 30
         }
       ]
     }
@@ -58,6 +75,10 @@
     {
       "id": "hyrule-line36-forward-tilt-airborne-departure",
       "start_label": "surface_response_hyrule_line36_forward_tilt_airborne_departure_setup"
+    },
+    {
+      "id": "hyrule-line36-jab-low-speed-keep-damage",
+      "start_label": "surface_response_hyrule_line36_jab_low_speed_keep_damage_setup"
     }
   ],
   "selection": {
@@ -89,8 +110,8 @@
   },
   "stored_oracle": {
     "kind": "numeric-trace-v1",
-    "source_trace_sha256": "657b816faa98658d10be6783b912a380cf88c24ccc1120d0a5836f61e6aa6ac9",
-    "production_trace_sha256": "15b3705d0c7a6e9c83d3a540c6b90da4af835676011a2726fdb360a3e8fdf05e",
+    "source_trace_sha256": "69fc76c7f72e92fedf00e78f54dc22d244c6d4583323e770ef16cda3d2f3587c",
+    "production_trace_sha256": "79c5fa9423a2db5894e6613d5bf122caa33f697f7316bc276f96ed5e3ac1a654",
     "samples_per_case": 30,
     "serialized_fields": [
       "position_x",
@@ -124,6 +145,14 @@
         "initial_facing": -1,
         "input_phases": [
           { "ticks": 30, "lanes": [{ "main": [0, -32767] }] }
+        ]
+      },
+      {
+        "id": "hyrule_line36_jab_low_speed_keep_damage",
+        "initial_state_variant": 2,
+        "initial_facing": 1,
+        "input_phases": [
+          { "ticks": 30, "lanes": [{ "main": [0, 0] }] }
         ]
       }
     ],

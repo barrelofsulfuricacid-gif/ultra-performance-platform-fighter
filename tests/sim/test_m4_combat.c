@@ -15418,6 +15418,7 @@ static int run_ssbm_damage_source_test(const pf_m4_content *content)
     uint8_t damage_level;
     uint8_t hurtbox_height;
     pf_m4_ssbm_damage_motion_kind damage_motion;
+    pf_m4_ssbm_damage_floor_response floor_response;
     pf_m4_falcon_ecb_pose_q16 roll_ecb = { 0 };
     uint64_t rng_state;
 
@@ -15426,6 +15427,8 @@ static int run_ssbm_damage_source_test(const pf_m4_content *content)
         raw_word_count != PF_M4_SSBM_COMMON_RAW_WORD_COUNT ||
         raw_words[0x154U / 4U] != UINT32_C(0x3ecccccd) ||
         raw_words[0x1A8U / 4U] != UINT32_C(0x41900000) ||
+        raw_words[0x1E0U / 4U] != UINT32_C(0x40a00000) ||
+        raw_words[0x1E4U / 4U] != UINT32_C(0x3f000000) ||
         raw_words[0x1E8U / 4U] != UINT32_C(0x3e32b8c2) ||
         raw_words[0x1ECU / 4U] != UINT32_C(0x3f4ccccd) ||
         raw_words[0x200U / 4U] != UINT32_C(0x3f800000) ||
@@ -15453,6 +15456,8 @@ static int run_ssbm_damage_source_test(const pf_m4_content *content)
         content->fighter.asdi_distance_y_q16 !=
             source->asdi_distance_y_q16 ||
         source->damage_fly_top_horizontal_ratio_q16 != INT32_C(23853) ||
+        source->damage_floor_down_speed_q16 != INT32_C(327680) ||
+        source->damage_floor_landing_speed_q16 != INT32_C(32768) ||
         source->ground_damage_steep_angle_sine_q16 != INT32_C(11380) ||
         source->ground_damage_vertical_reflection_q16 != INT32_C(52429) ||
         source->damage_fly_roll_damage_threshold != UINT16_C(100) ||
@@ -15545,6 +15550,27 @@ static int run_ssbm_damage_source_test(const pf_m4_content *content)
         slope_x != INT32_C(65536) || slope_y != INT32_C(100))
     {
         return fail("ssbm-ground-damage-shallow-departure");
+    }
+
+    floor_response = pf_m4_ssbm_select_damage_floor_response_q16(
+        INT32_C(3419),
+        INT32_C(0),
+        UINT8_C(0));
+    if (floor_response != PF_M4_SSBM_DAMAGE_FLOOR_KEEP_ACTION ||
+        pf_m4_ssbm_select_damage_floor_response_q16(
+            INT32_C(3420),
+            INT32_C(0),
+            UINT8_C(0)) != PF_M4_SSBM_DAMAGE_FLOOR_LANDING ||
+        pf_m4_ssbm_select_damage_floor_response_q16(
+            INT32_C(34193),
+            INT32_C(0),
+            UINT8_C(0)) != PF_M4_SSBM_DAMAGE_FLOOR_DOWN_BOUND ||
+        pf_m4_ssbm_select_damage_floor_response_q16(
+            INT32_C(0),
+            INT32_C(0),
+            UINT8_C(1)) != PF_M4_SSBM_DAMAGE_FLOOR_DOWN_BOUND)
+    {
+        return fail("ssbm-damage-floor-response-thresholds");
     }
 
     if (pf_m4_ssbm_stick_meets_radial_threshold(
@@ -18804,31 +18830,42 @@ static int step_ground_slope_damage_setup(
 
 static int prepare_ground_slope_damage(
     pf_sim *sim,
-    int airborne_case,
+    uint8_t state_variant,
     pf_m4_inspection *out_inspection)
 {
     const int32_t target_x_q16 =
         ssbm_source_x_hundredths_to_sim_q16(INT32_C(16000));
     const int32_t attacker_x_q16 =
         ssbm_source_x_hundredths_to_sim_q16(
-            airborne_case != 0 ? INT32_C(17500) : INT32_C(14500));
-    const int8_t setup_facing =
-        airborne_case != 0 ? INT8_C(-1) : INT8_C(1);
+            state_variant == UINT8_C(0)
+                ? INT32_C(14500)
+                : state_variant == UINT8_C(1)
+                ? INT32_C(17500)
+                : INT32_C(17000));
+    const int8_t target_facing =
+        state_variant == UINT8_C(1) ? INT8_C(-1) : INT8_C(1);
+    const int8_t attacker_facing =
+        state_variant == UINT8_C(0) ? INT8_C(1) : INT8_C(-1);
     const int16_t attack_axis =
-        airborne_case != 0 ? -INT16_C(16000) : INT16_C(16000);
+        state_variant == UINT8_C(0)
+            ? INT16_C(16000)
+            : state_variant == UINT8_C(1)
+            ? -INT16_C(16000)
+            : INT16_C(0);
 
-    if (!place_player_on_reference_floor(
+    if (state_variant > UINT8_C(2) ||
+        !place_player_on_reference_floor(
             sim,
             UINT32_C(1),
             UINT16_C(36),
             target_x_q16,
-            setup_facing) ||
+            target_facing) ||
         !place_player_on_reference_floor(
             sim,
             UINT32_C(0),
             UINT16_C(36),
             attacker_x_q16,
-            setup_facing) ||
+            attacker_facing) ||
         !step_ground_slope_damage_setup(
             sim,
             attack_axis,
@@ -18838,8 +18875,11 @@ static int prepare_ground_slope_damage(
             sim,
             INT16_C(0),
             UINT64_C(0),
-            out_inspection) ||
-        !step_ground_slope_damage_setup(
+            out_inspection))
+    {
+        return 0;
+    }
+    if (!step_ground_slope_damage_setup(
             sim,
             INT16_C(0),
             UINT64_C(0),
@@ -18847,10 +18887,32 @@ static int prepare_ground_slope_damage(
     {
         return 0;
     }
-    return out_inspection->players[0].action_state ==
-               (uint8_t)PF_M4_ACTION_FORWARD_ATTACK &&
-           out_inspection->players[1].action_state ==
-               (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+    {
+        const int ready =
+            state_variant == UINT8_C(2)
+                ? out_inspection->players[1].action_state ==
+                      (uint8_t)PF_M4_ACTION_HITLAG
+                : out_inspection->players[0].action_state ==
+                          (uint8_t)PF_M4_ACTION_FORWARD_ATTACK &&
+                      out_inspection->players[1].action_state ==
+                          (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+
+        if (ready == 0)
+        {
+            (void)fprintf(
+                stderr,
+                "m4-combat=detail operation=ground-slope-damage-setup"
+                " variant=%u attacker_action=%u attacker_tick=%u"
+                " target_action=%u target_tick=%u target_hitlag=%u\n",
+                (unsigned int)state_variant,
+                (unsigned int)out_inspection->players[0].action_state,
+                (unsigned int)out_inspection->players[0].action_ticks,
+                (unsigned int)out_inspection->players[1].action_state,
+                (unsigned int)out_inspection->players[1].action_ticks,
+                (unsigned int)out_inspection->players[1].hitlag_ticks);
+        }
+        return ready;
+    }
 }
 
 static uint8_t run_ssbm_ground_slope_damage_trace_case(
@@ -18864,7 +18926,6 @@ static uint8_t run_ssbm_ground_slope_damage_trace_case(
     pf_content_view view;
     pf_m4_inspection inspection;
     pf_sim *sim = NULL;
-    int airborne_case;
     uint8_t sample_index;
     int32_t origin_x_q16;
     int32_t origin_y_q16;
@@ -18875,13 +18936,19 @@ static uint8_t run_ssbm_ground_slope_damage_trace_case(
     {
         return UINT8_C(0);
     }
-    airborne_case = strcmp(
-        stored_case->id,
-        "hyrule_line36_forward_tilt_airborne_departure") == 0;
-    if (airborne_case == 0 &&
-        strcmp(
-            stored_case->id,
-            "hyrule_line36_forward_tilt_grounded_projection") != 0)
+    if ((stored_case->initial_state_variant == UINT8_C(0) &&
+         strcmp(
+             stored_case->id,
+             "hyrule_line36_forward_tilt_grounded_projection") != 0) ||
+        (stored_case->initial_state_variant == UINT8_C(1) &&
+         strcmp(
+             stored_case->id,
+             "hyrule_line36_forward_tilt_airborne_departure") != 0) ||
+        (stored_case->initial_state_variant == UINT8_C(2) &&
+         strcmp(
+             stored_case->id,
+             "hyrule_line36_jab_low_speed_keep_damage") != 0) ||
+        stored_case->initial_state_variant > UINT8_C(2))
     {
         return UINT8_C(0);
     }
@@ -18907,7 +18974,10 @@ static uint8_t run_ssbm_ground_slope_damage_trace_case(
             PF_SIM_MODE_DUEL,
             1,
             &sim) ||
-        !prepare_ground_slope_damage(sim, airborne_case, &inspection))
+        !prepare_ground_slope_damage(
+            sim,
+            stored_case->initial_state_variant,
+            &inspection))
     {
         return UINT8_C(0);
     }
