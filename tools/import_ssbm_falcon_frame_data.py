@@ -95,6 +95,15 @@ DOWN_BOUND_ECB_CAPTURE_SHA256 = (
 DOWN_BOUND_ECB_SEMANTIC_SHA256 = (
     "3c4a4ce4586b11617aa99a08bac8709ea6d7aa8a179b5494c6f3f7fe4785c7df"
 )
+GETUP_ECB_PROFILE_SHA256 = (
+    "9c3dfc58d1f34acf1ff264fc443d70e0ba283f5bd09da71bb7134fe8e8e9a1e0"
+)
+GETUP_ECB_CAPTURE_SHA256 = (
+    "22d96deaa0e2c32ce9edba670285ce6268b442edf05ae97c01abe85a93c8059c"
+)
+GETUP_ECB_SEMANTIC_SHA256 = (
+    "f519d632a88bcb582cb68865dd9a58d27e862fe619fc05d76ff3252ad5204f19"
+)
 BOUNCE_ECB_PROFILE_SHA256 = (
     "d6ccb5701f0bada0d7de1874004281e8ca46fcc0070db94e529d84d3fc637608"
 )
@@ -757,6 +766,38 @@ def render_ecb_pose_q16(frame: dict[str, Any]) -> str:
     return "{ " + ", ".join(f"INT32_C({value})" for value in values) + " }"
 
 
+def render_ecb_pose_track(
+    frames: tuple[dict[str, Any], ...], indentation: str
+) -> list[str]:
+    return [
+        f"{indentation}{{",
+        *(f"{indentation}    {render_ecb_pose_q16(frame)}," for frame in frames),
+        f"{indentation}}},",
+    ]
+
+
+def render_ecb_pose_track_table(
+    tracks: tuple[tuple[dict[str, Any], ...], ...], indentation: str
+) -> list[str]:
+    return [
+        line
+        for frames in tracks
+        for line in render_ecb_pose_track(frames, indentation)
+    ]
+
+
+def render_ecb_pose_track_matrix(
+    tracks: tuple[tuple[tuple[dict[str, Any], ...], ...], ...],
+    indentation: str,
+) -> list[str]:
+    lines: list[str] = []
+    for row in tracks:
+        lines.append(f"{indentation}{{")
+        lines.extend(render_ecb_pose_track_table(row, indentation + "    "))
+        lines.append(f"{indentation}}},")
+    return lines
+
+
 def load_ecb_profile(
     path: Path,
     *,
@@ -1338,6 +1379,7 @@ def generate(
     aerial_attack_ecb_profile: dict[str, Any],
     shield_break_ecb_profile: dict[str, Any],
     down_bound_ecb_profile: dict[str, Any],
+    getup_ecb_profile: dict[str, Any],
 ) -> str:
     phases: list[tuple[int, int, int]] = []
     effects: list[dict[str, Any]] = []
@@ -1389,6 +1431,35 @@ def generate(
     )
     down_bound_stomach_frames = tuple(
         down_bound_tracks["down_bound_stomach"]["frames"]
+    )
+    getup_tracks = {
+        str(track["id"]): track for track in getup_ecb_profile["tracks"]
+    }
+
+    def getup_frames(track_id: str) -> tuple[dict[str, Any], ...]:
+        return tuple(getup_tracks[track_id]["frames"])
+
+    down_wait_frames = (
+        getup_frames("down_wait_back"),
+        getup_frames("down_wait_stomach"),
+    )
+    getup_neutral_frames = (
+        getup_frames("getup_neutral_back"),
+        getup_frames("getup_neutral_stomach"),
+    )
+    getup_attack_frames = (
+        getup_frames("getup_attack_back"),
+        getup_frames("getup_attack_stomach"),
+    )
+    getup_roll_frames = (
+        (
+            getup_frames("getup_roll_forward_back"),
+            getup_frames("getup_roll_backward_back"),
+        ),
+        (
+            getup_frames("getup_roll_forward_stomach"),
+            getup_frames("getup_roll_backward_stomach"),
+        ),
     )
 
     fighter_data = dat_data["nodes"][0]["data"]
@@ -1928,6 +1999,8 @@ def generate(
         + bytes.fromhex(SHIELD_BREAK_ECB_SEMANTIC_SHA256)
         + bytes.fromhex(DOWN_BOUND_ECB_PROFILE_SHA256)
         + bytes.fromhex(DOWN_BOUND_ECB_SEMANTIC_SHA256)
+        + bytes.fromhex(GETUP_ECB_PROFILE_SHA256)
+        + bytes.fromhex(GETUP_ECB_SEMANTIC_SHA256)
         + b"".join(value.to_bytes(4, "big") for value in common_attribute_bits)
         + json.dumps(
             {
@@ -2048,6 +2121,22 @@ def generate(
                         for frame in down_bound_stomach_frames
                     ),
                 },
+                "falcon_getup_ecb_capture_sha256": (
+                    GETUP_ECB_CAPTURE_SHA256
+                ),
+                "falcon_getup_ecb_semantic_sha256": (
+                    GETUP_ECB_SEMANTIC_SHA256
+                ),
+                "falcon_getup_collision_pose_q16": {
+                    track_id: tuple(
+                        tuple(
+                            tuple(frame["ecb_q16"][point])
+                            for point in ECB_POINTS
+                        )
+                        for frame in track["frames"]
+                    )
+                    for track_id, track in getup_tracks.items()
+                },
                 "falcon_fall_special_collision_pose_melee": {
                     "bottom_y_from_origin": FALL_SPECIAL_ECB_BOTTOM_Y_MELEE,
                 },
@@ -2153,6 +2242,10 @@ def generate(
         f"/* bounce ECB semantic SHA-256: {BOUNCE_ECB_SEMANTIC_SHA256} */",
         f"/* shield-break ECB profile SHA-256: {SHIELD_BREAK_ECB_PROFILE_SHA256} */",
         f"/* shield-break ECB semantic SHA-256: {SHIELD_BREAK_ECB_SEMANTIC_SHA256} */",
+        f"/* DownBound ECB profile SHA-256: {DOWN_BOUND_ECB_PROFILE_SHA256} */",
+        f"/* DownBound ECB semantic SHA-256: {DOWN_BOUND_ECB_SEMANTIC_SHA256} */",
+        f"/* getup ECB profile SHA-256: {GETUP_ECB_PROFILE_SHA256} */",
+        f"/* getup ECB semantic SHA-256: {GETUP_ECB_SEMANTIC_SHA256} */",
         f"/* complete Falcon source SHA-256: {complete_source_digest} */",
         f"/* complete 318-submotion catalog SHA-256: {submotion_catalog_digest} */",
         f"/* complete action-script SHA-256: {action_script_digest} */",
@@ -2526,21 +2619,28 @@ def generate(
             "    .falling_bottom_y_from_origin_q16 = INT32_C("
             f"{round(FALLING_ECB_BOTTOM_Y_MELEE * MELEE_Y_TO_SIM_Q16)}"
             "),",
-            "    .down_bound_back_floor_contact_mask = "
-            f"UINT32_C({DOWN_BOUND_BACK_FLOOR_CONTACT_MASK}),",
-            "    .down_bound_stomach_floor_contact_mask = "
+            "    .down_bound_floor_contact_mask = {",
+            "        "
+            f"UINT32_C({DOWN_BOUND_BACK_FLOOR_CONTACT_MASK}), "
             f"UINT32_C({DOWN_BOUND_STOMACH_FLOOR_CONTACT_MASK}),",
-            "    .down_bound_back = {",
-            *(
-                f"        {render_ecb_pose_q16(frame)},"
-                for frame in down_bound_back_frames
+            "    },",
+            "    .down_bound = {",
+            *render_ecb_pose_track_table(
+                (down_bound_back_frames, down_bound_stomach_frames),
+                "        ",
             ),
             "    },",
-            "    .down_bound_stomach = {",
-            *(
-                f"        {render_ecb_pose_q16(frame)},"
-                for frame in down_bound_stomach_frames
-            ),
+            "    .down_wait = {",
+            *render_ecb_pose_track_table(down_wait_frames, "        "),
+            "    },",
+            "    .getup_neutral = {",
+            *render_ecb_pose_track_table(getup_neutral_frames, "        "),
+            "    },",
+            "    .getup_attack = {",
+            *render_ecb_pose_track_table(getup_attack_frames, "        "),
+            "    },",
+            "    .getup_roll = {",
+            *render_ecb_pose_track_matrix(getup_roll_frames, "        "),
             "    },",
             "    .damage_fly_bottom_y_from_origin_q16 = {",
             "        "
@@ -2828,6 +2928,25 @@ def main() -> int:
             ("down_bound_back", "TECH_MISS_UP", 1, 26),
         ),
     )
+    getup_ecb_profile = load_ecb_profile(
+        Path(__file__).with_name("data")
+        / "ssbm_falcon_getup_ecb.json",
+        expected_profile_sha256=GETUP_ECB_PROFILE_SHA256,
+        expected_capture_sha256=GETUP_ECB_CAPTURE_SHA256,
+        expected_semantic_sha256=GETUP_ECB_SEMANTIC_SHA256,
+        expected_tracks=(
+            ("down_wait_stomach", "LYING_GROUND_DOWN", 0, 70),
+            ("down_wait_back", "LYING_GROUND_UP", 0, 70),
+            ("getup_neutral_stomach", "NEUTRAL_GETUP", 1, 30),
+            ("getup_attack_stomach", "GETUP_ATTACK", 1, 49),
+            ("getup_roll_forward_stomach", "GROUND_ROLL_FORWARD_DOWN", 1, 35),
+            ("getup_roll_backward_stomach", "GROUND_ROLL_BACKWARD_DOWN", 1, 35),
+            ("getup_neutral_back", "GROUND_GETUP", 1, 30),
+            ("getup_attack_back", "GROUND_ATTACK_UP", 1, 49),
+            ("getup_roll_forward_back", "GROUND_ROLL_FORWARD_UP", 1, 35),
+            ("getup_roll_backward_back", "GROUND_ROLL_BACKWARD_UP", 1, 35),
+        ),
+    )
     digest = canonical_sha256(data)
     if digest != EXPECTED_CANONICAL_SHA256:
         raise SystemExit(f"unexpected Falcon frame-data SHA-256: {digest}")
@@ -2842,6 +2961,7 @@ def main() -> int:
         aerial_attack_ecb_profile,
         shield_break_ecb_profile,
         down_bound_ecb_profile,
+        getup_ecb_profile,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(output, encoding="utf-8", newline="\n")

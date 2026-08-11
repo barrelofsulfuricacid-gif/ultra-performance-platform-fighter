@@ -28,6 +28,33 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
 
 **Working branch:** `agent/m4-combat-vertical-slice`
 
+## Implemented and verified in the 2026-08-11 DownWait/getup ECB follow-up
+
+- Added two projection-only Dolphin cases for rolls selected after entering
+  `DownWaitU`; the normal 14-case prone-response pack remains unchanged. This
+  closes the source distinction where terminal `DownBoundU` deliberately uses
+  the D roll motion while `DownWaitU` selects the U roll motion.
+- A four-worker headless/null/unlimited route captures 1,150 response rows in
+  10.5-10.9 seconds and reproduces both 70-frame DownWait loops, both 30-frame
+  neutral getups, both 49-frame getup attacks, and all four 35-frame roll
+  motions: 438 complete top/bottom/left/right ECB poses.
+- The canonical profile has file SHA-256
+  `9c3dfc58d1f34acf1ff264fc443d70e0ba283f5bd09da71bb7134fe8e8e9a1e0`
+  and semantic SHA-256
+  `f519d632a88bcb582cb68865dd9a58d27e862fe619fc05d76ff3252ad5204f19`.
+  An independent live process regenerated the semantic digest exactly.
+- Production stores the poses in orientation/direction-indexed tables and
+  resolves them in constant time through one shared prone ECB adapter. The
+  70-frame DownWait source phase is preserved as `0..69`; runtime entry maps
+  action tick zero to displayed frame 1 and wraps through frame 0.
+- The Windows focused combat/profile gates pass, and repeated verifier runs
+  agree on content-bearing digest `f6d9ef1b4f85e04f` with unchanged
+  8-match / 3,002-tick event counts. Windows Release passes 36/36 in 1.49
+  seconds, WSL Release passes 38/38 in 0.92 seconds, and WSL ASan/UBSan passes
+  25/25 in 9.22 seconds. The 21-domain / 117-case stored gate plus replay passes
+  in 0.932 seconds on Windows and 1.723 seconds in WSL, below its two-second
+  budget.
+
 ## Implemented and verified in the 2026-08-11 DownBound ECB follow-up
 
 - Audited every Falcon special collision callback. Falcon Punch, Raptor Boost,

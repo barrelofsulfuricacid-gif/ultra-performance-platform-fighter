@@ -669,6 +669,17 @@ if(BUILD_TESTING)
             sim.m4_ssbm_falcon_down_bound_ecb_profile
             PROPERTIES PASS_REGULAR_EXPRESSION
                        "ssbm-falcon-down-bound-ecb-profile=pass tracks=2 poses=52")
+
+        add_test(
+            NAME sim.m4_ssbm_falcon_getup_ecb_profile
+            COMMAND
+                "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_ssbm_falcon_getup_ecb.py"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/data/ssbm_falcon_getup_ecb.json")
+        set_tests_properties(
+            sim.m4_ssbm_falcon_getup_ecb_profile
+            PROPERTIES PASS_REGULAR_EXPRESSION
+                       "ssbm-falcon-getup-ecb-profile=pass tracks=10 poses=438")
     endif()
 
     add_test(

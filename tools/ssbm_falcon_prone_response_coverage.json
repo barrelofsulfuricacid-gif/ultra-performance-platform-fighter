@@ -8,6 +8,12 @@
     "protocol": "rebased-slippi-state-file-control-v1",
     "expected_rows": 1515,
     "warm_budget_seconds": 18,
+    "capture_shards": [
+      ["timeout", "up_buffered_a_getup_attack", "c_roll_below_threshold"],
+      ["up_timeout", "buffered_a_getup_attack", "buffered_b_getup_attack"],
+      ["up_c_roll_forward", "up_main_roll_backward", "c_roll_forward", "c_up_getup_attack"],
+      ["main_roll_backward", "up_neutral_getup", "shield_neutral_getup", "attack_over_roll_priority"]
+    ],
     "capture_plan": {
       "record_response_only": true,
       "batch_exi_inputs": true,
@@ -477,6 +483,62 @@
               }
             }
           ]
+        },
+        {
+          "id": "up_wait_c_roll_forward",
+          "damage_percent": 50,
+          "target_start": [0, 30],
+          "opponent_start": [12, 30],
+          "target_facing": 1,
+          "opponent_facing": -1,
+          "approach_main": 0,
+          "attack_main": [0, 32767],
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 90,
+          "impact_opponent_x": 40,
+          "impact_waypoints": [[0, 30], [0, 28], [0, 26], [0, 25.5], [0, 25.1]],
+          "impact_waypoint_main": [0, 0],
+          "impact_main": [0, 0],
+          "observe_segments": [
+            {
+              "id": "response",
+              "ticks": 95,
+              "conditional_edge": {
+                "action": "LYING_GROUND_UP",
+                "frame": 1,
+                "secondary": [32767, 0]
+              }
+            }
+          ]
+        },
+        {
+          "id": "up_wait_main_roll_backward",
+          "damage_percent": 50,
+          "target_start": [0, 30],
+          "opponent_start": [12, 30],
+          "target_facing": 1,
+          "opponent_facing": -1,
+          "approach_main": 0,
+          "attack_main": [0, 32767],
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 90,
+          "impact_opponent_x": 40,
+          "impact_waypoints": [[0, 30], [0, 28], [0, 26], [0, 25.5], [0, 25.1]],
+          "impact_waypoint_main": [0, 0],
+          "impact_main": [0, 0],
+          "observe_segments": [
+            {
+              "id": "response",
+              "ticks": 95,
+              "conditional_edge": {
+                "action": "LYING_GROUND_UP",
+                "frame": 1,
+                "main": [-32767, 0]
+              }
+            }
+          ]
         }
       ]
     }
@@ -539,6 +601,16 @@
       "start_label": "floor_response_up_main_roll_backward_setup"
     }
   ],
+  "projection_cases": [
+    {
+      "id": "up_wait_c_roll_forward",
+      "start_label": "floor_response_up_wait_c_roll_forward_setup"
+    },
+    {
+      "id": "up_wait_main_roll_backward",
+      "start_label": "floor_response_up_wait_main_roll_backward_setup"
+    }
+  ],
   "selection": {
     "paths": [
       "generated/data/m4_ssbm_ntsc102_common_data.inc",
@@ -552,9 +624,12 @@
       "tests/sim/ssbm_stored_oracle.c",
       "tests/sim/ssbm_stored_oracle.h",
       "tests/sim/test_m4_combat.c",
+      "tools/capture_ssbm_checkpoint_shards.py",
       "tools/capture_ssbm_movement.py",
       "tools/data/ssbm_falcon_down_bound_ecb.json",
+      "tools/data/ssbm_falcon_getup_ecb.json",
       "tools/extract_ssbm_ecb_pose_tracks.py",
+      "tools/extract_ssbm_falcon_getup_ecb.py",
       "tools/generate_ssbm_stored_trace_oracle.py",
       "tools/import_ssbm_falcon_frame_data.py",
       "tools/import_ssbm_common_data.py",
@@ -563,7 +638,9 @@
       "tools/verify_ssbm_falcon_prone_response.py",
       "tools/verify_ssbm_falcon_prone_response.sh",
       "tools/verify_ssbm_falcon_down_bound_ecb.py",
-      "tools/verify_ssbm_falcon_down_bound_ecb.sh"
+      "tools/verify_ssbm_falcon_down_bound_ecb.sh",
+      "tools/verify_ssbm_falcon_getup_ecb.py",
+      "tools/verify_ssbm_falcon_getup_ecb.sh"
     ]
   },
   "stored_oracle": {

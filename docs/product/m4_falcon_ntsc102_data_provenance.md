@@ -1324,6 +1324,37 @@ The earlier compact floor-contact masks remain authoritative for the unusual
 frames 1-4 / 23-26 grounding schedule, while the complete pose now drives
 wall and ceiling queries during the airborne middle of DownBound.
 
+## Falcon DownWait and getup collision poses
+
+The prone-response manifest has two supplemental projection-only cases that
+wait for displayed `DownWaitU` frame 1 before selecting forward/backward roll.
+They do not lengthen the normal 14-case numeric pack. This is required by
+`ftCo_Down_CheckInput`: a roll selected directly by terminal `DownBound_Anim`
+uses the D motion even for an Up/Back prone fighter, while selection after
+entering `DownWaitU` uses the distinct U motion.
+
+The focused geometry route projects eight cases across four headless/null/
+unlimited Dolphin workers with per-frame EXI batching disabled. It records
+1,150 rows and covers both 70-frame DownWait loops, both 30-frame neutral
+getups, both 49-frame getup attacks, and all four 35-frame roll motions. The
+authoritative and independent repeat captures have SHA-256
+`22d96deaa0e2c32ce9edba670285ce6268b442edf05ae97c01abe85a93c8059c`
+and
+`891a17f858b9d6ad15d4dbf892546966fe67e225e6d565a7ff98a571522459f0`;
+both regenerate 438 top/bottom/left/right poses under semantic SHA-256
+`f519d632a88bcb582cb68865dd9a58d27e862fe619fc05d76ff3252ad5204f19`.
+
+`tools/data/ssbm_falcon_getup_ecb.json` has profile SHA-256
+`9c3dfc58d1f34acf1ff264fc443d70e0ba283f5bd09da71bb7134fe8e8e9a1e0`.
+The importer pins the profile, authoritative capture, and semantic identities.
+For DownWait, the live sequence enters at displayed frame 1 and wraps
+`... 68, 69, 0`; the committed profile stores canonical source frames 0-69,
+validates every repeated live cycle, and production selects
+`(action_tick + 1) % 70`. All prone geometry is held in orientation/direction-
+indexed arrays and selected by one allocation-free adapter. No additional
+rollback state was introduced: the existing semantic prone orientation and
+resolved roll-motion orientation are the exact callback inputs.
+
 ## Repository controls
 
 - Only the converted constants and independently written C state machine ship.

@@ -26857,6 +26857,38 @@ static int run_falcon_reference_table_test(void)
         pf_m4_falcon_reference_air_dodge_attributes();
     const pf_m4_falcon_collision_pose *collision_pose =
         pf_m4_falcon_reference_collision_pose();
+    const pf_m4_falcon_ecb_pose_q16 *down_wait_stomach_wrap_ecb =
+        pf_m4_falcon_reference_prone_ecb_pose(
+            (uint8_t)PF_M4_ACTION_DOWN_WAIT,
+            UINT16_C(69),
+            (uint8_t)PF_M4_PRONE_STOMACH,
+            (uint8_t)PF_M4_PRONE_NONE,
+            INT8_C(0),
+            INT8_C(1));
+    const pf_m4_falcon_ecb_pose_q16 *direct_up_forward_roll_ecb =
+        pf_m4_falcon_reference_prone_ecb_pose(
+            (uint8_t)PF_M4_ACTION_GETUP_ROLL,
+            UINT16_C(0),
+            (uint8_t)PF_M4_PRONE_BACK,
+            (uint8_t)PF_M4_PRONE_STOMACH,
+            INT8_C(1),
+            INT8_C(1));
+    const pf_m4_falcon_ecb_pose_q16 *wait_up_forward_roll_ecb =
+        pf_m4_falcon_reference_prone_ecb_pose(
+            (uint8_t)PF_M4_ACTION_GETUP_ROLL,
+            UINT16_C(0),
+            (uint8_t)PF_M4_PRONE_BACK,
+            (uint8_t)PF_M4_PRONE_BACK,
+            INT8_C(1),
+            INT8_C(1));
+    const pf_m4_falcon_ecb_pose_q16 *wait_up_backward_roll_ecb =
+        pf_m4_falcon_reference_prone_ecb_pose(
+            (uint8_t)PF_M4_ACTION_GETUP_ROLL,
+            UINT16_C(0),
+            (uint8_t)PF_M4_PRONE_BACK,
+            (uint8_t)PF_M4_PRONE_BACK,
+            INT8_C(-1),
+            INT8_C(1));
     const pf_m4_falcon_ecb_pose_q16 *jump_forward_first_ecb =
         pf_m4_falcon_reference_airborne_ecb_pose(
             PF_M4_FALCON_SUBMOTION_JUMP_FORWARD,
@@ -27703,8 +27735,8 @@ static int run_falcon_reference_table_test(void)
         standing_hurt_capsules[0].height != UINT8_C(1) ||
         standing_hurt_capsules[0].grabbable != UINT8_C(1) ||
         complete_source_sha256 == NULL ||
-        complete_source_sha256[0] != UINT8_C(0x99) ||
-        complete_source_sha256[31] != UINT8_C(0xfd) ||
+        complete_source_sha256[0] != UINT8_C(0x19) ||
+        complete_source_sha256[31] != UINT8_C(0x1d) ||
         common_attribute_bits == NULL ||
         common_attribute_count != UINT16_C(97) ||
         common_attribute_bits[0] != UINT32_C(0x3e19999a) ||
@@ -27794,14 +27826,45 @@ static int run_falcon_reference_table_test(void)
             INT32_C(59303) ||
         collision_pose->shield_break_fly[41].right_x_from_origin_q16 !=
             INT32_C(31725) ||
-        collision_pose->down_bound_back[0].top_y_from_origin_q16 !=
+        collision_pose->down_bound[0][0].top_y_from_origin_q16 !=
             INT32_C(108930) ||
-        collision_pose->down_bound_back[25].right_x_from_origin_q16 !=
+        collision_pose->down_bound[0][25].right_x_from_origin_q16 !=
             INT32_C(47961) ||
-        collision_pose->down_bound_stomach[0].bottom_y_from_origin_q16 !=
+        collision_pose->down_bound[1][0].bottom_y_from_origin_q16 !=
             INT32_C(146764) ||
-        collision_pose->down_bound_stomach[25].left_x_from_origin_q16 !=
+        collision_pose->down_bound[1][25].left_x_from_origin_q16 !=
             INT32_C(-42634) ||
+        collision_pose->down_wait[0][0].top_y_from_origin_q16 !=
+            INT32_C(66548) ||
+        collision_pose->down_wait[1][69].top_y_from_origin_q16 !=
+            INT32_C(37622) ||
+        collision_pose->getup_neutral[0][29].top_y_from_origin_q16 !=
+            INT32_C(187360) ||
+        collision_pose->getup_attack[1][48].top_y_from_origin_q16 !=
+            INT32_C(186163) ||
+        collision_pose->getup_roll[0][0][0].top_y_from_origin_q16 !=
+            INT32_C(74471) ||
+        collision_pose->getup_roll[1][1][34].top_y_from_origin_q16 !=
+            INT32_C(172758) ||
+        down_wait_stomach_wrap_ecb == NULL ||
+        down_wait_stomach_wrap_ecb->top_y_from_origin_q16 !=
+            INT32_C(36676) ||
+        direct_up_forward_roll_ecb == NULL ||
+        direct_up_forward_roll_ecb->top_y_from_origin_q16 !=
+            INT32_C(35199) ||
+        wait_up_forward_roll_ecb == NULL ||
+        wait_up_forward_roll_ecb->top_y_from_origin_q16 !=
+            INT32_C(74471) ||
+        wait_up_backward_roll_ecb == NULL ||
+        wait_up_backward_roll_ecb->top_y_from_origin_q16 !=
+            INT32_C(83431) ||
+        pf_m4_falcon_reference_prone_ecb_pose(
+            (uint8_t)PF_M4_ACTION_GETUP_ROLL,
+            UINT16_C(0),
+            (uint8_t)PF_M4_PRONE_BACK,
+            (uint8_t)PF_M4_PRONE_NONE,
+            INT8_C(1),
+            INT8_C(1)) != NULL ||
         jump_forward_first_ecb == NULL ||
         jump_forward_first_ecb->top_y_from_origin_q16 != INT32_C(203229) ||
         jump_forward_first_ecb->bottom_y_from_origin_q16 != INT32_C(0) ||

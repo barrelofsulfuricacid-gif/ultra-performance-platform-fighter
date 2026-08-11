@@ -424,6 +424,107 @@ pf_m4_falcon_reference_collision_pose(void)
     return &pf_m4_falcon_collision_pose_data;
 }
 
+static int pf_m4_falcon_prone_pose_orientation_index(
+    uint8_t prone_orientation,
+    uint16_t *out_index)
+{
+    if (prone_orientation == (uint8_t)PF_M4_PRONE_BACK)
+    {
+        *out_index = UINT16_C(0);
+        return 1;
+    }
+    if (prone_orientation == (uint8_t)PF_M4_PRONE_STOMACH)
+    {
+        *out_index = UINT16_C(1);
+        return 1;
+    }
+    return 0;
+}
+
+const pf_m4_falcon_ecb_pose_q16 *
+pf_m4_falcon_reference_prone_ecb_pose(
+    uint8_t action_state,
+    uint16_t action_ticks,
+    uint8_t prone_orientation,
+    uint8_t prone_roll_motion_orientation,
+    int8_t tech_direction,
+    int8_t facing)
+{
+    uint16_t orientation_index;
+    uint16_t frame_index;
+
+    if (action_state == (uint8_t)PF_M4_ACTION_KNOCKDOWN &&
+        pf_m4_falcon_prone_pose_orientation_index(
+            prone_orientation,
+            &orientation_index))
+    {
+        frame_index = action_ticks < PF_M4_FALCON_DOWN_BOUND_ECB_FRAME_COUNT
+                          ? action_ticks
+                          : (uint16_t)(
+                                PF_M4_FALCON_DOWN_BOUND_ECB_FRAME_COUNT -
+                                UINT16_C(1));
+        return &pf_m4_falcon_collision_pose_data
+                    .down_bound[orientation_index][frame_index];
+    }
+    if (action_state == (uint8_t)PF_M4_ACTION_DOWN_WAIT &&
+        pf_m4_falcon_prone_pose_orientation_index(
+            prone_orientation,
+            &orientation_index))
+    {
+        frame_index = (uint16_t)(
+            (action_ticks + UINT16_C(1)) %
+            PF_M4_FALCON_DOWN_WAIT_ECB_FRAME_COUNT);
+        return &pf_m4_falcon_collision_pose_data
+                    .down_wait[orientation_index][frame_index];
+    }
+    if (action_state == (uint8_t)PF_M4_ACTION_GETUP_NEUTRAL &&
+        pf_m4_falcon_prone_pose_orientation_index(
+            prone_orientation,
+            &orientation_index))
+    {
+        frame_index =
+            action_ticks < PF_M4_FALCON_GETUP_NEUTRAL_ECB_FRAME_COUNT
+                ? action_ticks
+                : (uint16_t)(
+                      PF_M4_FALCON_GETUP_NEUTRAL_ECB_FRAME_COUNT -
+                      UINT16_C(1));
+        return &pf_m4_falcon_collision_pose_data
+                    .getup_neutral[orientation_index][frame_index];
+    }
+    if (action_state == (uint8_t)PF_M4_ACTION_GETUP_ATTACK &&
+        pf_m4_falcon_prone_pose_orientation_index(
+            prone_orientation,
+            &orientation_index))
+    {
+        frame_index = action_ticks < PF_M4_FALCON_GETUP_ATTACK_ECB_FRAME_COUNT
+                          ? action_ticks
+                          : (uint16_t)(
+                                PF_M4_FALCON_GETUP_ATTACK_ECB_FRAME_COUNT -
+                                UINT16_C(1));
+        return &pf_m4_falcon_collision_pose_data
+                    .getup_attack[orientation_index][frame_index];
+    }
+    if (action_state == (uint8_t)PF_M4_ACTION_GETUP_ROLL &&
+        (tech_direction == INT8_C(-1) || tech_direction == INT8_C(1)) &&
+        (facing == INT8_C(-1) || facing == INT8_C(1)) &&
+        pf_m4_falcon_prone_pose_orientation_index(
+            prone_roll_motion_orientation,
+            &orientation_index))
+    {
+        const uint16_t direction_index =
+            tech_direction == facing ? UINT16_C(0) : UINT16_C(1);
+
+        frame_index = action_ticks < PF_M4_FALCON_GETUP_ROLL_ECB_FRAME_COUNT
+                          ? action_ticks
+                          : (uint16_t)(
+                                PF_M4_FALCON_GETUP_ROLL_ECB_FRAME_COUNT -
+                                UINT16_C(1));
+        return &pf_m4_falcon_collision_pose_data
+                    .getup_roll[orientation_index][direction_index][frame_index];
+    }
+    return NULL;
+}
+
 const pf_m4_falcon_ecb_pose_q16 *
 pf_m4_falcon_reference_airborne_ecb_pose(
     uint16_t source_submotion,

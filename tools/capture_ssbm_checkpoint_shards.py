@@ -63,6 +63,11 @@ def main() -> int:
         help="keep ExiAI input/checkpoints but evaluate display-side bones",
     )
     parser.add_argument(
+        "--checkpoint-no-batch-inputs",
+        action="store_true",
+        help="sample every response frame for collision-memory geometry",
+    )
+    parser.add_argument(
         "--projection-warm-budget-seconds",
         type=float,
         help="wall budget for a selected observation-family projection",
@@ -188,6 +193,8 @@ def main() -> int:
                 ]
                 if args.disable_fast_forward:
                     worker_argv.append("--oracle-exiai-no-fast-forward")
+                if args.checkpoint_no_batch_inputs:
+                    worker_argv.append("--oracle-checkpoint-no-batch-inputs")
                 for case_id in shard:
                     worker_argv.extend(("--oracle-case", str(case_id)))
                 child_pid = os.fork()
