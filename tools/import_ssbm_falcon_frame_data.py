@@ -75,13 +75,13 @@ AERIAL_ATTACK_ECB_SEMANTIC_SHA256 = (
     "55e686a07cf3d064618104051f0085ed2a398e9a1612847200b2cba51a665f10"
 )
 SHIELD_BREAK_ECB_PROFILE_SHA256 = (
-    "63c3d7a87c92fe01260c16942af501a62d75ce49505d05ecff50f16a827792c9"
+    "f63e2b09209ae7b7f85d53eb2a589fa593f7a8700d5d503e4a4b465a92aab677"
 )
 SHIELD_BREAK_ECB_CAPTURE_SHA256 = (
     "ae02dca6e63eda47e780ee96cae26c4c8a565f4e2d534979791f827d737f5645"
 )
 SHIELD_BREAK_ECB_SEMANTIC_SHA256 = (
-    "c314cdef0f7ebffce7498c79e1ae73ee53b54402e7988da9ceffabab3aa2ccf0"
+    "11b28d22f68f7bb87c99dbc5f949f5456d1a69ab7bfa78360927ecb334064eeb"
 )
 DOWN_BOUND_ECB_PROFILE_SHA256 = (
     "a51838128df5c2df0df68a1df507b05ef868217d76b1c5fe57471f094d084f28"
@@ -1223,6 +1223,9 @@ def generate(
     )
     shield_break_stand_down_frames = tuple(
         shield_break_tracks["shield-break-stand-down"]["frames"]
+    )
+    shield_break_stun_frames = tuple(
+        shield_break_tracks["shield-break-stun"]["frames"]
     )
     down_bound_tracks = {
         str(track["id"]): track for track in down_bound_ecb_profile["tracks"]
@@ -2539,6 +2542,12 @@ def generate(
                 for frame in shield_break_stand_down_frames
             ),
             "    },",
+            "    .shield_break_stun = {",
+            *(
+                f"        {render_ecb_pose_q16(frame)},"
+                for frame in shield_break_stun_frames
+            ),
+            "    },",
             "    .ceiling_bounce = {",
             *(
                 f"        {render_ecb_pose_q16(frame)},"
@@ -2716,6 +2725,7 @@ def main() -> int:
             ("shield-break-fly", "SHIELD_BREAK_FLY", 1, 42),
             ("shield-break-down-down", "SHIELD_BREAK_DOWN_D", 1, 26),
             ("shield-break-stand-down", "SHIELD_BREAK_STAND_D", 1, 30),
+            ("shield-break-stun", "SHIELD_BREAK_TEETER", 0, 100),
         ),
     )
     down_bound_ecb_profile = load_ecb_profile(

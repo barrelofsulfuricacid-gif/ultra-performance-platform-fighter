@@ -289,11 +289,12 @@ source submotion has no TransN, and the decomp callback applies only ground
 friction and post-friction ground movement.
 
 A separate repeated 500-frame passive shield-depletion route now qualifies
-Falcon's ShieldBreakFly/DownD/StandD/Furafura sequence. The full 42-frame
-animated ECB controls the source contact update; the comparison also includes
+Falcon's ShieldBreakFly/DownD/StandD/Furafura sequence. The full 198-frame
+animated ECB catalog controls the source contact update; the comparison also includes
 the one-row retained landing vertical velocity, global non-shield regeneration,
-Furafura's per-update reset, facing, grounded state, invulnerability, and shield
-strength. Action/state fields are strict; position, velocity, and shield health
+Furafura's per-update reset, independent 100-frame animation clock and exact
+99-to-0 wrap, facing, grounded state, invulnerability, and shield strength.
+Action/state fields are strict; position, velocity, and shield health
 retain only their documented Q16 conversion envelopes. Hit-induced shield
 break is separately protected in the native combat suite because its source
 entry health is the common reset value rather than passive depletion's zero.

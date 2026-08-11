@@ -37,7 +37,8 @@
     { "submotion_index": 310, "c_submotion": "PF_M4_FALCON_SUBMOTION_FALCON_DIVE_THROW" },
     { "submotion_index": 286, "c_submotion": "PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_FLY" },
     { "submotion_index": 289, "c_submotion": "PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_DOWN_DOWN" },
-    { "submotion_index": 291, "c_submotion": "PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_STAND_DOWN" }
+    { "submotion_index": 291, "c_submotion": "PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_STAND_DOWN" },
+    { "submotion_index": 205, "c_submotion": "PF_M4_FALCON_SUBMOTION_FURAFURA" }
   ],
   "joint_point_sets": [
     {
@@ -60,17 +61,17 @@
     "source_joint_count": 63,
     "runtime_part_count": 63,
     "joint_count": 25,
-    "motion_count": 20,
+    "motion_count": 21,
     "compact_motion_count": 6,
-    "track_count": 1461,
-    "key_count": 12256,
+    "track_count": 1514,
+    "key_count": 12609,
     "capsule_count": 11,
     "rotation_joint_count": 19,
     "translation_joint_count": 6,
     "copy_target_joint_count": 1,
     "joint_point_set_count": 1,
     "pose_branch_count": 1,
-    "data_sha256": "6aecee6254ade91c7d7d0cc2db85ff0a5cba9149611704884f671b6b6b57ff90"
+    "data_sha256": "a5edfc9fabbd3ed9c351fbe68b3a91c16e4954243ca14e3d7273baadc44fc2b8"
   },
   "action_hurt_qualification": {
     "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
@@ -92,7 +93,8 @@
     "cases": [
       { "source_action": "SHIELD_BREAK_FLY", "submotion_index": 286, "first_source_frame": 1, "last_source_frame": 42, "expected_samples": 42 },
       { "source_action": "SHIELD_BREAK_DOWN_D", "submotion_index": 289, "first_source_frame": 0, "last_source_frame": 25, "expected_samples": 26 },
-      { "source_action": "SHIELD_BREAK_STAND_D", "submotion_index": 291, "first_source_frame": 0, "last_source_frame": 29, "expected_samples": 30 }
+      { "source_action": "SHIELD_BREAK_STAND_D", "submotion_index": 291, "first_source_frame": 0, "last_source_frame": 29, "expected_samples": 30 },
+      { "source_action": "SHIELD_BREAK_TEETER", "submotion_index": 205, "first_source_frame": 0, "last_source_frame": 99, "source_frame_cycle": 100, "expected_samples": 127 }
     ]
   },
   "action_ecb_qualification": {
@@ -209,8 +211,8 @@
     "branch_id": "shield_break_down_up",
     "expected_positive": false,
     "ecb_profile": {
-      "sha256": "63c3d7a87c92fe01260c16942af501a62d75ce49505d05ecff50f16a827792c9",
-      "semantic_sha256": "c314cdef0f7ebffce7498c79e1ae73ee53b54402e7988da9ceffabab3aa2ccf0",
+      "sha256": "f63e2b09209ae7b7f85d53eb2a589fa593f7a8700d5d503e4a4b465a92aab677",
+      "semantic_sha256": "11b28d22f68f7bb87c99dbc5f949f5456d1a69ab7bfa78360927ecb334064eeb",
       "track_id": "shield-break-fly",
       "source_action": "SHIELD_BREAK_FLY",
       "label_substring": "shield_break_orientation_",

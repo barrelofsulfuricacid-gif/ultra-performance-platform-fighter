@@ -120,6 +120,11 @@ _Static_assert(
         (size_t)PF_M4_FALCON_SHIELD_BREAK_STAND_ECB_FRAME_COUNT,
     "Falcon ShieldBreakStandD ECB table must be complete");
 _Static_assert(
+    sizeof(pf_m4_falcon_collision_pose_data.shield_break_stun) /
+            sizeof(pf_m4_falcon_collision_pose_data.shield_break_stun[0]) ==
+        (size_t)PF_M4_FALCON_SHIELD_BREAK_STUN_ECB_FRAME_COUNT,
+    "Falcon Furafura ECB table must be complete");
+_Static_assert(
     sizeof(pf_m4_falcon_collision_pose_data.ceiling_bounce) /
             sizeof(pf_m4_falcon_collision_pose_data.ceiling_bounce[0]) ==
         (size_t)PF_M4_FALCON_CEILING_BOUNCE_ECB_FRAME_COUNT,
@@ -1613,6 +1618,7 @@ int pf_m4_falcon_reference_retained_hsd_pose(
     uint8_t action_state,
     uint16_t source_submotion,
     uint16_t action_ticks,
+    int32_t source_animation_frame_q16,
     int32_t *out_frame_q16)
 {
     uint16_t expected_submotion;
@@ -1638,6 +1644,10 @@ int pf_m4_falcon_reference_retained_hsd_pose(
                 ? (uint16_t)PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_STAND_DOWN
                 : (uint16_t)PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_STAND_UP;
         break;
+    case PF_M4_ACTION_SHIELD_BREAK_STUN:
+        expected_submotion =
+            (uint16_t)PF_M4_FALCON_SUBMOTION_FURAFURA;
+        break;
     default:
         return 0;
     }
@@ -1645,7 +1655,10 @@ int pf_m4_falcon_reference_retained_hsd_pose(
     {
         return 0;
     }
-    *out_frame_q16 = (int32_t)action_ticks * PF_Q16_ONE;
+    *out_frame_q16 =
+        action_state == (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN
+            ? source_animation_frame_q16
+            : (int32_t)action_ticks * PF_Q16_ONE;
     return 1;
 }
 
@@ -1653,23 +1666,25 @@ int pf_m4_falcon_reference_retained_hsd_hurt_capsules(
     uint8_t action_state,
     uint16_t source_submotion,
     uint16_t action_ticks,
+    int32_t source_animation_frame_q16,
     pf_m4_reference_hurt_capsule
         out_capsules[PF_M4_HSD_POSE_MAX_CAPSULES],
     uint8_t *out_count)
 {
-    int32_t source_animation_frame_q16;
+    int32_t evaluated_frame_q16;
 
     if (!pf_m4_falcon_reference_retained_hsd_pose(
             action_state,
             source_submotion,
             action_ticks,
-            &source_animation_frame_q16))
+            source_animation_frame_q16,
+            &evaluated_frame_q16))
     {
         return 0;
     }
     return pf_m4_falcon_reference_hsd_hurt_capsules(
         source_submotion,
-        source_animation_frame_q16,
+        evaluated_frame_q16,
         out_capsules,
         out_count);
 }

@@ -1299,9 +1299,9 @@ throw, and common FallSpecial neutral/forward/back geometry. Nine retained
 captures cover eight motions, 733 rows, and 715 unique frames; the independent
 source evaluator differs from live Dolphin by at most two Q16 units. The HSD
 profile contained 17 motions, 1,204 tracks, and 10,106 keys at this checkpoint.
-The later shield-break import extends the same profile to 20 motions, 1,461
-tracks, and 12,256 keys under SHA-256
-`6aecee6254ade91c7d7d0cc2db85ff0a5cba9149611704884f671b6b6b57ff90`.
+The later shield-break import extends the same profile to 21 motions, 1,514
+tracks, and 12,609 keys under SHA-256
+`a5edfc9fabbd3ed9c351fbe68b3a91c16e4954243ca14e3d7273baadc44fc2b8`.
 
 FallSpecial direction selection follows `ftCo_Fall_Anim_Inner` using the
 imported common threshold `0.1`, Falcon's imported air-speed maximum, and the
@@ -1321,9 +1321,9 @@ channels strict. The authored Falcon Dive and FallSpecial ECB arrays are now
 removed. Their checkpoint include SHA-256 was
 `754a72159e5463752e382dd6a2a8e35657bab601b84c228ade5c540d30272a74`;
 after the shield-break import the current generated include SHA-256 is
-`1fb31567ede60c5b6dc5ac374bcc2f373ebd55a9c84ec67da2eb4b2f276cf2fb`
+`11a8489bdafe06c8df42ab5c527411a7679fb240913076c9bdae3e28c4f1b238`
 and the Falcon complete-source digest is
-`f8fb313d2410d9ed5adba7c8356982a2f92066af65f2e266c544d6e83d93dec4`.
+`280abf47cbc18b5802e1c98048c7830808541766dd6c646d31c34eb0b0d3eb64`.
 
 ## Falcon shield-break orientation branch
 
@@ -1358,20 +1358,28 @@ the persistent worker's unrelated looping Wait phase is normalized out. Fresh
 memory-pose controls have raw SHA-256
 `ae02dca6e63eda47e780ee96cae26c4c8a565f4e2d534979791f827d737f5645`
 and `ddbc82fcd401fdbea41a202964f3dff678eff32a23199567607e26cb9ba5f40b`.
-They independently qualify all 98 linear-motion observations: the generic HSD
-evaluator reproduces 196 hurt poses / 2,156 capsules within one Q16 unit.
+They independently qualify all 98 linear-motion observations plus 127
+Furafura observations: the generic HSD evaluator reproduces 450 hurt poses /
+4,950 capsules within one Q16 unit.
 
 Raw HSD selector-joint matrices do not exactly reproduce the live ECB during
 these actions because Melee's runtime callbacks and `ftCommon_8007D5D4` entry
 lock participate in collision geometry. Hurt and ECB qualification are
-therefore deliberately separate. The compact live Fly/DownD/StandD ECB profile
+therefore deliberately separate. The compact live
+Fly/DownD/StandD/Furafura ECB profile
 has file / semantic SHA-256
-`63c3d7a87c92fe01260c16942af501a62d75ce49505d05ecff50f16a827792c9` /
-`c314cdef0f7ebffce7498c79e1ae73ee53b54402e7988da9ceffabab3aa2ccf0`.
+`f63e2b09209ae7b7f85d53eb2a589fa593f7a8700d5d503e4a4b465a92aab677` /
+`11b28d22f68f7bb87c99dbc5f949f5456d1a69ab7bfa78360927ecb334064eeb`.
 Production consumes the complete four-point ECB at collision time, retains the
 source one-row landing vertical velocity, and reproduces the source shield
 health lifecycle. The generic stored route pins production SHA-256
 `d2080f96a9477f5615f777d657e70cab9181015f7058b4257dba8c9c52334cc4`.
+
+Furafura enters with source animation frame zero and loops independently from
+its grab/daze countdown. The two 127-row traces both show frames 0 through 99,
+then 0 through 26. Production advances the existing rollback source-animation
+cursor by one per non-hitlag update and leaves mash reductions confined to the
+countdown, reproducing the full captured clock without a new state field.
 
 ## Falcon DownBound collision poses
 

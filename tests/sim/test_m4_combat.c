@@ -14614,7 +14614,9 @@ static int shield_break_hurt_pose_matches_source(
         player->action_state !=
             (uint8_t)PF_M4_ACTION_SHIELD_BREAK_DOWN &&
         player->action_state !=
-            (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STAND)
+            (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STAND &&
+        player->action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN)
     {
         return 1;
     }
@@ -14622,6 +14624,7 @@ static int shield_break_hurt_pose_matches_source(
             player->action_state,
             player->source_submotion,
             player->action_ticks,
+            player->source_animation_frame_q16,
             local,
             &count) ||
         count != player->hurt_capsule_count)
@@ -14862,6 +14865,8 @@ static int advance_shield_break_to_stun(
             (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN ||
         out_inspection->players[1].action_ticks !=
             content->fighter.shield_break_stun_ticks ||
+        out_inspection->players[1].source_animation_frame_q16 !=
+            INT32_C(0) ||
         out_inspection->players[1].grounded != UINT8_C(1) ||
         out_inspection->players[1].invulnerable != UINT8_C(0))
     {
@@ -14973,6 +14978,11 @@ static int run_shield_break_test(
                 UINT16_C(1) -
                 content->fighter
                     .shield_break_mash_reduction_ticks ||
+        source_inspection.players[1].source_animation_frame_q16 !=
+            (int32_t)PF_Q16_ONE ||
+        !shield_break_hurt_pose_matches_source(
+            &content->fighter,
+            &source_inspection.players[1]) ||
         source_inspection.players[1].tech_window_ticks !=
             UINT16_C(0) ||
         source_inspection.players[1].tech_lockout_ticks !=
@@ -15015,7 +15025,12 @@ static int run_shield_break_test(
             content->fighter.shield_break_stun_ticks -
                 UINT16_C(2) -
                 content->fighter
-                    .shield_break_mash_reduction_ticks)
+                    .shield_break_mash_reduction_ticks ||
+        source_inspection.players[1].source_animation_frame_q16 !=
+            INT32_C(2) * (int32_t)PF_Q16_ONE ||
+        !shield_break_hurt_pose_matches_source(
+            &content->fighter,
+            &source_inspection.players[1]))
     {
         return fail("shield-break-held-input-no-remash");
     }
@@ -15047,6 +15062,11 @@ static int run_shield_break_test(
                 UINT16_C(2) *
                     content->fighter
                         .shield_break_mash_reduction_ticks ||
+        source_inspection.players[1].source_animation_frame_q16 !=
+            INT32_C(3) * (int32_t)PF_Q16_ONE ||
+        !shield_break_hurt_pose_matches_source(
+            &content->fighter,
+            &source_inspection.players[1]) ||
         source_inspection.players[1].tech_window_ticks !=
             UINT16_C(0) ||
         source_inspection.players[1].tech_lockout_ticks !=
@@ -15096,6 +15116,17 @@ static int run_shield_break_test(
         {
             return fail(
                 "shield-break-deterministic-continuation");
+        }
+        if (source_inspection.players[1].action_state ==
+                (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN &&
+            (source_inspection.players[1].source_animation_frame_q16 !=
+                 (int32_t)(tick + UINT32_C(4)) *
+                     (int32_t)PF_Q16_ONE ||
+             !shield_break_hurt_pose_matches_source(
+                 &content->fighter,
+                 &source_inspection.players[1])))
+        {
+            return fail("shield-break-stun-animation-clock");
         }
         if (source_inspection.players[1].action_state ==
             (uint8_t)PF_M4_ACTION_GROUND_IDLE)
@@ -27838,8 +27869,8 @@ static int run_falcon_reference_table_test(void)
         standing_hurt_capsules[0].height != UINT8_C(1) ||
         standing_hurt_capsules[0].grabbable != UINT8_C(1) ||
         complete_source_sha256 == NULL ||
-        complete_source_sha256[0] != UINT8_C(0xf8) ||
-        complete_source_sha256[31] != UINT8_C(0xc4) ||
+        complete_source_sha256[0] != UINT8_C(0x28) ||
+        complete_source_sha256[31] != UINT8_C(0x64) ||
         common_attribute_bits == NULL ||
         common_attribute_count != UINT16_C(97) ||
         common_attribute_bits[0] != UINT32_C(0x3e19999a) ||

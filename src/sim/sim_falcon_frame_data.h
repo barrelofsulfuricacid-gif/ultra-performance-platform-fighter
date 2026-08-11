@@ -40,6 +40,7 @@
 #define PF_M4_FALCON_SHIELD_BREAK_FLY_ECB_FRAME_COUNT UINT16_C(42)
 #define PF_M4_FALCON_SHIELD_BREAK_DOWN_ECB_FRAME_COUNT UINT16_C(26)
 #define PF_M4_FALCON_SHIELD_BREAK_STAND_ECB_FRAME_COUNT UINT16_C(30)
+#define PF_M4_FALCON_SHIELD_BREAK_STUN_ECB_FRAME_COUNT UINT16_C(100)
 #define PF_M4_FALCON_CEILING_BOUNCE_ECB_FRAME_COUNT UINT16_C(9)
 #define PF_M4_FALCON_WALL_BOUNCE_ECB_FRAME_COUNT UINT16_C(51)
 #define PF_M4_FALCON_LEDGE_OPTION_SUBMOTION_FIRST UINT16_C(219)
@@ -631,6 +632,8 @@ typedef struct pf_m4_falcon_collision_pose
         PF_M4_FALCON_SHIELD_BREAK_DOWN_ECB_FRAME_COUNT];
     pf_m4_falcon_ecb_pose_q16 shield_break_stand_down[
         PF_M4_FALCON_SHIELD_BREAK_STAND_ECB_FRAME_COUNT];
+    pf_m4_falcon_ecb_pose_q16 shield_break_stun[
+        PF_M4_FALCON_SHIELD_BREAK_STUN_ECB_FRAME_COUNT];
     pf_m4_falcon_ecb_pose_q16 ceiling_bounce[
         PF_M4_FALCON_CEILING_BOUNCE_ECB_FRAME_COUNT];
     pf_m4_falcon_ecb_pose_q16 wall_bounce[
@@ -925,12 +928,14 @@ int pf_m4_falcon_reference_retained_hsd_pose(
     uint8_t action_state,
     uint16_t source_submotion,
     uint16_t action_ticks,
+    int32_t source_animation_frame_q16,
     int32_t *out_frame_q16);
 
 int pf_m4_falcon_reference_retained_hsd_hurt_capsules(
     uint8_t action_state,
     uint16_t source_submotion,
     uint16_t action_ticks,
+    int32_t source_animation_frame_q16,
     pf_m4_reference_hurt_capsule
         out_capsules[PF_M4_HSD_POSE_MAX_CAPSULES],
     uint8_t *out_count);

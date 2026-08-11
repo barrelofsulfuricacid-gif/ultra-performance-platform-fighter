@@ -2353,6 +2353,7 @@ static int pf_m4_reference_ecb_pose_q16(
             action_state,
             source_submotion,
             action_ticks,
+            source_animation_frame_q16,
             &retained_hsd_frame_q16);
     if (retained_hsd_pose)
     {
@@ -2412,6 +2413,20 @@ static int pf_m4_reference_ecb_pose_q16(
             action_ticks,
             PF_M4_FALCON_SHIELD_BREAK_STAND_ECB_FRAME_COUNT);
         *out_pose = pose->shield_break_stand_down[frame_index];
+        return 1;
+    }
+    if (action_state == (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN &&
+        source_submotion ==
+            (uint16_t)PF_M4_FALCON_SUBMOTION_FURAFURA)
+    {
+        frame_index = pf_m4_clamped_pose_index(
+            source_animation_frame_q16 > INT32_C(0)
+                ? (uint16_t)(
+                      source_animation_frame_q16 /
+                      (int32_t)PF_Q16_ONE)
+                : UINT16_C(0),
+            PF_M4_FALCON_SHIELD_BREAK_STUN_ECB_FRAME_COUNT);
+        *out_pose = pose->shield_break_stun[frame_index];
         return 1;
     }
     if (pf_m4_falcon_reference_hsd_ecb_pose(
@@ -14612,6 +14627,42 @@ pf_status pf_m4_step_player(
         }
     }
     else if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
+             pf_m4_effective_action_state(
+                 action_state,
+                 scratch->hitlag_resume_action[player_index]) ==
+                 (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN)
+    {
+        const uint8_t previous_effective_action =
+            pf_m4_effective_action_state(
+                previous_action_state,
+                previous_hitlag_resume_action);
+
+        source_submotion =
+            (uint16_t)PF_M4_FALCON_SUBMOTION_FURAFURA;
+        if (action_state == (uint8_t)PF_M4_ACTION_HITLAG)
+        {
+            source_animation_frame_q16 =
+                previous_source_animation_frame_q16;
+        }
+        else if (previous_effective_action ==
+                 (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN)
+        {
+            if (!pf_m4_falcon_advance_loop_animation_q16(
+                    source_submotion,
+                    previous_source_animation_frame_q16,
+                    (int32_t)PF_Q16_ONE,
+                    &source_animation_frame_q16))
+            {
+                return PF_STATUS_DETERMINISTIC_FAULT;
+            }
+        }
+        else
+        {
+            source_animation_frame_q16 = INT32_C(0);
+        }
+        source_animation_rate_q16 = (int32_t)PF_Q16_ONE;
+    }
+    else if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
              action_state == (uint8_t)PF_M4_ACTION_CROUCH)
     {
         const int previous_crouch =
@@ -14619,20 +14670,19 @@ pf_status pf_m4_step_player(
             (previous_action_state == (uint8_t)PF_M4_ACTION_HITLAG &&
              previous_hitlag_resume_action ==
                  (uint8_t)PF_M4_ACTION_CROUCH);
-        const int32_t cycle_q16 =
-            (int32_t)PF_M4_FALCON_CROUCH_WAIT_ECB_FRAME_COUNT *
-            (int32_t)PF_Q16_ONE;
-
         source_submotion =
             (uint16_t)PF_M4_FALCON_SUBMOTION_SQUAT_WAIT;
-        source_animation_frame_q16 =
-            previous_crouch != 0
-                ? previous_source_animation_frame_q16 +
-                      (int32_t)PF_Q16_ONE
-                : INT32_C(0);
-        if (source_animation_frame_q16 >= cycle_q16)
+        if (previous_crouch == 0)
         {
-            source_animation_frame_q16 -= cycle_q16;
+            source_animation_frame_q16 = INT32_C(0);
+        }
+        else if (!pf_m4_falcon_advance_loop_animation_q16(
+                     source_submotion,
+                     previous_source_animation_frame_q16,
+                     (int32_t)PF_Q16_ONE,
+                     &source_animation_frame_q16))
+        {
+            return PF_STATUS_DETERMINISTIC_FAULT;
         }
         source_animation_rate_q16 = (int32_t)PF_Q16_ONE;
     }

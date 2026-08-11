@@ -136,15 +136,31 @@ def main() -> int:
                 float(row["hitbox_memory"]["fighter_animation_frame"])
                 for row in selected
             ]
-            require(
-                source_frames
-                == [
+            first_source_frame = int(case["first_source_frame"])
+            last_source_frame = int(case["last_source_frame"])
+            source_frame_cycle = case.get("source_frame_cycle")
+            if source_frame_cycle is None:
+                expected_source_frames = [
                     float(frame)
                     for frame in range(
-                        int(case["first_source_frame"]),
-                        int(case["last_source_frame"]) + 1,
+                        first_source_frame,
+                        last_source_frame + 1,
                     )
-                ],
+                ]
+            else:
+                cycle = int(source_frame_cycle)
+                require(
+                    cycle > 0
+                    and first_source_frame >= 0
+                    and last_source_frame == cycle - 1,
+                    f"{capture_name}/{action}: invalid source-frame cycle",
+                )
+                expected_source_frames = [
+                    float((first_source_frame + index) % cycle)
+                    for index in range(int(case["expected_samples"]))
+                ]
+            require(
+                source_frames == expected_source_frames,
                 f"{capture_name}/{action}: incomplete source-frame sequence",
             )
             if submotion not in animations:

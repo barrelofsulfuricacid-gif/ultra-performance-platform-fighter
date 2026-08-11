@@ -2376,6 +2376,7 @@ static const pf_m4_reference_hurt_capsule *pf_m4_reference_hurt_pose(
             action_state,
             source_submotion,
             action_ticks,
+            source_animation_frame_q16,
             dynamic_capsules,
             out_count))
     {
