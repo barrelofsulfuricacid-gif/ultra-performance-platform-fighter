@@ -45,7 +45,7 @@ controls. Remaining common-state poses stay explicitly incomplete.
 
 | System | Status | Evidence and remaining gap |
 |---|---|---|
-| Base standing/Wait animation and collision pose | partial | A bounded native SquatRv entry produces two independent 70-row captures. The shared HSD evaluator matches all ten SquatRv poses and direct Wait frames 6-59: 128 observations / 1,408 hurt capsules plus ECB, with maximum one-Q16 coordinate error. A second independent surface-memory pair proves frames 0-5 as Melee's exact six-update moving-target blend, including the otherwise invisible SquatRv source frame 10; production reconstructs it through a compact source-replay descriptor and validates six natural-route hurt/ECB observations. At base-Wait completion, SSBM selects Wait2/Wait3 through the process-global HSD RNG; production currently clamps frame 59, so the complete idle lifecycle is not yet equivalent. |
+| Base standing/Wait animation and collision pose | equivalent for the isolated complete uninterrupted idle lifecycle | A bounded native SquatRv entry and independent surface-memory pair qualify base Wait plus its exact six-update moving-target entry. Two byte-identical 440-row lifecycle captures prove the DAT-owned 70/20/10 Wait/Wait2/Wait3 state transitions, 60/75/70 clocks, zero-blend secondary entry, and six-update return/restart blends. Robust live endpoint seeds isolate unrelated global HSD consumers; an independent decomp/production theorem proves the exact HSD LCG and same-secondary rejection sequence. All 145 direct secondary poses / 1,595 capsules plus ECB agree within one Q16 unit; 32 stored lifecycle poses and a focused 440-tick native oracle protect production. |
 | Stick aging, dead zones, dash/jump recognition | equivalent | Fresh horizontal/vertical tilt age, reversal reset, 0.80 dash threshold with two-tick dash window, and 0.6625 tap-jump threshold with four-tick window follow the common input/decomp routes. Just-below/above and slow/two-sample tap-jump controls match the executable. |
 | Initial dash and dash physics | equivalent | One-shot Falcon 2.0 impulse with no entry-frame displacement, full A/B dash acceleration from the next frame, held transition after 15 displayed dash frames, and released completion after 28 displayed dash frames match the executable oracle. Every displayed Dash hurt pose is imported; a pinned Falcon Jab 1 route hits at 31.0 Melee units and misses at 31.5, while the old generic body rectangle misses the positive route by 3.503404617 units. |
 | Walk/run acceleration and friction | equivalent | The generated typed view of Falcon's raw NTSC 1.02 common attributes drives the runtime friction-aware target/overshoot formulas; slow stick motion enters walk rather than dash. |
@@ -99,9 +99,9 @@ presented as a general identical-input aerial-catch trajectory theorem.
 1. Add live route coverage for still-unregistered common damage, shield,
    grab/throw, input, rebound/clank, rebirth, and Falcon action branches from
    the 2026-08-10 callback audit; native regression alone is not SSBM truth.
-2. Import exact pose geometry for the remaining common states, including the
-   RNG-selected Wait2/Wait3 lifecycle and process-global HSD RNG ordering;
-   current fallback envelopes and terminal clamps are not equivalence claims.
+2. Import exact pose geometry for the remaining common states; current fallback
+   envelopes outside the now-complete Wait/Wait2/Wait3 lifecycle are not
+   equivalence claims.
 3. Capture common-state hurt poses beyond Initial Dash/RunBrake/CrouchStart/
    CrouchEnd/KneeBend/SpotDodge/RollForward/RollBackward/AirDodge/
    FallSpecial/LandingFallSpecial/Landing/JumpF/JumpB/JumpAerialF/

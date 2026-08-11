@@ -115,6 +115,8 @@ typedef enum pf_m4_falcon_move_index
 typedef enum pf_m4_falcon_submotion_index
 {
     PF_M4_FALCON_SUBMOTION_WAIT = 2,
+    PF_M4_FALCON_SUBMOTION_WAIT_2 = 3,
+    PF_M4_FALCON_SUBMOTION_WAIT_3 = 4,
     PF_M4_FALCON_SUBMOTION_WALK_SLOW = 7,
     PF_M4_FALCON_SUBMOTION_WALK_MIDDLE = 8,
     PF_M4_FALCON_SUBMOTION_WALK_FAST = 9,
@@ -216,10 +218,12 @@ static inline int pf_m4_falcon_wait_hsd_pose_is_direct(
     uint16_t source_submotion,
     int32_t source_animation_frame_q16)
 {
-    return source_submotion == (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT &&
-           source_animation_frame_q16 >=
-               (int32_t)PF_M4_FALCON_WAIT_HSD_FIRST_UNBLENDED_FRAME *
-                   INT32_C(65536);
+    return source_submotion == (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT_2 ||
+           source_submotion == (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT_3 ||
+           (source_submotion == (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT &&
+            source_animation_frame_q16 >=
+                (int32_t)PF_M4_FALCON_WAIT_HSD_FIRST_UNBLENDED_FRAME *
+                    INT32_C(65536));
 }
 
 typedef enum pf_m4_falcon_capture_hurt_index
@@ -851,6 +855,12 @@ pf_m4_falcon_reference_hsd_ecb_pose(
 
 const pf_m4_hsd_pose_data *
 pf_m4_falcon_reference_hsd_pose_data(void);
+
+const pf_m4_hsd_wait_animation *
+pf_m4_falcon_reference_wait_animations(uint8_t *out_count);
+
+const pf_m4_hsd_wait_animation *
+pf_m4_falcon_reference_wait_animation(uint16_t source_submotion);
 
 int pf_m4_falcon_reference_direct_hsd_pose(
     uint8_t action_state,

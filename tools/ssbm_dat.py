@@ -22,6 +22,62 @@ class HsdArchive:
             raise ValueError(f"missing HSD archive root {name!r}") from error
 
 
+@dataclass(frozen=True)
+class FighterWaitAnimation:
+    """One weighted ftData wait-animation entry and its HSD blend bytes."""
+
+    animation_id: int
+    weight: int
+    blend_frames: int
+    blend_parameter: int
+
+
+def fighter_wait_animations(
+    archive: HsdArchive,
+    fighter_root: str,
+) -> tuple[FighterWaitAnimation, ...]:
+    """Decode FighterData wait weights and x10 blend bytes."""
+
+    root = archive.root(fighter_root)
+    if root + 0x28 > len(archive.data):
+        raise ValueError("truncated FighterData wait-animation fields")
+    blend_offset = struct.unpack_from(">I", archive.data, root + 0x10)[0]
+    wait_offset = struct.unpack_from(">I", archive.data, root + 0x24)[0]
+    if wait_offset == 0 or blend_offset == 0:
+        return ()
+    if wait_offset >= len(archive.data) or blend_offset >= len(archive.data):
+        raise ValueError("FighterData wait-animation pointer is out of bounds")
+
+    rows: list[FighterWaitAnimation] = []
+    seen: set[int] = set()
+    for index in range(256):
+        entry_offset = wait_offset + index * 8
+        if entry_offset + 8 > len(archive.data):
+            raise ValueError("unterminated FighterData wait-animation table")
+        animation_id, weight = struct.unpack_from(">2i", archive.data, entry_offset)
+        if animation_id == -1 or weight == -1:
+            if animation_id != -1 or weight != -1:
+                raise ValueError("malformed FighterData wait-animation sentinel")
+            break
+        if animation_id < 0 or animation_id in seen or weight <= 0:
+            raise ValueError("invalid FighterData wait-animation entry")
+        blend_entry = blend_offset + animation_id * 2
+        if blend_entry + 2 > len(archive.data):
+            raise ValueError("wait-animation blend entry is out of bounds")
+        seen.add(animation_id)
+        rows.append(
+            FighterWaitAnimation(
+                animation_id=animation_id,
+                weight=weight,
+                blend_frames=archive.data[blend_entry],
+                blend_parameter=archive.data[blend_entry + 1],
+            )
+        )
+    else:
+        raise ValueError("FighterData wait-animation table is too large")
+    return tuple(rows)
+
+
 def _archive_name(raw: bytes, string_table: int, relative_offset: int) -> str:
     start = string_table + relative_offset
     if start < string_table or start >= len(raw):

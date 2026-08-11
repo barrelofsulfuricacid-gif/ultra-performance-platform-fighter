@@ -24,7 +24,7 @@ from hsd_joint_pose import (
     read_joint_tree,
     required_joint_indices,
 )
-from ssbm_dat import read_hsd_archive
+from ssbm_dat import fighter_wait_animations, read_hsd_archive
 
 
 Q16_ONE = 65536
@@ -231,6 +231,52 @@ def build_payload(
     if compact_motion_count == 0:
         raise ValueError("at least one motion must own compact blend state")
 
+    wait_animation_rows: list[dict[str, Any]] = []
+    wait_animation_spec = manifest.get("wait_animation_table")
+    if wait_animation_spec is not None:
+        if not isinstance(wait_animation_spec, dict):
+            raise ValueError("manifest wait animation table must be an object")
+        expected_weight_total = wait_animation_spec.get(
+            "expected_weight_total"
+        )
+        if (
+            not isinstance(expected_weight_total, int)
+            or isinstance(expected_weight_total, bool)
+            or expected_weight_total <= 0
+        ):
+            raise ValueError("wait animation weight total is invalid")
+        motion_names = {
+            int(spec["submotion_index"]): str(spec["c_submotion"])
+            for spec in manifest["motions"]
+        }
+        source_wait_animations = fighter_wait_animations(
+            fighter, fighter_root
+        )
+        if not source_wait_animations:
+            raise ValueError("fighter has no wait animation table")
+        for row in source_wait_animations:
+            try:
+                c_submotion = motion_names[row.animation_id]
+            except KeyError as error:
+                raise ValueError(
+                    "wait animation motion was not imported: "
+                    f"{row.animation_id}"
+                ) from error
+            wait_animation_rows.append(
+                {
+                    "submotion": c_submotion,
+                    "weight": row.weight,
+                    "blend_frames": row.blend_frames,
+                    "blend_parameter": row.blend_parameter,
+                }
+            )
+        weight_total = sum(row["weight"] for row in wait_animation_rows)
+        if weight_total != expected_weight_total:
+            raise ValueError(
+                "unexpected wait animation weight total: "
+                f"expected={expected_weight_total} actual={weight_total}"
+            )
+
     capsule_rows: list[dict[str, Any]] = []
     for hurtbox_id, capsule in enumerate(capsules):
         source_index = layout.source_joint_by_runtime_part[capsule.bone_index]
@@ -336,6 +382,7 @@ def build_payload(
         "axis_sign": axis_sign,
         "joints": joint_rows,
         "motions": motion_rows,
+        "wait_animations": wait_animation_rows,
         "compact_motion_count": compact_motion_count,
         "tracks": track_rows,
         "keys": key_rows,
@@ -369,6 +416,7 @@ def validate_expected(manifest: dict[str, Any], payload: dict[str, Any]) -> str:
         "runtime_part_count": payload["runtime_part_count"],
         "joint_count": len(payload["joints"]),
         "motion_count": len(payload["motions"]),
+        "wait_animation_count": len(payload["wait_animations"]),
         "compact_motion_count": payload["compact_motion_count"],
         "track_count": len(payload["tracks"]),
         "key_count": len(payload["keys"]),
@@ -416,6 +464,20 @@ def render(manifest: dict[str, Any], payload: dict[str, Any], digest: str) -> st
         lines.append(
             f"    {{ (uint16_t){row['submotion']}, UINT16_C({row['track_offset']}), "
             f"UINT16_C({row['track_count']}), UINT16_C({row['frame_count']}) }},"
+        )
+    lines.extend(
+        [
+            "};",
+            "",
+            f"static const pf_m4_hsd_wait_animation {prefix}_wait_animations[] = {{",
+        ]
+    )
+    for row in payload["wait_animations"]:
+        lines.append(
+            f"    {{ (uint16_t){row['submotion']}, UINT8_C({row['weight']}), "
+            f"UINT8_C({row['blend_frames']}), "
+            f"UINT8_C({row['blend_parameter']}), "
+            "{ UINT8_C(0), UINT8_C(0), UINT8_C(0) } },"
         )
     lines.extend(["};", "", f"static const pf_m4_hsd_track {prefix}_tracks[] = {{"])
     for row in payload["tracks"]:

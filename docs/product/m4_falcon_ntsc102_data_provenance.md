@@ -55,12 +55,22 @@ prove frames 0-5 as the ordinary six-update moving-target recurrence under
 semantic SHA-256
 `0c7ba43ab7022bc2e88bcb369e4fcb9812ebf2397abd7afddfed931e61734983`.
 The entry source is SquatRv frame 10, one update beyond its last displayed
-frame. Three direct and six transition observations protect the production
-route. `ftCo_Wait_Anim` then calls
-`ftCo_8008A7A8`, and `ftwaitanim.c` selects Wait2/Wait3 with process-global
-`HSD_Randi`; that RNG state and call ordering remain outside the imported
-slice, so the production frame-59 clamp is documented as a bound, not an exact
-terminal-idle implementation.
+frame. Three direct and six transition observations protect the entry route.
+`ftCo_Wait_Anim` then calls `ftCo_8008A7A8`; `ftwaitanim.c` and
+`baselib/random.c` define the weighted secondary selection and process-global
+HSD LCG. The DAT supplies Wait/Wait2/Wait3 weights 70/20/10 and blend bytes
+6/0/0. Two byte-identical 440-row captures have raw SHA-256
+`d97474f2a15912b1c98fba9b7444883c1db4798290702c311b13bcffb4cc7f7b`
+and semantic SHA-256
+`afefafe17e8769bc39391d0605d7c392f25ef4d146cf0d868eb895eeee84b570`.
+The source theorem predicts and checks 14 uninterrupted RNG draws and two
+same-secondary rejection draws across the repeat pair; the live captures
+validate the resulting state transitions. Production retains the exact 32-bit global stream,
+commits draws transactionally, advances 60/75/70-frame source clocks, and
+reproduces zero-blend variant entries plus six-update return/restart blends.
+All 145 direct Wait2/Wait3 samples / 1,595 capsules and their ECBs agree with
+the independent DAT/HSD evaluator within one Q16 unit; 32 stored boundary and
+blend poses protect the native route.
 
 ## Complete attack-frame table
 

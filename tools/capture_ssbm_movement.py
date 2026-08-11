@@ -190,8 +190,28 @@ def input_trace(
             "source_random_seed_override": source_random_seed_override,
         }
 
+    raw_repeat_count_overrides = (
+        checkpoint_capture_plan.get("trace_repeat_counts_by_label", {})
+        if checkpoint_capture_plan is not None
+        else {}
+    )
+    if not isinstance(raw_repeat_count_overrides, dict) or any(
+        not isinstance(label, str)
+        or not label
+        or not isinstance(count, int)
+        or isinstance(count, bool)
+        or count <= 0
+        for label, count in raw_repeat_count_overrides.items()
+    ):
+        raise ValueError("checkpoint trace repeat counts are invalid")
+    repeat_count_overrides = {
+        str(label): int(count)
+        for label, count in raw_repeat_count_overrides.items()
+    }
+
     def repeat(label: str, count: int, **inputs: object) -> None:
-        trace.extend(command(label, **inputs) for _ in range(count))
+        effective_count = repeat_count_overrides.get(label, count)
+        trace.extend(command(label, **inputs) for _ in range(effective_count))
 
     def controller_axis(source_axis: object) -> float:
         if (
@@ -1552,6 +1572,9 @@ def input_trace(
             raw_trace_start_label = checkpoint_capture_plan.get(
                 "trace_start_label"
             )
+            source_random_seed = checkpoint_capture_plan.get(
+                "source_random_seed"
+            )
             if (
                 not isinstance(raw_record_actions, dict)
                 or not isinstance(raw_command_limits, dict)
@@ -1564,6 +1587,12 @@ def input_trace(
                 or not raw_trace_start_label
             ):
                 raise ValueError("checkpoint trace start label is invalid")
+            if source_random_seed is not None and (
+                not isinstance(source_random_seed, int)
+                or isinstance(source_random_seed, bool)
+                or not 0 <= source_random_seed <= 0xFFFFFFFF
+            ):
+                raise ValueError("checkpoint source random seed is invalid")
             recorded_actions_by_label = {
                 str(label): tuple(str(action) for action in actions)
                 for label, actions in raw_record_actions.items()
@@ -1710,6 +1739,11 @@ def input_trace(
                 )
                 if pending_restore or direct_boundary:
                     isolated = {**isolated, "restore_before": True}
+                    if source_random_seed is not None:
+                        isolated = {
+                            **isolated,
+                            "source_random_seed_override": source_random_seed,
+                        }
                     pending_restore = False
                 recorded_actions = recorded_actions_by_label.get(label)
                 if recorded_actions is not None:
@@ -1817,6 +1851,132 @@ def input_trace(
             repeat("common_hurt_wait_crouch", 12, main_y=0.0)
             repeat("common_hurt_wait_release", 10)
             repeat("common_hurt_wait_hold", 60)
+
+        if checkpoint_capture_plan is not None:
+            raw_wait_lifecycle_cases = checkpoint_capture_plan.get(
+                "wait_lifecycle_cases"
+            )
+            if raw_wait_lifecycle_cases is not None:
+                if (
+                    not isinstance(raw_wait_lifecycle_cases, list)
+                    or not raw_wait_lifecycle_cases
+                ):
+                    raise ValueError("wait lifecycle cases are required")
+                wait_lifecycle_case_ids: set[str] = set()
+                for raw_case in raw_wait_lifecycle_cases:
+                    if not isinstance(raw_case, dict):
+                        raise ValueError(
+                            "wait lifecycle case must be an object"
+                        )
+                    case_id = raw_case.get("id")
+                    source_random_seed = raw_case.get("source_random_seed")
+                    raw_seed_writes = raw_case.get(
+                        "source_random_seed_writes",
+                        [
+                            {
+                                "hold_tick": 59,
+                                "seed": source_random_seed,
+                            }
+                        ],
+                    )
+                    hold_ticks = raw_case.get("hold_ticks")
+                    if (
+                        not isinstance(case_id, str)
+                        or not case_id
+                        or case_id in wait_lifecycle_case_ids
+                        or not isinstance(source_random_seed, int)
+                        or isinstance(source_random_seed, bool)
+                        or not 0 <= source_random_seed <= 0xFFFFFFFF
+                        or not isinstance(hold_ticks, int)
+                        or isinstance(hold_ticks, bool)
+                        or hold_ticks <= 60
+                    ):
+                        raise ValueError("wait lifecycle case is invalid")
+                    if (
+                        not isinstance(raw_seed_writes, list)
+                        or not raw_seed_writes
+                    ):
+                        raise ValueError("wait lifecycle seed writes are required")
+                    seed_writes: list[tuple[int, int]] = []
+                    for raw_write in raw_seed_writes:
+                        if not isinstance(raw_write, dict):
+                            raise ValueError(
+                                "wait lifecycle seed write must be an object"
+                            )
+                        hold_tick = raw_write.get("hold_tick")
+                        seed = raw_write.get("seed")
+                        if (
+                            not isinstance(hold_tick, int)
+                            or isinstance(hold_tick, bool)
+                            or not 0 <= hold_tick < hold_ticks
+                            or not isinstance(seed, int)
+                            or isinstance(seed, bool)
+                            or not 0 <= seed <= 0xFFFFFFFF
+                            or (
+                                seed_writes
+                                and hold_tick <= seed_writes[-1][0]
+                            )
+                        ):
+                            raise ValueError(
+                                "wait lifecycle seed write is invalid"
+                            )
+                        seed_writes.append((hold_tick, seed))
+                    if seed_writes[0] != (59, source_random_seed):
+                        raise ValueError(
+                            "wait lifecycle first seed write must select base Wait"
+                        )
+                    wait_lifecycle_case_ids.add(case_id)
+                    prefix = f"common_hurt_wait_{case_id}"
+                    reset_common_hurt_route(prefix)
+                    trace.append(
+                        command(
+                            f"{prefix}_place",
+                            fighter_x_override=-20.0,
+                            fighter_y_override=0.0001,
+                            opponent_x_override=60.0,
+                            opponent_y_override=0.0001,
+                            opponent_main_y=0.0,
+                        )
+                    )
+                    repeat(f"{prefix}_settle", 10, opponent_main_y=0.0)
+                    repeat(
+                        f"{prefix}_crouch",
+                        12,
+                        main_y=0.0,
+                        opponent_main_y=0.0,
+                    )
+                    repeat(f"{prefix}_release", 10, opponent_main_y=0.0)
+                    # Recorded hold row 0 is Wait frame 0. Reassert the
+                    # expected source RNG state on each terminal row,
+                    # immediately before ftCo_Wait_Anim selects the next idle.
+                    # This isolates gameplay selection from unrelated global
+                    # HSD consumers while still exercising the real callback.
+                    hold_label = f"{prefix}_hold"
+                    next_hold_tick = 0
+                    for hold_tick, seed in seed_writes:
+                        repeat(
+                            hold_label,
+                            hold_tick - next_hold_tick,
+                            opponent_main_y=0.0,
+                        )
+                        trace.append(
+                            command(
+                                hold_label,
+                                opponent_main_y=0.0,
+                                source_random_seed_override=seed,
+                            )
+                        )
+                        next_hold_tick = hold_tick + 1
+                    repeat(
+                        hold_label,
+                        hold_ticks - next_hold_tick,
+                        opponent_main_y=0.0,
+                    )
+                return (
+                    checkpoint_isolated_common_hurt_trace(trace)
+                    if checkpoint_isolated
+                    else trace
+                )
 
         trace.append(
             command(

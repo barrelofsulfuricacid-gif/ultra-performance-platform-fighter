@@ -4,7 +4,7 @@ set -eu
 root=$(git rev-parse --show-toplevel)
 output_dir=${1:-"$root/performance/local/m2_replay"}
 compiler=${CC:-cc}
-expected='sim-replay=pass ticks=240 players=4 bytes=41607 corpus_sha256=0d3ccb293d0735102c13d020d469f13b202eede2b54052881d0380efb765e172 final_sha256=3a9bb1e28fd635dcde8f1ec98d0705babd12ee64ee7e036e8f986c5a15a874d5 events_sha256=370975f72bbd6546f5253607ef62b811cb4f126889ad3c89bf4b2955703430cb'
+expected='sim-replay=pass ticks=240 players=4 bytes=42519 corpus_sha256=469c03272c7ce71f684bad27dd53f55d76a4ace72535152ed2fa5cc451a78315 final_sha256=c00595389591d404fd06e60780138a99dfda498a6160c7318b3b6acf713d3081 events_sha256=6f0f9376198d1f9507e6502da4eece00110a6ebe7c18233c78303d5b9764743d'
 
 mkdir -p "$output_dir"
 
@@ -33,6 +33,8 @@ common_flags="
     "$root/src/sim/sim_combat.c" \
     "$root/src/sim/sim_content.c" \
     "$root/src/sim/sim_falcon_frame_data.c" \
+    "$root/src/sim/sim_fixed_math.c" \
+    "$root/src/sim/sim_hsd_pose.c" \
     "$root/src/sim/sim_ssbm_common_data.c" \
     "$root/src/sim/sim_ssbm_damage.c" \
     "$root/src/sim/sim_ssbm_stage_data.c" \
@@ -72,4 +74,4 @@ else
     echo "m2-replay-cross-target=partial native=1 wasm=deferred ticks=240"
 fi
 
-echo "m2-replay-verification=pass bytes=41607 ticks=240 players=4"
+echo "m2-replay-verification=pass bytes=42519 ticks=240 players=4"

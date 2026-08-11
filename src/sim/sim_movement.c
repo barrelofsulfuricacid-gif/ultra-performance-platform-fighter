@@ -318,8 +318,55 @@ static int pf_m4_falcon_remap_walk_animation_q16(
     return 1;
 }
 
+static const pf_m4_hsd_wait_animation *
+pf_m4_falcon_select_wait_animation(
+    uint64_t *rng_state,
+    uint16_t current_submotion)
+{
+    uint8_t animation_count;
+    const pf_m4_hsd_wait_animation *animations =
+        pf_m4_falcon_reference_wait_animations(&animation_count);
+
+    for (;;)
+    {
+        const uint32_t selection =
+            pf_sim_hsd_random_bounded(rng_state, UINT32_C(100)) +
+            UINT32_C(1);
+        uint32_t cumulative_weight = UINT32_C(0);
+        uint8_t animation_index;
+
+        for (animation_index = UINT8_C(0);
+             animation_index < animation_count;
+             ++animation_index)
+        {
+            cumulative_weight += animations[animation_index].weight;
+            if (selection <= cumulative_weight)
+            {
+                const pf_m4_hsd_wait_animation *selected =
+                    &animations[animation_index];
+
+                /* ftwaitanim.c repeats a secondary idle selection when it
+                 * chose the currently playing secondary idle. Base Wait may
+                 * select itself and restart through its ordinary blend. */
+                if (current_submotion !=
+                        (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT &&
+                    selected->source_submotion == current_submotion)
+                {
+                    break;
+                }
+                return selected;
+            }
+        }
+        if (animation_index == animation_count)
+        {
+            return NULL;
+        }
+    }
+}
+
 static pf_status pf_m4_update_falcon_ground_animation_clock(
     const pf_m4_fighter_data *fighter,
+    uint64_t *rng_state,
     uint8_t previous_action,
     uint8_t previous_resume_action,
     uint16_t previous_submotion,
@@ -361,8 +408,7 @@ static pf_status pf_m4_update_falcon_ground_animation_clock(
     if (effective_action == (uint8_t)PF_M4_ACTION_GROUND_IDLE)
     {
         const pf_m4_falcon_submotion_data *wait =
-            pf_m4_falcon_reference_submotion(
-                PF_M4_FALCON_SUBMOTION_WAIT);
+            pf_m4_falcon_reference_submotion(previous_submotion);
         const int32_t terminal_frame_q16 =
             wait != NULL && wait->animation_frame_count != UINT16_C(0)
                 ? (int32_t)(wait->animation_frame_count - UINT16_C(1)) *
@@ -373,25 +419,31 @@ static pf_status pf_m4_update_falcon_ground_animation_clock(
         {
             return PF_STATUS_DETERMINISTIC_FAULT;
         }
-        *source_submotion = (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT;
         if (effective_previous_action !=
-                (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
-            previous_submotion !=
-                (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT)
+                (uint8_t)PF_M4_ACTION_GROUND_IDLE)
         {
+            *source_submotion =
+                (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT;
             *source_animation_frame_q16 = INT32_C(0);
             *source_animation_rate_q16 = PF_Q16_ONE;
         }
         else if (previous_frame_q16 >= terminal_frame_q16)
         {
-            /* Wait's endpoint selects Wait2/Wait3 through the global HSD RNG.
-             * Until that source RNG lifecycle is imported, retain the last
-             * qualified Wait pose rather than inventing a deterministic loop. */
-            *source_animation_frame_q16 = terminal_frame_q16;
-            *source_animation_rate_q16 = INT32_C(0);
+            const pf_m4_hsd_wait_animation *selected =
+                pf_m4_falcon_select_wait_animation(
+                    rng_state, previous_submotion);
+
+            if (selected == NULL)
+            {
+                return PF_STATUS_DETERMINISTIC_FAULT;
+            }
+            *source_submotion = selected->source_submotion;
+            *source_animation_frame_q16 = INT32_C(0);
+            *source_animation_rate_q16 = PF_Q16_ONE;
         }
         else
         {
+            *source_submotion = previous_submotion;
             *source_animation_frame_q16 =
                 previous_frame_q16 + previous_rate_q16;
             *source_animation_rate_q16 = PF_Q16_ONE;
@@ -696,18 +748,37 @@ static int pf_m4_falcon_ground_blend_source_pose(
     }
     else if (previous_action == (uint8_t)PF_M4_ACTION_GROUND_IDLE)
     {
-        const pf_m4_falcon_submotion_data *wait =
-            pf_m4_falcon_reference_submotion(
-                PF_M4_FALCON_SUBMOTION_WAIT);
+        pf_m4_hsd_local_pose target[PF_M4_HSD_POSE_MAX_JOINTS];
+        int32_t ignored_progress_q16;
 
-        if (wait == NULL || wait->animation_frame_count == UINT16_C(0))
+        if (pf_m4_falcon_reference_wait_animation(
+                world->source_submotion[player_index]) == NULL)
         {
             return 0;
         }
-        source_submotion = (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT;
-        source_frame_q16 = (int32_t)(
-            world->action_ticks[player_index] % wait->animation_frame_count) *
-            PF_Q16_ONE;
+        source_submotion = world->source_submotion[player_index];
+        source_frame_q16 =
+            world->source_animation_frame_q16[player_index] +
+            world->source_animation_rate_q16[player_index];
+        if (!pf_m4_hsd_evaluate_local_pose_q16(
+                data, source_submotion, source_frame_q16, target))
+        {
+            return 0;
+        }
+        if (world->ground_blend_progress_q16[player_index] <= INT32_C(0))
+        {
+            (void)memcpy(
+                out_pose, target, sizeof(*target) * data->joint_count);
+            return 1;
+        }
+        return pf_m4_falcon_continue_ground_blend_pose(
+            data,
+            target,
+            &world->ground_blend_pose[player_index],
+            world->ground_blend_progress_q16[player_index],
+            world->source_animation_rate_q16[player_index],
+            out_pose,
+            &ignored_progress_q16);
     }
     else if (previous_action == (uint8_t)PF_M4_ACTION_INITIAL_DASH)
     {
@@ -794,6 +865,10 @@ static pf_status pf_m4_evaluate_falcon_ground_blend_pose(
         return PF_STATUS_DETERMINISTIC_FAULT;
     }
     if (source_submotion != world->source_submotion[player_index] ||
+        (action == (uint8_t)PF_M4_ACTION_GROUND_IDLE &&
+         action == previous_action &&
+         source_animation_frame_q16 <
+             world->source_animation_frame_q16[player_index]) ||
         action != previous_action)
     {
         if (action == (uint8_t)PF_M4_ACTION_GROUND_IDLE)
@@ -810,9 +885,29 @@ static pf_status pf_m4_evaluate_falcon_ground_blend_pose(
             transition_steps = 1;
         }
     }
+    if (transition_steps > 0 &&
+        action == (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+    {
+        const pf_m4_hsd_wait_animation *wait_animation =
+            pf_m4_falcon_reference_wait_animation(source_submotion);
+
+        if (wait_animation != NULL &&
+            wait_animation->blend_frames == UINT8_C(0))
+        {
+            (void)memset(out_pose, 0, sizeof(*out_pose));
+            *out_progress_q16 = INT32_C(0);
+            return PF_STATUS_OK;
+        }
+        if (wait_animation != NULL &&
+            wait_animation->blend_frames != UINT8_C(6))
+        {
+            return PF_STATUS_DETERMINISTIC_FAULT;
+        }
+    }
     if (transition_steps == 1 &&
         action == (uint8_t)PF_M4_ACTION_GROUND_IDLE &&
         (previous_action == (uint8_t)PF_M4_ACTION_CROUCH_END ||
+         previous_action == (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
          pf_m4_action_uses_direct_hsd_pose(previous_action)) &&
         world->source_animation_rate_q16[player_index] == PF_Q16_ONE)
     {
@@ -6529,7 +6624,8 @@ pf_status pf_m4_step_player(
     const pf_input_frame *input,
     const pf_input_frame *raw_input,
     uint32_t player_index,
-    int32_t player_nudge_x_q16)
+    int32_t player_nudge_x_q16,
+    uint64_t *rng_state)
 {
     const pf_m4_fighter_data *fighter = &content->fighter;
     const pf_m4_stage_data *stage = &content->stage;
@@ -6555,6 +6651,10 @@ pf_status pf_m4_step_player(
         world->velocity_x_q16[player_index];
     const int8_t previous_facing = world->facing[player_index];
 
+    if (rng_state == NULL)
+    {
+        return PF_STATUS_INVALID_ARGUMENT;
+    }
     if (!pf_m4_ssbm_stage_support_valid(
             stage->reference_collision_profile,
             world->support[player_index],
@@ -14704,6 +14804,7 @@ pf_status pf_m4_step_player(
     {
         status = pf_m4_update_falcon_ground_animation_clock(
             fighter,
+            rng_state,
             previous_action_state,
             previous_hitlag_resume_action,
             previous_source_submotion,

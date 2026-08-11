@@ -2185,7 +2185,7 @@ static int pf_m4_snapshot_source_submotion_valid_for_action(
     if (effective_action == (uint8_t)PF_M4_ACTION_GROUND_IDLE)
     {
         return motion != NULL &&
-               submotion == (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT;
+               pf_m4_falcon_reference_wait_animation(submotion) != NULL;
     }
     if (effective_action == (uint8_t)PF_M4_ACTION_WALK)
     {
@@ -3108,6 +3108,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
         world->state_schema_version != PF_SIM_STATE_SCHEMA_VERSION ||
         world->arithmetic_version != PF_SIM_ARITHMETIC_VERSION ||
         world->rng_version != PF_SIM_RNG_VERSION ||
+        world->rng_state > (uint64_t)UINT32_MAX ||
         world->input_schema_version != PF_SIM_INPUT_SCHEMA_VERSION ||
         (world->fault_flags & ~known_faults) != UINT32_C(0) ||
         world->max_ticks == UINT64_C(0) ||

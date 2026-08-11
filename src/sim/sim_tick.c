@@ -440,6 +440,7 @@ pf_status pf_sim_tick_impl(
     pf_sim_scratch *scratch;
     pf_status status;
     uint64_t forfeit_mask = UINT64_C(0);
+    uint64_t rng_state;
     int32_t player_nudge_x_q16[PF_SIM_MAX_PLAYERS] = {INT32_C(0)};
     uint32_t player_index;
 
@@ -456,6 +457,7 @@ pf_status pf_sim_tick_impl(
 
     world = &sim->world;
     scratch = sim->scratch;
+    rng_state = world->rng_state;
 
     if (world->fault_flags != UINT32_C(0))
     {
@@ -583,7 +585,8 @@ pf_status pf_sim_tick_impl(
             &effective_input,
             input,
             player_index,
-            player_nudge_x_q16[player_index]);
+            player_nudge_x_q16[player_index],
+            &rng_state);
         if (status != PF_STATUS_OK)
         {
             pf_write_result(world, NULL, out_result);
@@ -906,6 +909,7 @@ pf_status pf_sim_tick_impl(
         scratch->projectile_lifetime_ticks;
     world->projectile_state = scratch->projectile_state;
     world->projectile_owner_slot = scratch->projectile_owner_slot;
+    world->rng_state = rng_state;
     ++world->tick;
 
     if (forfeit_mask != UINT64_C(0))

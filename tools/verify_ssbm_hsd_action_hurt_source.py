@@ -34,6 +34,14 @@ def main() -> int:
     parser.add_argument("model_dat", type=Path)
     parser.add_argument("captures", type=Path, nargs="+")
     parser.add_argument(
+        "--fresh-captures",
+        action="store_true",
+        help=(
+            "map captures to manifest IDs by position while retaining strict "
+            "provenance, source-clock, geometry, and tolerance checks"
+        ),
+    )
+    parser.add_argument(
         "--qualification-key",
         default="action_hurt_qualification",
         help="manifest object owning the capture/source theorem",
@@ -74,17 +82,39 @@ def main() -> int:
         len(specs_by_id) == len(capture_specs),
         "action hurt capture IDs must be unique",
     )
-    supplied: dict[str, tuple[Path, dict[str, Any]]] = {}
-    for path in args.captures:
-        raw = path.read_bytes()
-        digest = sha256(raw)
-        require(digest in specs_by_digest, f"undeclared capture SHA-256: {digest}")
-        require(digest not in supplied, f"duplicate capture SHA-256: {digest}")
-        supplied[digest] = (path, json.loads(raw))
-    require(
-        set(supplied) == set(specs_by_digest),
-        "supplied action hurt captures do not match the manifest",
-    )
+    supplied_by_id: dict[str, tuple[Path, dict[str, Any]]] = {}
+    if args.fresh_captures:
+        require(
+            len(args.captures) == len(capture_specs),
+            "fresh action hurt capture count does not match the manifest",
+        )
+        for spec, path in zip(capture_specs, args.captures, strict=True):
+            supplied_by_id[str(spec["id"])] = (
+                path,
+                json.loads(path.read_bytes()),
+            )
+    else:
+        supplied: dict[str, tuple[Path, dict[str, Any]]] = {}
+        for path in args.captures:
+            raw = path.read_bytes()
+            digest = sha256(raw)
+            require(
+                digest in specs_by_digest,
+                f"undeclared capture SHA-256: {digest}",
+            )
+            require(
+                digest not in supplied,
+                f"duplicate capture SHA-256: {digest}",
+            )
+            supplied[digest] = (path, json.loads(raw))
+        require(
+            set(supplied) == set(specs_by_digest),
+            "supplied action hurt captures do not match the manifest",
+        )
+        supplied_by_id = {
+            str(spec["id"]): supplied[digest]
+            for digest, spec in specs_by_digest.items()
+        }
 
     fighter_raw = load_pinned_source(args.fighter_dat, manifest, "fighter_dat")
     animation_raw = load_pinned_source(
@@ -144,9 +174,9 @@ def main() -> int:
     maximum_difference = 0
     maximum_ecb_difference = 0
 
-    for digest, spec in specs_by_digest.items():
-        _, capture = supplied[digest]
+    for spec in capture_specs:
         capture_name = str(spec["id"])
+        _, capture = supplied_by_id[capture_name]
         require(
             capture.get("fighter") == manifest["fighter"],
             f"{capture_name}: fighter mismatch",
@@ -195,17 +225,26 @@ def main() -> int:
             total_cases += 1
             action = str(case["source_action"])
             submotion = int(case["submotion_index"])
+            label = case.get("label")
+            require(
+                label is None or isinstance(label, str),
+                f"{capture_name}/{action}: invalid label filter",
+            )
             minimum_frame_q16 = case.get("minimum_source_frame_exclusive_q16")
             maximum_frame_q16 = case.get("maximum_source_frame_inclusive_q16")
             selected = []
             for row in rows:
-                if row.get("action") != action:
+                if row.get("action") != action or (
+                    label is not None and row.get("label") != label
+                ):
                     continue
                 memory = row.get("hitbox_memory")
                 require(
                     isinstance(memory, dict),
                     f"{capture_name}/{action}: missing hitbox memory",
                 )
+                if memory.get("fighter_animation_id") != submotion:
+                    continue
                 source_frame = memory.get("fighter_animation_frame")
                 require(
                     isinstance(source_frame, (int, float)),

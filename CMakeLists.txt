@@ -616,6 +616,14 @@ if(BUILD_TESTING)
                    "m4-ssbm-stored-oracle=pass domain=falcon-common-hurt poses=714 cases=20")
 
     add_test(
+        NAME sim.m4_ssbm_falcon_wait_idle_lifecycle
+        COMMAND m4_combat_test --ssbm-oracle falcon-wait-idle-lifecycle)
+    set_tests_properties(
+        sim.m4_ssbm_falcon_wait_idle_lifecycle
+        PROPERTIES PASS_REGULAR_EXPRESSION
+                   "m4-ssbm-stored-oracle=pass domain=falcon-wait-idle-lifecycle routes=2 ticks=440 poses=38")
+
+    add_test(
         NAME sim.m4_ssbm_falcon_dive_grab_geometry
         COMMAND m4_combat_test --ssbm-oracle falcon-dive-grab-geometry)
     set_tests_properties(

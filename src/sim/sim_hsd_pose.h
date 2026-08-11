@@ -65,6 +65,15 @@ typedef struct pf_m4_hsd_motion
     uint16_t frame_count;
 } pf_m4_hsd_motion;
 
+typedef struct pf_m4_hsd_wait_animation
+{
+    uint16_t source_submotion;
+    uint8_t weight;
+    uint8_t blend_frames;
+    uint8_t blend_parameter;
+    uint8_t reserved[3];
+} pf_m4_hsd_wait_animation;
+
 typedef struct pf_m4_hsd_pose_data
 {
     const pf_m4_hsd_joint *joints;

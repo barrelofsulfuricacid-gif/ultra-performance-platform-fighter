@@ -19,6 +19,8 @@
   },
   "motions": [
     { "submotion_index": 2, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT", "compact_blend": true },
+    { "submotion_index": 3, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT_2" },
+    { "submotion_index": 4, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT_3" },
     { "submotion_index": 7, "c_submotion": "PF_M4_FALCON_SUBMOTION_WALK_SLOW", "compact_blend": true },
     { "submotion_index": 8, "c_submotion": "PF_M4_FALCON_SUBMOTION_WALK_MIDDLE", "compact_blend": true },
     { "submotion_index": 9, "c_submotion": "PF_M4_FALCON_SUBMOTION_WALK_FAST", "compact_blend": true },
@@ -42,6 +44,9 @@
     { "submotion_index": 291, "c_submotion": "PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_STAND_DOWN" },
     { "submotion_index": 205, "c_submotion": "PF_M4_FALCON_SUBMOTION_FURAFURA" }
   ],
+  "wait_animation_table": {
+    "expected_weight_total": 100
+  },
   "joint_point_sets": [
     {
       "id": "ecb",
@@ -63,17 +68,18 @@
     "source_joint_count": 63,
     "runtime_part_count": 63,
     "joint_count": 25,
-    "motion_count": 23,
+    "motion_count": 25,
+    "wait_animation_count": 3,
     "compact_motion_count": 6,
-    "track_count": 1656,
-    "key_count": 13324,
+    "track_count": 1770,
+    "key_count": 16092,
     "capsule_count": 11,
     "rotation_joint_count": 19,
     "translation_joint_count": 6,
     "copy_target_joint_count": 1,
     "joint_point_set_count": 1,
     "pose_branch_count": 1,
-    "data_sha256": "831bd05aad2ff7cb6eff6ca3fd1852e3bc6344a829a493c5a4beff34cae888d5"
+    "data_sha256": "08bb5d58ac69e9112cc5d1a63a9ec91ad06c7c2cb6deb8ebcc1e3b78804d3781"
   },
   "action_hurt_qualification": {
     "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
@@ -135,6 +141,26 @@
         "last_source_frame": 59,
         "expected_samples": 54
       }
+    ]
+  },
+  "wait_lifecycle_qualification": {
+    "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
+    "dolphin_release_artifact_sha256": "87e9ef6d80ed03354a1647d0616016dbc91399aa9e86a69ae5a398edd0a0c2bd",
+    "probe_engine_version": "1.3.1",
+    "decomp_revision": "9509dc04406fb2028bfab01243841ba4787c0fb7",
+    "capture_route_field": "common_hurt_geometry_route",
+    "coordinate_tolerance_q16": 8,
+    "compare_ecb": true,
+    "ecb_joint_point_set_id": "ecb",
+    "captures": [
+      {
+        "id": "wait-lifecycle-control",
+        "sha256": "d97474f2a15912b1c98fba9b7444883c1db4798290702c311b13bcffb4cc7f7b"
+      }
+    ],
+    "cases": [
+      { "source_action": "STANDING", "label": "common_hurt_wait_wait2_hold", "submotion_index": 3, "first_source_frame": 0, "last_source_frame": 74, "expected_samples": 75 },
+      { "source_action": "STANDING", "label": "common_hurt_wait_wait3_hold", "submotion_index": 4, "first_source_frame": 0, "last_source_frame": 69, "expected_samples": 70 }
     ]
   },
   "guard_setoff_pose_qualification": {
@@ -340,6 +366,45 @@
       { "id": "squatrv-wait-blend-4", "trace_frame": 26, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
       { "id": "squatrv-wait-blend-5", "trace_frame": 27, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
       { "id": "squatrv-wait-blend-6", "trace_frame": 28, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" }
+    ]
+  },
+  "wait_lifecycle_stored_oracle": {
+    "symbol_prefix": "pf_m4_falcon_wait_lifecycle_hsd",
+    "capture_sha256": "d97474f2a15912b1c98fba9b7444883c1db4798290702c311b13bcffb4cc7f7b",
+    "coordinate_tolerance_q16": 64,
+    "cases": [
+      { "id": "wait2-entry", "trace_frame": 83, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT_2" },
+      { "id": "wait2-frame-1", "trace_frame": 84, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT_2" },
+      { "id": "wait2-middle", "trace_frame": 113, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT_2" },
+      { "id": "wait2-terminal", "trace_frame": 157, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT_2" },
+      { "id": "wait2-base-blend-1", "trace_frame": 158, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait2-base-blend-2", "trace_frame": 159, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait2-base-blend-3", "trace_frame": 160, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait2-base-blend-4", "trace_frame": 161, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait2-base-blend-5", "trace_frame": 162, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait2-base-blend-6", "trace_frame": 163, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait2-base-restart-blend-1", "trace_frame": 218, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait2-base-restart-blend-2", "trace_frame": 219, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait2-base-restart-blend-3", "trace_frame": 220, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait2-base-restart-blend-4", "trace_frame": 221, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait2-base-restart-blend-5", "trace_frame": 222, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait2-base-restart-blend-6", "trace_frame": 223, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait3-entry", "trace_frame": 326, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT_3" },
+      { "id": "wait3-frame-1", "trace_frame": 327, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT_3" },
+      { "id": "wait3-middle", "trace_frame": 356, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT_3" },
+      { "id": "wait3-terminal", "trace_frame": 395, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT_3" },
+      { "id": "wait3-base-blend-1", "trace_frame": 396, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait3-base-blend-2", "trace_frame": 397, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait3-base-blend-3", "trace_frame": 398, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait3-base-blend-4", "trace_frame": 399, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait3-base-blend-5", "trace_frame": 400, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait3-base-blend-6", "trace_frame": 401, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait3-base-restart-blend-1", "trace_frame": 456, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait3-base-restart-blend-2", "trace_frame": 457, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait3-base-restart-blend-3", "trace_frame": 458, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait3-base-restart-blend-4", "trace_frame": 459, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait3-base-restart-blend-5", "trace_frame": 460, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait3-base-restart-blend-6", "trace_frame": 461, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" }
     ]
   },
   "live_qualification": {

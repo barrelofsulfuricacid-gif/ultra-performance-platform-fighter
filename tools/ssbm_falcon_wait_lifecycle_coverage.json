@@ -1,0 +1,107 @@
+{
+  "schema": 1,
+  "scope": "falcon-wait-idle-lifecycle",
+  "domain": "falcon-wait-idle-lifecycle",
+  "character": "falcon",
+  "oracle": "SSBM GALE01 NTSC-U revision 2",
+  "checkpoint_pack": {
+    "protocol": "rebased-slippi-state-file-control-v1",
+    "expected_rows": 440,
+    "warm_budget_seconds": 4.0,
+    "capture_plan": {
+      "trace_start_label": "common_hurt_wait_wait2_place",
+      "wait_lifecycle_cases": [
+        {
+          "id": "wait2",
+          "source_random_seed": 14037,
+          "source_random_seed_writes": [
+            { "hold_tick": 59, "seed": 14037 },
+            { "hold_tick": 134, "seed": 5 },
+            { "hold_tick": 194, "seed": 5 }
+          ],
+          "expected_uninterrupted_submotions": [3, 2, 2],
+          "expected_uninterrupted_draws": [1, 2, 1],
+          "expected_uninterrupted_rejections": [0, 1, 0],
+          "hold_ticks": 220
+        },
+        {
+          "id": "wait3",
+          "source_random_seed": 18051,
+          "source_random_seed_writes": [
+            { "hold_tick": 59, "seed": 18051 },
+            { "hold_tick": 129, "seed": 5 },
+            { "hold_tick": 189, "seed": 5 }
+          ],
+          "expected_uninterrupted_submotions": [4, 2, 2],
+          "expected_uninterrupted_draws": [1, 1, 1],
+          "expected_uninterrupted_rejections": [0, 0, 0],
+          "hold_ticks": 220
+        }
+      ],
+      "record_actions_by_label": {
+        "common_hurt_wait_wait2_hold": ["STANDING"],
+        "common_hurt_wait_wait3_hold": ["STANDING"]
+      },
+      "command_limits_by_label": {
+        "common_hurt_wait_wait2_hold": 220,
+        "common_hurt_wait_wait3_hold": 220
+      },
+      "always_record_prefixes": [],
+      "command_overrides": []
+    }
+  },
+  "selection": {
+    "paths": [
+      "generated/data/m4_ssbm_falcon_ground_loop_hsd.inc",
+      "generated/data/m4_ssbm_falcon_wait_lifecycle_hsd_oracle.inc",
+      "include/pf/sim.h",
+      "src/checkpoint/m2_replay_fixture.h",
+      "src/sim/sim.c",
+      "src/sim/sim_combat.c",
+      "src/sim/sim_falcon_frame_data.c",
+      "src/sim/sim_falcon_frame_data.h",
+      "src/sim/sim_hsd_pose.c",
+      "src/sim/sim_hsd_pose.h",
+      "src/sim/sim_internal.h",
+      "src/sim/sim_movement.c",
+      "src/sim/sim_snapshot.c",
+      "src/sim/sim_tick.c",
+      "src/verifier/main.c",
+      "tests/sim/test_m4_combat.c",
+      "tools/capture_ssbm_movement.py",
+      "tools/generate_ssbm_dynamic_hurt_oracle.py",
+      "tools/generate_ssbm_dynamic_hurt_pose_include.py",
+      "tools/ssbm_falcon_ground_loop_hurt_import.json",
+      "tools/ssbm_falcon_wait_lifecycle_coverage.json",
+      "tools/ssbm_dat.py",
+      "tools/ssbm_equivalence_manifest.json",
+      "tools/verify_ssbm_hsd_action_hurt_source.py",
+      "tools/verify_ssbm_hsd_transition_source.py",
+      "tools/verify_ssbm_wait_lifecycle_source.py",
+      "tools/verify_ssbm_falcon_wait_lifecycle.sh"
+    ]
+  },
+  "checkpoint_cases": [
+    {
+      "id": "wait2",
+      "start_label": "common_hurt_wait_wait2_place"
+    },
+    {
+      "id": "wait3",
+      "start_label": "common_hurt_wait_wait3_place"
+    }
+  ],
+  "live_qualification": {
+    "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
+    "dolphin_release_artifact_sha256": "87e9ef6d80ed03354a1647d0616016dbc91399aa9e86a69ae5a398edd0a0c2bd",
+    "probe_engine_version": "1.3.1",
+    "decomp_revision": "9509dc04406fb2028bfab01243841ba4787c0fb7",
+    "ftwaitanim_sha256": "6a3041a0de3685b1739cc9f7f32c7e98c28093bb1bf9421da87ae6efb5b80ba0",
+    "random_sha256": "7f9eec8a82a813de18633a7ab17186a76e505f9da35c07a0b9f4e42d2a10d867",
+    "captures": [
+      { "id": "control", "sha256": "d97474f2a15912b1c98fba9b7444883c1db4798290702c311b13bcffb4cc7f7b" },
+      { "id": "repeat", "sha256": "d97474f2a15912b1c98fba9b7444883c1db4798290702c311b13bcffb4cc7f7b", "repeat_of": "control" }
+    ],
+    "semantic_sha256": "afefafe17e8769bc39391d0605d7c392f25ef4d146cf0d868eb895eeee84b570"
+  }
+}

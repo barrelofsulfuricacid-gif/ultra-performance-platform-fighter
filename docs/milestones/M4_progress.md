@@ -5919,3 +5919,51 @@ M5 content scaling remains blocked until M4 combat feel is approved.
 - Base Wait's incoming geometry gap is closed. Process-global `HSD_Randi`
   state and exact Wait2/Wait3 selection ordering remain the next idle-lifecycle
   gap and are not claimed by this slice.
+
+## 2026-08-11 complete Wait idle lifecycle
+
+- A prior-art/source sweep of pinned and current `doldecomp/melee` confirms the
+  character-owned weighted wait table plus shared `HSD_Randi` route. Falcon's
+  extracted DAT supplies Wait/Wait2/Wait3 weights 70/20/10 and blend bytes
+  6/0/0; the shared HSD RNG uses the exact 32-bit `214013`/`2531011` LCG and
+  high-16 bounded selection. A secondary idle that selects itself consumes a
+  retry draw, while base Wait may restart.
+- The checkpoint harness isolates the opponent in crouch, writes the initial
+  source seed on displayed base-Wait frame 59 immediately before selection,
+  and reasserts robust manifest-owned endpoint seeds so unrelated global HSD
+  consumers cannot change the intended observed route.
+  Two 440-row headless/null/unlimited captures are byte-identical at SHA-256
+  `d97474f2a15912b1c98fba9b7444883c1db4798290702c311b13bcffb4cc7f7b`;
+  their address-free semantic SHA-256 is
+  `afefafe17e8769bc39391d0605d7c392f25ef4d146cf0d868eb895eeee84b570`.
+  The source verifier checks 880 live rows plus a separate decomp/production
+  theorem covering 14 uninterrupted draws and two rejection draws, all weights,
+  and exact 60/75/70-frame clocks.
+- Wait2 and Wait3 extend the existing immutable HSD profile to 25 motions,
+  1,770 tracks, and 16,092 keys under decoded-data SHA-256
+  `08bb5d58ac69e9112cc5d1a63a9ec91ad06c7c2cb6deb8ebcc1e3b78804d3781`.
+  All 145 direct source poses / 1,595 capsules plus ECB match Dolphin within
+  one Q16 unit. Thirty-two stored poses cover entry/middle/terminal and every
+  return-to-base/base-restart blend update.
+- Production retains the global RNG in canonical rollback state, stages draws
+  transaction-locally, and commits only a successful tick. RNG behavior
+  version advances to 2 without adding per-player state. The ordinary
+  moving-target blend resolves the evaluated terminal-plus-one source pose;
+  shared replay descriptors cover both idle-to-idle and action-entry blends.
+- A focused `sim.m4_ssbm_falcon_wait_idle_lifecycle` test runs 440 production
+  ticks and 38 stored poses. `tools/verify_ssbm_falcon_wait_lifecycle.sh`
+  provides one at-will fresh-capture/source/generated-data qualification route.
+  The importer skill now records DAT offsets, RNG isolation/injection, rejection
+  semantics, transactional state, and terminal-plus-one blend ownership.
+- The reviewed deterministic replay corpus/final/event SHA-256 values are
+  `469c03272c7ce71f684bad27dd53f55d76a4ace72535152ed2fa5cc451a78315` /
+  `c00595389591d404fd06e60780138a99dfda498a6160c7318b3b6acf713d3081` /
+  `6f0f9376198d1f9507e6502da4eece00110a6ebe7c18233c78303d5b9764743d`.
+- Native Windows MinGW Release passes 27/27 in 6.96 seconds; WSL Release
+  passes 41/41 in 3.23 seconds; focused WSL ASan/UBSan passes combat plus the
+  lifecycle oracle 2/2. The 21-domain / 117-case stored gate plus replay passes
+  in 765.015 ms in WSL, and both standalone M2 kernel/replay verification
+  scripts pass after restoring their shared HSD/fixed-math source closure.
+  The prescribed MSVC gate is unavailable on this host because Visual Studio
+  `vswhere.exe`/MSVC 14.44 is not installed; the local Emscripten SDK is also
+  absent, so CI remains the web compile gate for this commit.

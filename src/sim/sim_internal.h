@@ -677,7 +677,23 @@ void pf_m4_prepare_charge_input(
 
 pf_status pf_sim_validate_config(const pf_sim_config *config);
 int pf_sim_is_valid(const pf_sim *sim);
-uint64_t pf_sim_rng_next(uint64_t *state);
+static inline uint16_t pf_sim_hsd_random_u16(uint64_t *state)
+{
+    const uint32_t next =
+        (uint32_t)*state * UINT32_C(214013) + UINT32_C(2531011);
+
+    *state = (uint64_t)next;
+    return (uint16_t)(next >> UINT32_C(16));
+}
+
+static inline uint32_t pf_sim_hsd_random_bounded(
+    uint64_t *state,
+    uint32_t maximum)
+{
+    return (uint32_t)(
+        (uint64_t)maximum * (uint64_t)pf_sim_hsd_random_u16(state) /
+        UINT64_C(65536));
+}
 pf_status pf_sim_push_event(
     pf_sim_scratch *scratch,
     uint64_t tick,
@@ -749,7 +765,8 @@ pf_status pf_m4_step_player(
     const pf_input_frame *input,
     const pf_input_frame *raw_input,
     uint32_t player_index,
-    int32_t player_nudge_x_q16);
+    int32_t player_nudge_x_q16,
+    uint64_t *rng_state);
 pf_status pf_m4_resolve_combat(
     const pf_m4_content *content,
     const pf_world_state *world,

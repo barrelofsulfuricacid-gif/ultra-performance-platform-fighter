@@ -884,6 +884,36 @@ pf_m4_falcon_reference_hsd_pose_data(void)
     return &pf_m4_falcon_dynamic_hsd_data;
 }
 
+const pf_m4_hsd_wait_animation *
+pf_m4_falcon_reference_wait_animations(uint8_t *out_count)
+{
+    if (out_count != NULL)
+    {
+        *out_count = (uint8_t)(
+            sizeof(pf_m4_falcon_dynamic_hsd_wait_animations) /
+            sizeof(pf_m4_falcon_dynamic_hsd_wait_animations[0]));
+    }
+    return pf_m4_falcon_dynamic_hsd_wait_animations;
+}
+
+const pf_m4_hsd_wait_animation *
+pf_m4_falcon_reference_wait_animation(uint16_t source_submotion)
+{
+    uint8_t count;
+    const pf_m4_hsd_wait_animation *animations =
+        pf_m4_falcon_reference_wait_animations(&count);
+    uint8_t index;
+
+    for (index = UINT8_C(0); index < count; ++index)
+    {
+        if (animations[index].source_submotion == source_submotion)
+        {
+            return &animations[index];
+        }
+    }
+    return NULL;
+}
+
 int pf_m4_falcon_reference_direct_hsd_pose(
     uint8_t action_state,
     uint16_t action_ticks,

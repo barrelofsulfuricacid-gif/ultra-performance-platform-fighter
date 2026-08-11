@@ -311,17 +311,6 @@ pf_status pf_sim_deinit(pf_sim *sim)
     return PF_STATUS_OK;
 }
 
-uint64_t pf_sim_rng_next(uint64_t *state)
-{
-    uint64_t value;
-
-    *state += UINT64_C(0x9E3779B97F4A7C15);
-    value = *state;
-    value = (value ^ (value >> 30U)) * UINT64_C(0xBF58476D1CE4E5B9);
-    value = (value ^ (value >> 27U)) * UINT64_C(0x94D049BB133111EB);
-    return value ^ (value >> 31U);
-}
-
 pf_status pf_sim_reset(pf_sim *sim, uint64_t seed)
 {
     pf_world_state preserved;
@@ -350,7 +339,7 @@ pf_status pf_sim_reset(pf_sim *sim, uint64_t seed)
     sim->world.mode = preserved.mode;
     sim->world.stock_count = preserved.stock_count;
     sim->world.seed = seed;
-    sim->world.rng_state = seed;
+    sim->world.rng_state = (uint64_t)(uint32_t)seed;
 
     for (player_index = UINT32_C(0);
          player_index < (uint32_t)sim->world.player_count;
