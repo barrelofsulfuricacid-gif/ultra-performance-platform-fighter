@@ -24,6 +24,112 @@ typedef struct test_sim_storage
     alignas(TEST_MEMORY_ALIGNMENT) uint8_t scratch[TEST_MEMORY_BYTES];
 } test_sim_storage;
 
+typedef struct qualified_action_ecb_case
+{
+    uint16_t source_submotion;
+    uint16_t frame_count;
+    uint8_t action_state;
+    int8_t source_frame_offset;
+} qualified_action_ecb_case;
+
+static const qualified_action_ecb_case qualified_action_ecb_cases[] = {
+    {UINT16_C(46), UINT16_C(21), (uint8_t)PF_M4_ACTION_GROUND_ATTACK, INT8_C(0)},
+    {UINT16_C(47), UINT16_C(20), (uint8_t)PF_M4_ACTION_JAB_FINAL, INT8_C(-1)},
+    {UINT16_C(48), UINT16_C(12), (uint8_t)PF_M4_ACTION_JAB_THIRD, INT8_C(-1)},
+    {UINT16_C(50), UINT16_C(40), (uint8_t)PF_M4_ACTION_RAPID_JAB_LOOP, INT8_C(-1)},
+    {UINT16_C(51), UINT16_C(9), (uint8_t)PF_M4_ACTION_RAPID_JAB_END, INT8_C(-1)},
+    {UINT16_C(52), UINT16_C(39), (uint8_t)PF_M4_ACTION_DASH_ATTACK, INT8_C(0)},
+    {UINT16_C(53), UINT16_C(29), (uint8_t)PF_M4_ACTION_FORWARD_ATTACK_HIGH, INT8_C(0)},
+    {UINT16_C(54), UINT16_C(29), (uint8_t)PF_M4_ACTION_FORWARD_ATTACK_MID_HIGH, INT8_C(0)},
+    {UINT16_C(55), UINT16_C(29), (uint8_t)PF_M4_ACTION_FORWARD_ATTACK, INT8_C(0)},
+    {UINT16_C(56), UINT16_C(29), (uint8_t)PF_M4_ACTION_FORWARD_ATTACK_MID_LOW, INT8_C(0)},
+    {UINT16_C(57), UINT16_C(29), (uint8_t)PF_M4_ACTION_FORWARD_ATTACK_LOW, INT8_C(0)},
+    {UINT16_C(58), UINT16_C(39), (uint8_t)PF_M4_ACTION_UP_ATTACK, INT8_C(0)},
+    {UINT16_C(59), UINT16_C(35), (uint8_t)PF_M4_ACTION_DOWN_ATTACK, INT8_C(0)},
+    {UINT16_C(60), UINT16_C(64), (uint8_t)PF_M4_ACTION_FORWARD_STRONG_ATTACK_HIGH, INT8_C(0)},
+    {UINT16_C(62), UINT16_C(64), (uint8_t)PF_M4_ACTION_FORWARD_STRONG_ATTACK, INT8_C(0)},
+    {UINT16_C(64), UINT16_C(64), (uint8_t)PF_M4_ACTION_FORWARD_STRONG_ATTACK_LOW, INT8_C(0)},
+    {UINT16_C(66), UINT16_C(54), (uint8_t)PF_M4_ACTION_UP_STRONG_ATTACK, INT8_C(0)},
+    {UINT16_C(67), UINT16_C(49), (uint8_t)PF_M4_ACTION_DOWN_STRONG_ATTACK, INT8_C(0)},
+    {UINT16_C(242), UINT16_C(30), (uint8_t)PF_M4_ACTION_GRAB, INT8_C(-1)},
+    {UINT16_C(243), UINT16_C(40), (uint8_t)PF_M4_ACTION_DASH_GRAB, INT8_C(-1)},
+};
+
+static int run_qualified_action_ecb_cases(uint32_t *out_pose_count)
+{
+    uint32_t pose_count = UINT32_C(0);
+    size_t case_index;
+
+    for (case_index = 0;
+         case_index < sizeof(qualified_action_ecb_cases) /
+                          sizeof(qualified_action_ecb_cases[0]);
+         ++case_index)
+    {
+        const qualified_action_ecb_case *test_case =
+            &qualified_action_ecb_cases[case_index];
+        uint16_t action_ticks;
+
+        for (action_ticks = UINT16_C(0);
+             action_ticks < test_case->frame_count;
+             ++action_ticks)
+        {
+            const int32_t source_frame =
+                (int32_t)action_ticks + INT32_C(1) +
+                test_case->source_frame_offset;
+            pf_m4_falcon_ecb_pose_q16 actual;
+            pf_m4_falcon_ecb_pose_q16 expected;
+
+            if (!pf_m4_falcon_reference_action_hsd_ecb_pose(
+                    test_case->action_state,
+                    action_ticks,
+                    UINT8_C(1),
+                    PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16,
+                    &actual) ||
+                !pf_m4_falcon_reference_hsd_ecb_pose(
+                    test_case->source_submotion,
+                    source_frame * (int32_t)PF_Q16_ONE,
+                    1,
+                    PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16,
+                    &expected) ||
+                memcmp(&actual, &expected, sizeof(actual)) != 0)
+            {
+                (void)fprintf(
+                    stderr,
+                    "m4-hsd-transition=fail operation=qualified-action-ecb"
+                    " case=%zu action=%u action_ticks=%u"
+                    " source_submotion=%u source_frame=%" PRId32 "\n",
+                    case_index,
+                    (unsigned int)test_case->action_state,
+                    (unsigned int)action_ticks,
+                    (unsigned int)test_case->source_submotion,
+                    source_frame);
+                return 0;
+            }
+            ++pose_count;
+        }
+    }
+    if (pf_m4_falcon_reference_action_hsd_ecb_pose(
+            (uint8_t)PF_M4_ACTION_RAPID_JAB_START,
+            UINT16_C(0),
+            UINT8_C(1),
+            PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16,
+            &(pf_m4_falcon_ecb_pose_q16){0}) ||
+        pf_m4_falcon_reference_action_hsd_ecb_pose(
+            (uint8_t)PF_M4_ACTION_AERIAL_ATTACK,
+            UINT16_C(0),
+            UINT8_C(0),
+            PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16,
+            &(pf_m4_falcon_ecb_pose_q16){0}))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-hsd-transition=fail operation=qualified-action-exclusion\n");
+        return 0;
+    }
+    *out_pose_count = pose_count;
+    return 1;
+}
+
 static int32_t absolute_difference_i32(int32_t left, int32_t right)
 {
     const int64_t difference = (int64_t)left - (int64_t)right;
@@ -284,6 +390,7 @@ int main(void)
         pf_m4_falcon_reference_hsd_pose_data();
     pf_m4_hsd_compact_pose current;
     uint32_t case_index;
+    uint32_t qualified_action_pose_count = UINT32_C(0);
     int32_t maximum_rotation_difference = INT32_C(0);
     int32_t maximum_translation_difference = INT32_C(0);
     int32_t production_maximum_rotation_difference = INT32_C(0);
@@ -457,6 +564,10 @@ int main(void)
             dive_throw_relocked.top_y_from_origin_q16);
         return 1;
     }
+    if (!run_qualified_action_ecb_cases(&qualified_action_pose_count))
+    {
+        return 1;
+    }
     (void)memset(&current, 0, sizeof(current));
     for (case_index = UINT32_C(0);
          case_index < PF_M4_HSD_TRANSITION_ORACLE_CASE_COUNT;
@@ -523,6 +634,7 @@ int main(void)
         "m4-hsd-transition=pass cases=%" PRIu32
         " production_cases=%" PRIu32
         " action_ecb_cases=9 action_ecb_tolerance_q16=64"
+        " qualified_action_ecb_cases=%zu qualified_action_ecb_poses=%" PRIu32
         " fall_animation_ecb_cases=3"
         " rotation_max_q15=%" PRId32 " translation_max_q16=%" PRId32
         " production_rotation_max_q15=%" PRId32
@@ -530,6 +642,9 @@ int main(void)
         " semantic_sha256=%s\n",
         PF_M4_HSD_TRANSITION_ORACLE_CASE_COUNT,
         PF_M4_HSD_TRANSITION_PRODUCTION_CASE_COUNT,
+        sizeof(qualified_action_ecb_cases) /
+            sizeof(qualified_action_ecb_cases[0]),
+        qualified_action_pose_count,
         maximum_rotation_difference,
         maximum_translation_difference,
         production_maximum_rotation_difference,

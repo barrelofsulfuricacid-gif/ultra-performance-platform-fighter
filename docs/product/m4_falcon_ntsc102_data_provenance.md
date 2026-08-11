@@ -533,6 +533,23 @@ the A/B comparison covers 2,011/1,149 active fighter/opponent rows and
 pre-places both ports safely, settles them, establishes explicit facing, and
 fully recovers before final placement; this prevents preceding routes from
 leaking airborne state, facing, or velocity.
+
+The ordinary-action pair also supplies a non-duplicated collision-ECB theorem.
+The source evaluator derives six ECB selector joints from the same owner DAT,
+costume model, and parent-closed HSD hierarchy as hurt geometry, then applies
+the decomp `mpColl_LoadECB_JObj` rules. Manifest-owned per-motion offsets map
+the executable's one-based displayed action frame to the HSD request frame.
+Across both captures, Jab 1/2/3, Rapid Jab Loop/End, Dash Attack, all five
+forward tilts, Up/Down Tilt, the three real forward-smash angles, Up/Down
+Smash, and standing/dash grab reproduce 1,676 observations / 1,450 unique
+frames at maximum one-Q16 error. Production uses the imported move's existing
+subaction index plus one generated offset switch; all 725 represented runtime
+frames are covered by the native evaluator test. Rapid Jab Start is excluded
+because its entry blend differs from raw HSD by up to 3,702 Q16 units. The five
+aerials are excluded because their callback and bottom-lock behavior differs by
+29,000-70,000 Q16 units. These exclusions prevent a source-file match from
+being misreported as a runtime callback match.
+
 Looping idle, `Ft_MF_SkipAnim` GuardReflect inheritance, and positive-hitlag
 bone endpoints are forbidden as geometry sources, so every imported KneeBend,
 SpotDodge, RollForward, RollBackward, AirDodge, FallSpecial, and
@@ -1276,13 +1293,14 @@ owner-extracted `PlCa.dat`, `PlCaAJ.dat`, `PlCo.dat`, and active gray-costume
 `PlCaGy.dat`, validates their pinned SHA-256 values, maps Falcon's 63 model
 joints through the complete 63-entry runtime part layout, and closes the 11
 hurt capsules plus six ECB source selectors over one 25-joint ancestor catalog.
-It emits 580 FObj tracks / 5,346 keys for ten motions: the six compact
-Wait/Walk/Dash/Run blend motions plus all four Raptor Boost ground/air
-start/hit motions. Only the original six motions participate in compact
+At the first ground-loop/Raptor checkpoint it emitted 580 FObj tracks / 5,346
+keys for ten motions: the six compact Wait/Walk/Dash/Run blend motions plus all
+four Raptor Boost ground/air start/hit motions. Only the original six motions
+participate in compact
 rollback blend-channel generation, so direct action evaluation adds no
 persistent state. The gray model SHA-256 is
 `dcc34bbb428f978858e95b18e29d4a476b4582d59cdc5daca3814dcaf2eef872`;
-the generated semantic data SHA-256 is
+that checkpoint's generated semantic data SHA-256 was
 `c8a4f062eb8a35d12d3ea2fa0787a76211bcee3d7379a6bd7c51b71d2cdd07ee`.
 The shared runtime evaluator implements the HSD FObj interpolation and Euler
 SRT hierarchy in deterministic Q16.16. In particular, it follows
@@ -1352,8 +1370,12 @@ existing 640-Q16 accumulated-position envelope, with actions and velocity
 channels strict. The authored Falcon Dive and FallSpecial ECB arrays are now
 removed. Their checkpoint include SHA-256 was
 `754a72159e5463752e382dd6a2a8e35657bab601b84c228ade5c540d30272a74`;
-after the shield-break import the current generated include SHA-256 is
-`11a8489bdafe06c8df42ab5c527411a7679fb240913076c9bdae3e28c4f1b238`
+after Wait2/Wait3 and the 20 qualified ordinary-action motions, the current
+profile contains 45 motions, 2,976 tracks, and 32,285 keys under decoded-data
+SHA-256
+`17da37dd9cdb080559407a7b8268bc52a590063bf9c84ef9b34e2de324e78dee`.
+The generated include SHA-256 is
+`798cc73467981d07c23724f011a8c9a0fd626d96d765f762a3c56af9f6c12e8e`
 and the Falcon complete-source digest is
 `280abf47cbc18b5802e1c98048c7830808541766dd6c646d31c34eb0b0d3eb64`.
 

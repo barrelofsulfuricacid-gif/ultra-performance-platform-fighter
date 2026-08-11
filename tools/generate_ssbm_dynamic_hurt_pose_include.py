@@ -181,6 +181,13 @@ def build_payload(
         compact_blend = motion_spec.get("compact_blend", False)
         if not isinstance(compact_blend, bool):
             raise ValueError("motion compact_blend must be boolean")
+        action_frame_offset = motion_spec.get("action_frame_offset")
+        if action_frame_offset is not None and (
+            not isinstance(action_frame_offset, int)
+            or isinstance(action_frame_offset, bool)
+            or action_frame_offset not in (-1, 0)
+        ):
+            raise ValueError("motion action_frame_offset must be -1 or 0")
         submotion = int(motion_spec["submotion_index"])
         tree = decode_figatree(
             fighter_animation_slice(fighter, animation_raw, fighter_root, submotion)
@@ -223,6 +230,7 @@ def build_payload(
                 "track_offset": track_offset,
                 "track_count": len(track_rows) - track_offset,
                 "frame_count": round(tree.frame_count),
+                "action_frame_offset": action_frame_offset,
             }
         )
         if compact_blend:
@@ -465,9 +473,41 @@ def render(manifest: dict[str, Any], payload: dict[str, Any], digest: str) -> st
             f"    {{ (uint16_t){row['submotion']}, UINT16_C({row['track_offset']}), "
             f"UINT16_C({row['track_count']}), UINT16_C({row['frame_count']}) }},"
         )
+    action_clock_rows = [
+        row
+        for row in payload["motions"]
+        if row["action_frame_offset"] is not None
+    ]
     lines.extend(
         [
             "};",
+            "",
+            f"static int {prefix}_action_frame_offset(",
+            "    uint16_t source_submotion,",
+            "    int8_t *out_offset)",
+            "{",
+            "    if (out_offset == NULL)",
+            "    {",
+            "        return 0;",
+            "    }",
+            "    switch (source_submotion)",
+            "    {",
+        ]
+    )
+    for row in action_clock_rows:
+        lines.extend(
+            [
+                f"    case (uint16_t){row['submotion']}:",
+                f"        *out_offset = INT8_C({row['action_frame_offset']});",
+                "        return 1;",
+            ]
+        )
+    lines.extend(
+        [
+            "    default:",
+            "        return 0;",
+            "    }",
+            "}",
             "",
             f"static const pf_m4_hsd_wait_animation {prefix}_wait_animations[] = {{",
         ]

@@ -5967,3 +5967,31 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   The prescribed MSVC gate is unavailable on this host because Visual Studio
   `vswhere.exe`/MSVC 14.44 is not installed; the local Emscripten SDK is also
   absent, so CI remains the web compile gate for this commit.
+
+## 2026-08-11 ordinary-action collision ECB production routing
+
+- Reused the paired 2,974-row ordinary hit/hurt capture rather than adding a
+  duplicate browser probe or Dolphin scenario. A generic qualification key now
+  selects the manifest-owned action subset, and report-only mode remains
+  available for discovering callback/blend exceptions before asserting them.
+- Twenty grounded routes reproduce 1,676 live observations / 1,450 unique
+  frames across both independent captures with maximum one-Q16 coordinate
+  error: Jab 1/2/3, Rapid Jab Loop/End, Dash Attack, five forward tilts,
+  Up/Down Tilt, three real forward-smash angles, Up/Down Smash, and both grabs.
+- Production maps the effective action through the existing imported move and
+  uses its subaction index plus a generated per-motion displayed-frame offset.
+  The shared allocation-free DAT/HSD evaluator remains the only geometry
+  implementation; no runtime parser, float, duplicate action table, or
+  rollback field was introduced.
+- The parent-closed profile now contains 45 motions, 2,976 FObj tracks, and
+  32,285 keys under decoded-data SHA-256
+  `17da37dd9cdb080559407a7b8268bc52a590063bf9c84ef9b34e2de324e78dee`.
+  The focused native HSD gate checks every one of the 725 represented runtime
+  action frames and rejects unqualified actions.
+- Rapid Jab Start remains open because its entry blend differs from raw HSD by
+  up to 3,702 Q16 units. The five aerials remain open because callback and
+  bottom-lock behavior differs by 29,000-70,000 Q16 units. They are explicitly
+  excluded instead of routing known-wrong raw poses.
+- Windows MinGW Release passes 39/39 in 4.94 seconds and WSL Release passes
+  41/41 in 3.22 seconds. The full 21-domain / 117-case stored-plus-replay gate
+  passes in 999.624 ms on Windows and 855.897 ms in WSL.

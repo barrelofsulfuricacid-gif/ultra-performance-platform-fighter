@@ -48,6 +48,16 @@ def load_pinned_source(
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--qualification-key",
+        default="action_ecb_qualification",
+        help="manifest object containing the ECB qualification",
+    )
+    parser.add_argument(
+        "--report-only",
+        action="store_true",
+        help="report coordinate maxima without enforcing the tolerance",
+    )
     parser.add_argument("manifest", type=Path)
     parser.add_argument("fighter_dat", type=Path)
     parser.add_argument("animation_dat", type=Path)
@@ -56,10 +66,28 @@ def main() -> int:
     args = parser.parse_args()
 
     manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
-    qualification = manifest.get("action_ecb_qualification")
+    motion_specs = manifest.get("motions")
+    require(isinstance(motion_specs, list), "manifest has no motion inventory")
+    action_frame_offsets = {
+        int(spec["submotion_index"]): int(spec["action_frame_offset"])
+        for spec in motion_specs
+        if isinstance(spec, dict) and "action_frame_offset" in spec
+    }
+    require(
+        all(offset in (-1, 0) for offset in action_frame_offsets.values()),
+        "action ECB source-frame offsets must be -1 or 0",
+    )
+    qualification = manifest.get(args.qualification_key)
     require(
         isinstance(qualification, dict),
-        "manifest has no action ECB qualification",
+        f"manifest has no {args.qualification_key} ECB qualification",
+    )
+    require_motion_offset = qualification.get(
+        "require_motion_action_frame_offset", False
+    )
+    require(
+        isinstance(require_motion_offset, bool),
+        "require_motion_action_frame_offset must be boolean",
     )
     capture_specs = qualification.get("captures")
     require(
@@ -143,9 +171,21 @@ def main() -> int:
         )
         rows = capture.get("rows")
         require(isinstance(rows, list), f"{spec['id']}: missing capture rows")
-        for case in spec["cases"]:
+        cases = spec.get("cases", qualification.get("cases"))
+        require(
+            isinstance(cases, list) and cases,
+            f"{spec['id']}: action ECB qualification has no cases",
+        )
+        for case in cases:
             action = str(case["source_action"])
             submotion = int(case["submotion_index"])
+            if require_motion_offset:
+                require(
+                    submotion in action_frame_offsets and
+                    "source_frame_offset" not in case,
+                    f"{spec['id']}/{action}: source-frame offset must be "
+                    "owned by the motion inventory",
+                )
             selected = [row for row in rows if row.get("action") == action]
             frames = sorted({float(row["action_frame"]) for row in selected})
             first_frame = int(case["first_frame"])
@@ -202,7 +242,12 @@ def main() -> int:
                     float(case["entry_source_frame"])
                     if is_entry and "entry_source_frame" in case
                     else action_frame
-                    + float(case.get("source_frame_offset", 0))
+                    + float(
+                        case.get(
+                            "source_frame_offset",
+                            action_frame_offsets.get(submotion, 0),
+                        )
+                    )
                 )
                 if is_entry:
                     evaluated_grounded = bool(
@@ -300,25 +345,29 @@ def main() -> int:
                     for point in ("top", "bottom", "right", "left")
                     for axis in (0, 1)
                 )
-                require(
-                    difference <= tolerance,
-                    f"{spec['id']}/{action}: trace={row['trace_frame']} "
-                    f"frame={row['action_frame']} source_frame={evaluated_frame} "
-                    f"Q16 difference={difference} "
-                    f"source={actual} capture={expected}",
-                )
+                if not args.report_only:
+                    require(
+                        difference <= tolerance,
+                        f"{spec['id']}/{action}: trace={row['trace_frame']} "
+                        f"frame={row['action_frame']} source_frame={evaluated_frame} "
+                        f"Q16 difference={difference} "
+                        f"source={actual} capture={expected}",
+                    )
                 case_maximum = max(case_maximum, difference)
             print(
-                "ssbm-hsd-action-ecb-case=pass "
+                "ssbm-hsd-action-ecb-case="
+                f"{'report' if args.report_only else 'pass'} "
                 f"capture={spec['id']} action={action} rows={len(selected)} "
-                f"unique_frames={len(frames)} max_q16={case_maximum}"
+                f"unique_frames={len(frames)} max_q16={case_maximum} "
+                f"within_tolerance={int(case_maximum <= tolerance)}"
             )
             total_rows += len(selected)
             total_unique_frames += len(frames)
             maximum_difference = max(maximum_difference, case_maximum)
 
     print(
-        "ssbm-hsd-action-ecb-source=pass "
+        "ssbm-hsd-action-ecb-source="
+        f"{'report' if args.report_only else 'pass'} "
         f"captures={len(capture_specs)} motions={len(animation_cache)} "
         f"rows={total_rows} unique_frames={total_unique_frames} "
         f"max_q16={maximum_difference}"

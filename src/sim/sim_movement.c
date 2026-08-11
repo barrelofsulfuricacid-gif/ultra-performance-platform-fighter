@@ -2610,6 +2610,15 @@ static int pf_m4_reference_ecb_pose_q16(
         *out_pose = *guard_pose;
         return 1;
     }
+    if (pf_m4_falcon_reference_action_hsd_ecb_pose(
+            action_state,
+            action_ticks,
+            grounded,
+            locked_bottom_y_q16,
+            out_pose))
+    {
+        return 1;
+    }
     if (pf_m4_falcon_reference_hsd_ecb_pose(
             source_submotion,
             action_state == (uint8_t)PF_M4_ACTION_GROUND_IDLE &&

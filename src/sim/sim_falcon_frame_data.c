@@ -878,6 +878,44 @@ pf_m4_falcon_reference_hsd_ecb_pose(
         out_pose);
 }
 
+int pf_m4_falcon_reference_action_hsd_ecb_pose(
+    uint8_t action_state,
+    uint16_t action_ticks,
+    uint8_t grounded,
+    int32_t locked_bottom_y_q16,
+    pf_m4_falcon_ecb_pose_q16 *out_pose)
+{
+    pf_m4_falcon_move_index move_index;
+    const pf_m4_reference_move *move;
+    int8_t frame_offset;
+    int32_t source_frame;
+
+    if (out_pose == NULL ||
+        !pf_m4_falcon_reference_move_for_action(action_state, &move_index))
+    {
+        return 0;
+    }
+    move = pf_m4_falcon_reference_move(move_index);
+    if (move == NULL ||
+        !pf_m4_falcon_dynamic_hsd_action_frame_offset(
+            move->subaction_index, &frame_offset))
+    {
+        return 0;
+    }
+    source_frame = (int32_t)action_ticks + INT32_C(1) + frame_offset;
+    if (source_frame < INT32_C(0) ||
+        source_frame > INT32_MAX / (int32_t)PF_Q16_ONE)
+    {
+        return 0;
+    }
+    return pf_m4_falcon_reference_hsd_ecb_pose(
+        move->subaction_index,
+        source_frame * (int32_t)PF_Q16_ONE,
+        grounded != UINT8_C(0),
+        locked_bottom_y_q16,
+        out_pose);
+}
+
 const pf_m4_hsd_pose_data *
 pf_m4_falcon_reference_hsd_pose_data(void)
 {

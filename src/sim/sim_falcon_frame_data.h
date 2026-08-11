@@ -853,6 +853,13 @@ pf_m4_falcon_reference_hsd_ecb_pose(
     int32_t locked_bottom_y_q16,
     pf_m4_falcon_ecb_pose_q16 *out_pose);
 
+int pf_m4_falcon_reference_action_hsd_ecb_pose(
+    uint8_t action_state,
+    uint16_t action_ticks,
+    uint8_t grounded,
+    int32_t locked_bottom_y_q16,
+    pf_m4_falcon_ecb_pose_q16 *out_pose);
+
 const pf_m4_hsd_pose_data *
 pf_m4_falcon_reference_hsd_pose_data(void);
 

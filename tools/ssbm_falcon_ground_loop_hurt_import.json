@@ -31,6 +31,30 @@
     { "submotion_index": 28, "c_submotion": "PF_M4_FALCON_SUBMOTION_FALL_SPECIAL_BACKWARD" },
     { "submotion_index": 34, "c_submotion": "PF_M4_FALCON_SUBMOTION_SQUAT_REVERSE" },
     { "submotion_index": 40, "c_submotion": "PF_M4_FALCON_SUBMOTION_GUARD_SET_OFF" },
+    { "submotion_index": 46, "c_submotion": "UINT16_C(46)", "action_frame_offset": 0 },
+    { "submotion_index": 47, "c_submotion": "UINT16_C(47)", "action_frame_offset": -1 },
+    { "submotion_index": 48, "c_submotion": "UINT16_C(48)", "action_frame_offset": -1 },
+    { "submotion_index": 50, "c_submotion": "UINT16_C(50)", "action_frame_offset": -1 },
+    { "submotion_index": 51, "c_submotion": "UINT16_C(51)", "action_frame_offset": -1 },
+    { "submotion_index": 52, "c_submotion": "UINT16_C(52)", "action_frame_offset": 0 },
+    { "submotion_index": 53, "c_submotion": "UINT16_C(53)", "action_frame_offset": 0 },
+    { "submotion_index": 54, "c_submotion": "UINT16_C(54)", "action_frame_offset": 0 },
+    { "submotion_index": 55, "c_submotion": "UINT16_C(55)", "action_frame_offset": 0 },
+    { "submotion_index": 56, "c_submotion": "UINT16_C(56)", "action_frame_offset": 0 },
+    { "submotion_index": 57, "c_submotion": "UINT16_C(57)", "action_frame_offset": 0 },
+    { "submotion_index": 58, "c_submotion": "UINT16_C(58)", "action_frame_offset": 0 },
+    { "submotion_index": 59, "c_submotion": "UINT16_C(59)", "action_frame_offset": 0 },
+    { "submotion_index": 60, "c_submotion": "UINT16_C(60)", "action_frame_offset": 0 },
+    { "submotion_index": 62, "c_submotion": "UINT16_C(62)", "action_frame_offset": 0 },
+    { "submotion_index": 64, "c_submotion": "UINT16_C(64)", "action_frame_offset": 0 },
+    { "submotion_index": 66, "c_submotion": "UINT16_C(66)", "action_frame_offset": 0 },
+    { "submotion_index": 67, "c_submotion": "UINT16_C(67)", "action_frame_offset": 0 },
+    { "submotion_index": 205, "c_submotion": "PF_M4_FALCON_SUBMOTION_FURAFURA" },
+    { "submotion_index": 242, "c_submotion": "UINT16_C(242)", "action_frame_offset": -1 },
+    { "submotion_index": 243, "c_submotion": "UINT16_C(243)", "action_frame_offset": -1 },
+    { "submotion_index": 286, "c_submotion": "PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_FLY" },
+    { "submotion_index": 289, "c_submotion": "PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_DOWN_DOWN" },
+    { "submotion_index": 291, "c_submotion": "PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_STAND_DOWN" },
     { "submotion_index": 303, "c_submotion": "PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_START_GROUND" },
     { "submotion_index": 304, "c_submotion": "PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_HIT_GROUND" },
     { "submotion_index": 305, "c_submotion": "PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_START_AIR" },
@@ -38,11 +62,7 @@
     { "submotion_index": 307, "c_submotion": "PF_M4_FALCON_SUBMOTION_FALCON_DIVE_START_GROUND" },
     { "submotion_index": 308, "c_submotion": "PF_M4_FALCON_SUBMOTION_FALCON_DIVE_START_AIR" },
     { "submotion_index": 309, "c_submotion": "PF_M4_FALCON_SUBMOTION_FALCON_DIVE_CATCH" },
-    { "submotion_index": 310, "c_submotion": "PF_M4_FALCON_SUBMOTION_FALCON_DIVE_THROW" },
-    { "submotion_index": 286, "c_submotion": "PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_FLY" },
-    { "submotion_index": 289, "c_submotion": "PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_DOWN_DOWN" },
-    { "submotion_index": 291, "c_submotion": "PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_STAND_DOWN" },
-    { "submotion_index": 205, "c_submotion": "PF_M4_FALCON_SUBMOTION_FURAFURA" }
+    { "submotion_index": 310, "c_submotion": "PF_M4_FALCON_SUBMOTION_FALCON_DIVE_THROW" }
   ],
   "wait_animation_table": {
     "expected_weight_total": 100
@@ -68,18 +88,18 @@
     "source_joint_count": 63,
     "runtime_part_count": 63,
     "joint_count": 25,
-    "motion_count": 25,
+    "motion_count": 45,
     "wait_animation_count": 3,
     "compact_motion_count": 6,
-    "track_count": 1770,
-    "key_count": 16092,
+    "track_count": 2976,
+    "key_count": 32285,
     "capsule_count": 11,
     "rotation_joint_count": 19,
     "translation_joint_count": 6,
     "copy_target_joint_count": 1,
     "joint_point_set_count": 1,
     "pose_branch_count": 1,
-    "data_sha256": "08bb5d58ac69e9112cc5d1a63a9ec91ad06c7c2cb6deb8ebcc1e3b78804d3781"
+    "data_sha256": "17da37dd9cdb080559407a7b8268bc52a590063bf9c84ef9b34e2de324e78dee"
   },
   "action_hurt_qualification": {
     "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
@@ -232,6 +252,39 @@
         "sha256": "db5422a410358c9fba7e8853c2e338d53f925de80b6f944df130497ad9adae6c",
         "repeat_of": "guard-setoff-dense"
       }
+    ]
+  },
+  "ordinary_action_ecb_qualification": {
+    "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
+    "probe_engine_version": "1.3.1",
+    "decomp_revision": "9509dc04406fb2028bfab01243841ba4787c0fb7",
+    "coordinate_tolerance_q16": 8,
+    "require_motion_action_frame_offset": true,
+    "cases": [
+      { "source_action": "NEUTRAL_ATTACK_1", "submotion_index": 46, "first_frame": 1, "last_frame": 21, "grounded": true },
+      { "source_action": "NEUTRAL_ATTACK_2", "submotion_index": 47, "first_frame": 1, "last_frame": 20, "grounded": true },
+      { "source_action": "NEUTRAL_ATTACK_3", "submotion_index": 48, "first_frame": 1, "last_frame": 12, "grounded": true },
+      { "source_action": "LOOPING_ATTACK_MIDDLE", "submotion_index": 50, "first_frame": 1, "last_frame": 40, "grounded": true },
+      { "source_action": "LOOPING_ATTACK_END", "submotion_index": 51, "first_frame": 1, "last_frame": 9, "grounded": true },
+      { "source_action": "DASH_ATTACK", "submotion_index": 52, "first_frame": 1, "last_frame": 39, "grounded": true },
+      { "source_action": "FTILT_HIGH", "submotion_index": 53, "first_frame": 1, "last_frame": 29, "grounded": true },
+      { "source_action": "FTILT_HIGH_MID", "submotion_index": 54, "first_frame": 1, "last_frame": 29, "grounded": true },
+      { "source_action": "FTILT_MID", "submotion_index": 55, "first_frame": 1, "last_frame": 29, "grounded": true },
+      { "source_action": "FTILT_LOW_MID", "submotion_index": 56, "first_frame": 1, "last_frame": 29, "grounded": true },
+      { "source_action": "FTILT_LOW", "submotion_index": 57, "first_frame": 1, "last_frame": 29, "grounded": true },
+      { "source_action": "UPTILT", "submotion_index": 58, "first_frame": 1, "last_frame": 39, "grounded": true },
+      { "source_action": "DOWNTILT", "submotion_index": 59, "first_frame": 1, "last_frame": 35, "grounded": true },
+      { "source_action": "FSMASH_HIGH", "submotion_index": 60, "first_frame": 1, "last_frame": 64, "grounded": true },
+      { "source_action": "FSMASH_MID", "submotion_index": 62, "first_frame": 1, "last_frame": 64, "grounded": true },
+      { "source_action": "FSMASH_LOW", "submotion_index": 64, "first_frame": 1, "last_frame": 64, "grounded": true },
+      { "source_action": "UPSMASH", "submotion_index": 66, "first_frame": 1, "last_frame": 54, "grounded": true },
+      { "source_action": "DOWNSMASH", "submotion_index": 67, "first_frame": 1, "last_frame": 49, "grounded": true },
+      { "source_action": "GRAB", "submotion_index": 242, "first_frame": 1, "last_frame": 30, "grounded": true },
+      { "source_action": "GRAB_RUNNING", "submotion_index": 243, "first_frame": 1, "last_frame": 40, "grounded": true }
+    ],
+    "captures": [
+      { "id": "ordinary-action-control", "sha256": "aeff75c16b2041fbecc6b8ec2322a614e0695f0d3d9088eb44d60aedbdeb7ca0" },
+      { "id": "ordinary-action-repeat", "sha256": "5a797d05fe1dfd30ee1a82b7ede3cac3c003a668d20dcd1d53b824450e19bd55", "repeat_of": "ordinary-action-control" }
     ]
   },
   "action_ecb_qualification": {
