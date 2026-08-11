@@ -73,11 +73,16 @@ model and runtime part layout, retains only the 23 parent-closed joints needed
 by Falcon's 11 hurt capsules, and emits four motions containing 205 FObj tracks
 and 1,198 keys. The character-independent Q16 runtime evaluator samples these
 tracks at the canonical fractional animation cursor; Falcon only binds its
-source submotion IDs and converts the shared capsule result. The companion
+source submotion IDs and converts the shared capsule result. The same source
+import also evaluates compact common-state pose predicates: Falcon's terminal
+ShieldBreakFly HipN matrix component is emitted as one signed Q16 value and one
+boolean, so the runtime selects DownD without retaining a full otherwise-unused
+shield-break motion. The companion
 `m4_ssbm_falcon_ground_loop_hsd_oracle.inc` contains eight test observations,
 not a duplicate production pose table. The live source verifier independently
 compares the DAT evaluator against two manifest-pinned Dolphin captures after
-animation blending completes.
+animation blending completes and checks the shield-break branch against two
+independent natural shield-depletion captures.
 
 `m4_ssbm_falcon_turn_hurt.inc` contains the 11 `Turn` and 22 `TurnRun`
 source poses, including TurnRun frame zero. Its import manifest pins both an

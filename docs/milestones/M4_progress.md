@@ -5518,3 +5518,19 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   the measured warm capture falls from 4.820601 seconds for all seven cases to
   0.160820 seconds for the focused case. The output embeds a one-case projected
   manifest with the full-pack row expectation removed.
+
+## 2026-08-10 Falcon shield-break orientation
+
+- The common decomp does not always select ShieldBreakDownU: its landing route
+  evaluates terminal ShieldBreakFly `HipN->mtx[1][1]` and chooses DownU only
+  when positive. Falcon uses that ordinary predicate, and the pinned DAT pose
+  evaluates to `-3921` Q16, selecting DownD.
+- The generic dynamic-HSD importer now supports compact terminal-pose matrix
+  predicates. It emits only the source component and boolean needed at runtime;
+  Falcon's landing path selects DownD and carries the same orientation into
+  StandD without a duplicated motion evaluator or additional rollback state.
+- Two independent 500-row headless/null/unlimited captures drain a real digital
+  shield and reproduce 42 ShieldBreakFly, 26 ShieldBreakDownD, 30
+  ShieldBreakStandD, and 127 ShieldBreakTeeter observations in exact order. The
+  source verifier recomputes the DAT predicate and validates both raw capture
+  digests, disc identity, oracle artifact, action IDs, sequence, and counts.

@@ -838,6 +838,8 @@ int pf_m4_falcon_reference_dynamic_ground_hurt_capsules(
         out_capsules[PF_M4_HSD_POSE_MAX_CAPSULES],
     uint8_t *out_count);
 
+uint16_t pf_m4_falcon_reference_shield_break_down_submotion(void);
+
 int pf_m4_falcon_reference_move_for_action(
     uint8_t action_state,
     pf_m4_falcon_move_index *out_move_index);

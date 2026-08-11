@@ -1245,7 +1245,7 @@ their pinned SHA-256 values, maps Falcon's 63 model joints through the complete
 63-entry runtime part layout, closes the 11 hurt capsules over their 23 required
 ancestor joints, and emits the original 205 FObj tracks / 1,198 keys for four
 motions. The generated semantic data SHA-256 is
-`ea9603efe949a0d30673ccd119c97034cd08c5b85a0f3a2b066c843bdb49520c`.
+`a4536e8c9b91d5914681c20c5d83bf53823a2f6080e5a5d285e7460eec021965`.
 The shared runtime evaluator implements the HSD FObj interpolation and Euler
 SRT hierarchy in deterministic Q16.16. In particular, it follows
 `HSD_FObjReqAnim` by adding each FObj `startframe` to the requested animation
@@ -1261,6 +1261,29 @@ WalkFast samples, are stored as a separate C oracle with a 64-Q16
 deterministic-runtime bound. The WalkFast trace first enters Walk with a
 sub-dash tilt and then raises the stick above Falcon's fast-gait velocity
 boundary, avoiding an authored state override.
+
+## Falcon shield-break orientation branch
+
+The pinned common-state source selects `ShieldBreakDownU` only when
+`ftCo_80097570` observes `HipN->mtx[1][1] > 0` at the terminal
+`ShieldBreakFly` pose; otherwise it selects `ShieldBreakDownD`. Falcon uses the
+ordinary matrix predicate (`x2226_b0 == 0`). The shared DAT importer evaluates
+submotion 286 at its last FigaTree frame, maps runtime part 4 through the full
+`ftPartsTable`, and obtains `-3921` Q16 for that matrix component. Production
+therefore enters source submotion 289 (`ShieldBreakDownD`) and follows it with
+submotion 291 (`ShieldBreakStandD`) instead of the previous hardcoded DownU
+path.
+
+Two independent 500-row headless/null/unlimited natural shield-depletion
+captures have SHA-256
+`e6f7efe3ed1776ff0317e597102772b3cc8f80cea4ee87be20d6b711707b38a4`
+and
+`120a497bbea0c8b1157d1124cc7cce807af28e2d4bf82d29300955c1902e7e3f`.
+Both reproduce 42 `ShieldBreakFly`, 26 `ShieldBreakDownD`, 30
+`ShieldBreakStandD`, and 127 `ShieldBreakTeeter` observations in that exact
+order. The manifest-bound source verifier recomputes the matrix predicate from
+the four owner-extracted DATs and validates both captures; the runtime stores
+no new branch state and performs only a constant lookup at landing.
 
 ## Repository controls
 

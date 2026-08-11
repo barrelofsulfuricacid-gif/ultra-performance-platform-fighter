@@ -4,16 +4,19 @@
 from __future__ import annotations
 
 import argparse
+from dataclasses import replace
 import hashlib
 import json
 import math
 from pathlib import Path
+import re
 from typing import Any
 
 from hsd_figatree import decode_figatree
 from hsd_joint_pose import (
     JOBJ_CLASSICAL_SCALE,
     SUPPORTED_TRACK_TYPES,
+    evaluate_joint_matrices,
     fighter_animation_slice,
     fighter_model_scale,
     read_fighter_hurt_capsules,
@@ -95,6 +98,19 @@ def build_payload(
         or denominator <= 0
     ):
         raise ValueError("manifest pose conversion is invalid")
+
+    converted_joints = list(joints)
+    root = converted_joints[0]
+    converted_joints[0] = replace(
+        root,
+        rotation=tuple(
+            root.rotation[axis]
+            + float(root_rotation_turns[axis]) * 2.0 * math.pi
+            for axis in range(3)
+        ),
+        scale=(model_scale, model_scale, model_scale),
+    )
+    converted_joint_tuple = tuple(converted_joints)
 
     joint_rows: list[dict[str, Any]] = []
     for compact_index, source_index in enumerate(required):
@@ -186,6 +202,60 @@ def build_payload(
                 "radius": q16(capsule.radius),
             }
         )
+    branch_rows: list[dict[str, Any]] = []
+    raw_branches = manifest.get("pose_branches", [])
+    if not isinstance(raw_branches, list):
+        raise ValueError("manifest pose_branches must be a list")
+    branch_ids: set[str] = set()
+    for branch in raw_branches:
+        if not isinstance(branch, dict):
+            raise ValueError("pose branch must be an object")
+        branch_id = branch.get("id")
+        submotion = branch.get("submotion_index")
+        runtime_part = branch.get("runtime_part_index")
+        matrix_row = branch.get("matrix_row")
+        matrix_column = branch.get("matrix_column")
+        if (
+            not isinstance(branch_id, str)
+            or re.fullmatch(r"[a-z][a-z0-9_]*", branch_id) is None
+            or branch_id in branch_ids
+            or not isinstance(submotion, int)
+            or not isinstance(runtime_part, int)
+            or not 0 <= runtime_part < len(layout.source_joint_by_runtime_part)
+            or matrix_row not in (0, 1, 2)
+            or matrix_column not in (0, 1, 2)
+            or branch.get("sample") != "last_frame"
+        ):
+            raise ValueError("manifest pose branch is invalid")
+        branch_ids.add(branch_id)
+        source_joint = layout.source_joint_by_runtime_part[runtime_part]
+        if not 0 <= source_joint < len(joints):
+            raise ValueError("pose branch runtime part has no source joint")
+        tree = decode_figatree(
+            fighter_animation_slice(
+                fighter, animation_raw, fighter_root, submotion
+            )
+        )
+        if len(tree.nodes) != len(joints) or tree.frame_count < 1.0:
+            raise ValueError("pose branch animation/model data is invalid")
+        frame = tree.frame_count - 1.0
+        component = evaluate_joint_matrices(
+            converted_joint_tuple, tree, frame
+        )[source_joint][matrix_row][matrix_column]
+        component_q16 = q16(component)
+        branch_rows.append(
+            {
+                "id": branch_id,
+                "submotion_index": submotion,
+                "runtime_part_index": runtime_part,
+                "source_joint_index": source_joint,
+                "frame_q16": q16(frame),
+                "matrix_row": matrix_row,
+                "matrix_column": matrix_column,
+                "component_q16": component_q16,
+                "positive": component > 0.0,
+            }
+        )
     return {
         "source_joint_count": len(joints),
         "runtime_part_count": len(layout.source_joint_by_runtime_part),
@@ -198,6 +268,7 @@ def build_payload(
         "tracks": track_rows,
         "keys": key_rows,
         "capsules": capsule_rows,
+        "pose_branches": branch_rows,
     }
 
 
@@ -213,6 +284,7 @@ def validate_expected(manifest: dict[str, Any], payload: dict[str, Any]) -> str:
         "track_count": len(payload["tracks"]),
         "key_count": len(payload["keys"]),
         "capsule_count": len(payload["capsules"]),
+        "pose_branch_count": len(payload["pose_branches"]),
     }
     for name, actual in counts.items():
         if expected.get(name) != actual:
@@ -303,6 +375,17 @@ def render(manifest: dict[str, Any], payload: dict[str, Any], digest: str) -> st
             "",
         ]
     )
+    for row in payload["pose_branches"]:
+        branch_prefix = f"{prefix}_pose_branch_{row['id']}"
+        lines.extend(
+            [
+                f"#define {branch_prefix}_component_q16 \\",
+                f"    {c_i32(row['component_q16'])}",
+                f"#define {branch_prefix} \\",
+                f"    UINT8_C({int(row['positive'])})",
+                "",
+            ]
+        )
     return "\n".join(lines)
 
 
@@ -352,7 +435,8 @@ def main() -> int:
         "ssbm-dynamic-hurt-pose-import=pass "
         f"joints={len(payload['joints'])} motions={len(payload['motions'])} "
         f"tracks={len(payload['tracks'])} keys={len(payload['keys'])} "
-        f"capsules={len(payload['capsules'])} data_sha256={digest}"
+        f"capsules={len(payload['capsules'])} "
+        f"pose_branches={len(payload['pose_branches'])} data_sha256={digest}"
     )
     return 0
 

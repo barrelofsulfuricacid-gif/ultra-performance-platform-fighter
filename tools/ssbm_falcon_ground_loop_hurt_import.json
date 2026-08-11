@@ -23,6 +23,16 @@
     { "submotion_index": 9, "c_submotion": "PF_M4_FALCON_SUBMOTION_WALK_FAST" },
     { "submotion_index": 13, "c_submotion": "PF_M4_FALCON_SUBMOTION_RUN" }
   ],
+  "pose_branches": [
+    {
+      "id": "shield_break_down_up",
+      "submotion_index": 286,
+      "runtime_part_index": 4,
+      "sample": "last_frame",
+      "matrix_row": 1,
+      "matrix_column": 1
+    }
+  ],
   "expected": {
     "source_joint_count": 63,
     "runtime_part_count": 63,
@@ -31,7 +41,8 @@
     "track_count": 205,
     "key_count": 1198,
     "capsule_count": 11,
-    "data_sha256": "ea9603efe949a0d30673ccd119c97034cd08c5b85a0f3a2b066c843bdb49520c"
+    "pose_branch_count": 1,
+    "data_sha256": "a4536e8c9b91d5914681c20c5d83bf53823a2f6080e5a5d285e7460eec021965"
   },
   "stored_oracle": {
     "capture_sha256": "4894c8d3917568e43d3499b71cb3b3ebc361575670aeaad63c8a99bcba106b4e",
@@ -58,6 +69,22 @@
       { "source_action": "WALK_MIDDLE", "submotion_index": 8, "expected_samples": 31 },
       { "source_action": "WALK_FAST", "submotion_index": 9, "expected_samples": 29 },
       { "source_action": "RUNNING", "submotion_index": 13, "expected_samples": 20 }
+    ]
+  },
+  "pose_branch_qualification": {
+    "capture_sha256": "e6f7efe3ed1776ff0317e597102772b3cc8f80cea4ee87be20d6b711707b38a4",
+    "repeat_capture_sha256": "120a497bbea0c8b1157d1124cc7cce807af28e2d4bf82d29300955c1902e7e3f",
+    "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
+    "dolphin_release_artifact_sha256": "87e9ef6d80ed03354a1647d0616016dbc91399aa9e86a69ae5a398edd0a0c2bd",
+    "capture_route_field": "shield_break_orientation_route",
+    "action_family_prefix": "SHIELD_BREAK_",
+    "branch_id": "shield_break_down_up",
+    "expected_positive": false,
+    "expected_sequence": [
+      { "source_action": "SHIELD_BREAK_FLY", "action_value": 205, "expected_samples": 42 },
+      { "source_action": "SHIELD_BREAK_DOWN_D", "action_value": 208, "expected_samples": 26 },
+      { "source_action": "SHIELD_BREAK_STAND_D", "action_value": 210, "expected_samples": 30 },
+      { "source_action": "SHIELD_BREAK_TEETER", "action_value": 211, "expected_samples": 127 }
     ]
   },
   "symbol_prefix": "pf_m4_falcon_ground_loop_hsd"

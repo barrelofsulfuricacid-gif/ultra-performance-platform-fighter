@@ -14756,7 +14756,10 @@ static int advance_shield_break_to_stun(
         {
             saw_down = 1;
             if (out_inspection->players[1].grounded != UINT8_C(1) ||
-                out_inspection->players[1].invulnerable != UINT8_C(1))
+                out_inspection->players[1].invulnerable != UINT8_C(1) ||
+                out_inspection->players[1].source_submotion !=
+                    (uint16_t)
+                        PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_DOWN_DOWN)
             {
                 return fail("shield-break-down");
             }
@@ -14767,7 +14770,10 @@ static int advance_shield_break_to_stun(
             saw_stand = 1;
             if (saw_down == 0 ||
                 out_inspection->players[1].grounded != UINT8_C(1) ||
-                out_inspection->players[1].invulnerable != UINT8_C(1))
+                out_inspection->players[1].invulnerable != UINT8_C(1) ||
+                out_inspection->players[1].source_submotion !=
+                    (uint16_t)
+                        PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_STAND_DOWN)
             {
                 return fail("shield-break-stand");
             }

@@ -80,6 +80,7 @@ def input_trace(
     airborne_landing_only: bool = False,
     push_only: bool = False,
     shield_only: bool = False,
+    shield_break_orientation_only: bool = False,
     shield_geometry_only: bool = False,
     shield_geometry_sweep_only: bool = False,
     shield_hit_only: bool = False,
@@ -1262,6 +1263,17 @@ def input_trace(
                     move_value(move, "iasa"),
                     **inputs,
                 )
+        return trace
+
+    if shield_break_orientation_only:
+        repeat("shield_break_orientation_settle", 60)
+        repeat(
+            "shield_break_orientation_drain",
+            260,
+            left_shoulder=1.0,
+            digital_left=True,
+        )
+        repeat("shield_break_orientation_observe", 180)
         return trace
 
     if shield_only:
@@ -6118,6 +6130,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             airborne_landing_only=args.airborne_landing_only,
             push_only=args.push_only,
             shield_only=args.shield_only,
+            shield_break_orientation_only=args.shield_break_orientation_only,
             shield_geometry_only=args.shield_geometry_only,
             shield_geometry_sweep_only=args.shield_geometry_sweep_only,
             shield_hit_only=args.shield_hit_only,
@@ -7139,6 +7152,9 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             ),
             "damage_hit_route": bool(args.damage_hit_only),
             "defense_state_route": bool(args.defense_state_only),
+            "shield_break_orientation_route": bool(
+                args.shield_break_orientation_only
+            ),
             "aerial_iasa_route": bool(args.aerial_iasa_only),
             "aerial_attack_ecb_route": bool(args.aerial_attack_ecb_only),
             "aerial_attack_landing_route": bool(
@@ -7335,6 +7351,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     mode.add_argument("--airborne-landing-only", action="store_true")
     mode.add_argument("--push-only", action="store_true")
     mode.add_argument("--shield-only", action="store_true")
+    mode.add_argument("--shield-break-orientation-only", action="store_true")
     mode.add_argument("--shield-geometry-only", action="store_true")
     mode.add_argument("--shield-geometry-sweep-only", action="store_true")
     mode.add_argument("--shield-hit-only", action="store_true")

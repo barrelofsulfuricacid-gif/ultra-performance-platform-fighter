@@ -954,6 +954,20 @@ int pf_m4_falcon_reference_dynamic_ground_hurt_capsules(
     return 1;
 }
 
+uint16_t pf_m4_falcon_reference_shield_break_down_submotion(void)
+{
+    _Static_assert(
+        pf_m4_falcon_ground_loop_hsd_pose_branch_shield_break_down_up_component_q16 <
+            INT32_C(0),
+        "Falcon terminal ShieldBreakFly HipN branch must remain DownD");
+    return pf_m4_falcon_ground_loop_hsd_pose_branch_shield_break_down_up !=
+                   UINT8_C(0)
+               ? (uint16_t)
+                     PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_DOWN_UP
+               : (uint16_t)
+                     PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_DOWN_DOWN;
+}
+
 const pf_m4_reference_hurt_capsule *
 pf_m4_falcon_reference_common_hurt_capsules_for_submotion_at_frame(
     uint8_t action_state,

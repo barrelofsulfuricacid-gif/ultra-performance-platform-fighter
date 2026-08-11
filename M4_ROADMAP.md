@@ -30,7 +30,7 @@ separately because a stored pass cannot establish new SSBM truth.
 | Separate knockback velocity and decay | open-air and flat-ground routes qualified | A pinned 64-row late DashAttack route agrees for 15 damage samples on action/frame, grounded/tumble, damage, timers, self velocity, projected knockback, and `xF0_ground_kb_vel` within 0.001 source units. Canonical save/load, replay, Windows, WSL, and sanitizers pass. |
 | Remaining Falcon gaps | not complete | Work through every incomplete row in `docs/product/m4_ssbm_fidelity_audit.md`; do not infer whole-character equivalence from one domain. |
 | Native Battlefield frontend | implemented locally; hands-on gate remains | The SDL target runs the real simulation at fixed 60 Hz, supports 2P Duel and 4P Teams plus 1-8 stocks through the core config contract, renders the complete source-derived 23-line Battlefield catalog and blast-zone inset, and visualizes fighters, crouch, shields, hitboxes, exact 11-capsule source hurt poses, damage, stocks, and actions. Strict MSVC, WSL, smoke, and screenshot QA pass. One real-controller hands-on pass remains. |
-| Character-importer skill | active | The skill records reusable HSD/PlCo import, damage-channel, callback-order, ground-projection, save/load, action-release, physical surface-route, lifecycle, semantic-digest, `StageInfo`/JObj stage-import, per-surface collision routing, previous/current animated-ECB identity, and bounded one-way-platform crossing qualification guidance. |
+| Character-importer skill | active | The skill records reusable HSD/PlCo import, damage-channel, callback-order, ground-projection, save/load, action-release, physical surface-route, lifecycle, semantic-digest, `StageInfo`/JObj stage-import, per-surface collision routing, previous/current animated-ECB identity, bounded one-way-platform crossing qualification, and source-pose matrix-branch guidance. |
 
 ## Implemented and verified: decomp differential and web-startup cleanup
 
@@ -87,8 +87,11 @@ Remaining work is evidence/model work rather than a known code-only fix:
   (`+0x894`) and `frame_speed_mul` (`+0x89C`). A fresh seven-checkpoint,
   423-row capture proves the decomp callback order and exposes fractional
   Walk/Run clocks for the implementation comparator.
-- [ ] Import shield-break DownU/DownD selection; it depends on the terminal
-  HipN matrix.
+- [x] Import shield-break DownU/DownD selection from the terminal ShieldBreakFly
+  HipN matrix. Falcon's source component is `-3921` in Q16, so production enters
+  DownD then StandD. Two independent 500-row natural shield-depletion captures
+  reproduce `ShieldBreakFly -> DownD -> StandD -> Teeter` with exact action
+  counts and IDs.
 - [ ] Represent dynamic rebirth targets/companion coordination, full stage and
   item-kind behavior, aerial item/tether callbacks, and tournament entry/rule
   choreography before claiming those wider SSBM domains.

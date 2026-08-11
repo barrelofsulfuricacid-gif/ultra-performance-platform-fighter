@@ -4713,13 +4713,8 @@ static void pf_m4_land_from_air(
         *grounded = UINT8_C(1);
         *action_state =
             (uint8_t)PF_M4_ACTION_SHIELD_BREAK_DOWN;
-        /* ftCo_80098E3C selects DownU/DownD from the terminal launch
-         * animation's HipN matrix. The compact simulation does not retain
-         * that bone transform yet, so preserve the source lifecycle with
-         * the canonical DownU branch until pose-derived orientation is
-         * imported instead of retaining the unrelated fly submotion. */
         *source_submotion =
-            (uint16_t)PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_DOWN_UP;
+            pf_m4_falcon_reference_shield_break_down_submotion();
         *support = surface;
         *air_jumps_remaining = fighter->air_jump_count;
         *short_hop_latched = UINT8_C(0);

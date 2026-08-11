@@ -14,6 +14,7 @@ from typing import Any
 from hsd_figatree import decode_figatree
 from hsd_joint_pose import (
     evaluate_hurt_capsules,
+    evaluate_joint_matrices,
     fighter_animation_slice,
     fighter_model_scale,
     read_fighter_hurt_capsules,
@@ -39,6 +40,7 @@ def load_qualified_capture(
     manifest: dict[str, Any],
     qualification: dict[str, Any],
     capture_name: str,
+    required_route: str | None = None,
 ) -> tuple[str, list[dict[str, Any]]]:
     capture_raw = path.read_bytes()
     capture_digest = sha256(capture_raw)
@@ -61,6 +63,11 @@ def load_qualified_capture(
         == qualification.get("dolphin_release_artifact_sha256"),
         f"{capture_name}: Dolphin oracle artifact mismatch",
     )
+    if required_route is not None:
+        require(
+            capture.get(required_route) is True,
+            f"{capture_name}: wrong capture route",
+        )
     rows = capture.get("rows")
     require(isinstance(rows, list), f"{capture_name}: live capture rows are missing")
     return capture_digest, rows
@@ -112,6 +119,19 @@ def main() -> int:
         "--repeat-capture",
         type=Path,
         help="independent live capture declared by repeat_capture_sha256",
+    )
+    parser.add_argument(
+        "--pose-branch-capture",
+        type=Path,
+        help="live capture declared by pose_branch_qualification.capture_sha256",
+    )
+    parser.add_argument(
+        "--pose-branch-repeat-capture",
+        type=Path,
+        help=(
+            "independent live capture declared by "
+            "pose_branch_qualification.repeat_capture_sha256"
+        ),
     )
     parser.add_argument(
         "--tolerance-q16",
@@ -321,6 +341,164 @@ def main() -> int:
         f"max_q16={maximum_difference} "
         f"capture_sha256={','.join(capture_digests)}"
     )
+
+    branch_qualification = manifest.get("pose_branch_qualification")
+    require(
+        (branch_qualification is None)
+        == (args.pose_branch_capture is None),
+        "pose branch qualification and capture path must be declared together",
+    )
+    if branch_qualification is not None:
+        require(
+            isinstance(branch_qualification, dict),
+            "pose branch qualification must be an object",
+        )
+        branch_repeat_digest = branch_qualification.get(
+            "repeat_capture_sha256"
+        )
+        branch_capture_route = branch_qualification.get(
+            "capture_route_field"
+        )
+        branch_action_prefix = branch_qualification.get(
+            "action_family_prefix"
+        )
+        require(
+            (branch_repeat_digest is None)
+            == (args.pose_branch_repeat_capture is None),
+            "pose branch repeat capture path and digest must be declared together",
+        )
+        require(
+            isinstance(branch_capture_route, str)
+            and branch_capture_route
+            and isinstance(branch_action_prefix, str)
+            and branch_action_prefix,
+            "pose branch qualification routing metadata is invalid",
+        )
+        branch_capture_specs = [
+            (
+                "control",
+                *load_qualified_capture(
+                    args.pose_branch_capture,
+                    branch_qualification.get("capture_sha256"),
+                    manifest,
+                    branch_qualification,
+                    "pose-branch-control",
+                    branch_capture_route,
+                ),
+            )
+        ]
+        if args.pose_branch_repeat_capture is not None:
+            branch_capture_specs.append(
+                (
+                    "repeat",
+                    *load_qualified_capture(
+                        args.pose_branch_repeat_capture,
+                        branch_repeat_digest,
+                        manifest,
+                        branch_qualification,
+                        "pose-branch-repeat",
+                        branch_capture_route,
+                    ),
+                )
+            )
+
+        branch_id = branch_qualification.get("branch_id")
+        branches = manifest.get("pose_branches")
+        require(isinstance(branches, list), "manifest pose branches are missing")
+        matching = [
+            branch for branch in branches
+            if isinstance(branch, dict) and branch.get("id") == branch_id
+        ]
+        require(len(matching) == 1, "qualified pose branch is not unique")
+        branch = matching[0]
+        require(
+            branch.get("sample") == "last_frame",
+            "qualified pose branch must sample the last frame",
+        )
+        runtime_part = branch.get("runtime_part_index")
+        matrix_row = branch.get("matrix_row")
+        matrix_column = branch.get("matrix_column")
+        require(
+            isinstance(runtime_part, int)
+            and 0 <= runtime_part < len(layout.source_joint_by_runtime_part)
+            and matrix_row in (0, 1, 2)
+            and matrix_column in (0, 1, 2),
+            "qualified pose branch indices are invalid",
+        )
+        branch_animation = decode_figatree(
+            fighter_animation_slice(
+                fighter_archive,
+                animation_raw,
+                fighter_root,
+                int(branch["submotion_index"]),
+            )
+        )
+        require(
+            len(branch_animation.nodes) == len(source_joints)
+            and branch_animation.frame_count >= 1.0,
+            "qualified pose branch animation is invalid",
+        )
+        source_joint = layout.source_joint_by_runtime_part[runtime_part]
+        component = evaluate_joint_matrices(
+            source_joints,
+            branch_animation,
+            branch_animation.frame_count - 1.0,
+        )[source_joint][matrix_row][matrix_column]
+        component_q16 = round(component * 65536.0)
+        expected_positive = branch_qualification.get("expected_positive")
+        require(
+            isinstance(expected_positive, bool)
+            and (component > 0.0) == expected_positive,
+            f"pose branch source result differs: component_q16={component_q16}",
+        )
+
+        expected_sequence = branch_qualification.get("expected_sequence")
+        require(
+            isinstance(expected_sequence, list) and expected_sequence,
+            "pose branch qualification sequence is missing",
+        )
+        branch_capture_digests: list[str] = []
+        for capture_name, capture_digest, rows in branch_capture_specs:
+            branch_capture_digests.append(capture_digest)
+            observed_sequence: list[str] = []
+            previous_action: object = None
+            for row in rows:
+                action = row.get("action")
+                if action != previous_action and isinstance(action, str):
+                    if action.startswith(branch_action_prefix):
+                        observed_sequence.append(action)
+                previous_action = action
+            declared_actions = [
+                str(entry["source_action"])
+                for entry in expected_sequence
+            ]
+            require(
+                observed_sequence == declared_actions,
+                f"pose-branch-{capture_name}: sequence mismatch: "
+                f"{observed_sequence}",
+            )
+            for entry in expected_sequence:
+                action = str(entry["source_action"])
+                selected = [row for row in rows if row.get("action") == action]
+                require(
+                    len(selected) == int(entry["expected_samples"]),
+                    f"pose-branch-{capture_name}/{action}: expected "
+                    f"{entry['expected_samples']} rows, got {len(selected)}",
+                )
+                require(
+                    all(
+                        row.get("action_value") == int(entry["action_value"])
+                        for row in selected
+                    ),
+                    f"pose-branch-{capture_name}/{action}: action value mismatch",
+                )
+        print(
+            "ssbm-pose-branch-source=pass "
+            f"branch={branch_id} component_q16={component_q16} "
+            f"positive={int(component > 0.0)} "
+            f"captures={len(branch_capture_specs)} "
+            f"capture_sha256={','.join(branch_capture_digests)}"
+        )
     return 0
 
 
