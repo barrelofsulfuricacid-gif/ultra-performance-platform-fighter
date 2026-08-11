@@ -1902,6 +1902,16 @@ static int pf_m4_reference_ecb_pose_q16(
             pose->damage_fly_side_y_from_origin_q16[frame_index];
         return 1;
     }
+    if (action_state == (uint8_t)PF_M4_ACTION_SHIELD_BREAK)
+    {
+        frame_index = pf_m4_clamped_pose_index(
+            action_ticks > UINT16_C(0)
+                ? (uint16_t)(action_ticks - UINT16_C(1))
+                : UINT16_C(0),
+            PF_M4_FALCON_SHIELD_BREAK_FLY_ECB_FRAME_COUNT);
+        *out_pose = pose->shield_break_fly[frame_index];
+        return 1;
+    }
     if (action_state == (uint8_t)PF_M4_ACTION_CEILING_BOUNCE)
     {
         frame_index = pf_m4_clamped_pose_index(
@@ -4708,7 +4718,9 @@ static void pf_m4_land_from_air(
     {
         *position_y = surface_y_q16 - fighter->half_height_q16;
         *velocity_x = INT32_C(0);
-        *velocity_y = INT32_C(0);
+        /* ftCommon_8007D7FC transfers the horizontal component to gr_vel but
+         * leaves self_vel.y observable on ShieldBreakDown frame 1. The first
+         * grounded physics callback clears it on the following frame. */
         *action_ticks = UINT16_C(0);
         *grounded = UINT8_C(1);
         *action_state =
@@ -6381,7 +6393,6 @@ pf_status pf_m4_step_player(
     int dropped_platform_this_tick = 0;
     int ledge_motion_handled = 0;
     int released_ledge_this_tick = 0;
-    int shield_reset_this_tick = 0;
     int initial_dash_entered_this_tick = 0;
     int resumed_hitlag_motion_this_tick = 0;
     int revival_drop_this_tick = 0;
@@ -9009,6 +9020,10 @@ pf_status pf_m4_step_player(
         action_state ==
             (uint8_t)PF_M4_ACTION_SHIELD_BREAK_DOWN)
     {
+        if (action_ticks == UINT16_C(0))
+        {
+            velocity_y = INT32_C(0);
+        }
         velocity_x = pf_m4_approach(
             velocity_x,
             INT32_C(0),
@@ -9052,7 +9067,6 @@ pf_status pf_m4_step_player(
             scratch->mash_stick_y_direction[player_index] = INT8_C(0);
             scratch->shield_health_q16[player_index] =
                 fighter->shield_reset_health_q16;
-            shield_reset_this_tick = 1;
         }
     }
     else if (!ledge_motion_handled &&
@@ -9076,7 +9090,6 @@ pf_status pf_m4_step_player(
             fighter->traction_q16);
         scratch->shield_health_q16[player_index] =
             fighter->shield_reset_health_q16;
-        shield_reset_this_tick = 1;
         elapsed_ticks +=
             mash_pulses *
             (uint32_t)
@@ -9087,7 +9100,6 @@ pf_status pf_m4_step_player(
             action_ticks = UINT16_C(0);
             scratch->shield_health_q16[player_index] =
                 fighter->shield_reset_health_q16;
-            shield_reset_this_tick = 1;
         }
         else
         {
@@ -12504,9 +12516,7 @@ pf_status pf_m4_step_player(
     }
 
     if (action_state != (uint8_t)PF_M4_ACTION_SHIELD &&
-        action_state != (uint8_t)PF_M4_ACTION_SHIELD_STUN &&
-        !pf_m4_action_is_shield_break(action_state) &&
-        shield_reset_this_tick == 0)
+        action_state != (uint8_t)PF_M4_ACTION_SHIELD_STUN)
     {
         scratch->shield_health_q16[player_index] =
             pf_m4_shield_health_add(

@@ -98,6 +98,11 @@ _Static_assert(
         PF_M4_FALCON_AERIAL_ATTACK_ECB_FRAME_COUNT,
     "Falcon aerial-attack ECB spans must cover the packed table");
 _Static_assert(
+    sizeof(pf_m4_falcon_collision_pose_data.shield_break_fly) /
+            sizeof(pf_m4_falcon_collision_pose_data.shield_break_fly[0]) ==
+        (size_t)PF_M4_FALCON_SHIELD_BREAK_FLY_ECB_FRAME_COUNT,
+    "Falcon ShieldBreakFly ECB table must be complete");
+_Static_assert(
     sizeof(pf_m4_falcon_collision_pose_data.ceiling_bounce) /
             sizeof(pf_m4_falcon_collision_pose_data.ceiling_bounce[0]) ==
         (size_t)PF_M4_FALCON_CEILING_BOUNCE_ECB_FRAME_COUNT,

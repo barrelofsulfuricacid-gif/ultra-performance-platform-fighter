@@ -1,0 +1,101 @@
+{
+  "schema": 1,
+  "scope": "falcon-common-shield-break",
+  "domain": "falcon-common-shield-break",
+  "character": "falcon",
+  "oracle": "SSBM GALE01 NTSC-U revision 2",
+  "live_source": {
+    "capture_sha256": "1109c92ec4c57bff5658d25c432383ccc4c63e2caed73a1575ae3ef80c7c802d",
+    "repeat_capture_sha256": "3daad9d8a51ad0c6eb106fd14c25b6814a543dd359ca07f9a1e6b84e47ac4e74",
+    "semantic_trace_sha256": "67d6f164a7d94e7171f1b8d4ace195676fac180faf1c9f044351ebeaab3f4ae5",
+    "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
+    "release_artifact_sha256": "87e9ef6d80ed03354a1647d0616016dbc91399aa9e86a69ae5a398edd0a0c2bd",
+    "launcher_sha256": "f06b96ddf780417e7c23ad2001879207ff8ea4bd88cc52195b297eae37661455",
+    "decomp_revision": "9509dc04406fb2028bfab01243841ba4787c0fb7",
+    "dolphin_version": "3.5.1",
+    "libmelee_version": "0.47.2",
+    "memory_engine_version": "1.3.1",
+    "row_count": 500
+  },
+  "comparison_policy": {
+    "position_tolerance_q16": 640,
+    "velocity_tolerance_q16": 32,
+    "shield_health_tolerance_q16": 64,
+    "strict_fields": [
+      "action_state",
+      "action_ticks",
+      "grounded",
+      "facing",
+      "shield_strength",
+      "invulnerable"
+    ]
+  },
+  "checkpoint_pack": {
+    "capture_plan": {
+      "stage": "FINAL_DESTINATION",
+      "route": "shield-break-orientation",
+      "memory_probe": "surface",
+      "fast_forward": false
+    }
+  },
+  "selection": {
+    "paths": [
+      "generated/data/m4_falcon_ntsc102_frame_data.inc",
+      "generated/data/m4_ssbm_falcon_shield_break_oracle.json",
+      "src/sim/sim_combat.c",
+      "src/sim/sim_falcon_frame_data.c",
+      "src/sim/sim_falcon_frame_data.h",
+      "src/sim/sim_movement.c",
+      "src/tools/m4_movement_trace.c",
+      "tests/sim/test_m4_combat.c",
+      "tools/capture_ssbm_movement.py",
+      "tools/compare_ssbm_movement.py",
+      "tools/data/ssbm_falcon_shield_break_ecb.json",
+      "tools/generate_ssbm_stored_trace_oracle.py",
+      "tools/import_ssbm_falcon_frame_data.py",
+      "tools/ssbm_falcon_ground_loop_hurt_import.json",
+      "tools/ssbm_falcon_shield_break_coverage.json",
+      "tools/verify_ssbm_dynamic_hurt_pose_source.py",
+      "tools/verify_ssbm_falcon_shield_break.py"
+    ]
+  },
+  "stored_oracle": {
+    "kind": "native-csv-trace-v1",
+    "source_trace_sha256": "67d6f164a7d94e7171f1b8d4ace195676fac180faf1c9f044351ebeaab3f4ae5",
+    "production_trace_sha256": "d2080f96a9477f5615f777d657e70cab9181015f7058b4257dba8c9c52334cc4",
+    "serialized_fields": [
+      "action_state",
+      "action_ticks",
+      "facing",
+      "grounded",
+      "position_y_q16_from_origin",
+      "velocity_y_q16",
+      "shield_health_q16",
+      "shield_strength",
+      "invulnerable"
+    ],
+    "cases": [
+      {
+        "id": "passive_depletion",
+        "runner_arguments": [],
+        "sample_count": 500,
+        "field_exclusions": {
+          "action_ticks": [[0, 275], [373, 500]]
+        },
+        "input_phases": [
+          { "ticks": 60, "lanes": [{}, {}] },
+          { "ticks": 260, "lanes": [{ "left_trigger": 65535 }, {}] },
+          { "ticks": 180, "lanes": [{}, {}] }
+        ]
+      }
+    ],
+    "generator": {
+      "script": "tools/generate_ssbm_stored_trace_oracle.py",
+      "output": "generated/data/m4_ssbm_falcon_shield_break_oracle.json"
+    },
+    "runner": {
+      "executable": "pf_m4_movement_trace",
+      "arguments": []
+    }
+  }
+}

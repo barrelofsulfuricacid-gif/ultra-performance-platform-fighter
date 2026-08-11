@@ -5534,3 +5534,33 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   ShieldBreakStandD, and 127 ShieldBreakTeeter observations in exact order. The
   source verifier recomputes the DAT predicate and validates both raw capture
   digests, disc identity, oracle artifact, action IDs, sequence, and counts.
+
+## 2026-08-10 Falcon shield-break physics and canonical state
+
+- Two fresh surface-probed controls expose all 42 ShieldBreakFly ECB frames.
+  Production now evaluates those immutable per-frame left/right/top/bottom
+  offsets during floor collision; this moves contact from the former frame 40
+  to the source frame 42 without changing Falcon's already-correct launch
+  gravity or terminal velocity.
+- The decomp air-to-ground helper preserves `self_vel.y` on the first
+  ShieldBreakDown row, and grounded physics clears it on the next row.
+  Production retains that one-update transition value instead of hiding the
+  mismatch in the velocity tolerance.
+- Shield health now preserves the source entry distinction: passive depletion
+  enters Fly at zero, while `Fighter_ProcessHit` assigns the common reset value
+  before a hit-induced break. Global regeneration runs through Fly/Down/Stand;
+  Furafura resets to 30 before the same 0.07-per-tick global update.
+- Both independent 500-row captures pass identical-input native comparison for
+  action, clocks, facing, grounded state, invulnerability, vertical position,
+  velocity, shield health, and strength. The bounded Q16 envelopes remain 640
+  for accumulated position, 32 for velocity, and 64 for shield health.
+- `falcon-common-shield-break` is the twenty-first generic stored domain. Its
+  500-sample production trace is pinned as one compressed-input case, raising
+  the registry to 117 cases without adding a Falcon-specific runner.
+- The content-bearing seeded verifier soak changes deterministically because
+  shield health is part of canonical state. Windows and WSL independently
+  reproduce eight matches, 3,002 ticks, and digest `c8077bbd7756c531`; the
+  separate replay corpus remains unchanged.
+- The Emscripten client rebuild and real headless-Chrome smoke pass. The smoke
+  script's replay assertion is synchronized with the already-enforced current
+  canonical final SHA-256 `f04b6ff2ff80bf5dba91788ce69e0b62f0e394047a60928812943a0613c55637`.

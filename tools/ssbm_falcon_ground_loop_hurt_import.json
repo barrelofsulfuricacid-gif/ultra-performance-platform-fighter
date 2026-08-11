@@ -72,14 +72,23 @@
     ]
   },
   "pose_branch_qualification": {
-    "capture_sha256": "e6f7efe3ed1776ff0317e597102772b3cc8f80cea4ee87be20d6b711707b38a4",
-    "repeat_capture_sha256": "120a497bbea0c8b1157d1124cc7cce807af28e2d4bf82d29300955c1902e7e3f",
+    "capture_sha256": "1109c92ec4c57bff5658d25c432383ccc4c63e2caed73a1575ae3ef80c7c802d",
+    "repeat_capture_sha256": "3daad9d8a51ad0c6eb106fd14c25b6814a543dd359ca07f9a1e6b84e47ac4e74",
     "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
     "dolphin_release_artifact_sha256": "87e9ef6d80ed03354a1647d0616016dbc91399aa9e86a69ae5a398edd0a0c2bd",
     "capture_route_field": "shield_break_orientation_route",
     "action_family_prefix": "SHIELD_BREAK_",
     "branch_id": "shield_break_down_up",
     "expected_positive": false,
+    "ecb_profile": {
+      "sha256": "23a7318c5a366b21e005a65d36931b5db2011b655e00918a7c1640cc290fe97d",
+      "semantic_sha256": "821813a089870f744dedf1323593ae590ebecb358c30c38a58a463881ae8a264",
+      "track_id": "shield-break-fly",
+      "source_action": "SHIELD_BREAK_FLY",
+      "label_substring": "shield_break_orientation_drain",
+      "first_displayed_frame": 1,
+      "last_displayed_frame": 42
+    },
     "expected_sequence": [
       { "source_action": "SHIELD_BREAK_FLY", "action_value": 205, "expected_samples": 42 },
       { "source_action": "SHIELD_BREAK_DOWN_D", "action_value": 208, "expected_samples": 26 },

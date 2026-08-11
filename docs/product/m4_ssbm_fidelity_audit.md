@@ -288,8 +288,18 @@ It also removed a parallel authored LandingFallSpecial displacement: the
 source submotion has no TransN, and the decomp callback applies only ground
 friction and post-friction ground movement.
 
+A separate repeated 500-frame passive shield-depletion route now qualifies
+Falcon's ShieldBreakFly/DownD/StandD/Furafura sequence. The full 42-frame
+animated ECB controls the source contact update; the comparison also includes
+the one-row retained landing vertical velocity, global non-shield regeneration,
+Furafura's per-update reset, facing, grounded state, invulnerability, and shield
+strength. Action/state fields are strict; position, velocity, and shield health
+retain only their documented Q16 conversion envelopes. Hit-induced shield
+break is separately protected in the native combat suite because its source
+entry health is the common reset value rather than passive depletion's zero.
+
 Across the main and isolated corpora, the current aggregate executable-oracle
-evidence is 18,697 qualified frames. The memory-probed routes qualify the
+evidence is 19,197 qualified frames. The memory-probed routes qualify the
 sampled Falcon shield tilt and geometry surface; they do not qualify broader
 uncaptured pressure/time/spacing routes or the other partial/divergent systems
 listed above.

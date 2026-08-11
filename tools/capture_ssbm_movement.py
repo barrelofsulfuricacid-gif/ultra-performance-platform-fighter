@@ -7444,13 +7444,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         or args.aerial_attack_ecb_only
         or args.aerial_attack_landing_only
         or args.airborne_landing_only
+        or args.shield_break_orientation_only
         or (args.damage_hit_only and args.oracle_checkpoint_pack)
     ):
         parser.error(
             "--memory-probe-surface requires --platform-only, "
             "--platform-drop-ecb-only, --airborne-ecb-only, "
             "--aerial-attack-ecb-only, --aerial-attack-landing-only, "
-            "--airborne-landing-only, or a "
+            "--airborne-landing-only, --shield-break-orientation-only, or a "
             "--damage-hit-only checkpoint pack"
         )
     if args.memory_probe_hitbox and not (
@@ -7478,11 +7479,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "damage-hit checkpoint pack"
         )
     if args.memory_probe_collision and not (
-        args.shield_collision_only or args.moving_hit_sweep_only
+        args.shield_collision_only
+        or args.moving_hit_sweep_only
+        or args.shield_break_orientation_only
     ):
         parser.error(
             "--memory-probe-collision requires --shield-collision-only or "
-            "--moving-hit-sweep-only"
+            "--moving-hit-sweep-only or --shield-break-orientation-only"
         )
     if (
         sum(

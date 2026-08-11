@@ -1285,6 +1285,21 @@ order. The manifest-bound source verifier recomputes the matrix predicate from
 the four owner-extracted DATs and validates both captures; the runtime stores
 no new branch state and performs only a constant lookup at landing.
 
+The subsequent surface-probed controls have normalized SHA-256
+`1109c92ec4c57bff5658d25c432383ccc4c63e2caed73a1575ae3ef80c7c802d`
+and
+`3daad9d8a51ad0c6eb106fd14c25b6814a543dd359ca07f9a1e6b84e47ac4e74`.
+Their route semantic SHA-256 is
+`67d6f164a7d94e7171f1b8d4ace195676fac180faf1c9f044351ebeaab3f4ae5`;
+the persistent worker's unrelated looping Wait phase is normalized out. The
+source DAT-derived 42-frame ECB profile has file / semantic SHA-256
+`23a7318c5a366b21e005a65d36931b5db2011b655e00918a7c1640cc290fe97d` /
+`821813a089870f744dedf1323593ae590ebecb358c30c38a58a463881ae8a264`.
+Production consumes the complete four-point ECB at collision time, retains the
+source one-row landing vertical velocity, and reproduces the source shield
+health lifecycle. The generic stored route pins production SHA-256
+`d2080f96a9477f5615f777d657e70cab9181015f7058b4257dba8c9c52334cc4`.
+
 ## Repository controls
 
 - Only the converted constants and independently written C state machine ship.

@@ -636,6 +636,18 @@ if(BUILD_TESTING)
                        "ssbm-stored-equivalence=pass domains=falcon-down-special generated_checks=1 stored_cases=6 replay=pass")
 
         add_test(
+            NAME sim.m4_ssbm_falcon_shield_break
+            COMMAND
+                "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_ssbm_stored_equivalence.py"
+                --build-dir "${CMAKE_BINARY_DIR}"
+                --domain falcon-common-shield-break)
+        set_tests_properties(
+            sim.m4_ssbm_falcon_shield_break
+            PROPERTIES PASS_REGULAR_EXPRESSION
+                       "ssbm-stored-equivalence=pass domains=falcon-common-shield-break generated_checks=1 stored_cases=1 replay=pass")
+
+        add_test(
             NAME sim.m4_ssbm_falcon_ground_animation_clock
             COMMAND
                 "${Python3_EXECUTABLE}"

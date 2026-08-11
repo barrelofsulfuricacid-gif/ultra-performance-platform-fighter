@@ -1499,6 +1499,11 @@ static pf_status pf_m4_apply_shield_hit(
      * despite the canonical unsigned, saturating health representation. */
     if (shield_broken != 0)
     {
+        /* Fighter_ProcessHit assigns ftCommonData.x280 before entering
+         * ShieldBreakFly. Passive Guard depletion instead enters the same
+         * action from zero health; keep the two source paths distinct. */
+        scratch->shield_health_q16[target_index] =
+            fighter->shield_reset_health_q16;
         scratch->shield_stun_ticks[target_index] = UINT16_C(0);
         scratch->hitlag_resume_action[target_index] =
             (uint8_t)PF_M4_ACTION_SHIELD_BREAK;

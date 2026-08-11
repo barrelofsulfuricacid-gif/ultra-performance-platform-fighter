@@ -28,6 +28,12 @@ SSBM_TO_M4_ACTION = {
     "SHIELD": 18,
     "SHIELD_RELEASE": 20,
     "SHIELD_STUN": 19,
+    "SHIELD_BREAK_FLY": 21,
+    "SHIELD_BREAK_DOWN_U": 46,
+    "SHIELD_BREAK_DOWN_D": 46,
+    "SHIELD_BREAK_STAND_U": 47,
+    "SHIELD_BREAK_STAND_D": 47,
+    "SHIELD_BREAK_TEETER": 48,
     "NEUTRAL_ATTACK_1": 12,
     "NEUTRAL_ATTACK_2": 58,
     "DASH_ATTACK": 57,
@@ -312,6 +318,7 @@ def expected_action_ticks(action: str, action_frame: float) -> int | None:
         "SWORD_DANCE_2_HIGH",
         "SWORD_DANCE_2_MID",
         "SWORD_DANCE_3_HIGH",
+        "SHIELD_BREAK_FLY",
     }:
         return frame
     if action in {"NAIR", "FAIR", "BAIR", "UAIR", "DAIR"}:
@@ -319,6 +326,13 @@ def expected_action_ticks(action: str, action_frame: float) -> int | None:
     if action == "TURNING_RUN":
         return frame + 1
     if action in {"KNEE_BEND", "AIRDODGE", "LANDING"}:
+        return frame - 1
+    if action in {
+        "SHIELD_BREAK_DOWN_U",
+        "SHIELD_BREAK_DOWN_D",
+        "SHIELD_BREAK_STAND_U",
+        "SHIELD_BREAK_STAND_D",
+    }:
         return frame - 1
     if action in {
         "JUMPING_FORWARD",
@@ -510,6 +524,14 @@ def main() -> int:
         type=int,
         default=32,
         help="allowed float-to-fixed velocity quantization difference",
+    )
+    parser.add_argument(
+        "--shield-health-tolerance-q16",
+        type=int,
+        help=(
+            "fixed shield-health conversion envelope; defaults to the "
+            "legacy accumulated-float bound"
+        ),
     )
     parser.add_argument(
         "--native-output",
@@ -1473,7 +1495,11 @@ def main() -> int:
             previous_oracle["shield_health"]
         ):
             shield_numeric_ticks += 1
-        shield_health_tolerance_q16 = max(64, shield_numeric_ticks * 2)
+        shield_health_tolerance_q16 = (
+            max(64, shield_numeric_ticks * 2)
+            if args.shield_health_tolerance_q16 is None
+            else args.shield_health_tolerance_q16
+        )
         if (
             abs(actual_shield_health - expected_shield_health)
             > shield_health_tolerance_q16

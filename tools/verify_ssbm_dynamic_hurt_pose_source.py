@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from hsd_figatree import decode_figatree
+from extract_ssbm_ecb_pose_tracks import extract_track
 from hsd_joint_pose import (
     evaluate_hurt_capsules,
     evaluate_joint_matrices,
@@ -23,6 +24,10 @@ from hsd_joint_pose import (
 )
 from ssbm_collision import canonical_hurt_pose_q16
 from ssbm_dat import read_hsd_archive
+from ssbm_ecb_pose import (
+    canonical_sha256 as ecb_canonical_sha256,
+    semantic_payload as ecb_semantic_payload,
+)
 
 
 def require(condition: bool, message: str) -> None:
@@ -132,6 +137,11 @@ def main() -> int:
             "independent live capture declared by "
             "pose_branch_qualification.repeat_capture_sha256"
         ),
+    )
+    parser.add_argument(
+        "--pose-branch-ecb-profile",
+        type=Path,
+        help="ECB profile declared by pose_branch_qualification.ecb_profile",
     )
     parser.add_argument(
         "--tolerance-q16",
@@ -457,6 +467,16 @@ def main() -> int:
             isinstance(expected_sequence, list) and expected_sequence,
             "pose branch qualification sequence is missing",
         )
+        ecb_profile_spec = branch_qualification.get("ecb_profile")
+        require(
+            (ecb_profile_spec is None)
+            == (args.pose_branch_ecb_profile is None),
+            "pose branch ECB profile and path must be declared together",
+        )
+        require(
+            ecb_profile_spec is None or isinstance(ecb_profile_spec, dict),
+            "pose branch ECB profile declaration is invalid",
+        )
         branch_capture_digests: list[str] = []
         for capture_name, capture_digest, rows in branch_capture_specs:
             branch_capture_digests.append(capture_digest)
@@ -492,11 +512,53 @@ def main() -> int:
                     ),
                     f"pose-branch-{capture_name}/{action}: action value mismatch",
                 )
+        ecb_semantic_digest = "none"
+        if ecb_profile_spec is not None:
+            track_arguments = (
+                str(ecb_profile_spec["track_id"]),
+                str(ecb_profile_spec["source_action"]),
+                str(ecb_profile_spec["label_substring"]),
+                int(ecb_profile_spec["first_displayed_frame"]),
+                int(ecb_profile_spec["last_displayed_frame"]),
+            )
+            extracted_tracks = [
+                extract_track(rows, *track_arguments)
+                for _, _, rows in branch_capture_specs
+            ]
+            require(
+                all(track == extracted_tracks[0] for track in extracted_tracks[1:]),
+                "pose branch ECB repeat semantics disagree",
+            )
+            ecb_semantic_digest = ecb_canonical_sha256(
+                ecb_semantic_payload([extracted_tracks[0]])
+            )
+            require(
+                ecb_semantic_digest
+                == ecb_profile_spec.get("semantic_sha256"),
+                "pose branch ECB semantic digest differs",
+            )
+            profile_raw = args.pose_branch_ecb_profile.read_bytes()
+            require(
+                sha256(profile_raw) == ecb_profile_spec.get("sha256"),
+                "pose branch ECB profile digest differs",
+            )
+            profile = json.loads(profile_raw)
+            require(
+                profile.get("schema") == 1
+                and profile.get("scope")
+                == "ssbm-action-owned-ecb-pose-tracks"
+                and profile.get("capture_sha256")
+                == branch_capture_digests[0]
+                and profile.get("semantic_sha256") == ecb_semantic_digest
+                and profile.get("tracks") == [extracted_tracks[0]],
+                "pose branch ECB profile differs from live source",
+            )
         print(
             "ssbm-pose-branch-source=pass "
             f"branch={branch_id} component_q16={component_q16} "
             f"positive={int(component > 0.0)} "
             f"captures={len(branch_capture_specs)} "
+            f"ecb_semantic_sha256={ecb_semantic_digest} "
             f"capture_sha256={','.join(branch_capture_digests)}"
         )
     return 0

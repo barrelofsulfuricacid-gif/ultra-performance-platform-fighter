@@ -14614,7 +14614,7 @@ static int advance_shield_break_to_stun(
         out_inspection->players[1].action_state !=
             (uint8_t)PF_M4_ACTION_HITLAG ||
         out_inspection->players[1].shield_health_q16 !=
-            UINT32_C(0) ||
+            content->fighter.shield_reset_health_q16 ||
         out_inspection->players[1].powershield != UINT8_C(0) ||
         test_last_result.event_count != UINT8_C(2) ||
         test_last_result.events[0].type !=
@@ -14696,7 +14696,7 @@ static int advance_shield_break_to_stun(
                     out_inspection->players[1].damage_q16 !=
                         UINT32_C(0) ||
                     out_inspection->players[1].shield_health_q16 !=
-                        UINT32_C(0) ||
+                        content->fighter.shield_reset_health_q16 ||
                     out_inspection->players[1].action_state ==
                         (uint8_t)PF_M4_ACTION_HITLAG ||
                     out_inspection->players[1].invulnerable !=
@@ -14724,10 +14724,7 @@ static int advance_shield_break_to_stun(
             return fail("shield-break-sequence-step");
         }
         if (out_inspection->players[1].shield_health_q16 !=
-            (out_inspection->players[1].action_state ==
-                     (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN
-                 ? content->fighter.shield_reset_health_q16
-                 : UINT32_C(0)))
+            content->fighter.shield_reset_health_q16)
         {
             (void)fprintf(
                 stderr,
@@ -27706,8 +27703,8 @@ static int run_falcon_reference_table_test(void)
         standing_hurt_capsules[0].height != UINT8_C(1) ||
         standing_hurt_capsules[0].grabbable != UINT8_C(1) ||
         complete_source_sha256 == NULL ||
-        complete_source_sha256[0] != UINT8_C(0xc5) ||
-        complete_source_sha256[31] != UINT8_C(0xd8) ||
+        complete_source_sha256[0] != UINT8_C(0x34) ||
+        complete_source_sha256[31] != UINT8_C(0xf3) ||
         common_attribute_bits == NULL ||
         common_attribute_count != UINT16_C(97) ||
         common_attribute_bits[0] != UINT32_C(0x3e19999a) ||
@@ -27789,6 +27786,14 @@ static int run_falcon_reference_table_test(void)
             INT32_C(25930) ||
         collision_pose->aerial_attack_bottom_y_from_origin_q16[194] !=
             INT32_C(41004) ||
+        collision_pose->shield_break_fly[0].bottom_y_from_origin_q16 !=
+            INT32_C(0) ||
+        collision_pose->shield_break_fly[39].bottom_y_from_origin_q16 !=
+            INT32_C(50542) ||
+        collision_pose->shield_break_fly[41].bottom_y_from_origin_q16 !=
+            INT32_C(59303) ||
+        collision_pose->shield_break_fly[41].right_x_from_origin_q16 !=
+            INT32_C(31725) ||
         jump_forward_first_ecb == NULL ||
         jump_forward_first_ecb->top_y_from_origin_q16 != INT32_C(203229) ||
         jump_forward_first_ecb->bottom_y_from_origin_q16 != INT32_C(0) ||

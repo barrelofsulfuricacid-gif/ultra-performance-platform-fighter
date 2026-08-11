@@ -125,6 +125,12 @@ samples, exact route inputs, qualified columns, and the sparse hitlag/wall
 field masks to hash-pinned Final Destination and Hyrule captures. It adds no
 second runner and contains no Falcon Kick implementation logic.
 
+`m4_ssbm_falcon_shield_break_oracle.json` uses the same generic native-CSV path
+for one 500-sample passive-depletion route. Its manifest binds the exact
+digital-trigger phases and production columns to two live-qualified controls.
+The production frame-data include separately owns Falcon's 42 immutable
+ShieldBreakFly ECB poses; this oracle stores inputs, masks, and digests only.
+
 `m4_ssbm_ntsc102_hyrule_collision.inc` is the immutable production stage
 catalog generated from the reviewed Hyrule MapCollData subset. Its authored
 JSON preserves source joint-local vertices and transform provenance; the
