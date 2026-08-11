@@ -5661,3 +5661,27 @@ M5 content scaling remains blocked until M4 combat feel is approved.
 - The Emscripten client rebuild and real headless-Chrome smoke pass. The smoke
   script's replay assertion is synchronized with the already-enforced current
   canonical final SHA-256 `f04b6ff2ff80bf5dba91788ce69e0b62f0e394047a60928812943a0613c55637`.
+
+## 2026-08-11 fractional ground-loop ECB source ownership
+
+- The required prior-art sweep compared pinned and current Melee decomp
+  animation/collision code, current HSDLib, the repository's HSD evaluator,
+  and existing live captures. No upstream implementation supplies the missing
+  deterministic fixed-point retained-channel/blend state.
+- The surface probe now reads the six source-authoritative ECB JObjs plus their
+  parent-closed 25-joint local SRT/world-matrix closure directly from Melee's
+  `CollData.ecb_source` and `Fighter.parts`. Four parallel checkpoint workers
+  capture all 143 WalkSlow/Middle/Fast/Run rows in 7.48 seconds warm; a focused
+  WalkMiddle run takes 4.66 seconds including Dolphin launch/menu setup.
+- Raw joint comparison rejects the earlier generic evaluator hypothesis. Four
+  ECB joints and every ancestor through joints 24 and 46 agree with the DAT
+  evaluator, but leaf joints 25 and 47 retain local translations not authored
+  by Walk/Run. Those motions animate leaf rotation only; HSD preserves the
+  preceding action's translation rather than resetting missing channels to the
+  bind pose. This retained state also explains the two false sides of the
+  strict 10-unit symmetry branch.
+- Production routing remains disabled until one compact persistent-channel
+  abstraction models missing-channel ownership, six-frame local-SRT blending,
+  and nested gait transitions for both hurt and ECB consumers. The importer
+  skill now records this gotcha so later characters do not mistake a
+  post-blend residual for frame-data error or procedural bone dynamics.

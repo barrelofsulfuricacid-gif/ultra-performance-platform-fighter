@@ -4851,6 +4851,36 @@ def read_fighter_hurt_capsules(
     return hurtboxes
 
 
+def read_jobj_world_translation(
+    memory_engine: object, jobj: int
+) -> list[float]:
+    """Read the translation column of one live HSD_JObj world matrix."""
+
+    if not 0x80000000 <= jobj < 0x81800000:
+        raise RuntimeError(f"invalid HSD_JObj MEM1 pointer: 0x{jobj:08x}")
+    snapshot = BigEndianSnapshot.read(memory_engine, jobj, 0x74)
+    return [
+        snapshot.f32(jobj + 0x50),
+        snapshot.f32(jobj + 0x60),
+        snapshot.f32(jobj + 0x70),
+    ]
+
+
+def read_jobj_pose(memory_engine: object, jobj: int) -> dict[str, object]:
+    """Read one live HSD_JObj's local SRT and evaluated world matrix."""
+
+    if not 0x80000000 <= jobj < 0x81800000:
+        raise RuntimeError(f"invalid HSD_JObj MEM1 pointer: 0x{jobj:08x}")
+    snapshot = BigEndianSnapshot.read(memory_engine, jobj, 0x74)
+    return {
+        "flags": snapshot.u32(jobj + 0x14),
+        "rotation": snapshot.f32_vector(jobj + 0x1C, 4),
+        "scale": snapshot.f32_vector(jobj + 0x2C, 3),
+        "translation": snapshot.f32_vector(jobj + 0x38, 3),
+        "world_matrix": snapshot.f32_vector(jobj + 0x44, 12),
+    }
+
+
 def read_hurtbox_memory_probe(memory_engine: object) -> dict[str, object]:
     """Read one fighter's collision-authoritative hurt-capsule pose."""
 
@@ -5015,6 +5045,16 @@ def read_surface_collision_memory_probe(
         }
 
     ecb = fighter + 0x794
+    ecb_source_kind = snapshot.u32(fighter + 0x7F4)
+    ecb_source_joints = [
+        snapshot.u32(fighter + 0x7FC + 4 * index) for index in range(6)
+    ]
+    ecb_source_closure_indices = (
+        0, 1, 2, 3, 4, 6, 7, 8, 12, 13, 14, 18, 19,
+        21, 22, 23, 24, 25, 38, 39, 42, 44, 45, 46, 47,
+    )
+    parts = snapshot.u32(fighter + 0x5E8)
+    parts_snapshot = BigEndianSnapshot.read(memory_engine, parts, 0x3F0)
     return {
         "fighter_address": fighter,
         "fighter_animation_frame": snapshot.f32(fighter + 0x894),
@@ -5034,6 +5074,38 @@ def read_surface_collision_memory_probe(
                 ("right", 0x10),
                 ("left", 0x18),
             )
+        },
+        "ecb_source": {
+            "kind": ecb_source_kind,
+            "joints": [
+                {
+                    "address": jobj,
+                    "world_translation": read_jobj_world_translation(
+                        memory_engine, jobj
+                    ),
+                }
+                for jobj in ecb_source_joints
+            ]
+            if ecb_source_kind == 1
+            else [],
+            "joint_closure": [
+                {
+                    "source_index": index,
+                    "address": (
+                        jobj := parts_snapshot.u32(parts + 0x10 * index)
+                    ),
+                    "fighter_bone_flags": parts_snapshot.u16(
+                        parts + 0x10 * index + 0x08
+                    ),
+                    "pose": read_jobj_pose(memory_engine, jobj),
+                }
+                for index in ecb_source_closure_indices
+            ]
+            if ecb_source_kind == 1
+            else [],
+            "side_y_offset": snapshot.f32(fighter + 0x814),
+            "minimum_height": snapshot.f32(fighter + 0x818),
+            "minimum_width": snapshot.f32(fighter + 0x81C),
         },
         "input": {
             "held": snapshot.u32(fighter + 0x65C),
@@ -7212,6 +7284,12 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                         "fighter_animation_id": "fighter+0x14",
                         "fighter_animation_blend_frames": "fighter+0x8a4",
                         "fighter_animation_blend_progress": "fighter+0x8a8",
+                        "fighter_parts": "fighter+0x5e8",
+                        "ecb_source": "fighter+0x7f4",
+                        "ecb_source_joints": "fighter+0x7fc..0x810",
+                        "ecb_source_joint_srt_and_matrix": (
+                            "HSD_JObj+0x14..0x73"
+                        ),
                         "environment_flags": "fighter+0x824",
                         "contact": "fighter+0x830",
                         "floor": "fighter+0x83c",
