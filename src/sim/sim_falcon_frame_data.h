@@ -15,6 +15,8 @@
 #define PF_M4_FALCON_SUBMOTION_DAMAGE_FLY_HIGH UINT16_C(177)
 #define PF_M4_FALCON_SUBMOTION_DAMAGE_FLY_NEUTRAL UINT16_C(178)
 #define PF_M4_FALCON_SUBMOTION_DAMAGE_FLY_LOW UINT16_C(179)
+#define PF_M4_FALCON_SUBMOTION_DAMAGE_FLY_TOP UINT16_C(180)
+#define PF_M4_FALCON_SUBMOTION_DAMAGE_FLY_ROLL UINT16_C(181)
 #define PF_M4_FALCON_SCRIPT_EVENT_COUNT UINT16_C(2056)
 #define PF_M4_FALCON_SCRIPT_BYTE_COUNT UINT16_C(16516)
 #define PF_M4_FALCON_TRANSLATION_SAMPLE_COUNT UINT16_C(2536)
@@ -981,6 +983,26 @@ int pf_m4_falcon_reference_hsd_hurt_capsules_from_local_pose(
     pf_m4_reference_hurt_capsule
         out_capsules[PF_M4_HSD_POSE_MAX_CAPSULES],
     uint8_t *out_count);
+
+int pf_m4_falcon_reference_damage_hsd_hurt_capsules(
+    uint16_t source_submotion,
+    int32_t source_animation_frame_q16,
+    int8_t facing,
+    int32_t total_velocity_x_q16,
+    int32_t total_velocity_y_q16,
+    pf_m4_reference_hurt_capsule
+        out_capsules[PF_M4_HSD_POSE_MAX_CAPSULES],
+    uint8_t *out_count);
+
+int pf_m4_falcon_reference_damage_hsd_ecb_pose(
+    uint16_t source_submotion,
+    int32_t source_animation_frame_q16,
+    int8_t facing,
+    int32_t total_velocity_x_q16,
+    int32_t total_velocity_y_q16,
+    int grounded,
+    int32_t locked_bottom_y_q16,
+    pf_m4_falcon_ecb_pose_q16 *out_pose);
 
 int pf_m4_falcon_reference_retained_hsd_pose(
     uint8_t action_state,

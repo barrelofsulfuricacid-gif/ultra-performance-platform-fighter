@@ -3,6 +3,7 @@
 #include "sim_falcon_frame_data.h"
 #include "sim_melee.h"
 #include "sim_ssbm_common_data.h"
+#include "sim_ssbm_damage.h"
 
 #include <limits.h>
 #include <stdint.h>
@@ -2348,6 +2349,9 @@ static const pf_m4_reference_hurt_capsule *pf_m4_reference_hurt_pose(
     uint16_t source_submotion,
     int32_t source_animation_frame_q16,
     uint16_t action_ticks,
+    int8_t facing,
+    int32_t total_velocity_x_q16,
+    int32_t total_velocity_y_q16,
     const pf_m4_hsd_local_pose *ground_loop_pose,
     const pf_m4_hsd_compact_pose *ground_loop_compact,
     int32_t ground_loop_progress_q16,
@@ -2423,6 +2427,22 @@ static const pf_m4_reference_hurt_capsule *pf_m4_reference_hurt_pose(
             return dynamic_capsules;
         }
         return pf_m4_falcon_reference_standing_hurt_capsules(out_count);
+    }
+    if (dynamic_capsules != NULL &&
+        source_submotion >=
+            (uint16_t)PF_M4_FALCON_SUBMOTION_DAMAGE_HIGH_1 &&
+        source_submotion <=
+            (uint16_t)PF_M4_FALCON_SUBMOTION_DAMAGE_FLY_ROLL &&
+        pf_m4_falcon_reference_damage_hsd_hurt_capsules(
+            source_submotion,
+            source_animation_frame_q16,
+            facing,
+            total_velocity_x_q16,
+            total_velocity_y_q16,
+            dynamic_capsules,
+            out_count))
+    {
+        return dynamic_capsules;
     }
     if (dynamic_capsules != NULL &&
         pf_m4_falcon_reference_retained_hsd_hurt_capsules(
@@ -2519,6 +2539,8 @@ uint8_t pf_m4_reference_world_hurt_capsules(
     uint16_t source_submotion,
     int32_t source_animation_frame_q16,
     uint16_t action_ticks,
+    int32_t total_velocity_x_q16,
+    int32_t total_velocity_y_q16,
     const pf_m4_hsd_local_pose *ground_loop_pose,
     pf_m4_hurt_capsule_inspection
         out_capsules[PF_M4_INSPECTION_HURT_CAPSULE_CAPACITY])
@@ -2542,6 +2564,9 @@ uint8_t pf_m4_reference_world_hurt_capsules(
         source_submotion,
         source_animation_frame_q16,
         action_ticks,
+        facing,
+        total_velocity_x_q16,
+        total_velocity_y_q16,
         ground_loop_pose,
         NULL,
         INT32_C(0),
@@ -2635,6 +2660,13 @@ static int pf_m4_hitbox_overlaps_player(
             scratch->source_submotion[target_index],
             scratch->source_animation_frame_q16[target_index],
             scratch->action_ticks[target_index],
+            scratch->facing[target_index],
+            pf_m4_total_velocity_q16(
+                scratch->velocity_x_q16[target_index],
+                scratch->knockback_velocity_x_q16[target_index]),
+            pf_m4_total_velocity_q16(
+                scratch->velocity_y_q16[target_index],
+                scratch->knockback_velocity_y_q16[target_index]),
             NULL,
             scratch->ground_blend_progress_q16[target_index] > INT32_C(0)
                 ? &scratch->ground_blend_pose[target_index]
@@ -2872,6 +2904,13 @@ static int pf_m4_hit_sphere_overlaps_player_with_height(
             scratch->source_submotion[target_index],
             scratch->source_animation_frame_q16[target_index],
             scratch->action_ticks[target_index],
+            scratch->facing[target_index],
+            pf_m4_total_velocity_q16(
+                scratch->velocity_x_q16[target_index],
+                scratch->knockback_velocity_x_q16[target_index]),
+            pf_m4_total_velocity_q16(
+                scratch->velocity_y_q16[target_index],
+                scratch->knockback_velocity_y_q16[target_index]),
             NULL,
             scratch->ground_blend_progress_q16[target_index] > INT32_C(0)
                 ? &scratch->ground_blend_pose[target_index]
@@ -2970,6 +3009,13 @@ static int pf_m4_grab_sphere_overlaps_player(
             scratch->source_submotion[target_index],
             scratch->source_animation_frame_q16[target_index],
             scratch->action_ticks[target_index],
+            scratch->facing[target_index],
+            pf_m4_total_velocity_q16(
+                scratch->velocity_x_q16[target_index],
+                scratch->knockback_velocity_x_q16[target_index]),
+            pf_m4_total_velocity_q16(
+                scratch->velocity_y_q16[target_index],
+                scratch->knockback_velocity_y_q16[target_index]),
             NULL,
             scratch->ground_blend_progress_q16[target_index] > INT32_C(0)
                 ? &scratch->ground_blend_pose[target_index]
@@ -3546,6 +3592,7 @@ static pf_status pf_m4_apply_hit_reaction(
     const pf_m4_content *content,
     const pf_world_state *world,
     pf_sim_scratch *scratch,
+    uint64_t *rng_state,
     uint8_t source_player,
     uint32_t target_index,
     uint32_t damage_q16,
@@ -3782,13 +3829,35 @@ static pf_status pf_m4_apply_hit_reaction(
     if (content->fighter.reference_frame_data_enabled != UINT8_C(0) &&
         armored == 0 && reset == 0)
     {
+        pf_m4_ssbm_damage_motion_kind damage_motion;
         uint16_t damage_submotion;
 
-        if (!pf_m4_falcon_reference_damage_submotion(
-                damage_source_grounded,
+        if (pf_m4_ssbm_select_damage_motion(
+                (uint8_t)launch_grounded,
                 damage_level,
-                hurtbox_height,
-                &damage_submotion))
+                scratch->damage_q16[target_index],
+                launch_velocity_x_q16,
+                launch_velocity_y_q16,
+                rng_state,
+                &damage_motion) != PF_STATUS_OK)
+        {
+            return PF_STATUS_DETERMINISTIC_FAULT;
+        }
+        if (damage_motion == PF_M4_SSBM_DAMAGE_MOTION_FLY_TOP)
+        {
+            damage_submotion =
+                (uint16_t)PF_M4_FALCON_SUBMOTION_DAMAGE_FLY_TOP;
+        }
+        else if (damage_motion == PF_M4_SSBM_DAMAGE_MOTION_FLY_ROLL)
+        {
+            damage_submotion =
+                (uint16_t)PF_M4_FALCON_SUBMOTION_DAMAGE_FLY_ROLL;
+        }
+        else if (!pf_m4_falcon_reference_damage_submotion(
+                     damage_source_grounded,
+                     damage_level,
+                     hurtbox_height,
+                     &damage_submotion))
         {
             return PF_STATUS_DETERMINISTIC_FAULT;
         }
@@ -3870,6 +3939,7 @@ static pf_status pf_m4_resolve_falcon_dive_capture(
     const pf_m4_content *content,
     const pf_world_state *world,
     pf_sim_scratch *scratch,
+    uint64_t *rng_state,
     uint32_t holder_index,
     uint32_t target_index,
     int *out_handled)
@@ -4027,6 +4097,7 @@ static pf_status pf_m4_resolve_falcon_dive_capture(
                 content,
                 world,
                 scratch,
+                rng_state,
                 (uint8_t)holder_index,
                 target_index,
                 damage_q16,
@@ -4164,7 +4235,8 @@ static pf_status pf_m4_resolve_throw_capture_hit(
 static pf_status pf_m4_resolve_grabs(
     const pf_m4_content *content,
     const pf_world_state *world,
-    pf_sim_scratch *scratch)
+    pf_sim_scratch *scratch,
+    uint64_t *rng_state)
 {
     uint32_t holder_index;
     uint32_t attacker_index;
@@ -4206,6 +4278,7 @@ static pf_status pf_m4_resolve_grabs(
                 content,
                 world,
                 scratch,
+                rng_state,
                 holder_index,
                 target_index,
                 &falcon_dive_capture) != PF_STATUS_OK)
@@ -4470,6 +4543,7 @@ static pf_status pf_m4_resolve_grabs(
                         content,
                         world,
                         scratch,
+                        rng_state,
                         (uint8_t)holder_index,
                         target_index,
                         damage_q16,
@@ -4796,7 +4870,8 @@ static pf_status pf_m4_resolve_grabs(
 static pf_status pf_m4_resolve_item_combat(
     const pf_m4_content *content,
     const pf_world_state *world,
-    pf_sim_scratch *scratch)
+    pf_sim_scratch *scratch,
+    uint64_t *rng_state)
 {
     const pf_m4_item_data *item = &content->item;
     const uint8_t source_slot = scratch->item_source_slot;
@@ -4950,6 +5025,7 @@ static pf_status pf_m4_resolve_item_combat(
                     content,
                     world,
                     scratch,
+                    rng_state,
                     (uint8_t)source_index,
                     target_index,
                     damage_q16,
@@ -4997,7 +5073,8 @@ static void pf_m4_clear_projectile_combat(pf_sim_scratch *scratch)
 static pf_status pf_m4_resolve_projectile_combat(
     const pf_m4_content *content,
     const pf_world_state *world,
-    pf_sim_scratch *scratch)
+    pf_sim_scratch *scratch,
+    uint64_t *rng_state)
 {
     const pf_m4_projectile_data *projectile = &content->projectile;
     const uint8_t owner_slot = scratch->projectile_owner_slot;
@@ -5243,6 +5320,7 @@ static pf_status pf_m4_resolve_projectile_combat(
                     content,
                     world,
                     scratch,
+                    rng_state,
                     (uint8_t)owner_index,
                     target_index,
                     damage_q16,
@@ -5512,7 +5590,8 @@ static int pf_m4_select_reference_target_hit(
 pf_status pf_m4_resolve_combat(
     const pf_m4_content *content,
     const pf_world_state *world,
-    pf_sim_scratch *scratch)
+    pf_sim_scratch *scratch,
+    uint64_t *rng_state)
 {
     uint8_t target_hit_mask[PF_SIM_MAX_PLAYERS];
     uint8_t target_shield_hit_mask[PF_SIM_MAX_PLAYERS];
@@ -5544,7 +5623,8 @@ pf_status pf_m4_resolve_combat(
     uint32_t attacker_index;
     uint32_t target_index;
 
-    if (content == NULL || world == NULL || scratch == NULL)
+    if (content == NULL || world == NULL || scratch == NULL ||
+        rng_state == NULL)
     {
         return PF_STATUS_INVALID_ARGUMENT;
     }
@@ -6407,6 +6487,7 @@ pf_status pf_m4_resolve_combat(
                     content,
                     world,
                     scratch,
+                    rng_state,
                     (uint8_t)best_owner,
                     target_index,
                     total_damage_q16,
@@ -6499,7 +6580,8 @@ pf_status pf_m4_resolve_combat(
         }
     }
 
-    if (pf_m4_resolve_grabs(content, world, scratch) != PF_STATUS_OK)
+    if (pf_m4_resolve_grabs(content, world, scratch, rng_state) !=
+        PF_STATUS_OK)
     {
         return PF_STATUS_DETERMINISTIC_FAULT;
     }
@@ -6544,9 +6626,11 @@ pf_status pf_m4_resolve_combat(
     if (pf_m4_resolve_projectile_combat(
             content,
             world,
-            scratch) != PF_STATUS_OK)
+            scratch,
+            rng_state) != PF_STATUS_OK)
     {
         return PF_STATUS_DETERMINISTIC_FAULT;
     }
-    return pf_m4_resolve_item_combat(content, world, scratch);
+    return pf_m4_resolve_item_combat(
+        content, world, scratch, rng_state);
 }

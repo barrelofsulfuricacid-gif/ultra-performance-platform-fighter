@@ -88,13 +88,29 @@ def observation_sha256(capture: dict[str, Any]) -> str:
             selected["action_frame"] = None
         canonical_rows.append(selected)
     stage = capture["stage_collision_memory"]
+    stable_line_fields = (
+        "index",
+        "kind",
+        "vertices",
+        "start",
+        "end",
+        "neighbors",
+        "hi_flags",
+        "lo_flags",
+    )
     canonical = {
         "rows": canonical_rows,
         "stage_collision": {
             "vertex_count": stage["vertex_count"],
             "line_count": stage["line_count"],
             "ranges": stage["ranges"],
-            "lines": stage["lines"],
+            # The runtime probe may append derived world coordinates and
+            # decoded flags. They are useful diagnostics but duplicate the
+            # pinned raw line table and must not churn the oracle identity.
+            "lines": [
+                {field: line[field] for field in stable_line_fields}
+                for line in stage["lines"]
+            ],
         },
     }
     encoded = json.dumps(

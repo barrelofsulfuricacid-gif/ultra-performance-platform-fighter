@@ -2277,7 +2277,7 @@ static int pf_m4_snapshot_source_submotion_valid_for_action(
                submotion >=
                    (uint16_t)PF_M4_FALCON_SUBMOTION_DAMAGE_HIGH_1 &&
                submotion <=
-                   (uint16_t)PF_M4_FALCON_SUBMOTION_DAMAGE_FLY_LOW;
+                   (uint16_t)PF_M4_FALCON_SUBMOTION_DAMAGE_FLY_ROLL;
     }
     else if (effective_action == (uint8_t)PF_M4_ACTION_TAUNT)
     {

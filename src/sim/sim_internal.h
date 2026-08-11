@@ -775,7 +775,8 @@ pf_status pf_m4_step_player(
 pf_status pf_m4_resolve_combat(
     const pf_m4_content *content,
     const pf_world_state *world,
-    pf_sim_scratch *scratch);
+    pf_sim_scratch *scratch,
+    uint64_t *rng_state);
 uint8_t pf_m4_stale_move_id_for_action(uint8_t action_state);
 uint32_t pf_m4_stale_move_multiplier_q16(
     const pf_m4_fighter_data *fighter,
@@ -838,6 +839,8 @@ uint8_t pf_m4_reference_world_hurt_capsules(
     uint16_t source_submotion,
     int32_t source_animation_frame_q16,
     uint16_t action_ticks,
+    int32_t total_velocity_x_q16,
+    int32_t total_velocity_y_q16,
     const pf_m4_hsd_local_pose *ground_loop_pose,
     pf_m4_hurt_capsule_inspection
         out_capsules[PF_M4_INSPECTION_HURT_CAPSULE_CAPACITY]);

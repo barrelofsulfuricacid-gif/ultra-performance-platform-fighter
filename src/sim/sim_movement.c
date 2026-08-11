@@ -2486,6 +2486,8 @@ static int pf_m4_reference_ecb_pose_q16(
     uint8_t prone_roll_motion_orientation,
     int8_t tech_direction,
     int8_t facing,
+    int32_t total_velocity_x_q16,
+    int32_t total_velocity_y_q16,
     int32_t ground_loop_progress_q16,
     const pf_m4_hsd_compact_pose *ground_loop_compact,
     pf_m4_falcon_ecb_pose_q16 *out_pose)
@@ -2547,6 +2549,20 @@ static int pf_m4_reference_ecb_pose_q16(
             PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16)
     {
         locked_bottom_y_q16 = inherited_locked_bottom_y_q16;
+    }
+    if (source_submotion ==
+            (uint16_t)PF_M4_FALCON_SUBMOTION_DAMAGE_FLY_ROLL &&
+        pf_m4_falcon_reference_damage_hsd_ecb_pose(
+            source_submotion,
+            source_animation_frame_q16,
+            facing,
+            total_velocity_x_q16,
+            total_velocity_y_q16,
+            grounded != UINT8_C(0),
+            locked_bottom_y_q16,
+            out_pose))
+    {
+        return 1;
     }
     if (pf_m4_action_uses_fall_special_pose(action_state) &&
         pf_m4_falcon_reference_hsd_fall_special_ecb_pose(
@@ -2745,6 +2761,8 @@ static int32_t pf_m4_floor_contact_bottom_extent_q16(
     uint8_t prone_roll_motion_orientation,
     int8_t tech_direction,
     int8_t facing,
+    int32_t total_velocity_x_q16,
+    int32_t total_velocity_y_q16,
     int *out_exact_reference_pose)
 {
     const pf_m4_falcon_collision_pose *pose =
@@ -2781,6 +2799,8 @@ static int32_t pf_m4_floor_contact_bottom_extent_q16(
             prone_roll_motion_orientation,
             tech_direction,
             facing,
+            total_velocity_x_q16,
+            total_velocity_y_q16,
             INT32_C(0),
             NULL,
             &action_pose) != 0)
@@ -13356,6 +13376,12 @@ pf_status pf_m4_step_player(
                       world->prone_roll_motion_orientation[player_index],
                       world->tech_direction[player_index],
                       world->facing[player_index],
+                      pf_m4_total_velocity_q16(
+                          world->velocity_x_q16[player_index],
+                          world->knockback_velocity_x_q16[player_index]),
+                      pf_m4_total_velocity_q16(
+                          world->velocity_y_q16[player_index],
+                          world->knockback_velocity_y_q16[player_index]),
                       &previous_exact_pose);
         (void)previous_exact_pose;
         ecb_bottom_lock_ticks = PF_M4_COMMON_AIR_ENTRY_ECB_LOCK_TICKS;
@@ -13620,6 +13646,12 @@ pf_status pf_m4_step_player(
             scratch->prone_roll_motion_orientation[player_index],
             scratch->tech_direction[player_index],
             facing,
+            pf_m4_total_velocity_q16(
+                velocity_x,
+                scratch->knockback_velocity_x_q16[player_index]),
+            pf_m4_total_velocity_q16(
+                velocity_y,
+                scratch->knockback_velocity_y_q16[player_index]),
             wall_blend_progress_q16,
             wall_blend_pose_or_null,
             &wall_pose);
@@ -13695,6 +13727,12 @@ pf_status pf_m4_step_player(
                     world->prone_roll_motion_orientation[player_index],
                     world->tech_direction[player_index],
                     world->facing[player_index],
+                    pf_m4_total_velocity_q16(
+                        world->velocity_x_q16[player_index],
+                        world->knockback_velocity_x_q16[player_index]),
+                    pf_m4_total_velocity_q16(
+                        world->velocity_y_q16[player_index],
+                        world->knockback_velocity_y_q16[player_index]),
                     world->ground_blend_progress_q16[player_index],
                     world->ground_blend_progress_q16[player_index] >
                             INT32_C(0)
@@ -14150,6 +14188,12 @@ pf_status pf_m4_step_player(
                 world->prone_roll_motion_orientation[player_index],
                 world->tech_direction[player_index],
                 world->facing[player_index],
+                pf_m4_total_velocity_q16(
+                    world->velocity_x_q16[player_index],
+                    world->knockback_velocity_x_q16[player_index]),
+                pf_m4_total_velocity_q16(
+                    world->velocity_y_q16[player_index],
+                    world->knockback_velocity_y_q16[player_index]),
                 &previous_exact_floor_contact_pose);
         int exact_floor_contact_pose = 0;
         int32_t ceiling_top_extent_q16 = fighter->half_height_q16;
@@ -14171,6 +14215,12 @@ pf_status pf_m4_step_player(
                 scratch->prone_roll_motion_orientation[player_index],
                 scratch->tech_direction[player_index],
                 facing,
+                pf_m4_total_velocity_q16(
+                    velocity_x,
+                    scratch->knockback_velocity_x_q16[player_index]),
+                pf_m4_total_velocity_q16(
+                    velocity_y,
+                    scratch->knockback_velocity_y_q16[player_index]),
                 &exact_floor_contact_pose);
         const pf_m4_pass_through_floor_sweep_policy
             pass_through_floor_sweep_policy =
@@ -14200,6 +14250,12 @@ pf_status pf_m4_step_player(
                 scratch->prone_roll_motion_orientation[player_index],
                 scratch->tech_direction[player_index],
                 facing,
+                pf_m4_total_velocity_q16(
+                    velocity_x,
+                    scratch->knockback_velocity_x_q16[player_index]),
+                pf_m4_total_velocity_q16(
+                    velocity_y,
+                    scratch->knockback_velocity_y_q16[player_index]),
                 INT32_C(0),
                 NULL,
                 &ceiling_pose) != 0)
@@ -14890,7 +14946,7 @@ pf_status pf_m4_step_player(
             source_submotion <
                 (uint16_t)PF_M4_FALCON_SUBMOTION_DAMAGE_HIGH_1 ||
             source_submotion >
-                (uint16_t)PF_M4_FALCON_SUBMOTION_DAMAGE_FLY_LOW ||
+                (uint16_t)PF_M4_FALCON_SUBMOTION_DAMAGE_FLY_ROLL ||
             damage_motion->animation_frame_count == UINT16_C(0))
         {
             return PF_STATUS_DETERMINISTIC_FAULT;
@@ -15490,6 +15546,8 @@ pf_status pf_m4_inspect(
                     sim->world.prone_roll_motion_orientation[player_index],
                     sim->world.tech_direction[player_index],
                     sim->world.facing[player_index],
+                    player->velocity_x_q16,
+                    player->velocity_y_q16,
                     sim->world.ground_blend_progress_q16[player_index],
                     sim->world.ground_blend_progress_q16[player_index] >
                             INT32_C(0)
@@ -15773,6 +15831,8 @@ pf_status pf_m4_inspect(
                 sim->world.source_submotion[player_index],
                 sim->world.source_animation_frame_q16[player_index],
                 player->action_ticks,
+                player->velocity_x_q16,
+                player->velocity_y_q16,
                 ground_loop_pose_or_null,
                 player->hurt_capsules);
     }

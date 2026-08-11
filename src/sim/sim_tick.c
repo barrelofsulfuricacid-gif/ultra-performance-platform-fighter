@@ -634,7 +634,8 @@ pf_status pf_sim_tick_impl(
         return status;
     }
 
-    status = pf_m4_resolve_combat(&sim->content, world, scratch);
+    status = pf_m4_resolve_combat(
+        &sim->content, world, scratch, &rng_state);
     if (status != PF_STATUS_OK)
     {
         pf_write_result(world, NULL, out_result);

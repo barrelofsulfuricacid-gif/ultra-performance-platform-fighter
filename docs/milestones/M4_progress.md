@@ -28,6 +28,26 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
 
 **Working branch:** `agent/m4-combat-vertical-slice`
 
+## Implemented and verified in the 2026-08-11 DamageFlyTop/Roll follow-up
+
+- Imported the exact common-data top cone, 100% Roll threshold, and HSD random
+  boundary; the shared transaction-local RNG is now threaded through combat
+  without adding state or a second random stream.
+- Imported Falcon submotions 180/181 into the generic HSD profile. Roll's
+  source-coordinate velocity angle overwrites `XRotN` in one reusable local
+  pose evaluator used by hurt collision, inspection, floor, wall, ceiling,
+  and ECB queries.
+- Reused existing accelerated Dolphin surface/prone evidence. A fresh
+  response-only capture passes all 145 rows across five cases at semantic SHA
+  `5339134dd04cff9612e8c8a3e1d460f85018ae4c081ac7426fbad3cee3b785f5`.
+  The verifier no longer hashes derived world-space line fields that duplicate
+  the pinned raw stage catalog. Its single-process wrapper still measures
+  4.234 seconds warm against the three-second performance gate; forking
+  Dolphins was measured and rejected because repeated menu startup is slower.
+- Windows and WSL Release pass 41/41. The complete 21-domain / 117-case stored
+  gate passes in 1.081 seconds on Windows and 1.011 seconds in WSL; common-data
+  and dynamic-HSD regeneration checks are clean.
+
 ## Implemented and verified in the 2026-08-11 CrouchWait ECB follow-up
 
 - Generalized the checkpoint shard runner so a manifest selects either the

@@ -139,6 +139,10 @@ def generate(raw: bytes) -> str:
     meteor_cancel_invulnerability_ticks = 12
     damage_velocity_replace_window_ticks = i32(0x0FC)
     damage_jump_buffer_window_ticks = f32(0x1D0)
+    damage_fly_top_min_angle = f32(0x234)
+    damage_fly_top_max_angle = f32(0x238)
+    damage_fly_roll_damage_threshold = i32(0x23C)
+    damage_fly_roll_probability = f32(0x240)
     forward_tilt_angles = (
         f32(0x09C),
         f32(0x0A0),
@@ -245,6 +249,16 @@ def generate(raw: bytes) -> str:
         or not 0 < damage_velocity_replace_window_ticks <= 0xFFFF
         or not damage_jump_buffer_window_ticks.is_integer()
         or not 0 < damage_jump_buffer_window_ticks <= 0xFFFF
+        or not 0.0 < damage_fly_top_min_angle < math.pi / 2.0
+        or not math.pi / 2.0 < damage_fly_top_max_angle < math.pi
+        or not math.isclose(
+            damage_fly_top_min_angle + damage_fly_top_max_angle,
+            math.pi,
+            rel_tol=0.0,
+            abs_tol=2.0e-7,
+        )
+        or not 0 < damage_fly_roll_damage_threshold <= 0xFFFF
+        or not 0.0 < damage_fly_roll_probability < 1.0
         or forward_tilt_angles
         != (
             -forward_tilt_angles[3],
@@ -326,6 +340,18 @@ def generate(raw: bytes) -> str:
         ),
         "damage_jump_buffer_window_ticks": int(
             damage_jump_buffer_window_ticks
+        ),
+        "damage_fly_top_horizontal_ratio_q16": q16(
+            math.tan(math.pi / 2.0 - damage_fly_top_min_angle)
+        ),
+        "damage_fly_roll_damage_threshold": (
+            damage_fly_roll_damage_threshold
+        ),
+        # HSD_Randf is one unsigned 16-bit sample divided by 65536. The
+        # source comparison is strict, so ceil(probability * 65536) is the
+        # equivalent exclusive integer upper bound.
+        "damage_fly_roll_random_threshold_u16": math.ceil(
+            damage_fly_roll_probability * 65536.0
         ),
     }
     surface_attributes = {
@@ -582,6 +608,9 @@ def generate(raw: bytes) -> str:
             f"    UINT16_C({attributes['damage_fall_wiggle_tilt_window_ticks']}),",
             f"    UINT16_C({attributes['damage_velocity_replace_window_ticks']}),",
             f"    UINT16_C({attributes['damage_jump_buffer_window_ticks']}),",
+            f"    INT32_C({attributes['damage_fly_top_horizontal_ratio_q16']}),",
+            f"    UINT16_C({attributes['damage_fly_roll_damage_threshold']}),",
+            f"    UINT16_C({attributes['damage_fly_roll_random_threshold_u16']}),",
             "};",
             "",
             "static const pf_m4_ssbm_surface_response_attributes",

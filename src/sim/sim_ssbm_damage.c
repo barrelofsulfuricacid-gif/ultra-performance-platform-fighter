@@ -1,12 +1,71 @@
 #include "sim_ssbm_damage.h"
 
 #include "sim_internal.h"
+#include "sim_ssbm_common_data.h"
 
 #include <limits.h>
 #include <stdint.h>
 
 #define PF_M4_Q30_ONE INT64_C(1073741824)
 #define PF_M4_SSBM_VECTOR_EXTRA_SCALE INT64_C(256)
+
+pf_status pf_m4_ssbm_select_damage_motion(
+    uint8_t launch_grounded,
+    uint8_t damage_level,
+    uint32_t resulting_damage_q16,
+    int32_t launch_velocity_x_q16,
+    int32_t launch_velocity_y_q16,
+    uint64_t *rng_state,
+    pf_m4_ssbm_damage_motion_kind *out_motion)
+{
+    const pf_m4_ssbm_damage_response_attributes *common =
+        pf_m4_ssbm_common_reference_damage_response();
+
+    if (rng_state == NULL || out_motion == NULL || common == NULL)
+    {
+        return PF_STATUS_INVALID_ARGUMENT;
+    }
+    *out_motion = PF_M4_SSBM_DAMAGE_MOTION_ORDINARY;
+    if (launch_grounded != UINT8_C(0) || damage_level != UINT8_C(3))
+    {
+        return PF_STATUS_OK;
+    }
+
+    if (launch_velocity_y_q16 < INT32_C(0))
+    {
+        const uint64_t source_horizontal =
+            (uint64_t)(launch_velocity_x_q16 < INT32_C(0)
+                           ? -(int64_t)launch_velocity_x_q16
+                           : (int64_t)launch_velocity_x_q16) *
+            UINT64_C(115) * UINT64_C(11) * UINT64_C(65536);
+        const uint64_t source_vertical_limit =
+            (uint64_t)(-(int64_t)launch_velocity_y_q16) *
+            UINT64_C(62) * UINT64_C(12) *
+            (uint64_t)(uint32_t)
+                common->damage_fly_top_horizontal_ratio_q16;
+
+        /* ftCo_8008DCE0 uses strict 70/110-degree bounds. Comparing the
+         * source-space horizontal/vertical ratio avoids libm and preserves
+         * the project's anisotropic world conversion. */
+        if (source_horizontal < source_vertical_limit)
+        {
+            *out_motion = PF_M4_SSBM_DAMAGE_MOTION_FLY_TOP;
+            return PF_STATUS_OK;
+        }
+    }
+    if (resulting_damage_q16 >=
+        (uint32_t)common->damage_fly_roll_damage_threshold *
+            UINT32_C(65536))
+    {
+        const uint16_t random = pf_sim_hsd_random_u16(rng_state);
+
+        if (random < common->damage_fly_roll_random_threshold_u16)
+        {
+            *out_motion = PF_M4_SSBM_DAMAGE_MOTION_FLY_ROLL;
+        }
+    }
+    return PF_STATUS_OK;
+}
 
 static int32_t pf_m4_ssbm_clamp_stick_axis(int16_t axis)
 {

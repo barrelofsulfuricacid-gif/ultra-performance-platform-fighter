@@ -44,6 +44,9 @@ typedef struct pf_m4_ssbm_damage_response_attributes
     uint16_t damage_fall_wiggle_tilt_window_ticks;
     uint16_t damage_velocity_replace_window_ticks;
     uint16_t damage_jump_buffer_window_ticks;
+    int32_t damage_fly_top_horizontal_ratio_q16;
+    uint16_t damage_fly_roll_damage_threshold;
+    uint16_t damage_fly_roll_random_threshold_u16;
 } pf_m4_ssbm_damage_response_attributes;
 
 typedef struct pf_m4_ssbm_surface_response_attributes

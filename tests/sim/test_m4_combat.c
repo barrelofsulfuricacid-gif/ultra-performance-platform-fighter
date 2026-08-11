@@ -14428,6 +14428,8 @@ static int reference_falcon_turn_hurt_pose_facing_case(
         stored_case->target_source_submotion,
         (int32_t)stored_case->action_frame * INT32_C(65536),
         phase->action_ticks,
+        INT32_C(0),
+        INT32_C(0),
         NULL,
         world_capsules);
     int candidate_facing;
@@ -15410,6 +15412,9 @@ static int run_ssbm_damage_source_test(const pf_m4_content *content)
     uint8_t grounded_index;
     uint8_t damage_level;
     uint8_t hurtbox_height;
+    pf_m4_ssbm_damage_motion_kind damage_motion;
+    pf_m4_falcon_ecb_pose_q16 roll_ecb = { 0 };
+    uint64_t rng_state;
 
     raw_words = pf_m4_ssbm_common_reference_raw_words(&raw_word_count);
     if (source == NULL || raw_words == NULL ||
@@ -15439,7 +15444,10 @@ static int run_ssbm_damage_source_test(const pf_m4_content *content)
         content->fighter.asdi_distance_x_q16 !=
             source->asdi_distance_x_q16 ||
         content->fighter.asdi_distance_y_q16 !=
-            source->asdi_distance_y_q16)
+            source->asdi_distance_y_q16 ||
+        source->damage_fly_top_horizontal_ratio_q16 != INT32_C(23853) ||
+        source->damage_fly_roll_damage_threshold != UINT16_C(100) ||
+        source->damage_fly_roll_random_threshold_u16 != UINT16_C(19661))
     {
         return fail("ssbm-damage-source-data");
     }
@@ -15577,6 +15585,96 @@ static int run_ssbm_damage_source_test(const pf_m4_content *content)
                 }
             }
         }
+    }
+    rng_state = UINT64_C(0);
+    if (!expect_status(
+            pf_m4_ssbm_select_damage_motion(
+                UINT8_C(0),
+                UINT8_C(3),
+                UINT32_C(200) * UINT32_C(65536),
+                INT32_C(0),
+                -INT32_C(65536),
+                &rng_state,
+                &damage_motion),
+            PF_STATUS_OK,
+            "ssbm-damage-fly-top-selection") ||
+        damage_motion != PF_M4_SSBM_DAMAGE_MOTION_FLY_TOP ||
+        rng_state != UINT64_C(0))
+    {
+        return fail("ssbm-damage-fly-top-selection");
+    }
+    rng_state = UINT64_C(0);
+    if (!expect_status(
+            pf_m4_ssbm_select_damage_motion(
+                UINT8_C(0),
+                UINT8_C(3),
+                UINT32_C(200) * UINT32_C(65536),
+                -INT32_C(65536),
+                -INT32_C(65536),
+                &rng_state,
+                &damage_motion),
+            PF_STATUS_OK,
+            "ssbm-damage-fly-roll-selection") ||
+        damage_motion != PF_M4_SSBM_DAMAGE_MOTION_FLY_ROLL ||
+        rng_state != UINT64_C(2531011))
+    {
+        return fail("ssbm-damage-fly-roll-selection");
+    }
+    rng_state = UINT64_C(10000);
+    if (!expect_status(
+            pf_m4_ssbm_select_damage_motion(
+                UINT8_C(0),
+                UINT8_C(3),
+                UINT32_C(200) * UINT32_C(65536),
+                -INT32_C(65536),
+                -INT32_C(65536),
+                &rng_state,
+                &damage_motion),
+            PF_STATUS_OK,
+            "ssbm-damage-fly-roll-rng-control") ||
+        damage_motion != PF_M4_SSBM_DAMAGE_MOTION_ORDINARY ||
+        rng_state != UINT64_C(2142661011))
+    {
+        return fail("ssbm-damage-fly-roll-rng-control");
+    }
+    if (!pf_m4_falcon_reference_damage_hsd_ecb_pose(
+            (uint16_t)PF_M4_FALCON_SUBMOTION_DAMAGE_FLY_ROLL,
+            (int32_t)PF_Q16_ONE,
+            INT8_C(1),
+            -INT32_C(16565),
+            INT32_C(6521),
+            0,
+            PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16,
+            &roll_ecb) ||
+        /* Live GALE01 frame one from the pinned prone-response capture.
+         * The 1,536-Q16 bound covers fixed-point matrix accumulation while
+         * remaining below 0.024 simulation units on every selector. */
+        roll_ecb.bottom_y_from_origin_q16 < INT32_C(123623) ||
+        roll_ecb.bottom_y_from_origin_q16 > INT32_C(126695) ||
+        roll_ecb.top_y_from_origin_q16 < INT32_C(238662) ||
+        roll_ecb.top_y_from_origin_q16 > INT32_C(241734) ||
+        roll_ecb.right_x_from_origin_q16 < INT32_C(81298) ||
+        roll_ecb.right_x_from_origin_q16 > INT32_C(84370) ||
+        roll_ecb.right_y_from_origin_q16 < INT32_C(181142) ||
+        roll_ecb.right_y_from_origin_q16 > INT32_C(184214) ||
+        roll_ecb.left_x_from_origin_q16 < -INT32_C(15213) ||
+        roll_ecb.left_x_from_origin_q16 > -INT32_C(12141) ||
+        roll_ecb.left_y_from_origin_q16 !=
+            roll_ecb.right_y_from_origin_q16)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-combat=detail operation=ssbm-damage-fly-roll-ecb"
+            " top=%" PRId32 " bottom=%" PRId32
+            " right=(%" PRId32 ",%" PRId32 ")"
+            " left=(%" PRId32 ",%" PRId32 ")\n",
+            roll_ecb.top_y_from_origin_q16,
+            roll_ecb.bottom_y_from_origin_q16,
+            roll_ecb.right_x_from_origin_q16,
+            roll_ecb.right_y_from_origin_q16,
+            roll_ecb.left_x_from_origin_q16,
+            roll_ecb.left_y_from_origin_q16);
+        return fail("ssbm-damage-fly-roll-ecb");
     }
     return 1;
 }

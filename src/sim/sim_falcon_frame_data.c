@@ -1,4 +1,5 @@
 #include "sim_falcon_frame_data.h"
+#include "sim_fixed_math.h"
 #include "sim_hsd_pose.h"
 
 #include "pf/m4.h"
@@ -1709,6 +1710,106 @@ int pf_m4_falcon_reference_hsd_hurt_capsules_from_local_pose(
         evaluated, count, out_capsules, out_count);
 }
 
+static int pf_m4_falcon_reference_damage_hsd_local_pose(
+    uint16_t source_submotion,
+    int32_t source_animation_frame_q16,
+    int8_t facing,
+    int32_t total_velocity_x_q16,
+    int32_t total_velocity_y_q16,
+    pf_m4_hsd_local_pose out_pose[PF_M4_HSD_POSE_MAX_JOINTS])
+{
+    enum
+    {
+        PF_M4_FALCON_HSD_X_ROT_N_JOINT = 2
+    };
+
+    if (out_pose == NULL || (facing != INT8_C(-1) && facing != INT8_C(1)) ||
+        !pf_m4_hsd_evaluate_local_pose_q16(
+            &pf_m4_falcon_dynamic_hsd_data,
+            source_submotion,
+            source_animation_frame_q16,
+            out_pose))
+    {
+        return 0;
+    }
+    if (source_submotion ==
+        (uint16_t)PF_M4_FALCON_SUBMOTION_DAMAGE_FLY_ROLL)
+    {
+        const int64_t source_x =
+            (int64_t)total_velocity_x_q16 * INT64_C(115) / INT64_C(12);
+        const int64_t source_y =
+            -(int64_t)total_velocity_y_q16 * INT64_C(62) / INT64_C(11);
+        uint16_t unsigned_turn;
+        int32_t signed_turn;
+
+        if (source_x < (int64_t)INT32_MIN ||
+            source_x > (int64_t)INT32_MAX ||
+            source_y < (int64_t)INT32_MIN ||
+            source_y > (int64_t)INT32_MAX)
+        {
+            return 0;
+        }
+        /* DamageFlyRoll's callbacks overwrite FtPart_XRotN with
+         * facing * atan2(total_x, total_y) in Melee source space.  The
+         * imported model's complete part map keeps XRotN at joint two. */
+        unsigned_turn = pf_m4_fixed_atan2_turn(
+            (int32_t)source_x, (int32_t)source_y);
+        signed_turn =
+            unsigned_turn <= UINT16_C(32767)
+                ? (int32_t)unsigned_turn
+                : (int32_t)unsigned_turn - INT32_C(65536);
+        out_pose[PF_M4_FALCON_HSD_X_ROT_N_JOINT]
+            .rotation_q16[0] = signed_turn * (int32_t)facing;
+    }
+    return 1;
+}
+
+int pf_m4_falcon_reference_damage_hsd_hurt_capsules(
+    uint16_t source_submotion,
+    int32_t source_animation_frame_q16,
+    int8_t facing,
+    int32_t total_velocity_x_q16,
+    int32_t total_velocity_y_q16,
+    pf_m4_reference_hurt_capsule
+        out_capsules[PF_M4_HSD_POSE_MAX_CAPSULES],
+    uint8_t *out_count)
+{
+    pf_m4_hsd_local_pose pose[PF_M4_HSD_POSE_MAX_JOINTS];
+
+    return pf_m4_falcon_reference_damage_hsd_local_pose(
+               source_submotion,
+               source_animation_frame_q16,
+               facing,
+               total_velocity_x_q16,
+               total_velocity_y_q16,
+               pose) &&
+           pf_m4_falcon_reference_hsd_hurt_capsules_from_local_pose(
+               pose, out_capsules, out_count);
+}
+
+int pf_m4_falcon_reference_damage_hsd_ecb_pose(
+    uint16_t source_submotion,
+    int32_t source_animation_frame_q16,
+    int8_t facing,
+    int32_t total_velocity_x_q16,
+    int32_t total_velocity_y_q16,
+    int grounded,
+    int32_t locked_bottom_y_q16,
+    pf_m4_falcon_ecb_pose_q16 *out_pose)
+{
+    pf_m4_hsd_local_pose pose[PF_M4_HSD_POSE_MAX_JOINTS];
+
+    return pf_m4_falcon_reference_damage_hsd_local_pose(
+               source_submotion,
+               source_animation_frame_q16,
+               facing,
+               total_velocity_x_q16,
+               total_velocity_y_q16,
+               pose) &&
+           pf_m4_falcon_reference_hsd_ecb_pose_from_local_pose(
+               pose, grounded, locked_bottom_y_q16, out_pose);
+}
+
 int pf_m4_falcon_reference_retained_hsd_pose(
     uint8_t action_state,
     uint16_t source_submotion,
@@ -1732,7 +1833,7 @@ int pf_m4_falcon_reference_retained_hsd_pose(
         if (source_submotion <
                 (uint16_t)PF_M4_FALCON_SUBMOTION_DAMAGE_HIGH_1 ||
             source_submotion >
-                (uint16_t)PF_M4_FALCON_SUBMOTION_DAMAGE_FLY_LOW)
+                (uint16_t)PF_M4_FALCON_SUBMOTION_DAMAGE_FLY_ROLL)
         {
             return 0;
         }

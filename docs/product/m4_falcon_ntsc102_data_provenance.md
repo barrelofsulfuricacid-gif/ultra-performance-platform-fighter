@@ -1684,5 +1684,44 @@ identity update changes the deterministic replay corpus SHA-256 to
 final-state and event SHA-256 remain
 `7d031c271e05fb0041fa749488689175fb6b775f44d58a794bc1aa1e1c47bd48`
 and `55581ad6489814368e540e8eb96779ece01d840b1dd6ce7899afd1c4f724ac6bd`.
-DamageFlyTop/DamageFlyRoll selection and explicit production ownership of the
-mixed hit-entry ECB row remain outside this qualified slice.
+Explicit production ownership of the mixed hit-entry ECB row remains outside
+this qualified slice.
+
+## Falcon DamageFlyTop and DamageFlyRoll
+
+Pinned decomp revision `9509dc04406fb2028bfab01243841ba4787c0fb7` and
+current upstream revision `d882af94175e3c880ad51039e2979aa9a50aea09` agree
+on this callback surface. `ftCo_8008DCE0` selects `DamageFlyTop` only for
+airborne knockback level three inside the strict common-data `x234/x238`
+70/110-degree cone. Otherwise, resulting damage at or above `x23C` (100%)
+selects `DamageFlyRoll` when the next process-global `HSD_Randf` value is below
+`x240` (0.3). The importer represents that float comparison as the exact
+exclusive u16 boundary 19,661; no runtime float or guessed frame constant is
+used. DI remains later, on hitlag exit, and therefore does not alter this
+initial selector.
+
+Falcon raw submotions 180 and 181 extend the shared parent-closed profile to
+68 motions, 4,511 FObj tracks, and 44,881 keys under decoded-data SHA-256
+`4994dfb44a97051627fb557c8f371f047d2e28cd5672c9b4c4a2aa143aa82ad3`.
+For Roll, both entry and physics callbacks overwrite `FtPart_XRotN` with
+`facing * atan2(self_vel.x + kb_vel.x, self_vel.y + kb_vel.y)`. Production
+undoes the simulator's anisotropic coordinate conversion, performs that angle
+in fixed turns, overwrites the imported local joint, and feeds the resulting
+single pose to hurt-capsule and ECB evaluation. This adds no parser,
+allocation, duplicated pose table, host floating point, or rollback field.
+
+The existing accelerated checkpoint infrastructure supplies the live oracle.
+A fresh response-only surface run contains `DamageFlyRoll` and passes all 145
+rows across five cases at semantic SHA-256
+`5339134dd04cff9612e8c8a3e1d460f85018ae4c081ac7426fbad3cee3b785f5`.
+The pinned prone-response capture supplies a frame-one velocity-oriented Roll
+ECB observation; the native gate bounds fixed-point matrix accumulation to
+1,536 Q16 units (less than 0.024 simulation units) on every selector. The
+surface verifier hashes only the raw stage-line ownership fields: later-added
+derived world coordinates and decoded runtime flags are diagnostics that
+duplicate those raw values, not new oracle truth.
+The focused output removes 574 setup rows from the artifact but does not hide
+the current harness cost: the single-process wrapper measures 4.234 seconds
+warm against its strict three-second gate. The generic process-shard runner was
+also measured and rejected here because each worker repeats Dolphin menu
+startup, making end-to-end capture slower rather than faster.

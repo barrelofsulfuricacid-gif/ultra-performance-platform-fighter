@@ -5,6 +5,22 @@
 
 #include <stdint.h>
 
+typedef enum pf_m4_ssbm_damage_motion_kind
+{
+    PF_M4_SSBM_DAMAGE_MOTION_ORDINARY = 0,
+    PF_M4_SSBM_DAMAGE_MOTION_FLY_TOP = 1,
+    PF_M4_SSBM_DAMAGE_MOTION_FLY_ROLL = 2
+} pf_m4_ssbm_damage_motion_kind;
+
+pf_status pf_m4_ssbm_select_damage_motion(
+    uint8_t launch_grounded,
+    uint8_t damage_level,
+    uint32_t resulting_damage_q16,
+    int32_t launch_velocity_x_q16,
+    int32_t launch_velocity_y_q16,
+    uint64_t *rng_state,
+    pf_m4_ssbm_damage_motion_kind *out_motion);
+
 pf_status pf_m4_ssbm_apply_di_q16(
     int32_t max_angle_radians_q30,
     int16_t stick_x,

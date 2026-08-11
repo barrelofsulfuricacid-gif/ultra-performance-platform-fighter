@@ -6,9 +6,10 @@
   "oracle": "SSBM GALE01 NTSC-U revision 2",
   "checkpoint_pack": {
     "protocol": "rebased-slippi-state-file-control-v1",
-    "expected_rows": 719,
+    "expected_rows": 145,
     "warm_budget_seconds": 3.0,
     "capture_plan": {
+      "record_response_only": true,
       "surface_response_cases": [
         {
           "id": "right_pillar_wall_bounce",

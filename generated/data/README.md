@@ -81,14 +81,14 @@ velocity-driven WalkSlow/Middle/Fast and Run poses, Wait lifecycle, Raptor
 Boost, Falcon Dive, common FallSpecial, dynamically rated GuardSetOff, the
 animated ShieldBreakFly/DownD/StandD/Furafura hurt poses, and all qualified
 ordinary-action ECB motions. It also contains Falcon's fifteen ordinary common
-damage motions (`DamageHi1` through `DamageFlyLw`) so collision, inspection,
+damage motions (`DamageHi1` through `DamageFlyRoll`) so collision, inspection,
 and rollback consume the decomp-selected source identity rather than a generic
 damage body.
 The generic generator reads
 the four hash-pinned owner-extracted fighter/model DATs, validates the complete
 model and runtime part layout, retains only the 25 parent-closed joints needed
-by Falcon's 11 hurt capsules and six ECB selectors, and emits 66 motions
-containing 4,381 FObj tracks and 44,149 keys. The character-independent Q16
+by Falcon's 11 hurt capsules and six ECB selectors, and emits 68 motions
+containing 4,511 FObj tracks and 44,881 keys. The character-independent Q16
 runtime evaluator samples these
 tracks at the canonical fractional animation cursor; Falcon only binds its
 source submotion IDs and converts the shared capsule result. Imported
