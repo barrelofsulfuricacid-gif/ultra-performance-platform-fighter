@@ -574,6 +574,10 @@ typedef struct pf_m4_falcon_collision_pose
     int32_t falling_bottom_y_from_origin_q16;
     uint32_t down_bound_back_floor_contact_mask;
     uint32_t down_bound_stomach_floor_contact_mask;
+    pf_m4_falcon_ecb_pose_q16 down_bound_back[
+        PF_M4_FALCON_DOWN_BOUND_ECB_FRAME_COUNT];
+    pf_m4_falcon_ecb_pose_q16 down_bound_stomach[
+        PF_M4_FALCON_DOWN_BOUND_ECB_FRAME_COUNT];
     int32_t damage_fly_bottom_y_from_origin_q16[
         PF_M4_FALCON_DAMAGE_FLY_ECB_FRAME_COUNT];
     int32_t damage_fly_top_y_from_origin_q16[

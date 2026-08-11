@@ -1872,6 +1872,7 @@ static int pf_m4_reference_ecb_pose_q16(
     const pf_m4_fighter_data *fighter,
     uint8_t action_state,
     uint16_t action_ticks,
+    uint8_t prone_orientation,
     pf_m4_falcon_ecb_pose_q16 *out_pose)
 {
     const pf_m4_falcon_collision_pose *pose =
@@ -1910,6 +1911,18 @@ static int pf_m4_reference_ecb_pose_q16(
                 : UINT16_C(0),
             PF_M4_FALCON_SHIELD_BREAK_FLY_ECB_FRAME_COUNT);
         *out_pose = pose->shield_break_fly[frame_index];
+        return 1;
+    }
+    if (action_state == (uint8_t)PF_M4_ACTION_KNOCKDOWN &&
+        (prone_orientation == (uint8_t)PF_M4_PRONE_BACK ||
+         prone_orientation == (uint8_t)PF_M4_PRONE_STOMACH))
+    {
+        frame_index = pf_m4_clamped_pose_index(
+            action_ticks,
+            PF_M4_FALCON_DOWN_BOUND_ECB_FRAME_COUNT);
+        *out_pose = prone_orientation == (uint8_t)PF_M4_PRONE_BACK
+                        ? pose->down_bound_back[frame_index]
+                        : pose->down_bound_stomach[frame_index];
         return 1;
     }
     if (action_state == (uint8_t)PF_M4_ACTION_CEILING_BOUNCE)
@@ -1968,6 +1981,7 @@ static int32_t pf_m4_floor_contact_bottom_extent_q16(
     uint8_t action_state,
     uint16_t action_ticks,
     uint16_t source_submotion,
+    uint8_t prone_orientation,
     int *out_exact_reference_pose)
 {
     const pf_m4_falcon_collision_pose *pose =
@@ -1994,6 +2008,7 @@ static int32_t pf_m4_floor_contact_bottom_extent_q16(
             fighter,
             action_state,
             action_ticks,
+            prone_orientation,
             &action_pose) != 0)
     {
         bottom_y_from_origin_q16 = action_pose.bottom_y_from_origin_q16;
@@ -12691,6 +12706,7 @@ pf_status pf_m4_step_player(
             fighter,
             action_state,
             action_ticks,
+            scratch->prone_orientation[player_index],
             &wall_pose);
         if (exact_reference_wall_pose != 0)
         {
@@ -12754,6 +12770,7 @@ pf_status pf_m4_step_player(
                     action_ticks > UINT16_C(0)
                         ? (uint16_t)(action_ticks - UINT16_C(1))
                         : UINT16_C(0),
+                    scratch->prone_orientation[player_index],
                     &previous_wall_pose);
                 pf_m4_ecb_world_wall_side_q16(
                     &previous_wall_pose,
@@ -13190,6 +13207,7 @@ pf_status pf_m4_step_player(
                 world->action_state[player_index],
                 world->action_ticks[player_index],
                 world->source_submotion[player_index],
+                world->prone_orientation[player_index],
                 &previous_exact_floor_contact_pose);
         int exact_floor_contact_pose = 0;
         int32_t ceiling_top_extent_q16 = fighter->half_height_q16;
@@ -13200,6 +13218,7 @@ pf_status pf_m4_step_player(
                 action_state,
                 action_ticks,
                 source_submotion,
+                scratch->prone_orientation[player_index],
                 &exact_floor_contact_pose);
         const pf_m4_pass_through_floor_sweep_policy
             pass_through_floor_sweep_policy =
@@ -13217,6 +13236,7 @@ pf_status pf_m4_step_player(
                 fighter,
                 action_state,
                 action_ticks,
+                scratch->prone_orientation[player_index],
                 &ceiling_pose) != 0)
         {
             ceiling_top_extent_q16 = ceiling_pose.top_y_from_origin_q16;

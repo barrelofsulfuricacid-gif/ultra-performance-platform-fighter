@@ -5785,6 +5785,8 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
     )
     if not isinstance(checkpoint_batch_inputs, bool):
         raise ValueError("checkpoint_pack.capture_plan.batch_exi_inputs must be boolean")
+    if args.oracle_checkpoint_no_batch_inputs:
+        checkpoint_batch_inputs = False
     checkpoint_record_surface_rows = (
         checkpoint_capture_plan.get("record_surface_collision_memory_rows", True)
         if checkpoint_capture_plan is not None
@@ -6217,10 +6219,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
         checkpoint_restore_seconds = 0.0
         checkpoint_case_labels: list[str] = []
         pending_restore: dict[str, object] | None = None
-        batch_exi_inputs = bool(
-            checkpoint_capture_plan is not None
-            and checkpoint_capture_plan.get("batch_exi_inputs", False)
-        )
+        batch_exi_inputs = checkpoint_batch_inputs
         if batch_exi_inputs:
             # Switch only after menus and checkpoint setup are complete. Before
             # BATCH ON, Dolphin retains its established last-command-wins pipe
@@ -7325,6 +7324,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="replace cross-case settling with checkpoint-isolated cases",
     )
     parser.add_argument(
+        "--oracle-checkpoint-no-batch-inputs",
+        action="store_true",
+        help=(
+            "sample every checkpoint response frame instead of batching EXI "
+            "inputs; intended for collision-memory geometry captures"
+        ),
+    )
+    parser.add_argument(
         "--oracle-coverage-manifest",
         type=Path,
         help="domain manifest owning checkpoint capture selection and budgets",
@@ -7425,6 +7432,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         parser.error("--oracle-coverage-manifest requires --oracle-checkpoint-pack")
     if args.oracle_case and not args.oracle_checkpoint_pack:
         parser.error("--oracle-case requires --oracle-checkpoint-pack")
+    if args.oracle_checkpoint_no_batch_inputs and not args.oracle_checkpoint_pack:
+        parser.error(
+            "--oracle-checkpoint-no-batch-inputs requires --oracle-checkpoint-pack"
+        )
     if not 1024 <= args.slippi_port <= 65535:
         parser.error("--slippi-port must be in [1024, 65535]")
     if not 0.30 <= args.shield_hit_pressure <= 1.0:

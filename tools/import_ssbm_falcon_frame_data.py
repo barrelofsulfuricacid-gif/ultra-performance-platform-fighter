@@ -86,6 +86,15 @@ SHIELD_BREAK_ECB_CAPTURE_SHA256 = (
 SHIELD_BREAK_ECB_SEMANTIC_SHA256 = (
     "821813a089870f744dedf1323593ae590ebecb358c30c38a58a463881ae8a264"
 )
+DOWN_BOUND_ECB_PROFILE_SHA256 = (
+    "a51838128df5c2df0df68a1df507b05ef868217d76b1c5fe57471f094d084f28"
+)
+DOWN_BOUND_ECB_CAPTURE_SHA256 = (
+    "c9bca1cb43fad6c0b6fb73c123faaeef0725b9737b84de4abf38d917386a2cfb"
+)
+DOWN_BOUND_ECB_SEMANTIC_SHA256 = (
+    "3c4a4ce4586b11617aa99a08bac8709ea6d7aa8a179b5494c6f3f7fe4785c7df"
+)
 BOUNCE_ECB_PROFILE_SHA256 = (
     "d6ccb5701f0bada0d7de1874004281e8ca46fcc0070db94e529d84d3fc637608"
 )
@@ -1328,6 +1337,7 @@ def generate(
     airborne_ecb_profile: dict[str, Any],
     aerial_attack_ecb_profile: dict[str, Any],
     shield_break_ecb_profile: dict[str, Any],
+    down_bound_ecb_profile: dict[str, Any],
 ) -> str:
     phases: list[tuple[int, int, int]] = []
     effects: list[dict[str, Any]] = []
@@ -1370,6 +1380,15 @@ def generate(
     }
     shield_break_fly_frames = tuple(
         shield_break_tracks["shield-break-fly"]["frames"]
+    )
+    down_bound_tracks = {
+        str(track["id"]): track for track in down_bound_ecb_profile["tracks"]
+    }
+    down_bound_back_frames = tuple(
+        down_bound_tracks["down_bound_back"]["frames"]
+    )
+    down_bound_stomach_frames = tuple(
+        down_bound_tracks["down_bound_stomach"]["frames"]
     )
 
     fighter_data = dat_data["nodes"][0]["data"]
@@ -1907,6 +1926,8 @@ def generate(
         + bytes.fromhex(AERIAL_ATTACK_ECB_SEMANTIC_SHA256)
         + bytes.fromhex(SHIELD_BREAK_ECB_PROFILE_SHA256)
         + bytes.fromhex(SHIELD_BREAK_ECB_SEMANTIC_SHA256)
+        + bytes.fromhex(DOWN_BOUND_ECB_PROFILE_SHA256)
+        + bytes.fromhex(DOWN_BOUND_ECB_SEMANTIC_SHA256)
         + b"".join(value.to_bytes(4, "big") for value in common_attribute_bits)
         + json.dumps(
             {
@@ -2005,6 +2026,28 @@ def generate(
                     )
                     for frame in shield_break_fly_frames
                 ),
+                "falcon_down_bound_ecb_capture_sha256": (
+                    DOWN_BOUND_ECB_CAPTURE_SHA256
+                ),
+                "falcon_down_bound_ecb_semantic_sha256": (
+                    DOWN_BOUND_ECB_SEMANTIC_SHA256
+                ),
+                "falcon_down_bound_collision_pose_q16": {
+                    "back": tuple(
+                        tuple(
+                            tuple(frame["ecb_q16"][point])
+                            for point in ECB_POINTS
+                        )
+                        for frame in down_bound_back_frames
+                    ),
+                    "stomach": tuple(
+                        tuple(
+                            tuple(frame["ecb_q16"][point])
+                            for point in ECB_POINTS
+                        )
+                        for frame in down_bound_stomach_frames
+                    ),
+                },
                 "falcon_fall_special_collision_pose_melee": {
                     "bottom_y_from_origin": FALL_SPECIAL_ECB_BOTTOM_Y_MELEE,
                 },
@@ -2487,6 +2530,18 @@ def generate(
             f"UINT32_C({DOWN_BOUND_BACK_FLOOR_CONTACT_MASK}),",
             "    .down_bound_stomach_floor_contact_mask = "
             f"UINT32_C({DOWN_BOUND_STOMACH_FLOOR_CONTACT_MASK}),",
+            "    .down_bound_back = {",
+            *(
+                f"        {render_ecb_pose_q16(frame)},"
+                for frame in down_bound_back_frames
+            ),
+            "    },",
+            "    .down_bound_stomach = {",
+            *(
+                f"        {render_ecb_pose_q16(frame)},"
+                for frame in down_bound_stomach_frames
+            ),
+            "    },",
             "    .damage_fly_bottom_y_from_origin_q16 = {",
             "        "
             + ", ".join(
@@ -2762,6 +2817,17 @@ def main() -> int:
         expected_semantic_sha256=SHIELD_BREAK_ECB_SEMANTIC_SHA256,
         expected_tracks=(("shield-break-fly", "SHIELD_BREAK_FLY", 1, 42),),
     )
+    down_bound_ecb_profile = load_ecb_profile(
+        Path(__file__).with_name("data")
+        / "ssbm_falcon_down_bound_ecb.json",
+        expected_profile_sha256=DOWN_BOUND_ECB_PROFILE_SHA256,
+        expected_capture_sha256=DOWN_BOUND_ECB_CAPTURE_SHA256,
+        expected_semantic_sha256=DOWN_BOUND_ECB_SEMANTIC_SHA256,
+        expected_tracks=(
+            ("down_bound_stomach", "TECH_MISS_DOWN", 1, 26),
+            ("down_bound_back", "TECH_MISS_UP", 1, 26),
+        ),
+    )
     digest = canonical_sha256(data)
     if digest != EXPECTED_CANONICAL_SHA256:
         raise SystemExit(f"unexpected Falcon frame-data SHA-256: {digest}")
@@ -2775,6 +2841,7 @@ def main() -> int:
         airborne_ecb_profile,
         aerial_attack_ecb_profile,
         shield_break_ecb_profile,
+        down_bound_ecb_profile,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(output, encoding="utf-8", newline="\n")

@@ -28,6 +28,30 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
 
 **Working branch:** `agent/m4-combat-vertical-slice`
 
+## Implemented and verified in the 2026-08-11 DownBound ECB follow-up
+
+- Audited every Falcon special collision callback. Falcon Punch, Raptor Boost,
+  and Falcon Kick intentionally perform ground/wall collision only; Falcon
+  Dive is the sole Falcon special that calls Melee's combined ground-and-ledge
+  query, matching the already-qualified production predicate.
+- Reused the existing prone-response checkpoint pack with an explicit
+  unbatched geometry mode. A two-case headless/null/unlimited Dolphin capture
+  records 600 rows in about 6.6 seconds and reproduces all 26 displayed
+  `DownBoundD` and 26 displayed `DownBoundU` four-point ECB poses.
+- Added the canonical 52-pose profile under semantic SHA-256
+  `3c4a4ce4586b11617aa99a08bac8709ea6d7aa8a179b5494c6f3f7fe4785c7df`.
+  Production resolves it through the shared constant-time ECB path for
+  action-specific wall and ceiling queries while retaining the independently
+  qualified floor-contact schedule. Source DownBoundD maps to the canonical
+  stomach variant and DownBoundU maps to back; the binding is manifest-derived.
+- Added a fast committed-profile CTest and an at-will live verifier. The live
+  repeat regenerated the same semantic digest from a new Dolphin process.
+- Windows Release and WSL Release pass 37/37; WSL ASan/UBSan passes 25/25 in
+  20.86 seconds. The full 21-domain / 117-case stored gate plus replay passes
+  in 0.712 seconds on Windows and 0.658 seconds
+  in WSL. Repeated verifier runs agree on the new content-bearing digest
+  `c0248444d9d95ff6` with unchanged 8-match / 3,002-tick event counts.
+
 ## Implemented and verified in the 2026-08-10 decomp differential
 
 - Audited pinned NTSC 1.02 common callbacks and all Falcon special callbacks

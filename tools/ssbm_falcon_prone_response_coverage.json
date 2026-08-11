@@ -553,13 +553,17 @@
       "tests/sim/ssbm_stored_oracle.h",
       "tests/sim/test_m4_combat.c",
       "tools/capture_ssbm_movement.py",
+      "tools/data/ssbm_falcon_down_bound_ecb.json",
+      "tools/extract_ssbm_ecb_pose_tracks.py",
       "tools/generate_ssbm_stored_trace_oracle.py",
       "tools/import_ssbm_falcon_frame_data.py",
       "tools/import_ssbm_common_data.py",
       "tools/merge_ssbm_checkpoint_captures.py",
       "tools/ssbm_falcon_prone_response_coverage.json",
       "tools/verify_ssbm_falcon_prone_response.py",
-      "tools/verify_ssbm_falcon_prone_response.sh"
+      "tools/verify_ssbm_falcon_prone_response.sh",
+      "tools/verify_ssbm_falcon_down_bound_ecb.py",
+      "tools/verify_ssbm_falcon_down_bound_ecb.sh"
     ]
   },
   "stored_oracle": {

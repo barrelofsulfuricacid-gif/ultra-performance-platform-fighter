@@ -1300,6 +1300,30 @@ source one-row landing vertical velocity, and reproduces the source shield
 health lifecycle. The generic stored route pins production SHA-256
 `d2080f96a9477f5615f777d657e70cab9181015f7058b4257dba8c9c52334cc4`.
 
+## Falcon DownBound collision poses
+
+The existing prone-response checkpoint route was rerun with EXI batching
+disabled only for geometry sampling, so every response frame retains its live
+`fighter+0x794` collision box. The focused `timeout` and `up_timeout` cases
+produce 600 rows in one persistent headless/null/unlimited Dolphin process and
+cover displayed frames 1 through 26 of both `DownBoundD` (`TECH_MISS_DOWN`)
+and `DownBoundU` (`TECH_MISS_UP`). A repeat process regenerated the same
+canonical semantic SHA-256
+`3c4a4ce4586b11617aa99a08bac8709ea6d7aa8a179b5494c6f3f7fe4785c7df`.
+
+`tools/data/ssbm_falcon_down_bound_ecb.json` stores all 52 top, bottom, left,
+and right points in source float and Q16.16 form. Its profile SHA-256 is
+`a51838128df5c2df0df68a1df507b05ef868217d76b1c5fe57471f094d084f28`;
+the generating capture SHA-256 is
+`c9bca1cb43fad6c0b6fb73c123faaeef0725b9737b84de4abf38d917386a2cfb`.
+The frame-data importer rejects drift in all three identities. Production
+maps source DownBoundD to canonical stomach and DownBoundU to canonical back,
+then selects the table by prone orientation and action tick through the
+same allocation-free ECB resolver used by shield break and damage bounces.
+The earlier compact floor-contact masks remain authoritative for the unusual
+frames 1-4 / 23-26 grounding schedule, while the complete pose now drives
+wall and ceiling queries during the airborne middle of DownBound.
+
 ## Repository controls
 
 - Only the converted constants and independently written C state machine ship.

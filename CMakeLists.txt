@@ -658,6 +658,17 @@ if(BUILD_TESTING)
             sim.m4_ssbm_falcon_ground_animation_clock
             PROPERTIES PASS_REGULAR_EXPRESSION
                        "ssbm-falcon-ground-animation-clock=pass cases=3 samples=111 native_alignments=0,0,5")
+
+        add_test(
+            NAME sim.m4_ssbm_falcon_down_bound_ecb_profile
+            COMMAND
+                "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_ssbm_falcon_down_bound_ecb.py"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/data/ssbm_falcon_down_bound_ecb.json")
+        set_tests_properties(
+            sim.m4_ssbm_falcon_down_bound_ecb_profile
+            PROPERTIES PASS_REGULAR_EXPRESSION
+                       "ssbm-falcon-down-bound-ecb-profile=pass tracks=2 poses=52")
     endif()
 
     add_test(
