@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import replace
+from dataclasses import dataclass, replace
 import hashlib
 import json
 import math
@@ -114,6 +114,138 @@ def canonical_source_pose_q16(
             int(capsule[8]),
         )
         for hurtbox_id, capsule in enumerate(capsules)
+    )
+
+
+def compare_hurt_pose_q16(
+    row: dict[str, Any],
+    source_joints: tuple[Any, ...],
+    animation: Any,
+    capsules: tuple[Any, ...],
+    layout: Any,
+    coordinate_scale_q16: float,
+    axis_sign: tuple[int, int, int],
+    tolerance: int,
+    context: str,
+) -> int:
+    memory = row.get("hitbox_memory")
+    require(isinstance(memory, dict), f"{context}: missing hitbox memory")
+    frame = memory.get("fighter_animation_frame")
+    facing = row.get("facing")
+    require(
+        isinstance(frame, (int, float)) and facing in (-1, 1),
+        f"{context}: invalid pose clock or facing",
+    )
+    expected = canonical_hurt_pose_q16(
+        memory,
+        "fighter_hurtboxes",
+        "fighter_position",
+        int(facing),
+        coordinate_scale_q16,
+        "position",
+    )
+    actual = canonical_source_pose_q16(
+        evaluate_hurt_capsules(
+            source_joints,
+            animation,
+            capsules,
+            float(frame),
+            layout,
+        ),
+        coordinate_scale_q16,
+        axis_sign,
+    )
+    require(len(actual) == len(expected), f"{context}: capsule count mismatch")
+    maximum_difference = 0
+    for capsule_index, (left, right) in enumerate(
+        zip(actual, expected, strict=True)
+    ):
+        require(
+            left[7:] == right[7:],
+            f"{context}: capsule {capsule_index} metadata mismatch",
+        )
+        difference = max(
+            abs(left_value - right_value)
+            for left_value, right_value in zip(left[:7], right[:7], strict=True)
+        )
+        require(
+            difference <= tolerance,
+            f"{context}: trace={row['trace_frame']} capsule={capsule_index} "
+            f"Q16 difference={difference}",
+        )
+        maximum_difference = max(maximum_difference, difference)
+    return maximum_difference
+
+
+@dataclass(frozen=True)
+class HurtPoseSource:
+    fighter_archive: Any
+    animation_raw: bytes
+    fighter_root: str
+    source_joints: tuple[Any, ...]
+    layout: Any
+    capsules: tuple[Any, ...]
+    coordinate_scale_q16: float
+    axis_sign: tuple[int, int, int]
+
+
+def build_hurt_pose_source(
+    manifest: dict[str, Any],
+    fighter_raw: bytes,
+    animation_raw: bytes,
+    common_raw: bytes,
+    model_raw: bytes,
+) -> HurtPoseSource:
+    fighter_archive = read_hsd_archive(fighter_raw)
+    model_archive = read_hsd_archive(model_raw)
+    fighter_root = str(manifest["fighter_root"])
+    conversion = manifest.get("pose_conversion")
+    require(isinstance(conversion, dict), "manifest has no pose conversion")
+    root_rotation_turns = conversion.get("root_rotation_turns")
+    axis_sign_raw = conversion.get("axis_sign")
+    numerator = conversion.get("source_to_sim_numerator")
+    denominator = conversion.get("source_to_sim_denominator")
+    require(
+        isinstance(root_rotation_turns, list)
+        and len(root_rotation_turns) == 3
+        and all(isinstance(value, (int, float)) for value in root_rotation_turns)
+        and isinstance(axis_sign_raw, list)
+        and len(axis_sign_raw) == 3
+        and all(value in (-1, 1) for value in axis_sign_raw)
+        and isinstance(numerator, int)
+        and isinstance(denominator, int)
+        and numerator > 0
+        and denominator > 0,
+        "manifest pose conversion is invalid",
+    )
+    axis_sign = tuple(int(value) for value in axis_sign_raw)
+    require(axis_sign == (1, -1, 1), "live canonicalizer requires sim axis convention")
+    joints = list(read_joint_tree(model_archive, str(manifest["model_root"])))
+    model_scale = fighter_model_scale(fighter_archive, fighter_root)
+    root = joints[0]
+    joints[0] = replace(
+        root,
+        rotation=tuple(
+            root.rotation[axis]
+            + float(root_rotation_turns[axis]) * 2.0 * math.pi
+            for axis in range(3)
+        ),
+        scale=(model_scale, model_scale, model_scale),
+    )
+    return HurtPoseSource(
+        fighter_archive=fighter_archive,
+        animation_raw=animation_raw,
+        fighter_root=fighter_root,
+        source_joints=tuple(joints),
+        layout=read_fighter_part_layout(
+            common_raw,
+            int(manifest["fighter_kind"]),
+        ),
+        capsules=read_fighter_hurt_capsules(fighter_archive, fighter_root),
+        coordinate_scale_q16=(
+            65536.0 * float(numerator) / float(denominator)
+        ),
+        axis_sign=axis_sign,
     )
 
 
@@ -258,45 +390,20 @@ def main() -> int:
     )
     common_raw = load_pinned_source(args.common_dat, manifest, "common_dat")
     model_raw = load_pinned_source(args.model_dat, manifest, "model_dat")
-    fighter_archive = read_hsd_archive(fighter_raw)
-    model_archive = read_hsd_archive(model_raw)
-    fighter_root = str(manifest["fighter_root"])
-    conversion = manifest.get("pose_conversion")
-    require(isinstance(conversion, dict), "manifest has no pose conversion")
-    root_rotation_turns = conversion.get("root_rotation_turns")
-    axis_sign_raw = conversion.get("axis_sign")
-    numerator = conversion.get("source_to_sim_numerator")
-    denominator = conversion.get("source_to_sim_denominator")
-    require(
-        isinstance(root_rotation_turns, list)
-        and len(root_rotation_turns) == 3
-        and all(isinstance(value, (int, float)) for value in root_rotation_turns)
-        and isinstance(axis_sign_raw, list)
-        and len(axis_sign_raw) == 3
-        and all(value in (-1, 1) for value in axis_sign_raw)
-        and isinstance(numerator, int)
-        and isinstance(denominator, int)
-        and numerator > 0
-        and denominator > 0,
-        "manifest pose conversion is invalid",
+    source = build_hurt_pose_source(
+        manifest,
+        fighter_raw,
+        animation_raw,
+        common_raw,
+        model_raw,
     )
-    axis_sign = tuple(int(value) for value in axis_sign_raw)
-    require(axis_sign == (1, -1, 1), "live canonicalizer requires sim axis convention")
-    coordinate_scale_q16 = 65536.0 * float(numerator) / float(denominator)
-    joints = list(read_joint_tree(model_archive, str(manifest["model_root"])))
-    model_scale = fighter_model_scale(fighter_archive, fighter_root)
-    root = joints[0]
-    joints[0] = replace(
-        root,
-        rotation=tuple(
-            root.rotation[axis] + float(root_rotation_turns[axis]) * 2.0 * math.pi
-            for axis in range(3)
-        ),
-        scale=(model_scale, model_scale, model_scale),
-    )
-    source_joints = tuple(joints)
-    layout = read_fighter_part_layout(common_raw, int(manifest["fighter_kind"]))
-    capsules = read_fighter_hurt_capsules(fighter_archive, fighter_root)
+    fighter_archive = source.fighter_archive
+    fighter_root = source.fighter_root
+    source_joints = source.source_joints
+    layout = source.layout
+    capsules = source.capsules
+    coordinate_scale_q16 = source.coordinate_scale_q16
+    axis_sign = source.axis_sign
     point_sets = manifest.get("joint_point_sets")
     require(isinstance(point_sets, list), "manifest joint point sets are missing")
     ecb_point_sets = [
@@ -373,53 +480,18 @@ def main() -> int:
                 memory = row["hitbox_memory"]
                 frame = memory.get("fighter_animation_frame")
                 facing = row.get("facing")
-                require(
-                    isinstance(frame, (int, float)) and facing in (-1, 1),
-                    f"{capture_name}/{action}: invalid pose clock or facing",
-                )
-                expected = canonical_hurt_pose_q16(
-                    memory,
-                    "fighter_hurtboxes",
-                    "fighter_position",
-                    int(facing),
-                    coordinate_scale_q16,
-                    "position",
-                )
-                actual = canonical_source_pose_q16(
-                    evaluate_hurt_capsules(
-                        source_joints,
-                        animation,
-                        capsules,
-                        float(frame),
-                        layout,
-                    ),
+                difference = compare_hurt_pose_q16(
+                    row,
+                    source_joints,
+                    animation,
+                    capsules,
+                    layout,
                     coordinate_scale_q16,
                     axis_sign,
+                    tolerance,
+                    f"{capture_name}/{action}",
                 )
-                require(
-                    len(actual) == len(expected),
-                    f"{capture_name}/{action}: capsule count mismatch",
-                )
-                for capsule_index, (left, right) in enumerate(
-                    zip(actual, expected, strict=True)
-                ):
-                    require(
-                        left[7:] == right[7:],
-                        f"{capture_name}/{action}: capsule "
-                        f"{capsule_index} metadata mismatch",
-                    )
-                    difference = max(
-                        abs(left_value - right_value)
-                        for left_value, right_value in zip(
-                            left[:7], right[:7], strict=True
-                        )
-                    )
-                    if difference > tolerance:
-                        raise ValueError(
-                            f"{capture_name}/{action}: trace={row['trace_frame']} "
-                            f"capsule={capsule_index} Q16 difference={difference}"
-                        )
-                    case_maximum = max(case_maximum, difference)
+                case_maximum = max(case_maximum, difference)
                 captured_ecb = memory.get("fighter_ecb")
                 require(
                     isinstance(captured_ecb, dict),

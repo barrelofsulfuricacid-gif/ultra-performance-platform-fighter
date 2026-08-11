@@ -14601,6 +14601,69 @@ static int make_shield_break_content(
         "shield-break-content-view");
 }
 
+static int shield_break_hurt_pose_matches_source(
+    const pf_m4_fighter_data *fighter,
+    const pf_m4_player_inspection *player)
+{
+    pf_m4_reference_hurt_capsule
+        local[PF_M4_HSD_POSE_MAX_CAPSULES];
+    uint8_t count = UINT8_C(0);
+    uint8_t capsule_index;
+
+    if (player->action_state != (uint8_t)PF_M4_ACTION_SHIELD_BREAK &&
+        player->action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD_BREAK_DOWN &&
+        player->action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STAND)
+    {
+        return 1;
+    }
+    if (!pf_m4_falcon_reference_retained_hsd_hurt_capsules(
+            player->action_state,
+            player->source_submotion,
+            player->action_ticks,
+            local,
+            &count) ||
+        count != player->hurt_capsule_count)
+    {
+        return 0;
+    }
+    for (capsule_index = UINT8_C(0);
+         capsule_index < count;
+         ++capsule_index)
+    {
+        const pf_m4_reference_hurt_capsule *source =
+            &local[capsule_index];
+        const pf_m4_hurt_capsule_inspection *world =
+            &player->hurt_capsules[capsule_index];
+        const int32_t origin_y_q16 =
+            player->position_y_q16 + fighter->half_height_q16;
+
+        if (world->endpoint_a_x_q16 !=
+                player->position_x_q16 +
+                    player->facing * source->endpoint_a_x_q16 ||
+            world->endpoint_a_y_q16 !=
+                origin_y_q16 + source->endpoint_a_y_q16 ||
+            world->endpoint_a_z_q16 !=
+                player->facing * source->endpoint_a_z_q16 ||
+            world->endpoint_b_x_q16 !=
+                player->position_x_q16 +
+                    player->facing * source->endpoint_b_x_q16 ||
+            world->endpoint_b_y_q16 !=
+                origin_y_q16 + source->endpoint_b_y_q16 ||
+            world->endpoint_b_z_q16 !=
+                player->facing * source->endpoint_b_z_q16 ||
+            world->radius_q16 != source->radius_q16 ||
+            world->hurtbox_id != source->hurtbox_id ||
+            world->height != source->height ||
+            world->grabbable != source->grabbable)
+        {
+            return 0;
+        }
+    }
+    return 1;
+}
+
 static int advance_shield_break_to_stun(
     const pf_m4_content *content,
     pf_sim *sim,
@@ -14666,6 +14729,12 @@ static int advance_shield_break_to_stun(
     {
         uint32_t attack_tick;
 
+        if (!shield_break_hurt_pose_matches_source(
+                &content->fighter,
+                &out_inspection->players[1]))
+        {
+            return fail("shield-break-source-hurt-pose");
+        }
         if (out_inspection->players[1].action_state ==
             (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN)
         {
@@ -27769,8 +27838,8 @@ static int run_falcon_reference_table_test(void)
         standing_hurt_capsules[0].height != UINT8_C(1) ||
         standing_hurt_capsules[0].grabbable != UINT8_C(1) ||
         complete_source_sha256 == NULL ||
-        complete_source_sha256[0] != UINT8_C(0x74) ||
-        complete_source_sha256[31] != UINT8_C(0xee) ||
+        complete_source_sha256[0] != UINT8_C(0xf8) ||
+        complete_source_sha256[31] != UINT8_C(0xc4) ||
         common_attribute_bits == NULL ||
         common_attribute_count != UINT16_C(97) ||
         common_attribute_bits[0] != UINT32_C(0x3e19999a) ||
@@ -30148,7 +30217,7 @@ int main(int argc, char **argv)
             PF_M4_FALCON_GROUND_LOOP_HSD_ORACLE_CASE_COUNT,
             PF_M4_FALCON_GROUND_LOOP_HSD_ORACLE_CAPSULE_COUNT,
             PF_M4_FALCON_GROUND_LOOP_HSD_ORACLE_TOLERANCE_Q16,
-            pf_m4_falcon_reference_dynamic_ground_hurt_capsules) ||
+            pf_m4_falcon_reference_hsd_hurt_capsules) ||
         !run_reference_common_hurt_stored_oracle(0) ||
         !run_reference_falcon_grounded_loop_hurt_stored_oracle(0) ||
         !run_reference_falcon_dive_grab_stored_oracle(0) ||

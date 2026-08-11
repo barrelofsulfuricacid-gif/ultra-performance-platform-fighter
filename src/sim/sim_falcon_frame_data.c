@@ -108,6 +108,18 @@ _Static_assert(
         (size_t)PF_M4_FALCON_SHIELD_BREAK_FLY_ECB_FRAME_COUNT,
     "Falcon ShieldBreakFly ECB table must be complete");
 _Static_assert(
+    sizeof(pf_m4_falcon_collision_pose_data.shield_break_down_down) /
+            sizeof(pf_m4_falcon_collision_pose_data
+                       .shield_break_down_down[0]) ==
+        (size_t)PF_M4_FALCON_SHIELD_BREAK_DOWN_ECB_FRAME_COUNT,
+    "Falcon ShieldBreakDownD ECB table must be complete");
+_Static_assert(
+    sizeof(pf_m4_falcon_collision_pose_data.shield_break_stand_down) /
+            sizeof(pf_m4_falcon_collision_pose_data
+                       .shield_break_stand_down[0]) ==
+        (size_t)PF_M4_FALCON_SHIELD_BREAK_STAND_ECB_FRAME_COUNT,
+    "Falcon ShieldBreakStandD ECB table must be complete");
+_Static_assert(
     sizeof(pf_m4_falcon_collision_pose_data.ceiling_bounce) /
             sizeof(pf_m4_falcon_collision_pose_data.ceiling_bounce[0]) ==
         (size_t)PF_M4_FALCON_CEILING_BOUNCE_ECB_FRAME_COUNT,
@@ -1545,7 +1557,7 @@ static int pf_m4_falcon_copy_dynamic_ground_hurt_capsules(
     return 1;
 }
 
-int pf_m4_falcon_reference_dynamic_ground_hurt_capsules(
+int pf_m4_falcon_reference_hsd_hurt_capsules(
     uint16_t source_submotion,
     int32_t source_animation_frame_q16,
     pf_m4_reference_hurt_capsule
@@ -1572,7 +1584,7 @@ int pf_m4_falcon_reference_dynamic_ground_hurt_capsules(
         evaluated, count, out_capsules, out_count);
 }
 
-int pf_m4_falcon_reference_dynamic_ground_hurt_capsules_from_local_pose(
+int pf_m4_falcon_reference_hsd_hurt_capsules_from_local_pose(
     const pf_m4_hsd_local_pose pose[PF_M4_HSD_POSE_MAX_JOINTS],
     pf_m4_reference_hurt_capsule
         out_capsules[PF_M4_HSD_POSE_MAX_CAPSULES],
@@ -1595,6 +1607,71 @@ int pf_m4_falcon_reference_dynamic_ground_hurt_capsules_from_local_pose(
     }
     return pf_m4_falcon_copy_dynamic_ground_hurt_capsules(
         evaluated, count, out_capsules, out_count);
+}
+
+int pf_m4_falcon_reference_retained_hsd_pose(
+    uint8_t action_state,
+    uint16_t source_submotion,
+    uint16_t action_ticks,
+    int32_t *out_frame_q16)
+{
+    uint16_t expected_submotion;
+
+    if (out_frame_q16 == NULL)
+    {
+        return 0;
+    }
+    switch ((pf_m4_action_state)action_state)
+    {
+    case PF_M4_ACTION_SHIELD_BREAK:
+        expected_submotion =
+            (uint16_t)PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_FLY;
+        break;
+    case PF_M4_ACTION_SHIELD_BREAK_DOWN:
+        expected_submotion =
+            pf_m4_falcon_reference_shield_break_down_submotion();
+        break;
+    case PF_M4_ACTION_SHIELD_BREAK_STAND:
+        expected_submotion =
+            pf_m4_falcon_reference_shield_break_down_submotion() ==
+                    (uint16_t)PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_DOWN_DOWN
+                ? (uint16_t)PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_STAND_DOWN
+                : (uint16_t)PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_STAND_UP;
+        break;
+    default:
+        return 0;
+    }
+    if (source_submotion != expected_submotion)
+    {
+        return 0;
+    }
+    *out_frame_q16 = (int32_t)action_ticks * PF_Q16_ONE;
+    return 1;
+}
+
+int pf_m4_falcon_reference_retained_hsd_hurt_capsules(
+    uint8_t action_state,
+    uint16_t source_submotion,
+    uint16_t action_ticks,
+    pf_m4_reference_hurt_capsule
+        out_capsules[PF_M4_HSD_POSE_MAX_CAPSULES],
+    uint8_t *out_count)
+{
+    int32_t source_animation_frame_q16;
+
+    if (!pf_m4_falcon_reference_retained_hsd_pose(
+            action_state,
+            source_submotion,
+            action_ticks,
+            &source_animation_frame_q16))
+    {
+        return 0;
+    }
+    return pf_m4_falcon_reference_hsd_hurt_capsules(
+        source_submotion,
+        source_animation_frame_q16,
+        out_capsules,
+        out_count);
 }
 
 uint16_t pf_m4_falcon_reference_shield_break_down_submotion(void)

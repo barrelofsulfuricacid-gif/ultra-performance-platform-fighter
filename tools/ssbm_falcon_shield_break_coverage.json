@@ -41,6 +41,7 @@
   "selection": {
     "paths": [
       "generated/data/m4_falcon_ntsc102_frame_data.inc",
+      "generated/data/m4_ssbm_falcon_ground_loop_hsd.inc",
       "generated/data/m4_ssbm_falcon_shield_break_oracle.json",
       "src/sim/sim_combat.c",
       "src/sim/sim_falcon_frame_data.c",
@@ -56,6 +57,7 @@
       "tools/ssbm_falcon_ground_loop_hurt_import.json",
       "tools/ssbm_falcon_shield_break_coverage.json",
       "tools/verify_ssbm_dynamic_hurt_pose_source.py",
+      "tools/verify_ssbm_hsd_action_hurt_source.py",
       "tools/verify_ssbm_falcon_shield_break.py"
     ]
   },

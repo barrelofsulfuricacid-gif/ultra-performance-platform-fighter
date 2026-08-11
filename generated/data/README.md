@@ -67,17 +67,23 @@ for its frame-20 physical hit/miss theorem instead of retaining a partial
 JumpF-specific copy.
 
 `m4_ssbm_falcon_ground_loop_hsd.inc` is the compact source-data form for
-velocity-driven WalkSlow/Middle/Fast and Run poses. The generic generator reads
+velocity-driven WalkSlow/Middle/Fast and Run poses, Raptor Boost, Falcon Dive,
+common FallSpecial, and the animated ShieldBreakFly/DownD/StandD hurt poses.
+The generic generator reads
 the four hash-pinned owner-extracted fighter/model DATs, validates the complete
-model and runtime part layout, retains only the 23 parent-closed joints needed
-by Falcon's 11 hurt capsules, and emits four motions containing 205 FObj tracks
-and 1,198 keys. The character-independent Q16 runtime evaluator samples these
+model and runtime part layout, retains only the 25 parent-closed joints needed
+by Falcon's 11 hurt capsules and six ECB selectors, and emits 20 motions
+containing 1,461 FObj tracks and 12,256 keys. The character-independent Q16
+runtime evaluator samples these
 tracks at the canonical fractional animation cursor; Falcon only binds its
 source submotion IDs and converts the shared capsule result. The same source
 import also evaluates compact common-state pose predicates: Falcon's terminal
 ShieldBreakFly HipN matrix component is emitted as one signed Q16 value and one
-boolean, so the runtime selects DownD without retaining a full otherwise-unused
-shield-break motion. The companion
+boolean, so the runtime selects DownD. ShieldBreakFly/DownD/StandD hurt
+capsules are evaluated from those retained HSD motions. Their collision ECBs
+remain compact live-source tracks because Melee's runtime animation/collision
+callbacks do not reduce to the raw selector-joint matrices on this route. The
+companion
 `m4_ssbm_falcon_ground_loop_hsd_oracle.inc` contains eight test observations,
 not a duplicate production pose table. The live source verifier independently
 compares the DAT evaluator against two manifest-pinned Dolphin captures after
@@ -128,8 +134,9 @@ second runner and contains no Falcon Kick implementation logic.
 `m4_ssbm_falcon_shield_break_oracle.json` uses the same generic native-CSV path
 for one 500-sample passive-depletion route. Its manifest binds the exact
 digital-trigger phases and production columns to two live-qualified controls.
-The production frame-data include separately owns Falcon's 42 immutable
-ShieldBreakFly ECB poses; this oracle stores inputs, masks, and digests only.
+The production frame-data include separately owns Falcon's 98 immutable
+ShieldBreakFly/DownD/StandD ECB poses; this oracle stores inputs, masks, and
+digests only.
 
 `m4_ssbm_ntsc102_hyrule_collision.inc` is the immutable production stage
 catalog generated from the reviewed Hyrule MapCollData subset. Its authored

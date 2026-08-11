@@ -7597,6 +7597,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         or args.hitbox_geometry_only
         or args.throw_geometry_only
         or args.special_geometry_only
+        or args.shield_break_orientation_only
         or (args.damage_hit_only and args.oracle_checkpoint_pack)
     ):
         parser.error(

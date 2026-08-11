@@ -1298,8 +1298,10 @@ The same parent-closed profile now owns Falcon Dive ground/air start, catch,
 throw, and common FallSpecial neutral/forward/back geometry. Nine retained
 captures cover eight motions, 733 rows, and 715 unique frames; the independent
 source evaluator differs from live Dolphin by at most two Q16 units. The HSD
-profile contains 17 motions, 1,204 tracks, and 10,106 keys under SHA-256
-`ab3eae37b1a8a0e0b495291d3d1548093906b0ffecd9e4bb59ea32d0056b5f9a`.
+profile contained 17 motions, 1,204 tracks, and 10,106 keys at this checkpoint.
+The later shield-break import extends the same profile to 20 motions, 1,461
+tracks, and 12,256 keys under SHA-256
+`6aecee6254ade91c7d7d0cc2db85ff0a5cba9149611704884f671b6b6b57ff90`.
 
 FallSpecial direction selection follows `ftCo_Fall_Anim_Inner` using the
 imported common threshold `0.1`, Falcon's imported air-speed maximum, and the
@@ -1316,10 +1318,12 @@ A fresh headless/null/unlimited natural Falcon Dive miss capture has SHA-256
 The same-input production route passes all 165 compared frames under the
 existing 640-Q16 accumulated-position envelope, with actions and velocity
 channels strict. The authored Falcon Dive and FallSpecial ECB arrays are now
-removed; the generated include SHA-256 is
-`754a72159e5463752e382dd6a2a8e35657bab601b84c228ade5c540d30272a74`,
+removed. Their checkpoint include SHA-256 was
+`754a72159e5463752e382dd6a2a8e35657bab601b84c228ade5c540d30272a74`;
+after the shield-break import the current generated include SHA-256 is
+`1fb31567ede60c5b6dc5ac374bcc2f373ebd55a9c84ec67da2eb4b2f276cf2fb`
 and the Falcon complete-source digest is
-`74e4a7b7a8635a870ba65cb77425eb3500d0df2d53b41fa1ff9aa9fffbb3edee`.
+`f8fb313d2410d9ed5adba7c8356982a2f92066af65f2e266c544d6e83d93dec4`.
 
 ## Falcon shield-break orientation branch
 
@@ -1344,16 +1348,26 @@ order. The manifest-bound source verifier recomputes the matrix predicate from
 the four owner-extracted DATs and validates both captures; the runtime stores
 no new branch state and performs only a constant lookup at landing.
 
-The subsequent surface-probed controls have normalized SHA-256
+The original surface-probed controls have normalized SHA-256
 `1109c92ec4c57bff5658d25c432383ccc4c63e2caed73a1575ae3ef80c7c802d`
 and
 `3daad9d8a51ad0c6eb106fd14c25b6814a543dd359ca07f9a1e6b84e47ac4e74`.
 Their route semantic SHA-256 is
 `67d6f164a7d94e7171f1b8d4ace195676fac180faf1c9f044351ebeaab3f4ae5`;
-the persistent worker's unrelated looping Wait phase is normalized out. The
-source DAT-derived 42-frame ECB profile has file / semantic SHA-256
-`23a7318c5a366b21e005a65d36931b5db2011b655e00918a7c1640cc290fe97d` /
-`821813a089870f744dedf1323593ae590ebecb358c30c38a58a463881ae8a264`.
+the persistent worker's unrelated looping Wait phase is normalized out. Fresh
+memory-pose controls have raw SHA-256
+`ae02dca6e63eda47e780ee96cae26c4c8a565f4e2d534979791f827d737f5645`
+and `ddbc82fcd401fdbea41a202964f3dff678eff32a23199567607e26cb9ba5f40b`.
+They independently qualify all 98 linear-motion observations: the generic HSD
+evaluator reproduces 196 hurt poses / 2,156 capsules within one Q16 unit.
+
+Raw HSD selector-joint matrices do not exactly reproduce the live ECB during
+these actions because Melee's runtime callbacks and `ftCommon_8007D5D4` entry
+lock participate in collision geometry. Hurt and ECB qualification are
+therefore deliberately separate. The compact live Fly/DownD/StandD ECB profile
+has file / semantic SHA-256
+`63c3d7a87c92fe01260c16942af501a62d75ce49505d05ecff50f16a827792c9` /
+`c314cdef0f7ebffce7498c79e1ae73ee53b54402e7988da9ceffabab3aa2ccf0`.
 Production consumes the complete four-point ECB at collision time, retains the
 source one-row landing vertical velocity, and reproduces the source shield
 health lifecycle. The generic stored route pins production SHA-256

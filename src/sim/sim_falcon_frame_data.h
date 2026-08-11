@@ -38,6 +38,8 @@
 #define PF_M4_FALCON_DOWN_AERIAL_ECB_FRAME_COUNT UINT16_C(44)
 #define PF_M4_FALCON_AERIAL_ATTACK_ECB_FRAME_COUNT UINT16_C(195)
 #define PF_M4_FALCON_SHIELD_BREAK_FLY_ECB_FRAME_COUNT UINT16_C(42)
+#define PF_M4_FALCON_SHIELD_BREAK_DOWN_ECB_FRAME_COUNT UINT16_C(26)
+#define PF_M4_FALCON_SHIELD_BREAK_STAND_ECB_FRAME_COUNT UINT16_C(30)
 #define PF_M4_FALCON_CEILING_BOUNCE_ECB_FRAME_COUNT UINT16_C(9)
 #define PF_M4_FALCON_WALL_BOUNCE_ECB_FRAME_COUNT UINT16_C(51)
 #define PF_M4_FALCON_LEDGE_OPTION_SUBMOTION_FIRST UINT16_C(219)
@@ -625,6 +627,10 @@ typedef struct pf_m4_falcon_collision_pose
         PF_M4_FALCON_AERIAL_ATTACK_ECB_FRAME_COUNT];
     pf_m4_falcon_ecb_pose_q16 shield_break_fly[
         PF_M4_FALCON_SHIELD_BREAK_FLY_ECB_FRAME_COUNT];
+    pf_m4_falcon_ecb_pose_q16 shield_break_down_down[
+        PF_M4_FALCON_SHIELD_BREAK_DOWN_ECB_FRAME_COUNT];
+    pf_m4_falcon_ecb_pose_q16 shield_break_stand_down[
+        PF_M4_FALCON_SHIELD_BREAK_STAND_ECB_FRAME_COUNT];
     pf_m4_falcon_ecb_pose_q16 ceiling_bounce[
         PF_M4_FALCON_CEILING_BOUNCE_ECB_FRAME_COUNT];
     pf_m4_falcon_ecb_pose_q16 wall_bounce[
@@ -902,15 +908,29 @@ pf_m4_falcon_reference_common_hurt_capsules_for_submotion_at_frame(
     uint16_t action_frame,
     uint8_t *out_count);
 
-int pf_m4_falcon_reference_dynamic_ground_hurt_capsules(
+int pf_m4_falcon_reference_hsd_hurt_capsules(
     uint16_t source_submotion,
     int32_t source_animation_frame_q16,
     pf_m4_reference_hurt_capsule
         out_capsules[PF_M4_HSD_POSE_MAX_CAPSULES],
     uint8_t *out_count);
 
-int pf_m4_falcon_reference_dynamic_ground_hurt_capsules_from_local_pose(
+int pf_m4_falcon_reference_hsd_hurt_capsules_from_local_pose(
     const pf_m4_hsd_local_pose pose[PF_M4_HSD_POSE_MAX_JOINTS],
+    pf_m4_reference_hurt_capsule
+        out_capsules[PF_M4_HSD_POSE_MAX_CAPSULES],
+    uint8_t *out_count);
+
+int pf_m4_falcon_reference_retained_hsd_pose(
+    uint8_t action_state,
+    uint16_t source_submotion,
+    uint16_t action_ticks,
+    int32_t *out_frame_q16);
+
+int pf_m4_falcon_reference_retained_hsd_hurt_capsules(
+    uint8_t action_state,
+    uint16_t source_submotion,
+    uint16_t action_ticks,
     pf_m4_reference_hurt_capsule
         out_capsules[PF_M4_HSD_POSE_MAX_CAPSULES],
     uint8_t *out_count);

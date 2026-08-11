@@ -2319,6 +2319,8 @@ static int pf_m4_reference_ecb_pose_q16(
     uint16_t frame_index;
     int32_t locked_bottom_y_q16 =
         PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16;
+    int32_t retained_hsd_frame_q16;
+    int retained_hsd_pose;
 
     if (fighter->reference_frame_data_enabled == UINT8_C(0) || pose == NULL ||
         out_pose == NULL)
@@ -2347,6 +2349,15 @@ static int pf_m4_reference_ecb_pose_q16(
         }
         return 1;
     }
+    retained_hsd_pose = pf_m4_falcon_reference_retained_hsd_pose(
+            action_state,
+            source_submotion,
+            action_ticks,
+            &retained_hsd_frame_q16);
+    if (retained_hsd_pose)
+    {
+        source_animation_frame_q16 = retained_hsd_frame_q16;
+    }
     if (!pf_m4_falcon_direct_hsd_locked_bottom_q16(
             action_state,
             source_animation_frame_q16,
@@ -2373,10 +2384,41 @@ static int pf_m4_reference_ecb_pose_q16(
     {
         return 1;
     }
+    if (action_state == (uint8_t)PF_M4_ACTION_SHIELD_BREAK)
+    {
+        frame_index = pf_m4_clamped_pose_index(
+            action_ticks > UINT16_C(0)
+                ? (uint16_t)(action_ticks - UINT16_C(1))
+                : UINT16_C(0),
+            PF_M4_FALCON_SHIELD_BREAK_FLY_ECB_FRAME_COUNT);
+        *out_pose = pose->shield_break_fly[frame_index];
+        return 1;
+    }
+    if (action_state == (uint8_t)PF_M4_ACTION_SHIELD_BREAK_DOWN &&
+        source_submotion ==
+            (uint16_t)PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_DOWN_DOWN)
+    {
+        frame_index = pf_m4_clamped_pose_index(
+            action_ticks,
+            PF_M4_FALCON_SHIELD_BREAK_DOWN_ECB_FRAME_COUNT);
+        *out_pose = pose->shield_break_down_down[frame_index];
+        return 1;
+    }
+    if (action_state == (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STAND &&
+        source_submotion ==
+            (uint16_t)PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_STAND_DOWN)
+    {
+        frame_index = pf_m4_clamped_pose_index(
+            action_ticks,
+            PF_M4_FALCON_SHIELD_BREAK_STAND_ECB_FRAME_COUNT);
+        *out_pose = pose->shield_break_stand_down[frame_index];
+        return 1;
+    }
     if (pf_m4_falcon_reference_hsd_ecb_pose(
             source_submotion,
             source_animation_frame_q16,
-            pf_m4_action_uses_direct_hsd_pose(action_state)
+            (pf_m4_action_uses_direct_hsd_pose(action_state) ||
+             retained_hsd_pose)
                 ? grounded != UINT8_C(0)
                 : 1,
             locked_bottom_y_q16,
@@ -2426,16 +2468,6 @@ static int pf_m4_reference_ecb_pose_q16(
             -pose->damage_fly_side_x_from_origin_q16[frame_index];
         out_pose->left_y_from_origin_q16 =
             pose->damage_fly_side_y_from_origin_q16[frame_index];
-        return 1;
-    }
-    if (action_state == (uint8_t)PF_M4_ACTION_SHIELD_BREAK)
-    {
-        frame_index = pf_m4_clamped_pose_index(
-            action_ticks > UINT16_C(0)
-                ? (uint16_t)(action_ticks - UINT16_C(1))
-                : UINT16_C(0),
-            PF_M4_FALCON_SHIELD_BREAK_FLY_ECB_FRAME_COUNT);
-        *out_pose = pose->shield_break_fly[frame_index];
         return 1;
     }
     if (action_state == (uint8_t)PF_M4_ACTION_CEILING_BOUNCE)

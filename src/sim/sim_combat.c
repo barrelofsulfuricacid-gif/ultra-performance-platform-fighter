@@ -2335,7 +2335,7 @@ static const pf_m4_reference_hurt_capsule *pf_m4_reference_hurt_pose(
         if (dynamic_capsules != NULL && ground_loop_pose != NULL)
         {
             evaluated =
-                pf_m4_falcon_reference_dynamic_ground_hurt_capsules_from_local_pose(
+                pf_m4_falcon_reference_hsd_hurt_capsules_from_local_pose(
                     ground_loop_pose, dynamic_capsules, out_count);
         }
         else if (dynamic_capsules != NULL && ground_loop_compact != NULL)
@@ -2353,12 +2353,12 @@ static const pf_m4_reference_hurt_capsule *pf_m4_reference_hurt_pose(
                     target) &&
                 pf_m4_hsd_inflate_compact_pose_q16(
                     data, target, ground_loop_compact, pose) &&
-                pf_m4_falcon_reference_dynamic_ground_hurt_capsules_from_local_pose(
+                pf_m4_falcon_reference_hsd_hurt_capsules_from_local_pose(
                     pose, dynamic_capsules, out_count);
         }
         else if (dynamic_capsules != NULL)
         {
-            evaluated = pf_m4_falcon_reference_dynamic_ground_hurt_capsules(
+            evaluated = pf_m4_falcon_reference_hsd_hurt_capsules(
                 source_submotion,
                 source_animation_frame_q16,
                 dynamic_capsules,
@@ -2370,6 +2370,16 @@ static const pf_m4_reference_hurt_capsule *pf_m4_reference_hurt_pose(
         action_state == (uint8_t)PF_M4_ACTION_GROUND_IDLE)
     {
         return pf_m4_falcon_reference_standing_hurt_capsules(out_count);
+    }
+    if (dynamic_capsules != NULL &&
+        pf_m4_falcon_reference_retained_hsd_hurt_capsules(
+            action_state,
+            source_submotion,
+            action_ticks,
+            dynamic_capsules,
+            out_count))
+    {
+        return dynamic_capsules;
     }
     {
         const pf_m4_reference_hurt_capsule *common_pose =

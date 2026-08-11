@@ -126,6 +126,7 @@
       "tools/ssbm_falcon_ground_loop_hurt_import.json",
       "tools/ssbm_falcon_grounded_loop_hurt_coverage.json",
       "tools/verify_ssbm_dynamic_hurt_pose_source.py",
+      "tools/verify_ssbm_hsd_action_hurt_source.py",
       "tools/verify_ssbm_falcon_ground_loop_ecb.py",
       "tools/verify_ssbm_falcon_ground_loop_ecb.sh"
     ]

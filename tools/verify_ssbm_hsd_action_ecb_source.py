@@ -202,6 +202,7 @@ def main() -> int:
                     float(case["entry_source_frame"])
                     if is_entry and "entry_source_frame" in case
                     else action_frame
+                    + float(case.get("source_frame_offset", 0))
                 )
                 if is_entry:
                     evaluated_grounded = bool(

@@ -2474,7 +2474,7 @@ static int pf_m4_snapshot_ground_blend_valid(
                    target) &&
                pf_m4_hsd_inflate_compact_pose_q16(
                    data, target, compact, pose) &&
-               pf_m4_falcon_reference_dynamic_ground_hurt_capsules_from_local_pose(
+               pf_m4_falcon_reference_hsd_hurt_capsules_from_local_pose(
                    pose, capsules, &count) &&
                count != UINT8_C(0);
     }
