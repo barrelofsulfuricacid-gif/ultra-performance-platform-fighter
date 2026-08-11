@@ -539,16 +539,16 @@ The source evaluator derives six ECB selector joints from the same owner DAT,
 costume model, and parent-closed HSD hierarchy as hurt geometry, then applies
 the decomp `mpColl_LoadECB_JObj` rules. Manifest-owned per-motion offsets map
 the executable's one-based displayed action frame to the HSD request frame.
-Across both captures, Jab 1/2/3, Rapid Jab Loop/End, Dash Attack, all five
+Across both captures, Jab 1/2/3, all three rapid-jab phases, Dash Attack, all five
 forward tilts, Up/Down Tilt, the three real forward-smash angles, Up/Down
-Smash, and standing/dash grab reproduce 1,676 observations / 1,450 unique
-frames at maximum one-Q16 error. Production uses the imported move's existing
-subaction index plus one generated offset switch; all 725 represented runtime
-frames are covered by the native evaluator test. Rapid Jab Start is excluded
-because its entry blend differs from raw HSD by up to 3,702 Q16 units. The five
-aerials are excluded because their callback and bottom-lock behavior differs by
-29,000-70,000 Q16 units. These exclusions prevent a source-file match from
-being misreported as a runtime callback match.
+Smash, standing/dash grab, and all five aerials reproduce 2,086 observations /
+1,850 unique frames at maximum one-Q16 error. Production uses the imported
+move's existing subaction index plus one generated offset switch; all 925
+represented runtime frames are covered by the native evaluator test. A
+generated view of the DAT submotion animation flags chooses whether Melee has
+extracted/zeroed TransN or retained it in the model skeleton. This closes Rapid
+Jab Start in model-root space without a move-specific exception, while the
+shared ten-update common-air lock owns aerial bottom behavior.
 
 Looping idle, `Ft_MF_SkipAnim` GuardReflect inheritance, and positive-hitlag
 bone endpoints are forbidden as geometry sources, so every imported KneeBend,
@@ -1422,7 +1422,7 @@ lock participate in collision geometry. Hurt and ECB qualification are
 therefore deliberately separate. The compact live
 Fly/DownD/StandD/Furafura ECB profile
 has file / semantic SHA-256
-`f63e2b09209ae7b7f85d53eb2a589fa593f7a8700d5d503e4a4b465a92aab677` /
+`2b4354f075594264ddb1686c9123c78459658a8dec145d78445c1b115585bc7c` /
 `11b28d22f68f7bb87c99dbc5f949f5456d1a69ab7bfa78360927ecb334064eeb`.
 Production consumes the complete four-point ECB at collision time, retains the
 source one-row landing vertical velocity, and reproduces the source shield
@@ -1620,3 +1620,20 @@ bottom from HSD, while one shared transition rule owns the inherited-bottom
 lifecycle. The former packed 195-value aerial bottom table has been removed;
 the retained complete captures remain independent source evidence for the
 shared rule and natural landing routes.
+
+## Rapid Jab Start ECB reference space
+
+Rapid Jab Start extends that same immutable profile to 51 motions, 3,424 FObj
+tracks, and 37,533 keys under decoded-data SHA-256
+`2e1bec542d6c3ae6ce21f814039bab2b81caf05f2eac03b05ecd0d0118189bd2`.
+Pinned and current decomp agree that Attack100Start enters with zero blend.
+The apparent 3,702-Q16 mismatch was exactly animated TransN: Falcon's submotion
+49 lacks Fighter animation flag `0x80000000`, so `ftAnim_8006E054` does not
+extract/zero TransN and `mpColl_LoadECB_JObj` remains model-root-relative.
+Production and the generic source verifiers now derive this reference-space
+choice from the imported per-submotion flag rather than an action special case.
+
+Both existing ordinary-action captures qualify all five Rapid Jab Start frames
+exactly. The complete ordinary-action source theorem now owns 26 motions,
+2,086 observations, and 1,850 unique frames with maximum one-Q16 error; the
+native production primitive exercises all 925 represented action poses.

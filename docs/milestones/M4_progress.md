@@ -6024,3 +6024,33 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   117-case stored gate plus replay passes three isolated Windows runs in
   984.414-1,062.244 ms and three WSL runs in 1,294.885-1,754.153 ms, retaining
   the existing two-second budget.
+
+## 2026-08-11 Rapid Jab Start ECB reference-space closure
+
+- Rechecked pinned decomp revision `9509dc0`, current upstream `d882af9`, and
+  Falcon's imported submotion records. Attack100Start has zero entry blend;
+  the previous blend explanation was disproved.
+- The exact residual was animated TransN. `ftAnim_8006E054` extracts and zeros
+  TransN only when Fighter animation flag `0x80000000` is present. Since
+  Attack100Start lacks that bit, `mpColl_LoadECB_JObj` observes model-root
+  coordinates rather than TransN-relative coordinates.
+- The shared production evaluator and all source verifiers now derive that
+  reference-space decision from the already imported per-submotion flag. This
+  adds no action branch, duplicate data table, runtime parser, allocation,
+  floating point, or rollback state.
+- Both independent 2,974-row captures now qualify all 26 ordinary action
+  motions: 2,086 observations / 1,850 unique frames, maximum one-Q16 error.
+  Rapid Jab Start itself is exact across all ten captured rows. The focused
+  native primitive covers 925 poses.
+- The parent-closed profile now contains 51 motions, 3,424 tracks, and 37,533
+  keys under decoded-data SHA-256
+  `2e1bec542d6c3ae6ce21f814039bab2b81caf05f2eac03b05ecd0d0118189bd2`.
+- Repaired the shield-break verifier's stale multi-track assumption. It now
+  verifies the complete four-track semantic digest and profile provenance,
+  then compares the selected branch track against both qualified live
+  captures. The full dynamic source gate passes 262 samples / 2,882 capsules
+  at maximum two Q16 for hurt and one Q16 for ECB; its branch predicate remains
+  `-3921` Q16 and repeat-stable.
+- Rebuilt native Windows and WSL Release trees pass all 41 CTests. The complete
+  21-domain / 117-case stored gate plus deterministic replay passes in
+  1,120.723 ms on Windows and 1,486.147 ms in WSL, below its two-second budget.

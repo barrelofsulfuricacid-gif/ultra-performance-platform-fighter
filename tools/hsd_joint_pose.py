@@ -26,6 +26,7 @@ JOBJ_JOINT_MASK = 3 << 21
 JOBJ_USER_DEFINED_MATRIX = 1 << 23
 JOBJ_INDEPENDENT_PARENT = 1 << 24
 JOBJ_INDEPENDENT_SRT = 1 << 25
+FIGHTER_ANIMATION_TRANSLATION_FLAG = 0x80000000
 
 TRACK_ROTATE_X = 1
 TRACK_ROTATE_Y = 2
@@ -125,6 +126,23 @@ def fighter_animation_slice(
     if size == 0 or offset + size > len(animation_archive):
         raise ValueError("fighter animation slice is invalid")
     return animation_archive[offset : offset + size]
+
+
+def fighter_animation_flags(
+    fighter_archive: HsdArchive,
+    fighter_root_name: str,
+    submotion_index: int,
+) -> int:
+    """Return the submotion flags installed into Fighter.x594."""
+
+    root = fighter_archive.root(fighter_root_name)
+    if root + 0x10 > len(fighter_archive.data):
+        raise ValueError("fighter root is truncated")
+    subactions = struct.unpack_from(">I", fighter_archive.data, root + 0x0C)[0]
+    record = subactions + submotion_index * 0x18
+    if record + 0x14 > len(fighter_archive.data):
+        raise ValueError("fighter submotion record is out of bounds")
+    return struct.unpack_from(">I", fighter_archive.data, record + 0x10)[0]
 
 
 def read_fighter_part_layout(

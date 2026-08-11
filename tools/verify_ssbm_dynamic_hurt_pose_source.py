@@ -14,8 +14,10 @@ from typing import Any
 from hsd_figatree import decode_figatree
 from extract_ssbm_ecb_pose_tracks import extract_track
 from hsd_joint_pose import (
+    FIGHTER_ANIMATION_TRANSLATION_FLAG,
     evaluate_hurt_capsules,
     evaluate_joint_matrices,
+    fighter_animation_flags,
     fighter_animation_slice,
     fighter_model_scale,
     read_fighter_hurt_capsules,
@@ -440,6 +442,14 @@ def main() -> int:
         )
         for case in cases
     }
+    animation_flags = {
+        submotion: fighter_animation_flags(
+            fighter_archive,
+            fighter_root,
+            submotion,
+        )
+        for submotion in animations
+    }
     total_samples = 0
     total_capsules = 0
     maximum_difference = 0
@@ -507,7 +517,10 @@ def main() -> int:
                         float(frame),
                     ),
                     ecb_source_joints,
-                    int(manifest["blend_copy_target_source_joint_indices"][0]),
+                    int(manifest["blend_copy_target_source_joint_indices"][0])
+                    if animation_flags[submotion]
+                    & FIGHTER_ANIMATION_TRANSLATION_FLAG
+                    else None,
                 )
                 ecb_difference = max(
                     abs(actual_ecb[point][axis] - expected_ecb[point][axis])
@@ -717,20 +730,26 @@ def main() -> int:
                 all(track == extracted_tracks[0] for track in extracted_tracks[1:]),
                 "pose branch ECB repeat semantics disagree",
             )
-            ecb_semantic_digest = ecb_canonical_sha256(
-                ecb_semantic_payload([extracted_tracks[0]])
-            )
-            require(
-                ecb_semantic_digest
-                == ecb_profile_spec.get("semantic_sha256"),
-                "pose branch ECB semantic digest differs",
-            )
             profile_raw = args.pose_branch_ecb_profile.read_bytes()
             require(
                 sha256(profile_raw) == ecb_profile_spec.get("sha256"),
                 "pose branch ECB profile digest differs",
             )
             profile = json.loads(profile_raw)
+            profile_tracks = profile.get("tracks")
+            require(
+                isinstance(profile_tracks, list),
+                "pose branch ECB profile tracks are missing",
+            )
+            ecb_semantic_digest = ecb_canonical_sha256(
+                ecb_semantic_payload(profile_tracks)
+            )
+            matching_tracks = [
+                track
+                for track in profile_tracks
+                if isinstance(track, dict)
+                and track.get("id") == track_arguments[0]
+            ]
             require(
                 profile.get("schema") == 1
                 and profile.get("scope")
@@ -738,7 +757,9 @@ def main() -> int:
                 and profile.get("capture_sha256")
                 == branch_capture_digests[0]
                 and profile.get("semantic_sha256") == ecb_semantic_digest
-                and profile.get("tracks") == [extracted_tracks[0]],
+                and ecb_semantic_digest
+                == ecb_profile_spec.get("semantic_sha256")
+                and matching_tracks == [extracted_tracks[0]],
                 "pose branch ECB profile differs from live source",
             )
         print(

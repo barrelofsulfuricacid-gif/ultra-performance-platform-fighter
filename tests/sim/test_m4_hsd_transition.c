@@ -36,6 +36,7 @@ static const qualified_action_ecb_case qualified_action_ecb_cases[] = {
     {UINT16_C(46), UINT16_C(21), (uint8_t)PF_M4_ACTION_GROUND_ATTACK, INT8_C(0)},
     {UINT16_C(47), UINT16_C(20), (uint8_t)PF_M4_ACTION_JAB_FINAL, INT8_C(-1)},
     {UINT16_C(48), UINT16_C(12), (uint8_t)PF_M4_ACTION_JAB_THIRD, INT8_C(-1)},
+    {UINT16_C(49), UINT16_C(5), (uint8_t)PF_M4_ACTION_RAPID_JAB_START, INT8_C(0)},
     {UINT16_C(50), UINT16_C(40), (uint8_t)PF_M4_ACTION_RAPID_JAB_LOOP, INT8_C(-1)},
     {UINT16_C(51), UINT16_C(9), (uint8_t)PF_M4_ACTION_RAPID_JAB_END, INT8_C(-1)},
     {UINT16_C(52), UINT16_C(39), (uint8_t)PF_M4_ACTION_DASH_ATTACK, INT8_C(0)},
@@ -114,12 +115,6 @@ static int run_qualified_action_ecb_cases(uint32_t *out_pose_count)
         }
     }
     if (pf_m4_falcon_reference_action_hsd_ecb_pose(
-            (uint8_t)PF_M4_ACTION_RAPID_JAB_START,
-            UINT16_C(0),
-            UINT8_C(1),
-            PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16,
-            &(pf_m4_falcon_ecb_pose_q16){0}) ||
-        pf_m4_falcon_reference_action_hsd_ecb_pose(
             (uint8_t)PF_M4_ACTION_LEDGE_ATTACK,
             UINT16_C(0),
             UINT8_C(1),

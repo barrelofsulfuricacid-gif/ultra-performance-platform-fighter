@@ -10,7 +10,12 @@ from pathlib import Path
 from typing import Any
 
 from hsd_figatree import decode_figatree
-from hsd_joint_pose import evaluate_joint_matrices, fighter_animation_slice
+from hsd_joint_pose import (
+    FIGHTER_ANIMATION_TRANSLATION_FLAG,
+    evaluate_joint_matrices,
+    fighter_animation_flags,
+    fighter_animation_slice,
+)
 from ssbm_ecb_pose import canonical_source_ecb, pose_q16
 from verify_ssbm_dynamic_hurt_pose_source import (
     build_hurt_pose_source,
@@ -169,6 +174,7 @@ def main() -> int:
         )
         ecb_reference_joint = int(copy_targets[0])
     animations: dict[int, Any] = {}
+    animation_flags: dict[int, int] = {}
     total_cases = 0
     total_samples = 0
     maximum_difference = 0
@@ -347,6 +353,11 @@ def main() -> int:
                         submotion,
                     )
                 )
+                animation_flags[submotion] = fighter_animation_flags(
+                    source.fighter_archive,
+                    source.fighter_root,
+                    submotion,
+                )
             case_maximum = 0
             case_ecb_maximum = 0
             for row in selected:
@@ -383,7 +394,10 @@ def main() -> int:
                             frame,
                         ),
                         ecb_source_joints,
-                        ecb_reference_joint,
+                        ecb_reference_joint
+                        if animation_flags[submotion]
+                        & FIGHTER_ANIMATION_TRANSLATION_FLAG
+                        else None,
                     )
                     ecb_difference = max(
                         abs(actual_ecb[point][axis] - expected_ecb[point][axis])

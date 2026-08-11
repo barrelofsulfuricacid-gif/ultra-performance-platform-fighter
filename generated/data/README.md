@@ -77,17 +77,21 @@ for its frame-20 physical hit/miss theorem instead of retaining a partial
 JumpF-specific copy.
 
 `m4_ssbm_falcon_ground_loop_hsd.inc` is the compact source-data form for
-velocity-driven WalkSlow/Middle/Fast and Run poses, Raptor Boost, Falcon Dive,
-common FallSpecial, dynamically rated GuardSetOff, and the animated
-ShieldBreakFly/DownD/StandD/Furafura hurt poses.
+velocity-driven WalkSlow/Middle/Fast and Run poses, Wait lifecycle, Raptor
+Boost, Falcon Dive, common FallSpecial, dynamically rated GuardSetOff, the
+animated ShieldBreakFly/DownD/StandD/Furafura hurt poses, and all qualified
+ordinary-action ECB motions.
 The generic generator reads
 the four hash-pinned owner-extracted fighter/model DATs, validates the complete
 model and runtime part layout, retains only the 25 parent-closed joints needed
-by Falcon's 11 hurt capsules and six ECB selectors, and emits 22 motions
-containing 1,574 FObj tracks and 12,784 keys. The character-independent Q16
+by Falcon's 11 hurt capsules and six ECB selectors, and emits 51 motions
+containing 3,424 FObj tracks and 37,533 keys. The character-independent Q16
 runtime evaluator samples these
 tracks at the canonical fractional animation cursor; Falcon only binds its
-source submotion IDs and converts the shared capsule result. The same source
+source submotion IDs and converts the shared capsule result. Imported
+submotion animation flags also select whether Melee has extracted/zeroed
+TransN or retained it in model space, so ECB reference ownership is generated
+without action-specific branches. The same source
 import also evaluates compact common-state pose predicates: Falcon's terminal
 ShieldBreakFly HipN matrix component is emitted as one signed Q16 value and one
 boolean, so the runtime selects DownD. ShieldBreakFly/DownD/StandD/Furafura

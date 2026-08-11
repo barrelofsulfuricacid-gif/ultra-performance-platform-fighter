@@ -825,6 +825,10 @@ pf_m4_falcon_reference_hsd_ecb_pose(
     int32_t locked_bottom_y_q16,
     pf_m4_falcon_ecb_pose_q16 *out_pose)
 {
+    const pf_m4_falcon_submotion_data *submotion;
+    static const int32_t zero_origin_q16[3] = {
+        INT32_C(0), INT32_C(0), INT32_C(0)
+    };
     int32_t origins_q16[PF_M4_HSD_POSE_MAX_JOINTS][3];
     uint8_t joint_indices[PF_M4_FALCON_HSD_ECB_EVALUATION_JOINT_COUNT];
     if (out_pose == NULL || source_animation_frame_q16 < INT32_C(0))
@@ -839,6 +843,11 @@ pf_m4_falcon_reference_hsd_ecb_pose(
 
         *out_pose = pf_m4_falcon_collision_pose_data.crouch_wait[frame_index];
         return 1;
+    }
+    submotion = pf_m4_falcon_reference_submotion(source_submotion);
+    if (submotion == NULL)
+    {
+        return 0;
     }
     if (!pf_m4_falcon_hsd_ecb_evaluation_joints(joint_indices))
     {
@@ -857,7 +866,10 @@ pf_m4_falcon_reference_hsd_ecb_pose(
     return pf_m4_falcon_hsd_ecb_from_origins(
         &origins_q16[0][0],
         (uint8_t)PF_M4_FALCON_HSD_ECB_JOINT_COUNT,
-        origins_q16[PF_M4_FALCON_HSD_ECB_JOINT_COUNT],
+        (submotion->animation_flags &
+         PF_M4_HSD_FIGHTER_ANIMATION_TRANSLATION_FLAG) != UINT32_C(0)
+            ? origins_q16[PF_M4_FALCON_HSD_ECB_JOINT_COUNT]
+            : zero_origin_q16,
         grounded,
         locked_bottom_y_q16,
         out_pose);

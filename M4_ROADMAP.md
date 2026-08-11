@@ -24,8 +24,8 @@ separately because a stored pass cannot establish new SSBM truth.
 | --- | --- | --- |
 | Fast stored equivalence | done for twenty-one registered domains plus focused Wait lifecycle | The registry contains 117 cases plus deterministic replay. The pose domains hash 1,290 production poses: 714 common/ledge/guard, 33 Turn/TurnRun, 186 ordinary-airborne, 79 Pummel/CaptureWaitHi/CaptureDamageHi, and 278 CrouchWait/Appeal poses. Raptor Boost adds 502 field-masked numeric samples, Falcon Kick adds 399, natural movement adds 520, the five aerial-landing routes add 685, and passive shield break adds 500. Independent domains run concurrently while output retains manifest order. Eight fractional ground-loop, three direct Wait, six SquatRv-to-Wait entry, 32 Wait2/Wait3 lifecycle, and nine pressure-derived GuardSetOff observations use shared C pose gates. The Wait lifecycle also has its own focused 440-tick/38-pose native CTest. |
 | Fast live Dolphin oracle | done for the current registered domains | Registered packs use headless/null/unlimited ExiAI and checkpoint-isolated cases. The focused Turn/TurnRun pack captures 39 rows in 0.228 seconds warm with fast-forward and 0.565 seconds with fast-forward disabled; both produce semantic SHA `1cc3543b1363ecb5c7427c36f4d8d8a2826f9fb7c5281877f54108e1ffe281a2`. Generic label-based projection reduces the WalkFast changed-domain capture from seven cases / 423 rows / 4.820601 seconds warm to one case / 32 rows / 0.160820 seconds warm. The full common-hurt pack now owns all 16 physical boundaries / 323 rows and measures 14.10-15.05 seconds warm; the focused guard-only capture is about 0.15 seconds warm. Restored-state memory overrides are reapplied after the load acknowledgement, so placement and RNG writes can no longer target the discarded pre-restore state. Unsafe cross-invocation observer reconnection is rejected. |
-| Falcon bounded hurt poses | common, complete Wait lifecycle, guard, turn, ledge, ordinary airborne, pummel/capture, crouch-wait, taunt, dynamic ground-loop, GuardSetOff, shield-break, and 25 ordinary-action ECB routes imported | Base Wait's natural SquatRv entry and six-update blend remain qualified within one Q16 unit. Two byte-identical 440-row lifecycle captures now add every Wait2/Wait3 frame, exact 70/20/10 weighted HSD-RNG selection, same-secondary rejection, zero-blend variant entry, and six-update return/restart blends. The shared HSD evaluator matches 145 direct variant poses / 1,595 capsules plus ECB within one Q16 unit. Its action-owned extension matches 2,066 paired live observations / 1,840 unique frames for all three jabs except Rapid Jab Start, Rapid Jab Loop/End, Dash Attack, all five forward tilts, Up/Down Tilt, three real forward-smash angles, Up/Down Smash, both grabs, and all five aerial attacks at maximum one-Q16 error for every qualified component. Existing guard, Turn/TurnRun, ledge, airborne, pummel/capture, grounded-loop, GuardSetOff, and shield-break qualifications remain intact. |
-| Falcon movement and combat | partial | Captured routes include wall/ceiling response, flat-floor missed/neutral/directional techs, both Up/Down prone/getup orientations, grounded player push from both ports/directions, imported Hyrule slope/DownBound/ordinary-ledge response, the exact common-data `x480` down-input ledge rejection boundary, all eight quick/slow ledge options, exact 640/480-frame CliffWait timeout and regrab cooldown, ordinary Jump/Fall airborne animation clocks, Falcon Punch's complete ground/air clocks and qualified air-physics tail, Raptor Boost's five complete fighter routes plus its live-only native Capsule branch, all six Falcon Kick routes, and a source-qualified complete Battlefield collision/environment catalog. Production imports complete Jump/Fall and all five aerial-attack HSD tracks, all 198 ShieldBreakFly/DownD/StandD/Furafura frames, all 25 GuardOn/Guard/GuardOff poses, both 26-frame DownBound tracks, both 70-frame DownWait loops, both neutral getups, both getup attacks, all four prone-orientation/direction roll tracks, and the complete 158-frame CrouchWait ECB cycle. The shared common-air conversion now owns the decomp's ten-update previous-bottom ECB lock; aerial attacks no longer use a route-captured bottom table. Twenty-five ordinary action routes derive collision ECBs from the allocation-free evaluator, with 920 runtime poses covered by the native primitive. A fresh 165-frame natural Falcon Dive miss route passes the identical-input comparator with the documented 640-Q16 position envelope. FallSpecial additionally reproduces the decomp's velocity-selected neutral/forward/back target, switch-update double blend, stable-update single blend, and persistent bottom-lock state. The former Raptor/Falcon Dive/FallSpecial/aerial-attack authored ECB arrays are removed. Rapid Jab Start's entry blend and broader special-action acquisition coverage stay open. |
+| Falcon bounded hurt poses | common, complete Wait lifecycle, guard, turn, ledge, ordinary airborne, pummel/capture, crouch-wait, taunt, dynamic ground-loop, GuardSetOff, shield-break, and all 26 ordinary-action ECB routes imported | Base Wait's natural SquatRv entry and six-update blend remain qualified within one Q16 unit. Two byte-identical 440-row lifecycle captures now add every Wait2/Wait3 frame, exact 70/20/10 weighted HSD-RNG selection, same-secondary rejection, zero-blend variant entry, and six-update return/restart blends. The shared HSD evaluator matches 145 direct variant poses / 1,595 capsules plus ECB within one Q16 unit. Its action-owned extension matches 2,086 paired live observations / 1,850 unique frames for all three jabs, every rapid-jab phase, Dash Attack, all five forward tilts, Up/Down Tilt, three real forward-smash angles, Up/Down Smash, both grabs, and all five aerial attacks at maximum one-Q16 error for every qualified component. Existing guard, Turn/TurnRun, ledge, airborne, pummel/capture, grounded-loop, GuardSetOff, and shield-break qualifications remain intact. |
+| Falcon movement and combat | partial | Captured routes include wall/ceiling response, flat-floor missed/neutral/directional techs, both Up/Down prone/getup orientations, grounded player push from both ports/directions, imported Hyrule slope/DownBound/ordinary-ledge response, the exact common-data `x480` down-input ledge rejection boundary, all eight quick/slow ledge options, exact 640/480-frame CliffWait timeout and regrab cooldown, ordinary Jump/Fall airborne animation clocks, Falcon Punch's complete ground/air clocks and qualified air-physics tail, Raptor Boost's five complete fighter routes plus its live-only native Capsule branch, all six Falcon Kick routes, and a source-qualified complete Battlefield collision/environment catalog. Production imports complete Jump/Fall and all five aerial-attack HSD tracks, all 198 ShieldBreakFly/DownD/StandD/Furafura frames, all 25 GuardOn/Guard/GuardOff poses, both 26-frame DownBound tracks, both 70-frame DownWait loops, both neutral getups, both getup attacks, all four prone-orientation/direction roll tracks, and the complete 158-frame CrouchWait ECB cycle. The shared common-air conversion owns the decomp's ten-update previous-bottom ECB lock; aerial attacks no longer use a route-captured bottom table. All 26 ordinary action routes derive collision ECBs from the allocation-free evaluator, with 925 runtime poses covered by the native primitive. A generated submotion flag selects Melee's TransN-stripped or model-root ECB reference space without action-specific branches. A fresh 165-frame natural Falcon Dive miss route passes the identical-input comparator with the documented 640-Q16 position envelope. FallSpecial additionally reproduces the decomp's velocity-selected neutral/forward/back target, switch-update double blend, stable-update single blend, and persistent bottom-lock state. The former Raptor/Falcon Dive/FallSpecial/aerial-attack authored ECB arrays are removed. Broader special-action acquisition coverage stays open. |
 | Common damage response | qualified for open-air launch | Six-case live Dolphin trace and generic stored numeric trace pass. Ground and collision response remain separate domains. |
 | Separate knockback velocity and decay | open-air and flat-ground routes qualified | A pinned 64-row late DashAttack route agrees for 15 damage samples on action/frame, grounded/tumble, damage, timers, self velocity, projected knockback, and `xF0_ground_kb_vel` within 0.001 source units. Canonical save/load, replay, Windows, WSL, and sanitizers pass. |
 | Remaining Falcon gaps | not complete | Work through every incomplete row in `docs/product/m4_ssbm_fidelity_audit.md`; do not infer whole-character equivalence from one domain. |
@@ -196,7 +196,7 @@ separately because a stored pass cannot establish new SSBM truth.
   The importer therefore retains one compact 198-frame live ECB profile rather
   than pretending the raw selector joints are authoritative. Profile / semantic
   SHA-256 values are
-  `f63e2b09209ae7b7f85d53eb2a589fa593f7a8700d5d503e4a4b465a92aab677` /
+  `2b4354f075594264ddb1686c9123c78459658a8dec145d78445c1b115585bc7c` /
   `11b28d22f68f7bb87c99dbc5f949f5456d1a69ab7bfa78360927ecb334064eeb`.
 - [x] Correct the shared ECB clock path so retained source motions derive their
   frame from action ticks and the generic HSD resolver receives the actual
@@ -1515,10 +1515,10 @@ other stage/pushbox topologies.
   is already qualified. Ordinary down-input rejection, all five aerial-attack
   floor-contact tracks, both complete 26-frame DownBound ECB tracks, both
   70-frame DownWait loops, and all eight getup-option tracks are closed.
-  Twenty-five ordinary ground/aerial action routes are now source-qualified
-  and production-routed. Rapid Jab Start's entry blend remains open;
-  passing selected floor/wall/ceiling routes does not claim whole-stage or
-  whole-Falcon equivalence.
+  All 26 ordinary ground/aerial action routes are now source-qualified and
+  production-routed; the remaining work is broader special/common acquisition
+  and stage-shape coverage. Passing selected floor/wall/ceiling routes does
+  not claim whole-stage or whole-Falcon equivalence.
 
 ### Validated: reusable native-trace Raptor Boost oracle
 
@@ -1646,6 +1646,35 @@ other stage/pushbox topologies.
   117-case stored gate plus replay passes three isolated Windows runs in
   0.984-1.062 seconds and three WSL runs in 1.295-1.754 seconds without
   changing the two-second budget.
+
+### Validated: Rapid Jab Start and source-owned ECB reference space
+
+- [x] Sweep pinned decomp revision `9509dc0`, current upstream revision
+  `d882af9`, and Falcon's complete DAT submotion metadata before changing the
+  evaluator. `ftCo_800D6B00` enters Attack100Start with zero blend; the former
+  entry-blend diagnosis was false.
+- [x] Reproduce `ftAnim_8006E9B4` / `ftAnim_8006E054` ownership. Submotion
+  animation flag `0x80000000` extracts and zeroes TransN before collision, so
+  those motions subtract the animated reference joint. Motions without that
+  flag retain TransN in the skeleton while `mpColl_LoadECB_JObj` subtracts only
+  fighter `cur_pos`, so their ECB is evaluated in model-root space.
+- [x] Generate the decision from each imported submotion's existing
+  `animation_flags`; no Rapid-Jab branch, duplicate table, parser, allocation,
+  host floating point, or rollback field is added. The same reusable rule is
+  shared by production and all source qualifiers.
+- [x] Close Rapid Jab Start across both existing independent Dolphin captures.
+  The complete ordinary-action theorem now covers 26 motions, 2,086
+  observations, and 1,850 unique frames with maximum one-Q16 error. The native
+  primitive covers all 925 represented action poses.
+- [x] Expand the parent-closed profile to 51 motions, 3,424 tracks, and 37,533
+  keys under decoded-data SHA-256
+  `2e1bec542d6c3ae6ce21f814039bab2b81caf05f2eac03b05ecd0d0118189bd2`.
+  The shield-break branch verifier now validates its complete four-track
+  semantic profile before selecting the requested live branch track, closing
+  a stale multi-track/profile provenance inconsistency.
+- [x] Rebuild and pass all 41 Release CTests on both native Windows and WSL.
+  The complete 21-domain / 117-case stored gate plus replay passes in 1,120.723
+  ms on Windows and 1,486.147 ms in WSL, under the existing two-second budget.
 
 ## Completion gate
 

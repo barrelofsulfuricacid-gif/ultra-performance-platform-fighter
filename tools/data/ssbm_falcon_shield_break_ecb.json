@@ -1,5 +1,5 @@
 {
-  "capture_sha256": "ae02dca6e63eda47e780ee96cae26c4c8a565f4e2d534979791f827d737f5645",
+  "capture_sha256": "1109c92ec4c57bff5658d25c432383ccc4c63e2caed73a1575ae3ef80c7c802d",
   "coordinate_conversion": {
     "rounding": "nearest-python-round",
     "x_sim_units_per_melee_unit": "12/115",

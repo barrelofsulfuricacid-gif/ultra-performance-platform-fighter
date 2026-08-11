@@ -13,7 +13,9 @@ from typing import Any
 
 from hsd_figatree import decode_figatree
 from hsd_joint_pose import (
+    FIGHTER_ANIMATION_TRANSLATION_FLAG,
     evaluate_joint_matrices,
+    fighter_animation_flags,
     fighter_animation_slice,
     fighter_model_scale,
     read_joint_tree,
@@ -148,6 +150,7 @@ def main() -> int:
     probe_version = qualification["probe_engine_version"]
     decomp_revision = qualification["decomp_revision"]
     animation_cache: dict[int, Any] = {}
+    animation_flags_cache: dict[int, int] = {}
     total_rows = 0
     total_unique_frames = 0
     maximum_difference = 0
@@ -219,6 +222,11 @@ def main() -> int:
                         submotion,
                     )
                 )
+                animation_flags_cache[submotion] = fighter_animation_flags(
+                    fighter_archive,
+                    fighter_root,
+                    submotion,
+                )
             entry_submotion = int(case.get("entry_submotion_index", submotion))
             if entry_submotion not in animation_cache:
                 animation_cache[entry_submotion] = decode_figatree(
@@ -228,6 +236,11 @@ def main() -> int:
                         fighter_root,
                         entry_submotion,
                     )
+                )
+                animation_flags_cache[entry_submotion] = fighter_animation_flags(
+                    fighter_archive,
+                    fighter_root,
+                    entry_submotion,
                 )
             case_maximum = 0
             for row in selected:
@@ -352,7 +365,10 @@ def main() -> int:
                         evaluated_frame,
                     ),
                     ecb_source_joints,
-                    int(manifest["blend_copy_target_source_joint_indices"][0]),
+                    int(manifest["blend_copy_target_source_joint_indices"][0])
+                    if animation_flags_cache[evaluated_submotion]
+                    & FIGHTER_ANIMATION_TRANSLATION_FLAG
+                    else None,
                     evaluated_grounded,
                     locked_bottom_y_q16,
                 )
