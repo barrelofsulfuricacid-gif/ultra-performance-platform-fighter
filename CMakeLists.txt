@@ -575,7 +575,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.m4_hsd_transition
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-hsd-transition=pass cases=27")
+                   "m4-hsd-transition=pass cases=27 production_cases=5")
 
     add_executable(m4_movement_test tests/sim/test_m4_movement.c)
     target_link_libraries(m4_movement_test PRIVATE sim)

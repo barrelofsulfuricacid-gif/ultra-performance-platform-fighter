@@ -383,6 +383,39 @@ static int32_t pf_m4_ground_blend_weight_q16(
                : INT32_C(0);
 }
 
+static int pf_m4_falcon_continue_ground_blend_pose(
+    const pf_m4_hsd_pose_data *data,
+    const pf_m4_hsd_local_pose target[PF_M4_HSD_POSE_MAX_JOINTS],
+    const pf_m4_hsd_compact_pose *previous_compact,
+    int32_t previous_progress_q16,
+    int32_t frame_delta_q16,
+    pf_m4_hsd_local_pose out_pose[PF_M4_HSD_POSE_MAX_JOINTS],
+    int32_t *out_progress_q16)
+{
+    pf_m4_hsd_local_pose current[PF_M4_HSD_POSE_MAX_JOINTS];
+    const int32_t progress_q16 = previous_progress_q16 + frame_delta_q16;
+
+    if (progress_q16 >= INT32_C(6) * PF_Q16_ONE)
+    {
+        (void)memcpy(
+            out_pose, target, sizeof(*target) * data->joint_count);
+    }
+    else if (!pf_m4_hsd_inflate_compact_pose_q16(
+                 data, target, previous_compact, current) ||
+             !pf_m4_hsd_blend_local_pose_q16(
+                 data,
+                 target,
+                 current,
+                 pf_m4_ground_blend_weight_q16(
+                     previous_progress_q16, progress_q16),
+                 out_pose))
+    {
+        return 0;
+    }
+    *out_progress_q16 = progress_q16;
+    return 1;
+}
+
 static int pf_m4_falcon_ground_blend_source_pose(
     const pf_world_state *world,
     uint32_t player_index,
@@ -395,26 +428,37 @@ static int pf_m4_falcon_ground_blend_source_pose(
     uint16_t source_submotion;
     int32_t source_frame_q16;
 
-    if (world->ground_blend_progress_q16[player_index] > INT32_C(0))
-    {
-        pf_m4_hsd_local_pose target[PF_M4_HSD_POSE_MAX_JOINTS];
-
-        return pf_m4_hsd_evaluate_local_pose_q16(
-                   data,
-                   world->source_submotion[player_index],
-                   world->source_animation_frame_q16[player_index],
-                   target) &&
-               pf_m4_hsd_inflate_compact_pose_q16(
-                   data,
-                   target,
-                   &world->ground_blend_pose[player_index],
-                   out_pose);
-    }
     if (previous_action == (uint8_t)PF_M4_ACTION_WALK ||
         previous_action == (uint8_t)PF_M4_ACTION_RUN)
     {
+        pf_m4_hsd_local_pose target[PF_M4_HSD_POSE_MAX_JOINTS];
+        int32_t ignored_progress_q16;
+
         source_submotion = world->source_submotion[player_index];
-        source_frame_q16 = world->source_animation_frame_q16[player_index];
+        if (!pf_m4_falcon_advance_loop_animation_q16(
+                source_submotion,
+                world->source_animation_frame_q16[player_index],
+                world->source_animation_rate_q16[player_index],
+                &source_frame_q16) ||
+            !pf_m4_hsd_evaluate_local_pose_q16(
+                data, source_submotion, source_frame_q16, target))
+        {
+            return 0;
+        }
+        if (world->ground_blend_progress_q16[player_index] <= INT32_C(0))
+        {
+            (void)memcpy(
+                out_pose, target, sizeof(*target) * data->joint_count);
+            return 1;
+        }
+        return pf_m4_falcon_continue_ground_blend_pose(
+            data,
+            target,
+            &world->ground_blend_pose[player_index],
+            world->ground_blend_progress_q16[player_index],
+            world->source_animation_rate_q16[player_index],
+            out_pose,
+            &ignored_progress_q16);
     }
     else if (previous_action == (uint8_t)PF_M4_ACTION_GROUND_IDLE)
     {
@@ -443,8 +487,9 @@ static int pf_m4_falcon_ground_blend_source_pose(
         }
         source_submotion = (uint16_t)PF_M4_FALCON_SUBMOTION_DASH;
         source_frame_q16 = (int32_t)(
-            world->action_ticks[player_index] < dash->animation_frame_count
-                ? world->action_ticks[player_index]
+            world->action_ticks[player_index] + UINT16_C(1) <
+                    dash->animation_frame_count
+                ? world->action_ticks[player_index] + UINT16_C(1)
                 : dash->animation_frame_count - UINT16_C(1)) *
             PF_Q16_ONE;
     }
@@ -587,19 +632,14 @@ static pf_status pf_m4_evaluate_falcon_ground_blend_pose(
                        frame_delta_q16;
         if (progress_q16 < INT32_C(6) * PF_Q16_ONE)
         {
-            if (!pf_m4_hsd_inflate_compact_pose_q16(
+            if (!pf_m4_falcon_continue_ground_blend_pose(
                     data,
                     target,
                     &world->ground_blend_pose[player_index],
-                    current) ||
-                !pf_m4_hsd_blend_local_pose_q16(
-                    data,
-                    target,
-                    current,
-                    pf_m4_ground_blend_weight_q16(
-                        world->ground_blend_progress_q16[player_index],
-                        progress_q16),
-                    result))
+                    world->ground_blend_progress_q16[player_index],
+                    frame_delta_q16,
+                    result,
+                    &progress_q16))
             {
                 return PF_STATUS_DETERMINISTIC_FAULT;
             }

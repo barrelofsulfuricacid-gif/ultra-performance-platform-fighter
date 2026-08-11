@@ -1393,8 +1393,12 @@ catalog and matrix pass as hurt geometry. The runtime reproduces grounded
 predicate, the plus/minus-2 side clamps, grounded zero bottom, and midpoint
 side height. Two independent 131-pose source comparisons have maximum 1-Q16
 ECB-coordinate error, and the eight stored fractional observations exercise
-the production C path. The source six-frame local-SRT transition recurrence is
-still open; post-blend Walk/Run geometry is now imported and qualified.
+the production C path. The source six-frame local-SRT recurrence and its
+production entry ordering are qualified. Five checkpoint-equivalent ticks
+cover Wait-to-Walk, ordinary and nested gait changes, and Dash-to-Run.
+Production advances the old animation and any active old blend before IASA
+replacement, matching the executable within 4 Q15 rotation and 4 Q16
+translation units.
 
 ## Repository controls
 
