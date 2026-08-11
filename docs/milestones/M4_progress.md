@@ -5692,6 +5692,15 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   observations store both outputs and protect the C evaluator. Only the
   six-frame local-SRT transition recurrence, including nested gait changes,
   remains open for this ground-loop geometry path.
+- A separate four-worker transition pack records 193 rows per capture and the
+  current plus target local SRT for the same parent-closed 25-joint catalog.
+  Two independent captures verify 54 adjacent moving-target blend updates /
+  1,296 joint recurrences against `ftAnim_8006E9B4`, `ftAnim_8006FE9C`, and
+  `lb_8000C490`, including a nested gait change. Maximum differences are
+  `1.2330335e-6` for translation/scale and `2.20395109e-7` for quaternions;
+  158 converged rows are pinned by semantic SHA-256
+  `cd3aba1802a0b749e2b677e720eadb4c97b254574b548f184be529589ef16f1d`.
+  Production integration remains open.
 - Windows Release passes 37/37, WSL Release passes 39/39, and WSL ASan/UBSan
   passes 25/25. The complete 21-domain / 117-case stored-plus-replay gate takes
   0.730 seconds on Windows and 0.947 seconds in WSL. A rebuilt five-repetition

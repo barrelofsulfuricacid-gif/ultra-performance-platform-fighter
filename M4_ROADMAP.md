@@ -59,8 +59,13 @@ separately because a stored pass cannot establish new SSBM truth.
   protect both consumers.
 - [ ] Add the smallest shared representation of Melee's six-frame local-SRT
   transition recurrence, including a gait change begun before the previous
-  blend completes, then qualify transition rows twice. Do not add persistent
-  per-channel rollback state for post-blend poses.
+  blend completes, then qualify transition rows twice. The source half is now
+  pinned: two independent 193-row captures verify 54 moving-target updates /
+  1,296 joint recurrences within `1.2330335e-6` local and `2.20395109e-7`
+  quaternion units, with 158 converged rows protected by semantic SHA-256
+  `cd3aba1802a0b749e2b677e720eadb4c97b254574b548f184be529589ef16f1d`.
+  Production state and its stored differential remain open. Do not add
+  persistent per-channel rollback state for post-blend poses.
 - [x] Run the full Windows/WSL/sanitizer/stored/replay/benchmark gates. Windows
   Release passes 37/37, WSL Release passes 39/39, WSL ASan/UBSan passes 25/25,
   and the full stored gates take 0.730/0.947 seconds. A rebuilt five-repetition

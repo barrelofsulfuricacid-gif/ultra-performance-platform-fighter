@@ -5096,10 +5096,18 @@ def read_surface_collision_memory_probe(
                     "address": (
                         jobj := parts_snapshot.u32(parts + 0x10 * index)
                     ),
+                    "animation_address": (
+                        animation_jobj := parts_snapshot.u32(
+                            parts + 0x10 * index + 0x04
+                        )
+                    ),
                     "fighter_bone_flags": parts_snapshot.u16(
                         parts + 0x10 * index + 0x08
                     ),
                     "pose": read_jobj_pose(memory_engine, jobj),
+                    "animation_pose": read_jobj_pose(
+                        memory_engine, animation_jobj
+                    ),
                 }
                 for index in ecb_source_closure_indices
             ]

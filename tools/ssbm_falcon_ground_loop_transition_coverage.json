@@ -1,0 +1,70 @@
+{
+  "schema": 1,
+  "scope": "falcon-ground-loop-transition-geometry",
+  "domain": "falcon-ground-loop-transition",
+  "character": "falcon",
+  "oracle": "SSBM GALE01 NTSC-U revision 2",
+  "checkpoint_pack": {
+    "protocol": "rebased-slippi-state-file-control-v1",
+    "expected_rows": 193,
+    "warm_budget_seconds": 8.5,
+    "cold_budget_seconds": 10.0,
+    "capture_route": "common-hurt-geometry",
+    "capture_shards": [
+      ["walk-slow-transition"],
+      ["walk-middle-transition"],
+      ["walk-fast-transition"],
+      ["run-transition"]
+    ],
+    "capture_plan": {
+      "trace_start_label": "common_hurt_walk_slow_place",
+      "record_actions_by_label": {},
+      "command_limits_by_label": {},
+      "always_record_prefixes": [
+        "common_hurt_walk_slow_",
+        "common_hurt_walk_middle_",
+        "common_hurt_walk_fast_",
+        "common_hurt_run_"
+      ],
+      "command_overrides": []
+    }
+  },
+  "checkpoint_cases": [
+    {
+      "id": "walk-slow-transition",
+      "start_label": "common_hurt_walk_slow_place"
+    },
+    {
+      "id": "walk-middle-transition",
+      "start_label": "common_hurt_walk_middle_place"
+    },
+    {
+      "id": "walk-fast-transition",
+      "start_label": "common_hurt_walk_fast_place"
+    },
+    {
+      "id": "run-transition",
+      "start_label": "common_hurt_run_place"
+    }
+  ],
+  "live_qualification": {
+    "capture_sha256": "5ad8bdf37c6ff4fb3885c4b241237184fe638055ba35d1702b4a4f488b746fb7",
+    "repeat_capture_sha256": "1606e4ea2033fadee4495e37eca80e86d3f82a26043e41ea51d332e03faded67",
+    "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
+    "dolphin_release_artifact_sha256": "87e9ef6d80ed03354a1647d0616016dbc91399aa9e86a69ae5a398edd0a0c2bd",
+    "source_joint_indices": [
+      0, 1, 2, 3, 4, 6, 7, 8, 12, 13, 14, 18, 19, 21, 22, 23, 24, 25,
+      38, 39, 42, 44, 45, 46, 47
+    ],
+    "blend_start_source_index": 1,
+    "local_tolerance": 0.00001,
+    "quaternion_tolerance": 0.00001,
+    "semantic_sha256": "cd3aba1802a0b749e2b677e720eadb4c97b254574b548f184be529589ef16f1d",
+    "converged_suffix_counts": {
+      "common_hurt_walk_slow_": 51,
+      "common_hurt_walk_middle_": 37,
+      "common_hurt_walk_fast_": 44,
+      "common_hurt_run_": 26
+    }
+  }
+}
