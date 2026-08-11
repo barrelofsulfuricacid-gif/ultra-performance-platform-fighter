@@ -164,6 +164,18 @@
         "expected_source_frame_pattern_repetitions": 6,
         "expected_animation_rate_q16": 65536,
         "expected_samples": 66
+      },
+      {
+        "source_action": "DAMAGE_NEUTRAL_2",
+        "submotion_index": 169,
+        "label_suffix": "_pre_hit",
+        "ecb_owner": "previous-row-post-animation",
+        "ecb_owner_facing": 1,
+        "ecb_grounded_from_capture": true,
+        "expected_source_frame_pattern_q16": [65536],
+        "expected_source_frame_pattern_repetitions": 6,
+        "expected_animation_rate_q16": 65536,
+        "expected_samples": 6
       }
     ]
   },

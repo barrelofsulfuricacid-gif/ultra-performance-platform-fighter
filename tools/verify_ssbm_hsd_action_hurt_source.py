@@ -175,6 +175,24 @@ def main() -> int:
         ecb_reference_joint = int(copy_targets[0])
     animations: dict[int, Any] = {}
     animation_flags: dict[int, int] = {}
+
+    def ensure_animation(submotion: int) -> None:
+        if submotion in animations:
+            return
+        animations[submotion] = decode_figatree(
+            fighter_animation_slice(
+                source.fighter_archive,
+                source.animation_raw,
+                source.fighter_root,
+                submotion,
+            )
+        )
+        animation_flags[submotion] = fighter_animation_flags(
+            source.fighter_archive,
+            source.fighter_root,
+            submotion,
+        )
+
     total_cases = 0
     total_samples = 0
     maximum_difference = 0
@@ -232,9 +250,15 @@ def main() -> int:
             action = str(case["source_action"])
             submotion = int(case["submotion_index"])
             label = case.get("label")
+            label_suffix = case.get("label_suffix")
             excluded_label_suffixes = case.get("excluded_label_suffixes", [])
             require(
-                label is None or isinstance(label, str),
+                (label is None or isinstance(label, str))
+                and (
+                    label_suffix is None
+                    or (isinstance(label_suffix, str) and label_suffix)
+                )
+                and not (label is not None and label_suffix is not None),
                 f"{capture_name}/{action}: invalid label filter",
             )
             require(
@@ -248,9 +272,13 @@ def main() -> int:
             minimum_frame_q16 = case.get("minimum_source_frame_exclusive_q16")
             maximum_frame_q16 = case.get("maximum_source_frame_inclusive_q16")
             selected = []
-            for row in rows:
+            row_indices: dict[int, int] = {}
+            for row_index, row in enumerate(rows):
                 if row.get("action") != action or (
                     label is not None and row.get("label") != label
+                ) or (
+                    label_suffix is not None
+                    and not str(row.get("label", "")).endswith(label_suffix)
                 ) or any(
                     str(row.get("label", "")).endswith(suffix)
                     for suffix in excluded_label_suffixes
@@ -280,6 +308,7 @@ def main() -> int:
                 ):
                     continue
                 selected.append(row)
+                row_indices[id(row)] = row_index
             require(
                 len(selected) == int(case["expected_samples"]),
                 f"{capture_name}/{action}: expected "
@@ -391,20 +420,7 @@ def main() -> int:
                     ),
                     f"{capture_name}/{action}: animation rate differs",
                 )
-            if submotion not in animations:
-                animations[submotion] = decode_figatree(
-                    fighter_animation_slice(
-                        source.fighter_archive,
-                        source.animation_raw,
-                        source.fighter_root,
-                        submotion,
-                    )
-                )
-                animation_flags[submotion] = fighter_animation_flags(
-                    source.fighter_archive,
-                    source.fighter_root,
-                    submotion,
-                )
+            ensure_animation(submotion)
             case_maximum = 0
             case_ecb_maximum = 0
             compared_ecb_components = case.get(
@@ -441,6 +457,60 @@ def main() -> int:
                     memory = row["hitbox_memory"]
                     frame = float(memory["fighter_animation_frame"])
                     facing = int(row["facing"])
+                    ecb_submotion = submotion
+                    ecb_grounded = bool(row["grounded"])
+                    ecb_owner = case.get("ecb_owner", "current-action")
+                    require(
+                        ecb_owner in (
+                            "current-action",
+                            "previous-row-post-animation",
+                        ),
+                        f"{capture_name}/{action}: invalid ECB owner",
+                    )
+                    if ecb_owner == "previous-row-post-animation":
+                        row_index = row_indices[id(row)]
+                        require(
+                            row_index > 0,
+                            f"{capture_name}/{action}: mixed ECB row has no predecessor",
+                        )
+                        previous_row = rows[row_index - 1]
+                        previous_memory = previous_row.get("hitbox_memory")
+                        require(
+                            isinstance(previous_memory, dict)
+                            and isinstance(
+                                previous_memory.get("fighter_animation_id"), int
+                            )
+                            and isinstance(
+                                previous_memory.get("fighter_animation_frame"),
+                                (int, float),
+                            )
+                            and isinstance(
+                                previous_memory.get("fighter_animation_rate"),
+                                (int, float),
+                            ),
+                            f"{capture_name}/{action}: invalid preceding ECB owner",
+                        )
+                        ecb_submotion = int(
+                            previous_memory["fighter_animation_id"]
+                        )
+                        frame = float(
+                            previous_memory["fighter_animation_frame"]
+                        ) + float(previous_memory["fighter_animation_rate"])
+                        facing = int(previous_row["facing"])
+                        ecb_grounded = bool(previous_row["grounded"])
+                        ensure_animation(ecb_submotion)
+                    ecb_owner_facing = case.get("ecb_owner_facing")
+                    require(
+                        ecb_owner_facing is None
+                        or (
+                            isinstance(ecb_owner_facing, int)
+                            and not isinstance(ecb_owner_facing, bool)
+                            and ecb_owner_facing in (-1, 1)
+                        ),
+                        f"{capture_name}/{action}: invalid ECB owner facing",
+                    )
+                    if ecb_owner_facing is not None:
+                        facing = int(ecb_owner_facing)
                     captured_ecb = memory.get("fighter_ecb")
                     require(
                         isinstance(captured_ecb, dict),
@@ -452,15 +522,15 @@ def main() -> int:
                     actual_ecb = source_joint_ecb_q16(
                         evaluate_joint_matrices(
                             source.source_joints,
-                            animations[submotion],
+                            animations[ecb_submotion],
                             frame,
                         ),
                         ecb_source_joints,
                         ecb_reference_joint
-                        if animation_flags[submotion]
+                        if animation_flags[ecb_submotion]
                         & FIGHTER_ANIMATION_TRANSLATION_FLAG
                         else None,
-                        bool(row["grounded"])
+                        ecb_grounded
                         if bool(case.get("ecb_grounded_from_capture", False))
                         else True,
                         0

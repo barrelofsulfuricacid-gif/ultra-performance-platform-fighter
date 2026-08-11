@@ -1684,8 +1684,15 @@ identity update changes the deterministic replay corpus SHA-256 to
 final-state and event SHA-256 remain
 `7d031c271e05fb0041fa749488689175fb6b775f44d58a794bc1aa1e1c47bd48`
 and `55581ad6489814368e540e8eb96779ece01d840b1dd6ce7899afd1c4f724ac6bd`.
-Explicit production ownership of the mixed hit-entry ECB row remains outside
-this qualified slice.
+The paired physical captures also qualify all six mixed hit-entry rows. The
+frame pipeline runs map collision before attack collision and damage entry, so
+each transition row combines DamageN2 frame-one hurt capsules with the
+preceding Wait variant's ECB evaluated after its animation update. The generic
+source verifier represents that ownership as `previous-row-post-animation`;
+across both captures the complete damage theorem now covers 288 observations /
+3,168 capsules and 12 mixed ECB rows at maximum one-Q16 error. Production
+already has the same movement-before-combat order, so this theorem requires no
+sampled table, duplicate pose evaluator, or rollback field.
 
 ## Falcon DamageFlyTop and DamageFlyRoll
 

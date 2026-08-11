@@ -28,6 +28,21 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
 
 **Working branch:** `agent/m4-combat-vertical-slice`
 
+## Implemented and verified in the 2026-08-11 mixed damage-entry follow-up
+
+- Closed the six formerly excluded hit-transition ECB rows without changing
+  production state. Melee and production both run movement/map collision
+  before attack collision and damage entry, so the transition observation has
+  DamageN2 frame-one hurt capsules but the preceding Wait variant's
+  post-animation ECB.
+- Generalized the source verifier with declarative
+  `previous-row-post-animation` ownership instead of a Falcon-specific table.
+  Two independent physical captures now qualify 288 observations / 3,168 hurt
+  capsules, including 12 mixed ECB rows, at maximum one-Q16 error.
+- Added the split-consumer callback-order procedure to the reusable
+  `ssbm-character-importer` skill. Broader damage interactions and stage routes
+  are the next open fidelity surface.
+
 ## Implemented and verified in the 2026-08-11 DamageFlyTop/Roll follow-up
 
 - Imported the exact common-data top cone, 100% Roll threshold, and HSD random
