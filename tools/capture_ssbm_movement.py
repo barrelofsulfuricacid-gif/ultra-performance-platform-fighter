@@ -4892,6 +4892,8 @@ def read_hitbox_memory_probe(memory_engine: object) -> dict[str, object]:
     opponent_snapshot = BigEndianSnapshot.read(memory_engine, opponent, 0x2350)
     return {
         "fighter_address": fighter,
+        "fighter_animation_frame": fighter_snapshot.f32(fighter + 0x894),
+        "fighter_animation_rate": fighter_snapshot.f32(fighter + 0x89C),
         "hurtbox_state_flag_byte": fighter_snapshot.u8(fighter + 0x221A),
         "fighter_position": fighter_snapshot.f32_vector(fighter + 0xB0, 3),
         "fighter_scale": fighter_snapshot.f32_vector(fighter + 0x34, 3),

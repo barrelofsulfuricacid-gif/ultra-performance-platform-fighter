@@ -77,6 +77,10 @@ Remaining work is evidence/model work rather than a known code-only fix:
 - [ ] Implement Melee's velocity-driven WalkSlow/Middle/Fast and Run animation
   cursor, gait selection, and walk-phase remapping, then bind their exact pose
   geometry. Static one-frame-per-tick tables are not source-equivalent here.
+- [x] Extend the live hitbox/hurtbox probe with Fighter `cur_anim_frame`
+  (`+0x894`) and `frame_speed_mul` (`+0x89C`). A fresh seven-checkpoint,
+  391-row capture proves the decomp callback order and exposes fractional
+  Walk/Run clocks for the implementation comparator.
 - [ ] Import shield-break DownU/DownD selection; it depends on the terminal
   HipN matrix.
 - [ ] Represent dynamic rebirth targets/companion coordination, full stage and
