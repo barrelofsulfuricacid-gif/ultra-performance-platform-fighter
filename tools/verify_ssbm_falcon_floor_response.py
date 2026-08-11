@@ -132,6 +132,21 @@ def qualify_live(cases: dict[str, list[dict[str, Any]]]) -> None:
         )
         if [bool(row["grounded"]) for row in response] != expected_grounded:
             raise SystemExit(f"{case_id} ECB floor-contact boundary mismatch")
+        entry_y = float(response[0]["attack_velocity_y"])
+        next_y = float(response[1]["attack_velocity_y"])
+        directional = case_id in {
+            "flat_floor_forward_tech",
+            "flat_floor_backward_tech",
+        }
+        if directional:
+            if abs(entry_y) <= 0.001 or abs(next_y) > 0.001:
+                raise SystemExit(
+                    f"{case_id} PassiveStand entry-vector ownership mismatch"
+                )
+        elif abs(entry_y) > 0.001 or abs(next_y) > 0.001:
+            raise SystemExit(
+                f"{case_id} immediate ground projection mismatch"
+            )
     missed_rows = cases["flat_floor_missed_tech"]
     missed_start = next(
         index for index, row in enumerate(missed_rows)
@@ -192,6 +207,31 @@ def compare_sim(live: dict[str, list[dict[str, Any]]], sim_path: Path) -> None:
                     0.0015,
                     f"{case_id} frame {index + 1} root velocity",
                 )
+        directional = case_id in {
+            "flat_floor_forward_tech",
+            "flat_floor_backward_tech",
+        }
+        entry = produced_rows[0]
+        following = produced_rows[1]
+        if directional:
+            if (
+                entry["ground_kb"] != 0
+                or entry["kb_vy"] == 0
+                or following["ground_kb"] == 0
+                or following["kb_vy"] != 0
+            ):
+                raise SystemExit(
+                    f"{case_id}: PassiveStand x8c/xF0 ownership mismatch"
+                )
+        elif (
+            entry["ground_kb"] == 0
+            or entry["kb_vy"] != 0
+            or following["ground_kb"] == 0
+            or following["kb_vy"] != 0
+        ):
+            raise SystemExit(
+                f"{case_id}: immediate ftCommon_8007CCE8 ownership mismatch"
+            )
     print("floor-response-position-comparison=excluded-stage-pushbox-domain")
     print("floor-response-grounded-comparison=qualified-downbound-ecb")
 

@@ -99,7 +99,7 @@ pf_m4_ssbm_falcon_floor_response_cases[] = {
 #define PF_M4_SSBM_FALCON_FLOOR_RESPONSE_SOURCE_TRACE_SHA256 \
     "85fd93638bcb26b8b6e405cb1008a396acf05d132e07c7f9dcc3b6993034dd3f"
 #define PF_M4_SSBM_FALCON_FLOOR_RESPONSE_PRODUCTION_TRACE_SHA256 \
-    "bb0af522120b1b48b3f1d4f00a464491fcf7a5d3cb8300848058ade41dfa6fcb"
+    "47ebff88692b3344c5e2cf24e790763c572d78e687be17e3d78a09e8e875f04a"
 
 _Static_assert(
     sizeof(pf_m4_ssbm_falcon_floor_response_cases) /

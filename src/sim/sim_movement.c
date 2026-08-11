@@ -5440,7 +5440,9 @@ static void pf_m4_enter_shield_break_launch(
     scratch->attack_stale_registered[player_index] = UINT8_C(0);
 }
 
-static void pf_m4_begin_ground_knockback_from_air(
+static void pf_m4_initialize_ground_knockback_from_air(
+    const pf_m4_content *content,
+    uint8_t surface,
     pf_sim_scratch *scratch,
     uint32_t player_index)
 {
@@ -5462,6 +5464,12 @@ static void pf_m4_begin_ground_knockback_from_air(
         scalar = -common->ground_knockback_max_speed_q16;
     }
     scratch->ground_knockback_velocity_q16[player_index] = scalar;
+    pf_m4_project_ground_scalar_q16(
+        content,
+        surface,
+        scalar,
+        &scratch->knockback_velocity_x_q16[player_index],
+        &scratch->knockback_velocity_y_q16[player_index]);
 }
 
 static void pf_m4_land_from_air(
@@ -5784,12 +5792,9 @@ static void pf_m4_land_from_air(
     if (scratch->tumble[player_index] == UINT8_C(0))
     {
         /* ftCo_Landing_Enter_Basic changes ground/air state without
-         * rewriting x8c_kb_vel. Preserve the incoming air vector on the
-         * landing entry frame; the following grounded physics callback
-         * decays xF0 and projects x8c onto the live floor tangent. */
-        pf_m4_begin_ground_knockback_from_air(
-            scratch,
-            player_index);
+         * rewriting x8c_kb_vel or initializing xF0_ground_kb_vel. Preserve
+         * both entry channels; the following global knockback update derives
+         * xF0, decays it, and projects x8c onto the live floor tangent. */
         scratch->hitstun_ticks[player_index] = UINT16_C(0);
         pf_m4_land(
             fighter,
@@ -5818,15 +5823,6 @@ static void pf_m4_land_from_air(
     *fast_fall = UINT8_C(0);
     *dash_direction = INT8_C(0);
     scratch->tumble[player_index] = UINT8_C(0);
-    /* The collision callback exposes the incoming air channels on its entry
-     * frame. x8c is projected onto the selected floor immediately; xF0
-     * initialization and 0.08 traction decay begin on the following tick. */
-    pf_m4_project_ground_scalar_q16(
-        content,
-        surface,
-        scratch->knockback_velocity_x_q16[player_index],
-        &scratch->knockback_velocity_x_q16[player_index],
-        &scratch->knockback_velocity_y_q16[player_index]);
     scratch->ground_knockback_velocity_q16[player_index] = INT32_C(0);
 
     if (scratch->tech_window_ticks[player_index] > UINT16_C(0))
@@ -5838,12 +5834,20 @@ static void pf_m4_land_from_air(
             *action_state =
                 (uint8_t)PF_M4_ACTION_TECH_IN_PLACE;
             scratch->tech_direction[player_index] = INT8_C(0);
+            /* Passive (neutral tech) calls ftCommon_8007CCE8 on entry. */
+            pf_m4_initialize_ground_knockback_from_air(
+                content,
+                surface,
+                scratch,
+                player_index);
         }
         else
         {
             *velocity_x = INT32_C(0);
             *action_state = (uint8_t)PF_M4_ACTION_TECH_ROLL;
             scratch->tech_direction[player_index] = roll_direction;
+            /* PassiveStandF/B deliberately omit ftCommon_8007CCE8. Their
+             * entry row retains the complete air x8c vector with xF0 zero. */
         }
     }
     else
@@ -5857,6 +5861,12 @@ static void pf_m4_land_from_air(
                      (facing > INT8_C(0)))
                 ? (uint8_t)PF_M4_PRONE_STOMACH
                 : (uint8_t)PF_M4_PRONE_BACK;
+        /* DownBound applies ftCommon_8007CCE8 after its motion change. */
+        pf_m4_initialize_ground_knockback_from_air(
+            content,
+            surface,
+            scratch,
+            player_index);
     }
 }
 

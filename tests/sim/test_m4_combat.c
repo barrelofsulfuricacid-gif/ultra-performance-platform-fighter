@@ -18003,7 +18003,7 @@ static uint8_t run_ssbm_floor_response_trace_case(
                 " hitstun=%u invulnerable=%u facing=%d tech_direction=%d"
                 " self_vx=%" PRId32
                 " self_vy=%" PRId32 " kb_vx=%" PRId32
-                " kb_vy=%" PRId32 "\n",
+                " kb_vy=%" PRId32 " ground_kb=%" PRId32 "\n",
                 stored_case->id,
                 (unsigned int)sample_index + 1U,
                 (unsigned int)sample->action_state,
@@ -18017,7 +18017,8 @@ static uint8_t run_ssbm_floor_response_trace_case(
                 sample->self_velocity_x_q16,
                 sample->self_velocity_y_q16,
                 sample->knockback_velocity_x_q16,
-                sample->knockback_velocity_y_q16);
+                sample->knockback_velocity_y_q16,
+                sample->ground_knockback_velocity_q16);
         }
     }
     return PF_M4_SSBM_FALCON_FLOOR_RESPONSE_SAMPLES_PER_CASE;

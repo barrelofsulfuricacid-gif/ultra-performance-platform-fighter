@@ -338,6 +338,15 @@ next-update grounded projection. Opposite actual Forward Tilts produce the
 grounded and airborne branches from one crouch-cancelled setup. Both live
 captures have identical observations; source/production semantic digests are
 `657b816faa98658d10be6783b912a380cf88c24ccc1120d0a5836f61e6aa6ac9` /
-`99e2eeefbeffde01318bf81dee3b5f57a8ed7db3fef755d9860beaa7c1af2e1f`.
+`15b3705d0c7a6e9c83d3a540c6b90da4af835676011a2726fdb360a3e8fdf05e`.
+
+Current floor-response ownership addendum: the four-case/804-row Final
+Destination live oracle now distinguishes all `ftCo_80090184` floor branches.
+Directional tech retains the complete airborne knockback vector with a zero
+ground scalar on entry; neutral tech and missed-tech DownBound initialize the
+scalar and project immediately. Every route applies ground decay and tangent
+projection on its following update. Production checks the otherwise
+unexposed scalar, and the shared basic-Landing path retains both incoming
+knockback components with a zero scalar on its entry row.
 This closes the represented line-36 slope-damage branch; wider attack, floor,
 and stage combinations remain outside the claim.

@@ -6160,7 +6160,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   identical observations and semantic SHA-256
   `657b816faa98658d10be6783b912a380cf88c24ccc1120d0a5836f61e6aa6ac9`;
   production digest is
-  `99e2eeefbeffde01318bf81dee3b5f57a8ed7db3fef755d9860beaa7c1af2e1f`.
+  `15b3705d0c7a6e9c83d3a540c6b90da4af835676011a2726fdb360a3e8fdf05e`.
 - The route exposed two shared callback-order gaps. Ground-origin airborne
   damage now installs the ten-update previous-bottom ECB lock before hitlag,
   and basic Landing preserves incoming air `x8c` on its entry frame before
@@ -6172,3 +6172,26 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   `7f210b0b70d2a506f60da411d4212885a5714ddc816c6fb076ad6273939a5ef0` /
   `7d031c271e05fb0041fa749488689175fb6b775f44d58a794bc1aa1e1c47bd48` /
   `55581ad6489814368e5408eb96779ece01d840b1dd6ce7899afd1c4f724ac6bd`.
+
+## 2026-08-11 floor-response knockback channel ownership
+
+- Pinned decomp `9509dc0` and current upstream `acfb24e` agree that ordinary
+  Landing, neutral tech, directional tech, and missed tech do not share one
+  knockback-entry policy.
+- Basic Landing and `PassiveStandF/B` preserve the complete incoming air
+  `x8c_kb_vel` with `xF0_ground_kb_vel` zero on entry. `Passive` and
+  `DownBound` call `ftCommon_8007CCE8`, initializing/clamping `xF0` and
+  projecting `x8c` immediately. Ground decay begins on the next update.
+- The existing 804-row actual-input Final Destination capture now explicitly
+  qualifies the split: directional-tech frame one retains vertical knockback;
+  neutral/missed-tech frame one is projected; every route is projected on
+  frame two. Production also asserts the otherwise unexposed `xF0` channel.
+- Updated floor/slope-damage/slope-ledge production digests are
+  `47ebff88692b3344c5e2cf24e790763c572d78e687be17e3d78a09e8e875f04a`,
+  `15b3705d0c7a6e9c83d3a540c6b90da4af835676011a2726fdb360a3e8fdf05e`,
+  and `bf8b2f390b2246835678a49ce191120ac4b8f39a4fb82130e9df5675354ac8a4`.
+  The 22-domain / 119-case plus replay gate passes on Windows and WSL under
+  two seconds with unchanged replay corpus/final/event digests. Release suites
+  pass 41/41 on both platforms, focused WSL ASan/UBSan combat passes, and the
+  verifier soak digest is `f965394d7f9f082a` on both Windows and WSL with its
+  match/event/rollback/replay counters unchanged.

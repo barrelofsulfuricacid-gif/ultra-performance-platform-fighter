@@ -65,7 +65,7 @@ remains qualified separately.
   Independent captures have identical observation rows and semantic source
   SHA-256 `657b816faa98658d10be6783b912a380cf88c24ccc1120d0a5836f61e6aa6ac9`;
   production SHA-256 is
-  `99e2eeefbeffde01318bf81dee3b5f57a8ed7db3fef755d9860beaa7c1af2e1f`.
+  `15b3705d0c7a6e9c83d3a540c6b90da4af835676011a2726fdb360a3e8fdf05e`.
   Warm capture times are 0.806 and 0.738 seconds.
 - [x] Register the domain in the fast gate. Twenty-two domains / 119 cases
   plus replay pass in 1,707.169 ms on native Windows and 1,035.323 ms in WSL,
@@ -74,6 +74,32 @@ remains qualified separately.
   corpus SHA-256 to
   `7f210b0b70d2a506f60da411d4212885a5714ddc816c6fb076ad6273939a5ef0`;
   final-state and event digests remain unchanged.
+
+## Completed and verified: floor-response knockback channel ownership
+
+- [x] Sweep pinned decomp `9509dc0` and current upstream `acfb24e`; the
+  governing Damage, Passive, PassiveStand, DownBound, fighter, and common
+  ground-transition routes are unchanged.
+- [x] Preserve the source's four distinct landing policies. Basic Landing and
+  directional tech retain the complete incoming air `x8c` vector with `xF0`
+  zero on entry. Neutral tech and missed tech/DownBound initialize and clamp
+  `xF0`, then project `x8c` immediately. Ground decay begins on the following
+  update in every branch.
+- [x] Extend the existing actual-input Final Destination oracle rather than
+  adding a duplicate probe. Its 804 live rows prove that forward/backward tech
+  retain vertical knockback for exactly frame one, while neutral and missed
+  tech are already projected; all four are projected on frame two. The
+  production trace now includes and checks `xF0` ownership.
+- [x] Requalify affected stored domains. Floor response, grounded-slope
+  damage, and Hyrule slope/ledge production digests are respectively
+  `47ebff88692b3344c5e2cf24e790763c572d78e687be17e3d78a09e8e875f04a`,
+  `15b3705d0c7a6e9c83d3a540c6b90da4af835676011a2726fdb360a3e8fdf05e`,
+  and `bf8b2f390b2246835678a49ce191120ac4b8f39a4fb82130e9df5675354ac8a4`.
+  The full 22-domain / 119-case plus replay gate passes in 1,485.949 ms on
+  Windows and 1,936.815 ms in WSL; replay corpus/final/event digests are
+  unchanged. Rebuilt Release suites pass 41/41 on both platforms, focused WSL
+  ASan/UBSan combat passes, and the cross-platform verifier soak golden is
+  `f965394d7f9f082a` with all counters unchanged.
 
 ## Completed and verified: mixed hit-entry ECB ownership
 
@@ -1807,7 +1833,7 @@ other stage/pushbox topologies.
   `7d031c271e05fb0041fa749488689175fb6b775f44d58a794bc1aa1e1c47bd48` /
   `55581ad6489814368e540e8eb96779ece01d840b1dd6ce7899afd1c4f724ac6bd`.
   The Hyrule slope/ledge production digest is
-  `60aa1b284c7a5002d2e9980fc52f054b64b18e84f6608be50a119e6820f70215`;
+  `bf8b2f390b2246835678a49ce191120ac4b8f39a4fb82130e9df5675354ac8a4`;
   all source samples remain within their existing strict/Q16 envelopes.
 - [x] Pass Windows MinGW Release 39/39 and WSL Release 41/41. The complete
   21-domain / 117-case stored gate plus replay passes in 898.577 ms on Windows

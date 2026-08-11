@@ -1757,7 +1757,7 @@ have identical observation arrays under canonical SHA-256
 The selected address-free source fields hash to
 `657b816faa98658d10be6783b912a380cf88c24ccc1120d0a5836f61e6aa6ac9`;
 the production trace hashes to
-`99e2eeefbeffde01318bf81dee3b5f57a8ed7db3fef755d9860beaa7c1af2e1f`.
+`15b3705d0c7a6e9c83d3a540c6b90da4af835676011a2726fdb360a3e8fdf05e`.
 Warm capture durations were 0.805771 and 0.737824 seconds.
 
 The departing case also pins callback ownership beyond the numeric slope
@@ -1768,3 +1768,28 @@ ground/air state without rewriting `x8c_kb_vel`; the incoming air vector is
 visible on Landing frame one and floor projection begins on the following
 grounded physics update. The simulation stores the lock in root-space bottom
 coordinates and converts its centre-space floor-sweep extent exactly once.
+
+## Falcon floor-response knockback entry ownership
+
+Pinned decomp revision `9509dc04406fb2028bfab01243841ba4787c0fb7` and
+current upstream `acfb24e3644dcbfec11b656ab3adb61942ae31bf` have no relevant
+diff in `ftCo_Damage.c`, `ftCo_Passive.c`, `ftCo_PassiveStand.c`,
+`ftCo_DownBound.c`, `fighter.c`, or `ftcommon.c`. Their call graph establishes
+four entry policies. Basic Landing and directional `PassiveStandF/B` omit
+`ftCommon_8007CCE8`, retaining incoming air `x8c_kb_vel` with
+`xF0_ground_kb_vel == 0`. Neutral `Passive` and missed-tech `DownBound` invoke
+that helper, initializing/clamping `xF0` and projecting `x8c` immediately.
+All branches begin ground decay on the next update.
+
+The existing four-case/804-row Final Destination capture already contains the
+needed actual-input evidence. Forward/backward tech frame one retains nonzero
+vertical knockback and frame two is projected; neutral and missed tech are
+projected on frame one. The production comparator now enforces these live
+discriminators plus the internal `xF0` ownership table. Updated production
+digests are `47ebff88692b3344c5e2cf24e790763c572d78e687be17e3d78a09e8e875f04a`
+for flat-floor response, `15b3705d0c7a6e9c83d3a540c6b90da4af835676011a2726fdb360a3e8fdf05e`
+for grounded slope damage, and
+`bf8b2f390b2246835678a49ce191120ac4b8f39a4fb82130e9df5675354ac8a4`
+for Hyrule slope/ledge response. Release suites pass 41/41 on Windows and WSL,
+focused WSL ASan/UBSan combat passes, and the deterministic verifier soak
+golden is `f965394d7f9f082a` on both platforms without counter changes.
