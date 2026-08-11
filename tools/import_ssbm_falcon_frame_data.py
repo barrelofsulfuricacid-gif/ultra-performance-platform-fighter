@@ -41,9 +41,6 @@ SOURCE_DAT_JSON_SHA256 = (
 SOURCE_COMMON_DAT_SHA256 = (
     "63841336337eb5a7366b06ccc60ea4bd37c3604ab56e19939d78b9aa9cdd234c"
 )
-SPECIALHI_LEDGE_ECB_CAPTURE_SHA256 = (
-    "5a5b295d0fc7a8d1c06512dc704176a131a7c01a931a0a2b92f6d7ff8c3a8295"
-)
 DOWN_BOUND_FLOOR_CONTACT_CAPTURE_SHA256 = (
     "6c8d97ff1076075616ed06f88c742528eff9c2fb18ab9f2cce09ba895147e556"
 )
@@ -484,24 +481,6 @@ DAMAGE_FLY_ECB_SIDE_Y_MELEE = (
     10.524521827697754,
 )
 
-# FallSpecial is a distinct common animation from Falling. These eight live
-# ECB-bottom samples are the complete pre-landing route observed in the pinned
-# up-ground-miss capture (SHA-256
-# 97672ddf0e5013beaad8ff4c31f54c6bae93551ca3a38755cc3d185bcd5b83c4),
-# independently confirmed by the aerial-miss capture (SHA-256
-# 9ecf456e6377f5b7d371ccb84c9f5bd7b3a1045724a7c223acb6cb9d4681fd21).
-# Reusing Falling's bottom here moves Falcon Dive's landing by multiple frames.
-FALL_SPECIAL_ECB_BOTTOM_Y_MELEE = (
-    2.3061580657958984,
-    2.11196231842041,
-    2.46517276763916,
-    2.718437671661377,
-    2.784078598022461,
-    2.7656466960906982,
-    2.499094247817993,
-    2.2265543937683105,
-)
-
 # EscapeAir displayed frames 1 through 48 from the pinned defense-state
 # capture SHA-256 1118a7a6e26ae98862e7457caee59ff45260076f30ce2e3e09ba71f249dc6084.
 # The final two airborne samples are what defer floor contact until Melee's
@@ -556,146 +535,6 @@ AIR_DODGE_ECB_BOTTOM_Y_MELEE = (
     1.821122169494629,
     1.967071533203125,
     2.132474660873413,
-)
-
-# Complete collision-step 1..64 horizontal ECB extent for SpecialAirHi,
-# captured from fighter+0x794 in the pinned NTSC 1.02 ledge route above. Frame
-# 64 is the catch step: CollData retains SpecialAirHi's pre-snap position while
-# the post-collision ECB already reflects EdgeCatch. The
-# decomp's mpColl_80044164 adds this animated extent to ftData_x44's authored
-# ledge-snap X; using a generic body width changes Falcon Dive's catch frame.
-SPECIALHI_ECB_RIGHT_X_MELEE = (
-    4.6822509765625,
-    3.2646751403808594,
-    3.2517662048339844,
-    8.790153503417969,
-    9.282890319824219,
-    9.3123779296875,
-    9.328704833984375,
-    9.3343505859375,
-    9.332077026367188,
-    9.322662353515625,
-    9.302871704101562,
-    9.272300720214844,
-    9.225509643554688,
-    4.481849670410156,
-    2.7993927001953125,
-    3.1050453186035156,
-    3.1559104919433594,
-    3.2133026123046875,
-    3.277557373046875,
-    3.3464431762695312,
-    3.4177474975585938,
-    3.49127197265625,
-    3.576812744140625,
-    3.8591537475585938,
-    4.148586273193359,
-    4.3865203857421875,
-    4.665973663330078,
-    4.6155853271484375,
-    4.551082611083984,
-    4.699317932128906,
-    4.574001312255859,
-    3.7549285888671875,
-    3.1483802795410156,
-    3.94476318359375,
-    4.5456695556640625,
-    11.011032104492188,
-    10.624046325683594,
-    4.975502014160156,
-    3.980335235595703,
-    3.3603744506835938,
-    2.94268798828125,
-    3.6852798461914062,
-    3.100555419921875,
-    2.7566299438476562,
-    3.8938522338867188,
-    4.600364685058594,
-    6.003654479980469,
-    5.736976623535156,
-    5.63336181640625,
-    6.48797607421875,
-    3.9386558532714844,
-    2.584308624267578,
-    2.0,
-    2.0,
-    2.3788604736328125,
-    2.775951385498047,
-    2.3810043334960938,
-    2.3954505920410156,
-    2.3052520751953125,
-    2.1954994201660156,
-    2.63751220703125,
-    2.8061485290527344,
-    2.899059295654297,
-    3.6350555419921875,
-)
-
-SPECIALHI_ECB_BOTTOM_Y_MELEE = (
-    3.055513381958008,
-    4.40119743347168,
-    4.645145416259766,
-    4.39903450012207,
-    2.1715545654296875,
-    2.0419673919677734,
-    1.9570884704589844,
-    1.9130744934082031,
-    1.9060840606689453,
-    1.9322776794433594,
-    1.987813949584961,
-    2.0688552856445312,
-    2.1715545654296875,
-    2.1715545654296875,
-    2.1715545654296875,
-    2.1715545654296875,
-    2.1715545654296875,
-    2.0919408798217773,
-    2.034531593322754,
-    1.926483154296875,
-    1.8232789039611816,
-    1.7804226875305176,
-    1.8533048629760742,
-    2.0940933227539062,
-    2.4376063346862793,
-    2.846829414367676,
-    3.2853517532348633,
-    3.712709426879883,
-    4.111310005187988,
-    4.468051910400391,
-    4.8230133056640625,
-    4.9176177978515625,
-    5.207601547241211,
-    5.917392730712891,
-    6.684072494506836,
-    7.168909072875977,
-    7.242408752441406,
-    7.64799690246582,
-    8.447587966918945,
-    8.544607162475586,
-    9.129560470581055,
-    11.209505081176758,
-    13.178729057312012,
-    12.47581958770752,
-    12.429488182067871,
-    12.864155769348145,
-    13.55915355682373,
-    14.357234954833984,
-    13.16108226776123,
-    11.59609603881836,
-    9.9263916015625,
-    7.727045059204102,
-    6.414306640625,
-    6.587861061096191,
-    8.260906219482422,
-    9.847517967224121,
-    12.090156555175781,
-    11.625774383544922,
-    10.76664924621582,
-    9.730381965637207,
-    8.729700088500977,
-    7.349581241607666,
-    4.837783336639404,
-    3.194936752319336,
 )
 
 # SpecialLw frame 39 -> SpecialLwEnd frame 1 retains exactly 80% of the
@@ -1998,11 +1837,6 @@ def generate(
                     "side_x_from_origin": DAMAGE_FLY_ECB_SIDE_X_MELEE,
                     "side_y_from_origin": DAMAGE_FLY_ECB_SIDE_Y_MELEE,
                 },
-                "falcon_dive_ledge_ecb_capture_sha256": (
-                    SPECIALHI_LEDGE_ECB_CAPTURE_SHA256
-                ),
-                "falcon_dive_ledge_ecb_right_x_melee": (SPECIALHI_ECB_RIGHT_X_MELEE),
-                "falcon_dive_ledge_ecb_bottom_y_melee": (SPECIALHI_ECB_BOTTOM_Y_MELEE),
                 "falcon_dive_grounded_throw_reposition_melee": {
                     "x": SPECIALHI_GROUNDED_THROW_REPOSITION_X_MELEE,
                     "y": SPECIALHI_GROUNDED_THROW_REPOSITION_Y_MELEE,
@@ -2112,9 +1946,6 @@ def generate(
                     )
                     for frame in crouch_wait_frames
                 ),
-                "falcon_fall_special_collision_pose_melee": {
-                    "bottom_y_from_origin": FALL_SPECIAL_ECB_BOTTOM_Y_MELEE,
-                },
                 "falcon_air_dodge_collision_pose_melee": {
                     "bottom_y_from_origin": AIR_DODGE_ECB_BOTTOM_Y_MELEE,
                 },
@@ -2701,30 +2532,6 @@ def generate(
                 f"        {render_ecb_pose_q16(frame)},"
                 for frame in wall_bounce_frames
             ),
-            "    },",
-            "    .fall_special_bottom_y_from_origin_q16 = {",
-            "        "
-            + ", ".join(
-                f"INT32_C({round(value * MELEE_Y_TO_SIM_Q16)})"
-                for value in FALL_SPECIAL_ECB_BOTTOM_Y_MELEE
-            )
-            + ",",
-            "    },",
-            "    .falcon_dive_right_x_from_origin_q16 = {",
-            "        "
-            + ", ".join(
-                f"INT32_C({round(value * MELEE_X_TO_SIM_Q16)})"
-                for value in SPECIALHI_ECB_RIGHT_X_MELEE
-            )
-            + ",",
-            "    },",
-            "    .falcon_dive_bottom_y_from_origin_q16 = {",
-            "        "
-            + ", ".join(
-                f"INT32_C({round(value * MELEE_Y_TO_SIM_Q16)})"
-                for value in SPECIALHI_ECB_BOTTOM_Y_MELEE
-            )
-            + ",",
             "    },",
             "};",
             "",

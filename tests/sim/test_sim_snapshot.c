@@ -9,13 +9,13 @@
 
 #define TEST_MEMORY_BYTES 4096U
 #define TEST_MEMORY_ALIGNMENT 64U
-#define TEST_SAVE_CAPACITY 2048U
+#define TEST_SAVE_CAPACITY 8192U
 #define TEST_SAVE_HEADER_BYTES 140U
 #define TEST_PAYLOAD_HASH_OFFSET 108U
 #define TEST_AIRBORNE_SUBMOTION_PAYLOAD_OFFSET 199U
 #define TEST_AIRBORNE_SUBMOTION_OFFSET                              \
     (TEST_SAVE_HEADER_BYTES + TEST_AIRBORNE_SUBMOTION_PAYLOAD_OFFSET)
-#define TEST_PACKED_RECOVERY_PAYLOAD_OFFSET 651U
+#define TEST_PACKED_RECOVERY_PAYLOAD_OFFSET 691U
 #define TEST_PACKED_RECOVERY_OFFSET                                      \
     (TEST_SAVE_HEADER_BYTES + TEST_PACKED_RECOVERY_PAYLOAD_OFFSET)
 #define TEST_TRACE_TICKS UINT64_C(73)
@@ -235,7 +235,7 @@ static int verify_wire_prefix(
         UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x53), UINT8_C(0x41),
         UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x36), UINT8_C(0x30)};
 
-    if (save_size != (size_t)1707 ||
+    if (save_size != (size_t)1747 ||
         memcmp(save_bytes, expected_magic, sizeof(expected_magic)) != 0 ||
         save_bytes[8] != UINT8_C(66) ||
         save_bytes[9] != UINT8_C(0) ||
@@ -245,7 +245,7 @@ static int verify_wire_prefix(
         save_bytes[13] != UINT8_C(0) ||
         save_bytes[14] != UINT8_C(0) ||
         save_bytes[15] != UINT8_C(0) ||
-        save_bytes[16] != UINT8_C(71) ||
+        save_bytes[16] != UINT8_C(74) ||
         save_bytes[17] != UINT8_C(0) ||
         save_bytes[22] != UINT8_C(5) ||
         save_bytes[23] != UINT8_C(0) ||
@@ -394,7 +394,7 @@ int main(void)
             pf_sim_query_save_size(source, &required_bytes),
             PF_STATUS_OK,
             "query-save-size") ||
-        required_bytes != (size_t)1707)
+        required_bytes != (size_t)1747)
     {
         (void)fprintf(
             stderr,

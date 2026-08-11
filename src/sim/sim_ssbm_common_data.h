@@ -153,6 +153,12 @@ typedef struct pf_m4_ssbm_clank_attributes
     uint16_t reserved;
 } pf_m4_ssbm_clank_attributes;
 
+typedef struct pf_m4_ssbm_fall_animation_attributes
+{
+    int32_t direction_threshold_q16;
+    int32_t blend_rate_q16;
+} pf_m4_ssbm_fall_animation_attributes;
+
 const uint8_t *pf_m4_ssbm_common_reference_source_sha256(void);
 
 const uint32_t *pf_m4_ssbm_common_reference_raw_words(
@@ -180,5 +186,8 @@ pf_m4_ssbm_common_reference_rebirth(void);
 
 const pf_m4_ssbm_clank_attributes *
 pf_m4_ssbm_common_reference_clank(void);
+
+const pf_m4_ssbm_fall_animation_attributes *
+pf_m4_ssbm_common_reference_fall_animation(void);
 
 #endif

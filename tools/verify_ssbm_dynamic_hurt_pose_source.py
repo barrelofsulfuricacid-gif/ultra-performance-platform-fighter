@@ -24,7 +24,11 @@ from hsd_joint_pose import (
 )
 from ssbm_collision import canonical_hurt_pose_q16
 from ssbm_dat import read_hsd_archive
-from ssbm_ecb_pose import canonical_source_ecb, pose_q16
+from ssbm_ecb_pose import (
+    Y_Q16_PER_MELEE_UNIT,
+    canonical_source_ecb,
+    pose_q16,
+)
 from ssbm_ecb_pose import (
     canonical_sha256 as ecb_canonical_sha256,
     semantic_payload as ecb_semantic_payload,
@@ -118,7 +122,7 @@ def source_joint_ecb_q16(
     source_joint_indices: tuple[int, ...],
     reference_joint_index: int | None = None,
     grounded: bool = True,
-    bottom_locked: bool = False,
+    locked_bottom_y_q16: int | None = None,
 ) -> dict[str, list[int]]:
     reference_x = (
         0.0 if reference_joint_index is None
@@ -151,8 +155,18 @@ def source_joint_ecb_q16(
     left = min(left, -2.0)
     bottom = 0.0 if grounded else max(bottom, 0.0)
     side_y = 0.5 * (bottom + top)
-    if bottom_locked:
-        bottom = 0.0
+    if locked_bottom_y_q16 is not None:
+        bottom = locked_bottom_y_q16 / Y_Q16_PER_MELEE_UNIT
+        if abs(top - bottom) < 1.0:
+            top += 1.0
+            side_y = 0.5 * (top + bottom)
+        top = max(top, 1.0)
+        if top < bottom:
+            top = 1.0 + bottom
+        if side_y > top or side_y < bottom:
+            side_y = 0.5 * (top + bottom)
+        if top - side_y < 0.001 or side_y - bottom < 0.001:
+            side_y = 0.5 * (top + bottom)
     return pose_q16(
         {
             "top": [0.0, top],

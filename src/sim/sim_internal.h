@@ -114,7 +114,7 @@ static inline int pf_m4_action_is_smash_release(uint8_t action_state)
            action_state == (uint8_t)PF_M4_ACTION_DOWN_STRONG_ATTACK;
 }
 
-static inline int pf_m4_action_is_raptor_boost_hsd(uint8_t action_state)
+static inline int pf_m4_action_uses_direct_hsd_pose(uint8_t action_state)
 {
     return action_state ==
                (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_START_GROUND ||
@@ -123,7 +123,23 @@ static inline int pf_m4_action_is_raptor_boost_hsd(uint8_t action_state)
            action_state ==
                (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_START_AIR ||
            action_state ==
-               (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_HIT_AIR;
+               (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_HIT_AIR ||
+           action_state ==
+               (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_GROUND ||
+           action_state ==
+               (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_AIR ||
+           action_state == (uint8_t)PF_M4_ACTION_FALCON_DIVE_CATCH ||
+           action_state == (uint8_t)PF_M4_ACTION_FALCON_DIVE_THROW;
+}
+
+static inline int pf_m4_action_uses_fall_special_pose(uint8_t action_state)
+{
+    return action_state == (uint8_t)PF_M4_ACTION_FALL_SPECIAL ||
+           action_state ==
+               (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_FALL_MISS ||
+           action_state ==
+               (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_FALL_HIT ||
+           action_state == (uint8_t)PF_M4_ACTION_FALCON_DIVE_FALL;
 }
 
 static inline int pf_m4_action_retains_source_submotion(
@@ -150,7 +166,8 @@ static inline int pf_m4_action_retains_source_submotion(
         action_state == (uint8_t)PF_M4_ACTION_GRABBED ||
         action_state == (uint8_t)PF_M4_ACTION_GRAB_RELEASE ||
         pf_m4_action_uses_ledge(action_state) ||
-        pf_m4_action_is_raptor_boost_hsd(action_state);
+        pf_m4_action_uses_fall_special_pose(action_state) ||
+        pf_m4_action_uses_direct_hsd_pose(action_state);
     const int resume_owns_submotion =
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_WALK ||
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_RUN ||
@@ -175,7 +192,8 @@ static inline int pf_m4_action_retains_source_submotion(
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_GRABBED ||
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_GRAB_RELEASE ||
         pf_m4_action_uses_ledge(hitlag_resume_action) ||
-        pf_m4_action_is_raptor_boost_hsd(hitlag_resume_action);
+        pf_m4_action_uses_fall_special_pose(hitlag_resume_action) ||
+        pf_m4_action_uses_direct_hsd_pose(hitlag_resume_action);
 
     return action_owns_submotion ||
            (action_state == (uint8_t)PF_M4_ACTION_HITLAG &&
@@ -215,7 +233,8 @@ static inline int pf_m4_action_uses_source_animation_clock(
                action_state,
                hitlag_resume_action) ||
            effective_action == (uint8_t)PF_M4_ACTION_CROUCH ||
-           pf_m4_action_is_raptor_boost_hsd(effective_action);
+           pf_m4_action_uses_fall_special_pose(effective_action) ||
+           pf_m4_action_uses_direct_hsd_pose(effective_action);
 }
 
 static inline int32_t pf_m4_multiply_q16(
@@ -326,6 +345,9 @@ typedef struct pf_world_state
     uint16_t source_submotion[PF_SIM_MAX_PLAYERS];
     int32_t source_animation_frame_q16[PF_SIM_MAX_PLAYERS];
     int32_t source_animation_rate_q16[PF_SIM_MAX_PLAYERS];
+    int32_t fall_animation_blend_q16[PF_SIM_MAX_PLAYERS];
+    uint8_t fall_animation_target_switched[PF_SIM_MAX_PLAYERS];
+    int32_t ecb_locked_bottom_y_q16[PF_SIM_MAX_PLAYERS];
     pf_m4_hsd_compact_pose ground_blend_pose[PF_SIM_MAX_PLAYERS];
     int32_t ground_blend_progress_q16[PF_SIM_MAX_PLAYERS];
     uint16_t respawn_count[PF_SIM_MAX_PLAYERS];
@@ -352,6 +374,7 @@ typedef struct pf_world_state
     uint8_t recovery_available[PF_SIM_MAX_PLAYERS];
     uint8_t short_hop_latched[PF_SIM_MAX_PLAYERS];
     uint8_t platform_drop_ticks[PF_SIM_MAX_PLAYERS];
+    uint8_t ecb_bottom_lock_ticks[PF_SIM_MAX_PLAYERS];
     uint8_t fast_fall[PF_SIM_MAX_PLAYERS];
     int8_t facing[PF_SIM_MAX_PLAYERS];
     int8_t dash_direction[PF_SIM_MAX_PLAYERS];
@@ -441,6 +464,9 @@ typedef struct pf_sim_scratch
     uint16_t source_submotion[PF_SIM_MAX_PLAYERS];
     int32_t source_animation_frame_q16[PF_SIM_MAX_PLAYERS];
     int32_t source_animation_rate_q16[PF_SIM_MAX_PLAYERS];
+    int32_t fall_animation_blend_q16[PF_SIM_MAX_PLAYERS];
+    uint8_t fall_animation_target_switched[PF_SIM_MAX_PLAYERS];
+    int32_t ecb_locked_bottom_y_q16[PF_SIM_MAX_PLAYERS];
     pf_m4_hsd_compact_pose ground_blend_pose[PF_SIM_MAX_PLAYERS];
     int32_t ground_blend_progress_q16[PF_SIM_MAX_PLAYERS];
     uint16_t respawn_count[PF_SIM_MAX_PLAYERS];
@@ -466,6 +492,7 @@ typedef struct pf_sim_scratch
     uint8_t recovery_available[PF_SIM_MAX_PLAYERS];
     uint8_t short_hop_latched[PF_SIM_MAX_PLAYERS];
     uint8_t platform_drop_ticks[PF_SIM_MAX_PLAYERS];
+    uint8_t ecb_bottom_lock_ticks[PF_SIM_MAX_PLAYERS];
     uint8_t fast_fall[PF_SIM_MAX_PLAYERS];
     int8_t facing[PF_SIM_MAX_PLAYERS];
     int8_t dash_direction[PF_SIM_MAX_PLAYERS];

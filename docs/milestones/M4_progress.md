@@ -5767,3 +5767,31 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   ASan/UBSan 26/26, and the full 21-domain / 117-case stored-plus-replay lane
   in 0.705 seconds on Windows and 0.586 seconds in WSL. Deterministic Falcon,
   dynamic-HSD, stored-Raptor generation, and Python bytecode checks also pass.
+
+## 2026-08-11 Falcon Dive and FallSpecial DAT/HSD ECB ownership
+
+- The shared HSD profile grows from ten to 17 motions / 1,204 tracks / 10,106
+  keys, adding Falcon Dive ground/air start, catch, throw, and common
+  FallSpecial neutral/forward/back without adding another pose evaluator.
+- Nine retained source captures qualify eight motions, 733 rows, and 715 unique
+  source frames. The independent DAT/HSD evaluator remains within two Q16
+  units of Dolphin across all complete four-point ECBs.
+- Production reproduces common Fall direction selection from imported speed
+  and common-data thresholds. A target switch executes the decomp's install
+  blend and then its ordinary advanced-target blend; stable target updates
+  execute only the latter. The observable switch bit and bottom-lock state are
+  canonical rollback state rather than inferred from later geometry.
+- A fresh headless/null/unlimited `up_air_miss_natural` capture has SHA-256
+  `55ddf2eed8a8cd52d788075b62bca1e6d7be3a1a26ce89bec6e02b85475ea5b4`.
+  Production passes all 165 identical-input frames under the reviewed
+  640-Q16 position envelope with strict actions and velocity channels.
+- The authored Raptor Boost, Falcon Dive, and FallSpecial ECB arrays are gone.
+  FallSpecial loop length comes directly from the imported submotion catalog.
+  The regenerated include SHA-256 is
+  `754a72159e5463752e382dd6a2a8e35657bab601b84c228ade5c540d30272a74`,
+  and complete-source digest is
+  `74e4a7b7a8635a870ba65cb77425eb3500d0df2d53b41fa1ff9aa9fffbb3edee`.
+- State schema 74 / inspection schema 56 now serialize and expose the required
+  transition fact. Save size is 1,747 bytes and deterministic replay size is
+  42,519 bytes. The full WSL Release suite passes 40/40 in 5.67 seconds and the
+  strict native Windows MSVC suite passes 40/40 in 8.35 seconds.

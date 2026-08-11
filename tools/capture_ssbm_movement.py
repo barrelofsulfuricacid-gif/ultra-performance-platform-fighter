@@ -42,6 +42,7 @@ SPECIAL_GEOMETRY_SOURCE_KEYS = {
     "side_air_hit_floor": "0x132",
     "up_ground_miss": "0x133",
     "up_air_miss": "0x134",
+    "up_air_miss_natural": "0x134",
     "up_air_ledge_grab": "0x134",
     "up_air_ledge_grab_behind": "0x134",
     "up_ground_catch": "0x135",
@@ -826,6 +827,7 @@ def input_trace(
                 "side_air_hit",
                 "side_air_hit_floor",
                 "up_air_miss",
+                "up_air_miss_natural",
                 "up_air_ledge_grab",
                 "up_air_ledge_grab_behind",
                 "up_air_catch",
@@ -834,6 +836,9 @@ def input_trace(
             }
             low_airborne = route == "down_air_land"
             elevated_airborne = airborne and not low_airborne
+            position_isolated_airborne = (
+                elevated_airborne and route != "up_air_miss_natural"
+            )
             native_air_hit = route == "side_air_hit_floor"
             if airborne:
                 airborne_opponent = route in {
@@ -993,6 +998,7 @@ def input_trace(
             elif route in {
                 "up_ground_miss",
                 "up_air_miss",
+                "up_air_miss_natural",
                 "up_air_ledge_grab",
                 "up_air_ledge_grab_behind",
                 "up_ground_catch",
@@ -1008,7 +1014,7 @@ def input_trace(
                         fighter_x_override=(-5.0 if collision_route else None),
                         fighter_y_override=(
                             500.0
-                            if elevated_airborne and not ledge_grab_route
+                            if position_isolated_airborne and not ledge_grab_route
                             else None
                         ),
                         opponent_x_override=(0.0 if collision_route else None),
@@ -1085,7 +1091,7 @@ def input_trace(
                 opponent_main_x=(0.0 if route == "side_ground_edge" else 0.5),
                 fighter_y_override=(
                     500.0
-                    if elevated_airborne
+                    if position_isolated_airborne
                     and route
                     not in {
                         "neutral_air",
@@ -4917,9 +4923,11 @@ def read_hitbox_memory_probe(memory_engine: object) -> dict[str, object]:
     common = memory_engine.read_word(0x804D6554)
 
     def read_ecb(
-        fighter_address: int, snapshot: BigEndianSnapshot
+        fighter_address: int,
+        snapshot: BigEndianSnapshot,
+        offset: int,
     ) -> dict[str, list[float]]:
-        ecb = fighter_address + 0x794
+        ecb = fighter_address + offset
         return {
             name: snapshot.f32_vector(ecb + offset, 2)
             for name, offset in (
@@ -4976,7 +4984,11 @@ def read_hitbox_memory_probe(memory_engine: object) -> dict[str, object]:
         "fighter_hurtboxes": read_fighter_hurt_capsules(
             memory_engine, fighter, fighter_snapshot
         ),
-        "fighter_ecb": read_ecb(fighter, fighter_snapshot),
+        "fighter_desired_ecb": read_ecb(fighter, fighter_snapshot, 0x774),
+        "fighter_ecb": read_ecb(fighter, fighter_snapshot, 0x794),
+        "fighter_previous_ecb": read_ecb(fighter, fighter_snapshot, 0x7B4),
+        "fighter_ecb_lock_ticks": fighter_snapshot.u32(fighter + 0x88C),
+        "fighter_collision_flags": fighter_snapshot.u32(fighter + 0x820),
         "fighter_ledge_snap": fighter_snapshot.f32_vector(fighter + 0x744, 3),
         "fighter_collision_contact": fighter_snapshot.f32_vector(
             fighter + 0x830, 3
@@ -5023,7 +5035,7 @@ def read_hitbox_memory_probe(memory_engine: object) -> dict[str, object]:
         "opponent_hurtboxes": read_fighter_hurt_capsules(
             memory_engine, opponent, opponent_snapshot
         ),
-        "opponent_ecb": read_ecb(opponent, opponent_snapshot),
+        "opponent_ecb": read_ecb(opponent, opponent_snapshot, 0x794),
     }
 
 
@@ -7331,7 +7343,11 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     "hurtbox_stride": "0x4c",
                     "hurtbox_position_a": "hurtbox+0x28",
                     "hurtbox_position_b": "hurtbox+0x34",
+                    "fighter_desired_ecb": "fighter+0x774",
                     "fighter_ecb": "fighter+0x794",
+                    "fighter_previous_ecb": "fighter+0x7b4",
+                    "fighter_ecb_lock_ticks": "fighter+0x88c",
+                    "fighter_collision_flags": "fighter+0x820",
                     "ecb_layout": "top,bottom,right,left Vec2",
                     "fighter_ledge_snap": "fighter+0x744,+0x748,+0x74c",
                     "fighter_collision_contact": "fighter+0x830 Vec3",
@@ -7558,6 +7574,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         or args.aerial_attack_landing_only
         or args.airborne_landing_only
         or args.shield_break_orientation_only
+        or args.special_geometry_only
         or (
             args.oracle_checkpoint_pack
             and (
@@ -7570,7 +7587,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "--memory-probe-surface requires --platform-only, "
             "--platform-drop-ecb-only, --airborne-ecb-only, "
             "--aerial-attack-ecb-only, --aerial-attack-landing-only, "
-            "--airborne-landing-only, --shield-break-orientation-only, or a "
+            "--airborne-landing-only, --shield-break-orientation-only, "
+            "--special-geometry-only, or a "
             "--damage-hit-only/--common-hurt-geometry-only checkpoint pack"
         )
     if args.memory_probe_hitbox and not (

@@ -1292,8 +1292,34 @@ The independent Python source evaluator differs from live Dolphin by at most
 one Q16 unit. Four selected C poses allow 32 Q16 units for deterministic
 fixed-point matrix evaluation, and the complete 657-frame production Raptor
 suite passes. The former authored 45-value aerial-hit ECB-bottom series is
-removed; the Falcon complete-source digest is now
-`af61fad2387f92067a0fc6eaefbd8322fa9fa0401e8281c4618e6949cf1c44f1`.
+removed.
+
+The same parent-closed profile now owns Falcon Dive ground/air start, catch,
+throw, and common FallSpecial neutral/forward/back geometry. Nine retained
+captures cover eight motions, 733 rows, and 715 unique frames; the independent
+source evaluator differs from live Dolphin by at most two Q16 units. The HSD
+profile contains 17 motions, 1,204 tracks, and 10,106 keys under SHA-256
+`ab3eae37b1a8a0e0b495291d3d1548093906b0ffecd9e4bb59ea32d0056b5f9a`.
+
+FallSpecial direction selection follows `ftCo_Fall_Anim_Inner` using the
+imported common threshold `0.1`, Falcon's imported air-speed maximum, and the
+common blend rate `0.5`. A target switch first installs and blends the target
+skeleton, then `ftCo_800CC988` advances and blends it again; a stable target
+performs only the latter pass. Production retains the one-bit switch result
+through rollback because that callback ordering changes the current ECB.
+Bottom-lock value and lifetime are likewise explicit state: the desired side-Y
+continues to come from the unlocked pose while only the actual bottom is
+replaced.
+
+A fresh headless/null/unlimited natural Falcon Dive miss capture has SHA-256
+`55ddf2eed8a8cd52d788075b62bca1e6d7be3a1a26ce89bec6e02b85475ea5b4`.
+The same-input production route passes all 165 compared frames under the
+existing 640-Q16 accumulated-position envelope, with actions and velocity
+channels strict. The authored Falcon Dive and FallSpecial ECB arrays are now
+removed; the generated include SHA-256 is
+`754a72159e5463752e382dd6a2a8e35657bab601b84c228ade5c540d30272a74`,
+and the Falcon complete-source digest is
+`74e4a7b7a8635a870ba65cb77425eb3500d0df2d53b41fa1ff9aa9fffbb3edee`.
 
 ## Falcon shield-break orientation branch
 

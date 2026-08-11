@@ -18,7 +18,7 @@ extern "C"
 #define PF_M4_REFLECTOR_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_CHARGE_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_RECOVERY_SCHEMA_VERSION UINT16_C(1)
-#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(55)
+#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(56)
 #define PF_M4_INSPECTION_HIT_SPHERE_CAPACITY 4
 #define PF_M4_INSPECTION_HURT_CAPSULE_CAPACITY 11
 #define PF_M4_PLACEHOLDER_FIGHTER_COUNT UINT8_C(1)
@@ -890,6 +890,8 @@ typedef struct pf_m4_player_inspection
     int32_t shield_recoil_x_q16;
     int32_t source_animation_frame_q16;
     int32_t source_animation_rate_q16;
+    int32_t fall_animation_blend_q16;
+    int32_t ecb_bottom_y_from_origin_q16;
     uint16_t action_ticks;
     uint16_t source_submotion;
     uint16_t respawn_count;
@@ -904,6 +906,7 @@ typedef struct pf_m4_player_inspection
     uint8_t fast_fall;
     uint8_t short_hop_latched;
     uint8_t platform_drop_ticks;
+    uint8_t fall_animation_target_switched;
     uint8_t active;
     uint8_t ledge;
     uint64_t last_hit_tick;

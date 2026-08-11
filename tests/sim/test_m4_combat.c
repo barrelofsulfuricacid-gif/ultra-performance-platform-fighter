@@ -2500,7 +2500,7 @@ static int run_directional_attack_snapshot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "directional-attack-query-save-size") ||
-        save_size != (size_t)1707)
+        save_size != (size_t)1747)
     {
         return fail("directional-attack-hitlag-snapshot-boundary");
     }
@@ -2693,7 +2693,7 @@ static int run_smash_charge_snapshot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "smash-charge-query-save-size") ||
-        save_size != (size_t)1707)
+        save_size != (size_t)1747)
     {
         return fail("smash-charge-save-size");
     }
@@ -3831,7 +3831,7 @@ static int run_directional_aerial_snapshot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "directional-aerial-query-save-size") ||
-        save_size != (size_t)1707)
+        save_size != (size_t)1747)
     {
         return fail("directional-aerial-hitlag-snapshot-boundary");
     }
@@ -4371,7 +4371,7 @@ static int run_v_cancel_snapshot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "query-v-cancel-save-size") ||
-        save_size != (size_t)1707)
+        save_size != (size_t)1747)
     {
         return fail("v-cancel-snapshot-setup");
     }
@@ -4835,7 +4835,7 @@ static int run_crouch_cancel_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "query-crouch-cancel-save-size") ||
-        save_size != (size_t)1707)
+        save_size != (size_t)1747)
     {
         return fail("crouch-cancel-snapshot-setup");
     }
@@ -5369,7 +5369,7 @@ static int run_double_jump_cancel_counter_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "double-jump-cancel-counter-save-size") ||
-        save_size != (size_t)1707)
+        save_size != (size_t)1747)
     {
         return fail("double-jump-cancel-counter-save-size-contract");
     }
@@ -6315,7 +6315,7 @@ static int run_small_step_forward_smash_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "small-step-forward-smash-query-save-size") ||
-        save_size != (size_t)1707)
+        save_size != (size_t)1747)
     {
         return fail("small-step-forward-smash-window-boundary");
     }
@@ -6775,7 +6775,7 @@ static int run_drop_cancel_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "drop-cancel-query-save-size") ||
-        save_size != (size_t)1707)
+        save_size != (size_t)1747)
     {
         return fail("drop-cancel-first-airborne-frame");
     }
@@ -7321,7 +7321,7 @@ static int run_sharking_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "sharking-query-save-size") ||
-        save_size != (size_t)1707)
+        save_size != (size_t)1747)
     {
         return fail("sharking-hit-setup");
     }
@@ -7726,7 +7726,7 @@ static int run_cross_up_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "cross-up-query-save-size") ||
-        save_size != (size_t)1707)
+        save_size != (size_t)1747)
     {
         return fail("cross-up-setup");
     }
@@ -8029,7 +8029,7 @@ static int run_juggling_route(
                 pf_sim_query_save_size(sim, &save_size),
                 PF_STATUS_OK,
                 "juggling-query-save-size") ||
-            save_size != (size_t)1707 ||
+            save_size != (size_t)1747 ||
             !expect_status(
                 pf_sim_save(sim, &destination),
                 PF_STATUS_OK,
@@ -8815,7 +8815,7 @@ static int run_kill_confirm_route(
                 pf_sim_query_save_size(sim, &save_size),
                 PF_STATUS_OK,
                 "kill-confirm-query-save-size") ||
-            save_size != (size_t)1707 ||
+            save_size != (size_t)1747 ||
             !expect_status(
                 pf_sim_save(sim, &destination),
                 PF_STATUS_OK,
@@ -9141,7 +9141,7 @@ static int run_zero_to_death_route(
                     pf_sim_query_save_size(sim, &save_size),
                     PF_STATUS_OK,
                     "zero-to-death-query-save-size") ||
-                save_size != (size_t)1707 ||
+                save_size != (size_t)1747 ||
                 !expect_status(
                     pf_sim_save(sim, &destination),
                     PF_STATUS_OK,
@@ -9454,7 +9454,7 @@ static int run_ladder_route(
                     pf_sim_query_save_size(sim, &save_size),
                     PF_STATUS_OK,
                     "ladder-query-save-size") ||
-                save_size != (size_t)1707 ||
+                save_size != (size_t)1747 ||
                 !expect_status(
                     pf_sim_save(sim, &destination),
                     PF_STATUS_OK,
@@ -11371,7 +11371,7 @@ static int run_light_shield_state_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "light-shield-query-save") ||
-        save_size != (size_t)1707)
+        save_size != (size_t)1747)
     {
         return fail("light-shield-minimum-depletion");
     }
@@ -11631,7 +11631,7 @@ static int run_dashing_shield_test(
             pf_sim_query_save_size(tap, &save_size),
             PF_STATUS_OK,
             "dashing-shield-query-save-size") ||
-        save_size != (size_t)1707)
+        save_size != (size_t)1747)
     {
         return fail("dashing-shield-entry");
     }
@@ -11940,7 +11940,7 @@ static int run_spacing_counter_snapshot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "spacing-query-save-size") ||
-        save_size != (size_t)1707)
+        save_size != (size_t)1747)
     {
         return fail("spacing-safe-tip-setup");
     }
@@ -14845,7 +14845,7 @@ static int run_shield_break_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "query-shield-break-save-size") ||
-        save_size != (size_t)1707)
+        save_size != (size_t)1747)
     {
         return fail("shield-break-snapshot-setup");
     }
@@ -19105,7 +19105,7 @@ static int run_tech_chase_test(
             pf_sim_query_save_size(roll, &save_size),
             PF_STATUS_OK,
             "tech-chase-query-save-size") ||
-        save_size != (size_t)1707)
+        save_size != (size_t)1747)
     {
         return fail("tech-chase-roll-snapshot-boundary");
     }
@@ -19835,7 +19835,7 @@ static int run_floor_recovery_snapshot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "query-floor-recovery-save-size") ||
-        save_size != (size_t)1707)
+        save_size != (size_t)1747)
     {
         return fail("floor-recovery-snapshot-setup");
     }
@@ -20654,7 +20654,7 @@ static int run_hitlag_snapshot_test(const pf_content_view *view)
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "query-combat-save-size") ||
-        save_size != (size_t)1707)
+        save_size != (size_t)1747)
     {
         return fail("mid-hitlag-save-setup");
     }
@@ -20775,7 +20775,7 @@ static int run_shield_hitlag_snapshot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "query-shield-save-size") ||
-        save_size != (size_t)1707)
+        save_size != (size_t)1747)
     {
         return fail("mid-shield-hitlag-save-setup");
     }
@@ -21678,7 +21678,7 @@ static int run_jab_reset_test(
                     pf_sim_query_save_size(sdi, &save_size),
                     PF_STATUS_OK,
                     "jab-reset-hitlag-query-save-size") ||
-                save_size != (size_t)1707)
+                save_size != (size_t)1747)
             {
                 return fail("jab-reset-hitlag-snapshot-setup");
             }
@@ -21820,7 +21820,7 @@ static int run_jab_reset_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "jab-reset-query-save-size") ||
-        save_size != (size_t)1707)
+        save_size != (size_t)1747)
     {
         return fail("jab-reset-snapshot-boundary");
     }
@@ -22239,7 +22239,7 @@ static int run_jab_cancel_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "jab-cancel-query-save-size") ||
-        save_size != (size_t)1707)
+        save_size != (size_t)1747)
     {
         return fail("jab-cancel-snapshot-boundary");
     }
@@ -22829,7 +22829,7 @@ static int run_boost_grab_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "boost-grab-query-save-size") ||
-        save_size != (size_t)1707)
+        save_size != (size_t)1747)
     {
         return fail("boost-grab-snapshot-boundary");
     }
@@ -23017,7 +23017,7 @@ static int run_jump_cancelled_grab_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "grab-query-save-size") ||
-        save_size != (size_t)1707)
+        save_size != (size_t)1747)
     {
         return fail("grab-shield-capture");
     }
@@ -23781,7 +23781,7 @@ static int run_jump_cancelling_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "jump-cancel-query-save-size") ||
-        save_size != (size_t)1707)
+        save_size != (size_t)1747)
     {
         return fail("jump-cancel-save-setup");
     }
@@ -24885,7 +24885,7 @@ static int run_pummel_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "pummel-query-save-size") ||
-        save_size != (size_t)1707)
+        save_size != (size_t)1747)
     {
         return fail("pummel-entry");
     }
@@ -25550,7 +25550,7 @@ static int run_chain_grab_snapshot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "chain-grab-query-save-size") ||
-        save_size != (size_t)1707)
+        save_size != (size_t)1747)
     {
         return fail("chain-grab-snapshot-setup");
     }
@@ -26064,7 +26064,7 @@ static int run_ledge_attack_snapshot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "ledge-attack-query-save-size") ||
-        save_size != (size_t)1707)
+        save_size != (size_t)1747)
     {
         return fail("ledge-attack-snapshot-size");
     }
@@ -26875,21 +26875,29 @@ static int run_falcon_reference_table_test(void)
         pf_m4_falcon_reference_hsd_ecb_pose(
             PF_M4_FALCON_SUBMOTION_SQUAT_WAIT,
             INT32_C(0),
+            1,
+            PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16,
             &crouch_wait_first_ecb);
     const int crouch_wait_middle_valid =
         pf_m4_falcon_reference_hsd_ecb_pose(
             PF_M4_FALCON_SUBMOTION_SQUAT_WAIT,
             INT32_C(79) * INT32_C(65536),
+            1,
+            PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16,
             &crouch_wait_middle_ecb);
     const int crouch_wait_last_valid =
         pf_m4_falcon_reference_hsd_ecb_pose(
             PF_M4_FALCON_SUBMOTION_SQUAT_WAIT,
             INT32_C(157) * INT32_C(65536),
+            1,
+            PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16,
             &crouch_wait_last_ecb);
     const int crouch_wait_wrap_valid =
         pf_m4_falcon_reference_hsd_ecb_pose(
             PF_M4_FALCON_SUBMOTION_SQUAT_WAIT,
             INT32_C(158) * INT32_C(65536),
+            1,
+            PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16,
             &crouch_wait_wrap_ecb);
     const pf_m4_falcon_ecb_pose_q16 *direct_up_forward_roll_ecb =
         pf_m4_falcon_reference_prone_ecb_pose(
@@ -27761,8 +27769,8 @@ static int run_falcon_reference_table_test(void)
         standing_hurt_capsules[0].height != UINT8_C(1) ||
         standing_hurt_capsules[0].grabbable != UINT8_C(1) ||
         complete_source_sha256 == NULL ||
-        complete_source_sha256[0] != UINT8_C(0xaf) ||
-        complete_source_sha256[31] != UINT8_C(0xf1) ||
+        complete_source_sha256[0] != UINT8_C(0x74) ||
+        complete_source_sha256[31] != UINT8_C(0xee) ||
         common_attribute_bits == NULL ||
         common_attribute_count != UINT16_C(97) ||
         common_attribute_bits[0] != UINT32_C(0x3e19999a) ||
@@ -27840,10 +27848,14 @@ static int run_falcon_reference_table_test(void)
         pf_m4_falcon_reference_hsd_ecb_pose(
             PF_M4_FALCON_SUBMOTION_SQUAT,
             INT32_C(0),
+            1,
+            PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16,
             &crouch_wait_wrap_ecb) ||
         pf_m4_falcon_reference_hsd_ecb_pose(
             PF_M4_FALCON_SUBMOTION_SQUAT_WAIT,
             INT32_C(-1),
+            1,
+            PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16,
             &crouch_wait_wrap_ecb) ||
         collision_pose->air_dodge_bottom_y_from_origin_q16[0] !=
             INT32_C(0) ||
@@ -28739,6 +28751,14 @@ static int run_battlefield_stage_catalog_test(void)
         (uint16_t)PF_M4_REFERENCE_STAGE_BATTLEFIELD;
     const pf_m4_ssbm_stage_collision_profile *profile =
         pf_m4_ssbm_reference_stage_collision(profile_id);
+    const pf_m4_falcon_ecb_pose_q16 *fall_entry_pose =
+        pf_m4_falcon_reference_airborne_ecb_pose(
+            (uint16_t)PF_M4_FALCON_SUBMOTION_FALL,
+            UINT16_C(0));
+    const pf_m4_falcon_ecb_pose_q16 *fall_next_pose =
+        pf_m4_falcon_reference_airborne_ecb_pose(
+            (uint16_t)PF_M4_FALCON_SUBMOTION_FALL,
+            UINT16_C(1));
     const uint8_t expected_spawn_supports[4] = {
         UINT8_C(2), UINT8_C(4), UINT8_C(3), UINT8_C(5)};
     const int32_t expected_spawn_x_q16[4] = {
@@ -28761,7 +28781,9 @@ static int run_battlefield_stage_catalog_test(void)
     uint8_t wall_support = UINT8_C(0);
     int8_t wall_away_direction = INT8_C(0);
 
-    if (profile == NULL || profile->line_count != UINT16_C(23) ||
+    if (profile == NULL || fall_entry_pose == NULL ||
+        fall_next_pose == NULL ||
+        profile->line_count != UINT16_C(23) ||
         profile->floor_count != UINT16_C(6) ||
         profile->ceiling_count != UINT16_C(5) ||
         profile->right_wall_count != UINT16_C(6) ||
@@ -29096,7 +29118,7 @@ static int run_battlefield_stage_catalog_test(void)
     ceiling_y_q16 = profile->lines[8].start_y_q16;
     sim->world.position_x_q16[0] = INT32_C(0);
     sim->world.position_y_q16[0] =
-        ceiling_y_q16 + content.fighter.half_height_q16 +
+        ceiling_y_q16 + fall_entry_pose->top_y_from_origin_q16 +
         PF_Q16_ONE / INT32_C(2);
     sim->world.velocity_x_q16[0] = INT32_C(0);
     sim->world.velocity_y_q16[0] = -PF_Q16_ONE;
@@ -29114,7 +29136,7 @@ static int run_battlefield_stage_catalog_test(void)
             UINT64_C(0),
             &inspection) ||
         inspection.players[0].position_y_q16 !=
-            ceiling_y_q16 + content.fighter.half_height_q16 ||
+            ceiling_y_q16 + fall_next_pose->top_y_from_origin_q16 ||
         inspection.players[0].velocity_y_q16 != INT32_C(0) ||
         inspection.players[0].grounded != UINT8_C(0) ||
         inspection.players[0].action_state !=
@@ -29139,8 +29161,11 @@ static int run_battlefield_stage_catalog_test(void)
         return fail("battlefield-stage-wall-production-setup");
     }
     sim->world.position_x_q16[0] = INT32_C(0);
-    sim->world.position_y_q16[0] = INT32_C(1722500);
-    sim->world.velocity_x_q16[0] = PF_Q16_ONE;
+    /* Exercise the imported FallSpecial side point against the wall segment,
+     * rather than the wider authored body box used by the catalog query
+     * above. */
+    sim->world.position_y_q16[0] = INT32_C(1782500);
+    sim->world.velocity_x_q16[0] = INT32_C(2) * PF_Q16_ONE;
     sim->world.velocity_y_q16[0] = INT32_C(0);
     sim->world.grounded[0] = UINT8_C(0);
     sim->world.support[0] = (uint8_t)PF_M4_SURFACE_NONE;
@@ -29148,6 +29173,9 @@ static int run_battlefield_stage_catalog_test(void)
     sim->world.action_ticks[0] = UINT16_C(0);
     sim->world.source_submotion[0] =
         (uint16_t)PF_M4_FALCON_SUBMOTION_FALL_SPECIAL;
+    sim->world.source_animation_frame_q16[0] = INT32_C(0);
+    sim->world.source_animation_rate_q16[0] = PF_Q16_ONE;
+    sim->world.fall_animation_blend_q16[0] = INT32_C(0);
     if (!step_duel(
             sim,
             INT16_C(0),
@@ -29155,7 +29183,9 @@ static int run_battlefield_stage_catalog_test(void)
             INT16_C(0),
             UINT64_C(0),
             &inspection) ||
-        inspection.players[0].position_x_q16 != wall_x_q16 ||
+        inspection.players[0].position_x_q16 <= INT32_C(0) ||
+        inspection.players[0].position_x_q16 >=
+            INT32_C(2) * PF_Q16_ONE ||
         inspection.players[0].velocity_x_q16 != INT32_C(0) ||
         inspection.players[0].grounded != UINT8_C(0) ||
         inspection.players[0].action_state !=
@@ -29344,6 +29374,8 @@ static int run_hsd_hurt_pose_oracle(
             if (!pf_m4_falcon_reference_hsd_ecb_pose(
                     oracle->source_submotion,
                     oracle->source_animation_frame_q16,
+                    1,
+                    PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16,
                     &actual_ecb))
             {
                 return fail("dynamic-ground-ecb-pose-evaluation");

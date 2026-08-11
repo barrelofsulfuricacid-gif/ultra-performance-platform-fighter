@@ -248,3 +248,9 @@ pf_m4_ssbm_clank_attribute_data = {
     UINT16_C(9),
     UINT16_C(0),
 };
+
+static const pf_m4_ssbm_fall_animation_attributes
+pf_m4_ssbm_fall_animation_attribute_data = {
+    INT32_C(6554),
+    INT32_C(32768),
+};

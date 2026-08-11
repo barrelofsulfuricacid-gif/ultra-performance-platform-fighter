@@ -24,10 +24,17 @@
     { "submotion_index": 9, "c_submotion": "PF_M4_FALCON_SUBMOTION_WALK_FAST", "compact_blend": true },
     { "submotion_index": 12, "c_submotion": "PF_M4_FALCON_SUBMOTION_DASH", "compact_blend": true },
     { "submotion_index": 13, "c_submotion": "PF_M4_FALCON_SUBMOTION_RUN", "compact_blend": true },
+    { "submotion_index": 26, "c_submotion": "PF_M4_FALCON_SUBMOTION_FALL_SPECIAL" },
+    { "submotion_index": 27, "c_submotion": "PF_M4_FALCON_SUBMOTION_FALL_SPECIAL_FORWARD" },
+    { "submotion_index": 28, "c_submotion": "PF_M4_FALCON_SUBMOTION_FALL_SPECIAL_BACKWARD" },
     { "submotion_index": 303, "c_submotion": "PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_START_GROUND" },
     { "submotion_index": 304, "c_submotion": "PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_HIT_GROUND" },
     { "submotion_index": 305, "c_submotion": "PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_START_AIR" },
-    { "submotion_index": 306, "c_submotion": "PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_HIT_AIR" }
+    { "submotion_index": 306, "c_submotion": "PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_HIT_AIR" },
+    { "submotion_index": 307, "c_submotion": "PF_M4_FALCON_SUBMOTION_FALCON_DIVE_START_GROUND" },
+    { "submotion_index": 308, "c_submotion": "PF_M4_FALCON_SUBMOTION_FALCON_DIVE_START_AIR" },
+    { "submotion_index": 309, "c_submotion": "PF_M4_FALCON_SUBMOTION_FALCON_DIVE_CATCH" },
+    { "submotion_index": 310, "c_submotion": "PF_M4_FALCON_SUBMOTION_FALCON_DIVE_THROW" }
   ],
   "joint_point_sets": [
     {
@@ -50,17 +57,17 @@
     "source_joint_count": 63,
     "runtime_part_count": 63,
     "joint_count": 25,
-    "motion_count": 10,
+    "motion_count": 17,
     "compact_motion_count": 6,
-    "track_count": 580,
-    "key_count": 5346,
+    "track_count": 1204,
+    "key_count": 10106,
     "capsule_count": 11,
     "rotation_joint_count": 19,
     "translation_joint_count": 6,
     "copy_target_joint_count": 1,
     "joint_point_set_count": 1,
     "pose_branch_count": 1,
-    "data_sha256": "c8a4f062eb8a35d12d3ea2fa0787a76211bcee3d7379a6bd7c51b71d2cdd07ee"
+    "data_sha256": "ab3eae37b1a8a0e0b495291d3d1548093906b0ffecd9e4bb59ea32d0056b5f9a"
   },
   "action_ecb_qualification": {
     "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
@@ -103,6 +110,38 @@
         "sha256": "86e0abff2d1de0483e25ef8db045da323a35331bf95fb7089b00283233b4fc8e",
         "cases": [
           { "source_action": "SWORD_DANCE_3_HIGH", "submotion_index": 306, "first_frame": 0, "last_frame": 44, "grounded": false, "entry_submotion_index": 305, "entry_source_frame": 18, "entry_grounded": false }
+        ]
+      },
+      {
+        "id": "falcon-dive-ground-miss",
+        "sha256": "97672ddf0e5013beaad8ff4c31f54c6bae93551ca3a38755cc3d185bcd5b83c4",
+        "cases": [
+          { "source_action": "SWORD_DANCE_3_MID", "submotion_index": 307, "first_frame": 1, "last_frame": 64, "grounded": true, "grounded_from_capture": true, "bottom_lock_frame_ranges": [[14, 17]] }
+        ]
+      },
+      {
+        "id": "falcon-dive-air-miss",
+        "sha256": "9ecf456e6377f5b7d371ccb84c9f5bd7b3a1045724a7c223acb6cb9d4681fd21",
+        "cases": [
+          { "source_action": "SWORD_DANCE_3_LOW", "submotion_index": 308, "first_frame": 1, "last_frame": 64, "grounded": false, "bottom_lock_through_frame": 5, "bottom_lock_frame_ranges": [[14, 17]], "locked_bottom_sources": [{ "first_frame": 14, "last_frame": 17, "submotion_index": 308, "source_frame": 13, "grounded": false }] }
+        ]
+      },
+      {
+        "id": "falcon-dive-ground-catch",
+        "sha256": "4518dbb5cd43158baeaa1ddad7d5ffd073b4dda46ecbe2aa55d8c7efa9eadfdb",
+        "cases": [
+          { "source_action": "SWORD_DANCE_3_MID", "submotion_index": 307, "first_frame": 1, "last_frame": 12, "grounded": true },
+          { "source_action": "SWORD_DANCE_4_HIGH", "submotion_index": 309, "first_frame": 0, "last_frame": 15, "grounded": true, "entry_submotion_index": 307, "entry_source_frame": 13, "entry_pose_through_frame": 15, "entry_grounded": true },
+          { "source_action": "SWORD_DANCE_4_MID", "submotion_index": 310, "first_frame": 0, "last_frame": 59, "grounded": false, "bottom_lock_frame_ranges": [[1, 59]], "locked_bottom_source": { "submotion_index": 310, "source_frame": 0, "grounded": false } }
+        ]
+      },
+      {
+        "id": "falcon-dive-air-catch",
+        "sha256": "59a4489ea6e955c9bb587bb5e49bc5d34ce4cce6ae42accd98a24ff97e271a6f",
+        "cases": [
+          { "source_action": "SWORD_DANCE_3_LOW", "submotion_index": 308, "first_frame": 1, "last_frame": 12, "grounded": false, "bottom_lock_through_frame": 5 },
+          { "source_action": "SWORD_DANCE_4_HIGH", "submotion_index": 309, "first_frame": 0, "last_frame": 15, "grounded": false, "entry_submotion_index": 308, "entry_source_frame": 13, "entry_grounded": false },
+          { "source_action": "SWORD_DANCE_4_MID", "submotion_index": 310, "first_frame": 0, "last_frame": 59, "grounded": false, "bottom_lock_frame_ranges": [[1, 59]], "locked_bottom_source": { "submotion_index": 310, "source_frame": 0, "grounded": false } }
         ]
       }
     ]

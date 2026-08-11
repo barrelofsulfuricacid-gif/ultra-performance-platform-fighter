@@ -12,9 +12,8 @@
 #define PF_M4_FALCON_SCRIPT_BYTE_COUNT UINT16_C(16516)
 #define PF_M4_FALCON_TRANSLATION_SAMPLE_COUNT UINT16_C(2536)
 #define PF_M4_MELEE_STALE_MOVE_SLOT_COUNT UINT16_C(9)
-#define PF_M4_FALCON_FALL_SPECIAL_ECB_FRAME_COUNT UINT16_C(8)
 #define PF_M4_FALCON_AIR_DODGE_ECB_FRAME_COUNT UINT16_C(48)
-#define PF_M4_FALCON_DIVE_ECB_FRAME_COUNT UINT16_C(64)
+#define PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16 INT32_MIN
 #define PF_M4_FALCON_PRONE_ORIENTATION_COUNT UINT16_C(2)
 #define PF_M4_FALCON_GETUP_ROLL_DIRECTION_COUNT UINT16_C(2)
 #define PF_M4_FALCON_DOWN_BOUND_ECB_FRAME_COUNT UINT16_C(26)
@@ -130,6 +129,8 @@ typedef enum pf_m4_falcon_submotion_index
     PF_M4_FALCON_SUBMOTION_FALL_AERIAL_FORWARD = 24,
     PF_M4_FALCON_SUBMOTION_FALL_AERIAL_BACKWARD = 25,
     PF_M4_FALCON_SUBMOTION_FALL_SPECIAL = 26,
+    PF_M4_FALCON_SUBMOTION_FALL_SPECIAL_FORWARD = 27,
+    PF_M4_FALCON_SUBMOTION_FALL_SPECIAL_BACKWARD = 28,
     PF_M4_FALCON_SUBMOTION_SQUAT = 30,
     PF_M4_FALCON_SUBMOTION_SQUAT_WAIT = 31,
     PF_M4_FALCON_SUBMOTION_SQUAT_REVERSE = 34,
@@ -169,6 +170,10 @@ typedef enum pf_m4_falcon_submotion_index
     PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_HIT_GROUND = 304,
     PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_START_AIR = 305,
     PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_HIT_AIR = 306,
+    PF_M4_FALCON_SUBMOTION_FALCON_DIVE_START_GROUND = 307,
+    PF_M4_FALCON_SUBMOTION_FALCON_DIVE_START_AIR = 308,
+    PF_M4_FALCON_SUBMOTION_FALCON_DIVE_CATCH = 309,
+    PF_M4_FALCON_SUBMOTION_FALCON_DIVE_THROW = 310,
     PF_M4_FALCON_SUBMOTION_CATCH_WAIT = 244,
     PF_M4_FALCON_SUBMOTION_CATCH_ATTACK = 245,
     PF_M4_FALCON_SUBMOTION_CATCH_CUT = 246,
@@ -624,12 +629,6 @@ typedef struct pf_m4_falcon_collision_pose
         PF_M4_FALCON_CEILING_BOUNCE_ECB_FRAME_COUNT];
     pf_m4_falcon_ecb_pose_q16 wall_bounce[
         PF_M4_FALCON_WALL_BOUNCE_ECB_FRAME_COUNT];
-    int32_t fall_special_bottom_y_from_origin_q16[
-        PF_M4_FALCON_FALL_SPECIAL_ECB_FRAME_COUNT];
-    int32_t falcon_dive_right_x_from_origin_q16[
-        PF_M4_FALCON_DIVE_ECB_FRAME_COUNT];
-    int32_t falcon_dive_bottom_y_from_origin_q16[
-        PF_M4_FALCON_DIVE_ECB_FRAME_COUNT];
 } pf_m4_falcon_collision_pose;
 
 typedef struct pf_m4_reference_search_sphere
@@ -792,17 +791,38 @@ pf_m4_falcon_reference_prone_ecb_pose(
     int8_t tech_direction,
     int8_t facing);
 
+int pf_m4_falcon_reference_ecb_apply_bottom_lock_q16(
+    int32_t locked_bottom_y_q16,
+    pf_m4_falcon_ecb_pose_q16 *pose);
+
 int
 pf_m4_falcon_reference_hsd_ecb_pose(
     uint16_t source_submotion,
     int32_t source_animation_frame_q16,
+    int grounded,
+    int32_t locked_bottom_y_q16,
     pf_m4_falcon_ecb_pose_q16 *out_pose);
 
 const pf_m4_hsd_pose_data *
 pf_m4_falcon_reference_hsd_pose_data(void);
 
+int pf_m4_falcon_reference_direct_hsd_pose(
+    uint8_t action_state,
+    uint16_t action_ticks,
+    uint8_t grounded,
+    uint16_t *out_submotion,
+    int32_t *out_frame_q16);
+
 int pf_m4_falcon_reference_hsd_ground_ecb_pose_from_local_pose(
     const pf_m4_hsd_local_pose pose[PF_M4_HSD_POSE_MAX_JOINTS],
+    pf_m4_falcon_ecb_pose_q16 *out_pose);
+
+int pf_m4_falcon_reference_hsd_fall_special_ecb_pose(
+    uint16_t directional_submotion,
+    int32_t source_animation_frame_q16,
+    int32_t directional_blend_q16,
+    uint8_t directional_target_switched,
+    int32_t locked_bottom_y_q16,
     pf_m4_falcon_ecb_pose_q16 *out_pose);
 
 const pf_m4_falcon_ecb_pose_q16 *

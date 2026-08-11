@@ -26,7 +26,7 @@
 #define PF_VERIFIER_M4_MATCH_CHECKPOINT_TICK 24U
 #define PF_VERIFIER_M4_REPLAY_CAPACITY (256U * 1024U)
 #define PF_VERIFIER_M4_MATCH_EXPECTED_DIGEST \
-    UINT64_C(0xfc0c77b3bfcf5c24)
+    UINT64_C(0x82f8158ec3cb6d34)
 
 typedef struct pf_verifier_storage
 {

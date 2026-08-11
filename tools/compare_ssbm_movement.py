@@ -789,15 +789,27 @@ def main() -> int:
             len(oracle_rows) - 1,
         )
         oracle_rows = oracle_rows[: first_fall_after_throw + 1]
-    falcon_dive_air_miss_mode = any(
-        str(row.get("label", "")) == "special_geometry_up_air_miss_start"
-        for row in oracle_rows
+    falcon_dive_air_miss_start_label = next(
+        (
+            label
+            for label in (
+                "special_geometry_up_air_miss_start",
+                "special_geometry_up_air_miss_natural_start",
+            )
+            if any(str(row.get("label", "")) == label for row in oracle_rows)
+        ),
+        None,
+    )
+    falcon_dive_air_miss_mode = falcon_dive_air_miss_start_label is not None
+    falcon_dive_air_miss_position_isolated = (
+        falcon_dive_air_miss_start_label ==
+        "special_geometry_up_air_miss_start"
     )
     if falcon_dive_air_miss_mode:
         first_special_row = next(
             index
             for index, row in enumerate(oracle_rows)
-            if str(row.get("label", "")) == "special_geometry_up_air_miss_start"
+            if str(row.get("label", "")) == falcon_dive_air_miss_start_label
         )
         oracle_rows = oracle_rows[first_special_row:]
     falcon_dive_air_ledge_start_label = next(
@@ -1183,6 +1195,7 @@ def main() -> int:
                 "SWORD_DANCE_4_HIGH": 119,
                 "SWORD_DANCE_4_MID": 120,
                 "DEAD_FALL": 121,
+                "LANDING_SPECIAL": 122,
                 "FALLING": 6,
                 "EDGE_CATCHING": 8,
                 "EDGE_HANGING": 8,
@@ -1240,6 +1253,8 @@ def main() -> int:
             if action_name == "SWORD_DANCE_3_LOW":
                 expected_ticks = action_frame
             elif action_name == "DEAD_FALL":
+                expected_ticks = action_frame - 1
+            elif action_name == "LANDING_SPECIAL":
                 expected_ticks = action_frame - 1
         if falcon_dive_air_ledge_mode:
             if action_name == "SWORD_DANCE_3_LOW":
@@ -1341,7 +1356,7 @@ def main() -> int:
             and oracle.get("requested_fighter_y_override") is not None
         ) or (
             falcon_dive_air_catch_mode
-            or falcon_dive_air_miss_mode
+            or falcon_dive_air_miss_position_isolated
             or falcon_dive_air_ledge_mode
             or raptor_boost_air_miss_mode
             or raptor_boost_air_hit_mode

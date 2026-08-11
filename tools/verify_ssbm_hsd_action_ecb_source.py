@@ -189,7 +189,13 @@ def main() -> int:
                 action_frame = float(row["action_frame"])
                 is_entry = (
                     "entry_source_frame" in case
-                    and action_frame == float(case["first_frame"])
+                    and action_frame
+                    <= float(
+                        case.get(
+                            "entry_pose_through_frame",
+                            case["first_frame"],
+                        )
+                    )
                 )
                 evaluated_submotion = entry_submotion if is_entry else submotion
                 evaluated_frame = (
@@ -197,17 +203,85 @@ def main() -> int:
                     if is_entry and "entry_source_frame" in case
                     else action_frame
                 )
-                evaluated_grounded = (
-                    bool(case.get("entry_grounded", case["grounded"]))
-                    if is_entry
-                    else bool(case["grounded"])
-                )
-                evaluated_bottom_locked = (
-                    bool(case.get("entry_bottom_locked", False))
-                    if is_entry
-                    else bool(case.get("bottom_lock_through_frame", -1)
-                              >= action_frame)
-                )
+                if is_entry:
+                    evaluated_grounded = bool(
+                        case.get("entry_grounded", case["grounded"])
+                    )
+                    evaluated_bottom_locked = bool(
+                        case.get("entry_bottom_locked", False)
+                    )
+                else:
+                    evaluated_grounded = (
+                        bool(row["grounded"])
+                        if bool(case.get("grounded_from_capture", False))
+                        else bool(case["grounded"])
+                    )
+                    bottom_lock_ranges = case.get(
+                        "bottom_lock_frame_ranges", []
+                    )
+                    require(
+                        isinstance(bottom_lock_ranges, list),
+                        f"{spec['id']}/{action}: invalid bottom-lock ranges",
+                    )
+                    evaluated_bottom_locked = bool(
+                        case.get("bottom_locked", False)
+                    ) or bool(
+                        case.get("bottom_lock_through_frame", -1)
+                        >= action_frame
+                    ) or any(
+                        isinstance(frame_range, list)
+                        and len(frame_range) == 2
+                        and float(frame_range[0]) <= action_frame
+                        <= float(frame_range[1])
+                        for frame_range in bottom_lock_ranges
+                    )
+                locked_bottom_y_q16: int | None = None
+                if evaluated_bottom_locked:
+                    lock_source = case.get("locked_bottom_source")
+                    for candidate in case.get("locked_bottom_sources", []):
+                        require(
+                            isinstance(candidate, dict),
+                            f"{spec['id']}/{action}: invalid lock source",
+                        )
+                        if (
+                            float(candidate["first_frame"])
+                            <= action_frame
+                            <= float(candidate["last_frame"])
+                        ):
+                            lock_source = candidate
+                            break
+                    if lock_source is None:
+                        locked_bottom_y_q16 = 0
+                    else:
+                        require(
+                            isinstance(lock_source, dict),
+                            f"{spec['id']}/{action}: invalid lock source",
+                        )
+                        lock_submotion = int(lock_source["submotion_index"])
+                        if lock_submotion not in animation_cache:
+                            animation_cache[lock_submotion] = decode_figatree(
+                                fighter_animation_slice(
+                                    fighter_archive,
+                                    animation_raw,
+                                    fighter_root,
+                                    lock_submotion,
+                                )
+                            )
+                        lock_pose = source_joint_ecb_q16(
+                            evaluate_joint_matrices(
+                                source_joints,
+                                animation_cache[lock_submotion],
+                                float(lock_source["source_frame"]),
+                            ),
+                            ecb_source_joints,
+                            int(
+                                manifest[
+                                    "blend_copy_target_source_joint_indices"
+                                ][0]
+                            ),
+                            bool(lock_source["grounded"]),
+                        )
+                        locked_bottom_y_q16 = lock_pose["bottom"][1]
                 expected = pose_q16(canonical_source_ecb(captured_ecb, int(facing)))
                 actual = source_joint_ecb_q16(
                     evaluate_joint_matrices(
@@ -218,7 +292,7 @@ def main() -> int:
                     ecb_source_joints,
                     int(manifest["blend_copy_target_source_joint_indices"][0]),
                     evaluated_grounded,
-                    evaluated_bottom_locked,
+                    locked_bottom_y_q16,
                 )
                 difference = max(
                     abs(actual[point][axis] - expected[point][axis])

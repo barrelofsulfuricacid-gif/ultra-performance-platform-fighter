@@ -303,3 +303,13 @@ evidence is 19,197 qualified frames. The memory-probed routes qualify the
 sampled Falcon shield tilt and geometry surface; they do not qualify broader
 uncaptured pressure/time/spacing routes or the other partial/divergent systems
 listed above.
+
+Current special-move geometry addendum: Falcon Dive start/catch/throw and
+common FallSpecial neutral/forward/back now use the same source-derived HSD ECB
+evaluator as Raptor Boost; the older eight-value FallSpecial bottom description
+in the summary row is historical. Nine retained captures qualify 733 source
+rows / 715 unique frames within two Q16 units, and a refreshed natural Falcon
+Dive miss route passes all 165 identical-input frames. Target-switch updates
+retain the decomp's install blend plus advanced-target blend, while stable
+updates apply only the latter. The authored Raptor, Dive, and FallSpecial ECB
+arrays are removed.

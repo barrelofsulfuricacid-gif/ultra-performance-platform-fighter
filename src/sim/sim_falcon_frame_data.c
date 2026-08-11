@@ -576,19 +576,100 @@ static inline int pf_m4_falcon_hsd_ecb_evaluation_joints(
     return 1;
 }
 
+int pf_m4_falcon_reference_ecb_apply_bottom_lock_q16(
+    int32_t locked_bottom_y_q16,
+    pf_m4_falcon_ecb_pose_q16 *pose)
+{
+    const int32_t one_x_q16 = pf_m4_falcon_ecb_source_scale_q16(
+        INT32_C(65536), INT32_C(12), INT32_C(115));
+    const int32_t one_y_q16 = pf_m4_falcon_ecb_source_scale_q16(
+        INT32_C(65536), INT32_C(11), INT32_C(62));
+    const int32_t epsilon_y_q16 = pf_m4_falcon_ecb_source_scale_q16(
+        INT32_C(66), INT32_C(11), INT32_C(62));
+
+    if (pose == NULL)
+    {
+        return 0;
+    }
+    if (locked_bottom_y_q16 != PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16)
+    {
+        pose->bottom_y_from_origin_q16 = locked_bottom_y_q16;
+    }
+    if ((int64_t)pose->top_y_from_origin_q16 -
+            (int64_t)pose->bottom_y_from_origin_q16 <
+            (int64_t)one_y_q16 &&
+        (int64_t)pose->bottom_y_from_origin_q16 -
+            (int64_t)pose->top_y_from_origin_q16 <
+            (int64_t)one_y_q16)
+    {
+        pose->top_y_from_origin_q16 += one_y_q16;
+        pose->right_y_from_origin_q16 =
+            (pose->top_y_from_origin_q16 +
+             pose->bottom_y_from_origin_q16) /
+            INT32_C(2);
+        pose->left_y_from_origin_q16 = pose->right_y_from_origin_q16;
+    }
+    if (pose->top_y_from_origin_q16 < one_y_q16)
+    {
+        pose->top_y_from_origin_q16 = one_y_q16;
+    }
+    if (pose->left_x_from_origin_q16 > -one_x_q16)
+    {
+        pose->left_x_from_origin_q16 = -one_x_q16;
+    }
+    if (pose->right_x_from_origin_q16 < one_x_q16)
+    {
+        pose->right_x_from_origin_q16 = one_x_q16;
+    }
+    if (pose->top_y_from_origin_q16 < pose->bottom_y_from_origin_q16)
+    {
+        pose->top_y_from_origin_q16 =
+            pose->bottom_y_from_origin_q16 + one_y_q16;
+    }
+    if (pose->right_y_from_origin_q16 > pose->top_y_from_origin_q16 ||
+        pose->right_y_from_origin_q16 < pose->bottom_y_from_origin_q16)
+    {
+        pose->right_y_from_origin_q16 =
+            (pose->top_y_from_origin_q16 +
+             pose->bottom_y_from_origin_q16) /
+            INT32_C(2);
+        pose->left_y_from_origin_q16 = pose->right_y_from_origin_q16;
+    }
+    if (pose->top_y_from_origin_q16 - pose->right_y_from_origin_q16 <
+            epsilon_y_q16 ||
+        pose->right_y_from_origin_q16 - pose->bottom_y_from_origin_q16 <
+            epsilon_y_q16)
+    {
+        pose->right_y_from_origin_q16 =
+            (pose->top_y_from_origin_q16 +
+             pose->bottom_y_from_origin_q16) /
+            INT32_C(2);
+    }
+    if (pose->top_y_from_origin_q16 - pose->left_y_from_origin_q16 <
+            epsilon_y_q16 ||
+        pose->left_y_from_origin_q16 - pose->bottom_y_from_origin_q16 <
+            epsilon_y_q16)
+    {
+        pose->left_y_from_origin_q16 =
+            (pose->top_y_from_origin_q16 +
+             pose->bottom_y_from_origin_q16) /
+            INT32_C(2);
+    }
+    return 1;
+}
+
 static int pf_m4_falcon_hsd_ecb_from_origins(
     const int32_t *origins_q16,
     uint8_t origin_count,
     const int32_t reference_origin_q16[3],
     int grounded,
-    int bottom_locked,
+    int32_t locked_bottom_y_q16,
     pf_m4_falcon_ecb_pose_q16 *out_pose)
 {
     int32_t left_q16;
     int32_t right_q16;
     int32_t bottom_q16;
     int32_t top_q16;
-    int32_t desired_bottom_q16;
     int32_t side_y_q16;
     uint8_t index;
 
@@ -658,12 +739,7 @@ static int pf_m4_falcon_hsd_ecb_from_origins(
     {
         bottom_q16 = INT32_C(0);
     }
-    desired_bottom_q16 = bottom_q16;
-    side_y_q16 = (desired_bottom_q16 + top_q16) / INT32_C(2);
-    if (bottom_locked != 0)
-    {
-        bottom_q16 = INT32_C(0);
-    }
+    side_y_q16 = (bottom_q16 + top_q16) / INT32_C(2);
     out_pose->top_x_from_origin_q16 = INT32_C(0);
     out_pose->top_y_from_origin_q16 = pf_m4_falcon_ecb_source_scale_q16(
         top_q16, INT32_C(11), INT32_C(62));
@@ -678,27 +754,21 @@ static int pf_m4_falcon_hsd_ecb_from_origins(
     out_pose->left_x_from_origin_q16 = pf_m4_falcon_ecb_source_scale_q16(
         left_q16, INT32_C(12), INT32_C(115));
     out_pose->left_y_from_origin_q16 = out_pose->right_y_from_origin_q16;
-    return 1;
+    return pf_m4_falcon_reference_ecb_apply_bottom_lock_q16(
+        locked_bottom_y_q16,
+        out_pose);
 }
 
 int
 pf_m4_falcon_reference_hsd_ecb_pose(
     uint16_t source_submotion,
     int32_t source_animation_frame_q16,
+    int grounded,
+    int32_t locked_bottom_y_q16,
     pf_m4_falcon_ecb_pose_q16 *out_pose)
 {
     int32_t origins_q16[PF_M4_HSD_POSE_MAX_JOINTS][3];
     uint8_t joint_indices[PF_M4_FALCON_HSD_ECB_EVALUATION_JOINT_COUNT];
-    const int airborne =
-        source_submotion ==
-            (uint16_t)PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_START_AIR ||
-        source_submotion ==
-            (uint16_t)PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_HIT_AIR;
-    const int bottom_locked =
-        source_submotion ==
-            (uint16_t)PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_START_AIR &&
-        source_animation_frame_q16 < INT32_C(5) * INT32_C(65536);
-
     if (out_pose == NULL || source_animation_frame_q16 < INT32_C(0))
     {
         return 0;
@@ -730,8 +800,8 @@ pf_m4_falcon_reference_hsd_ecb_pose(
         &origins_q16[0][0],
         (uint8_t)PF_M4_FALCON_HSD_ECB_JOINT_COUNT,
         origins_q16[PF_M4_FALCON_HSD_ECB_JOINT_COUNT],
-        airborne == 0,
-        bottom_locked,
+        grounded,
+        locked_bottom_y_q16,
         out_pose);
 }
 
@@ -741,8 +811,76 @@ pf_m4_falcon_reference_hsd_pose_data(void)
     return &pf_m4_falcon_dynamic_hsd_data;
 }
 
-int pf_m4_falcon_reference_hsd_ground_ecb_pose_from_local_pose(
+int pf_m4_falcon_reference_direct_hsd_pose(
+    uint8_t action_state,
+    uint16_t action_ticks,
+    uint8_t grounded,
+    uint16_t *out_submotion,
+    int32_t *out_frame_q16)
+{
+    if (out_submotion == NULL || out_frame_q16 == NULL)
+    {
+        return 0;
+    }
+    *out_frame_q16 = (int32_t)action_ticks * PF_Q16_ONE;
+    switch (action_state)
+    {
+    case PF_M4_ACTION_RAPTOR_BOOST_START_GROUND:
+        *out_submotion =
+            (uint16_t)PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_START_GROUND;
+        return 1;
+    case PF_M4_ACTION_RAPTOR_BOOST_HIT_GROUND:
+        *out_submotion =
+            (uint16_t)PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_HIT_GROUND;
+        return 1;
+    case PF_M4_ACTION_RAPTOR_BOOST_START_AIR:
+        *out_submotion =
+            (uint16_t)PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_START_AIR;
+        return 1;
+    case PF_M4_ACTION_RAPTOR_BOOST_HIT_AIR:
+        *out_submotion =
+            (uint16_t)PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_HIT_AIR;
+        return 1;
+    case PF_M4_ACTION_FALCON_DIVE_START_GROUND:
+        *out_submotion =
+            (uint16_t)PF_M4_FALCON_SUBMOTION_FALCON_DIVE_START_GROUND;
+        return 1;
+    case PF_M4_ACTION_FALCON_DIVE_START_AIR:
+        *out_submotion =
+            (uint16_t)PF_M4_FALCON_SUBMOTION_FALCON_DIVE_START_AIR;
+        return 1;
+    case PF_M4_ACTION_FALCON_DIVE_CATCH:
+        if (grounded != UINT8_C(0))
+        {
+            *out_submotion = (uint16_t)
+                PF_M4_FALCON_SUBMOTION_FALCON_DIVE_START_GROUND;
+            *out_frame_q16 = INT32_C(13) * PF_Q16_ONE;
+        }
+        else if (action_ticks == UINT16_C(0))
+        {
+            *out_submotion = (uint16_t)
+                PF_M4_FALCON_SUBMOTION_FALCON_DIVE_START_AIR;
+            *out_frame_q16 = INT32_C(13) * PF_Q16_ONE;
+        }
+        else
+        {
+            *out_submotion =
+                (uint16_t)PF_M4_FALCON_SUBMOTION_FALCON_DIVE_CATCH;
+        }
+        return 1;
+    case PF_M4_ACTION_FALCON_DIVE_THROW:
+        *out_submotion =
+            (uint16_t)PF_M4_FALCON_SUBMOTION_FALCON_DIVE_THROW;
+        return 1;
+    default:
+        return 0;
+    }
+}
+
+static int pf_m4_falcon_reference_hsd_ecb_pose_from_local_pose(
     const pf_m4_hsd_local_pose pose[PF_M4_HSD_POSE_MAX_JOINTS],
+    int grounded,
+    int32_t locked_bottom_y_q16,
     pf_m4_falcon_ecb_pose_q16 *out_pose)
 {
     int32_t origins_q16[PF_M4_HSD_POSE_MAX_JOINTS][3];
@@ -767,8 +905,115 @@ int pf_m4_falcon_reference_hsd_ground_ecb_pose_from_local_pose(
         &origins_q16[0][0],
         (uint8_t)PF_M4_FALCON_HSD_ECB_JOINT_COUNT,
         origins_q16[PF_M4_FALCON_HSD_ECB_JOINT_COUNT],
+        grounded,
+        locked_bottom_y_q16,
+        out_pose);
+}
+
+int pf_m4_falcon_reference_hsd_ground_ecb_pose_from_local_pose(
+    const pf_m4_hsd_local_pose pose[PF_M4_HSD_POSE_MAX_JOINTS],
+    pf_m4_falcon_ecb_pose_q16 *out_pose)
+{
+    return pf_m4_falcon_reference_hsd_ecb_pose_from_local_pose(
+        pose,
         1,
+        PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16,
+        out_pose);
+}
+
+int pf_m4_falcon_reference_hsd_fall_special_ecb_pose(
+    uint16_t directional_submotion,
+    int32_t source_animation_frame_q16,
+    int32_t directional_blend_q16,
+    uint8_t directional_target_switched,
+    int32_t locked_bottom_y_q16,
+    pf_m4_falcon_ecb_pose_q16 *out_pose)
+{
+    pf_m4_hsd_local_pose neutral[PF_M4_HSD_POSE_MAX_JOINTS];
+    pf_m4_hsd_local_pose directional[PF_M4_HSD_POSE_MAX_JOINTS];
+    pf_m4_hsd_local_pose transition[PF_M4_HSD_POSE_MAX_JOINTS];
+    pf_m4_hsd_local_pose blended[PF_M4_HSD_POSE_MAX_JOINTS];
+    const pf_m4_hsd_local_pose *pose = neutral;
+
+    if (out_pose == NULL || source_animation_frame_q16 < INT32_C(0) ||
+        directional_blend_q16 < INT32_C(0) ||
+        directional_blend_q16 > PF_Q16_ONE ||
+        directional_target_switched > UINT8_C(1) ||
+        (directional_submotion !=
+             (uint16_t)PF_M4_FALCON_SUBMOTION_FALL_SPECIAL &&
+         directional_submotion !=
+             (uint16_t)PF_M4_FALCON_SUBMOTION_FALL_SPECIAL_FORWARD &&
+         directional_submotion !=
+             (uint16_t)PF_M4_FALCON_SUBMOTION_FALL_SPECIAL_BACKWARD) ||
+        !pf_m4_hsd_evaluate_local_pose_q16(
+            &pf_m4_falcon_dynamic_hsd_data,
+            (uint16_t)PF_M4_FALCON_SUBMOTION_FALL_SPECIAL,
+            source_animation_frame_q16,
+            neutral))
+    {
+        return 0;
+    }
+    if (directional_blend_q16 != INT32_C(0))
+    {
+        const pf_m4_falcon_submotion_data *directional_motion =
+            pf_m4_falcon_reference_submotion(directional_submotion);
+        int32_t directional_frame_q16 =
+            source_animation_frame_q16 + PF_Q16_ONE;
+
+        if (directional_motion == NULL ||
+            directional_motion->animation_frame_count == UINT16_C(0))
+        {
+            return 0;
+        }
+        /* ftCo_Fall_Anim_Inner installs and blends a newly selected target
+         * skeleton once, then ftCo_800CC988 advances that skeleton and
+         * applies the same blend again. Stable targets take only the latter
+         * path. Preserve both passes so transition-frame ECBs match the HSD
+         * skeleton rather than approximating them with a larger scalar. */
+        if (directional_target_switched != UINT8_C(0) &&
+            (!pf_m4_hsd_evaluate_local_pose_q16(
+                 &pf_m4_falcon_dynamic_hsd_data,
+                 directional_submotion,
+                 source_animation_frame_q16,
+                 directional) ||
+             !pf_m4_hsd_blend_local_pose_q16(
+                 &pf_m4_falcon_dynamic_hsd_data,
+                 directional,
+                 neutral,
+                 PF_Q16_ONE - directional_blend_q16,
+                 transition)))
+        {
+            return 0;
+        }
+        while (directional_frame_q16 >=
+            (int32_t)directional_motion->animation_frame_count * PF_Q16_ONE)
+        {
+            directional_frame_q16 -=
+                (int32_t)directional_motion->animation_frame_count *
+                PF_Q16_ONE;
+        }
+        if (!pf_m4_hsd_evaluate_local_pose_q16(
+                &pf_m4_falcon_dynamic_hsd_data,
+                directional_submotion,
+                directional_frame_q16,
+                directional) ||
+            !pf_m4_hsd_blend_local_pose_q16(
+                &pf_m4_falcon_dynamic_hsd_data,
+                directional,
+                directional_target_switched != UINT8_C(0)
+                    ? transition
+                    : neutral,
+                PF_Q16_ONE - directional_blend_q16,
+                blended))
+        {
+            return 0;
+        }
+        pose = blended;
+    }
+    return pf_m4_falcon_reference_hsd_ecb_pose_from_local_pose(
+        pose,
         0,
+        locked_bottom_y_q16,
         out_pose);
 }
 
