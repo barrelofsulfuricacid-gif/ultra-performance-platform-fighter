@@ -1680,7 +1680,7 @@ The existing flat-ground late-DashAttack oracle now checks the production
 `DamageLw1` source identity, frame-one hitlag freeze, resumed frames 2-11,
 source-derived hurt capsules, and mid-damage save/load. The intentional source
 identity update changes the deterministic replay corpus SHA-256 to
-`2959415d4b85951e441b516720d2818bdab4b27b05ebda5465158cc4e1b420b7`;
+`7f210b0b70d2a506f60da411d4212885a5714ddc816c6fb076ad6273939a5ef0`;
 final-state and event SHA-256 remain
 `7d031c271e05fb0041fa749488689175fb6b775f44d58a794bc1aa1e1c47bd48`
 and `55581ad6489814368e540e8eb96779ece01d840b1dd6ce7899afd1c4f724ac6bd`.
@@ -1732,3 +1732,39 @@ the current harness cost: the single-process wrapper measures 4.234 seconds
 warm against its strict three-second gate. The generic process-shard runner was
 also measured and rejected here because each worker repeats Dolphin menu
 startup, making end-to-end capture slower rather than faster.
+
+## Falcon grounded slope damage response
+
+Pinned decomp revision `9509dc04406fb2028bfab01243841ba4787c0fb7` and
+current upstream `d882af94175e3c880ad51039e2979aa9a50aea09` have identical
+`ftCo_8008DCE0` source. The route consumes `PlCo.dat` float words `x1E8`
+(`0x3e32b8c2`, 0.17453292 radians) and `x1EC` (`0x3f4ccccd`, 0.8). The common
+data importer emits their exact Q16 representations 11,380 and 52,429; native
+tests also pin the owner raw words.
+
+For a grounded victim, the source forms an isotropic positive-Y-up launch
+vector and compares it with the current floor normal. Levels below three stay
+grounded when the dot product is non-positive: `xF0_ground_kb_vel` retains the
+raw horizontal scalar while `x8c_kb_vel` becomes the floor-tangent projection.
+Level three is airborne regardless; only an angle strictly greater than 90
+degrees plus `x1E8` reflects and scales vertical velocity by `x1EC`. Damage
+motion selection still owns the original pre-projection/pre-DI vector.
+
+The at-will checkpoint pack uses two actual Forward Tilts against a
+crouch-cancelled Falcon on Hyrule line 36. Its independent 60-row captures
+have identical observation arrays under canonical SHA-256
+`cf0e43f47f38bccd2b344c516259620606f315bf46ac9373ac69e926cdb45c00`.
+The selected address-free source fields hash to
+`657b816faa98658d10be6783b912a380cf88c24ccc1120d0a5836f61e6aa6ac9`;
+the production trace hashes to
+`99e2eeefbeffde01318bf81dee3b5f57a8ed7db3fef755d9860beaa7c1af2e1f`.
+Warm capture durations were 0.805771 and 0.737824 seconds.
+
+The departing case also pins callback ownership beyond the numeric slope
+rule. `ftCommon_8007D5D4` locks the grounded desired ECB bottom before the
+ground-to-air transition, so the first post-hitlag DamageN2 collision can
+recontact the downhill floor immediately. `ftCo_Landing_Enter_Basic` changes
+ground/air state without rewriting `x8c_kb_vel`; the incoming air vector is
+visible on Landing frame one and floor projection begins on the following
+grounded physics update. The simulation stores the lock in root-space bottom
+coordinates and converts its centre-space floor-sweep extent exactly once.

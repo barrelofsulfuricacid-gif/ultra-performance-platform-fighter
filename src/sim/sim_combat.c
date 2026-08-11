@@ -4,6 +4,7 @@
 #include "sim_melee.h"
 #include "sim_ssbm_common_data.h"
 #include "sim_ssbm_damage.h"
+#include "sim_ssbm_stage_data.h"
 
 #include <limits.h>
 #include <stdint.h>
@@ -3617,6 +3618,9 @@ static pf_status pf_m4_apply_hit_reaction(
     uint32_t hit_sequence;
     uint16_t event_flags;
     uint16_t hitstun_ticks;
+    int32_t motion_velocity_x_q16;
+    int32_t motion_velocity_y_q16;
+    int32_t ground_knockback_scalar_q16;
     const int32_t previous_knockback_velocity_x_q16 =
         scratch->knockback_velocity_x_q16[target_index];
     const int32_t previous_knockback_velocity_y_q16 =
@@ -3632,6 +3636,42 @@ static pf_status pf_m4_apply_hit_reaction(
         launch_velocity_y_q16 = pf_m4_apply_weight_q16(
             launch_velocity_y_q16,
             content->fighter.weight_q16);
+    }
+
+    /* Damage motion selection owns the original launch angle. The floor
+     * response below may project or reflect the physical velocity, but the
+     * source chooses DamageFlyTop/Roll before that mutation. */
+    motion_velocity_x_q16 = launch_velocity_x_q16;
+    motion_velocity_y_q16 = launch_velocity_y_q16;
+    ground_knockback_scalar_q16 =
+        launch_grounded != 0 ? launch_velocity_x_q16 : INT32_C(0);
+    if (content->fighter.reference_frame_data_enabled != UINT8_C(0) &&
+        damage_source_grounded != UINT8_C(0) &&
+        pf_m4_event_is_physical_hit(event_type))
+    {
+        const pf_m4_ssbm_stage_collision_line *floor =
+            pf_m4_ssbm_reference_stage_line(
+                content->stage.reference_collision_profile,
+                scratch->support[target_index]);
+        uint8_t source_launch_grounded = UINT8_C(0);
+
+        if (floor != NULL)
+        {
+            if (pf_m4_ssbm_resolve_ground_damage_launch_q16(
+                    floor->source_normal_x_q16,
+                    floor->source_normal_y_q16,
+                    floor->ground_projection_x_q16,
+                    floor->ground_projection_y_q16,
+                    damage_level,
+                    &launch_velocity_x_q16,
+                    &launch_velocity_y_q16,
+                    &ground_knockback_scalar_q16,
+                    &source_launch_grounded) != PF_STATUS_OK)
+            {
+                return PF_STATUS_DETERMINISTIC_FAULT;
+            }
+            launch_grounded = source_launch_grounded != UINT8_C(0);
+        }
     }
 
     if (previous_action == (uint8_t)PF_M4_ACTION_CHARGE_GROUND ||
@@ -3656,8 +3696,8 @@ static pf_status pf_m4_apply_hit_reaction(
             ? resolved_hitstun_ticks
             : pf_m4_hitstun_ticks(
                   &content->fighter,
-                  launch_velocity_x_q16,
-                  launch_velocity_y_q16);
+                  motion_velocity_x_q16,
+                  motion_velocity_y_q16);
     armored = pf_m4_event_is_physical_hit(event_type) &&
               previous_action ==
                   (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP &&
@@ -3701,7 +3741,7 @@ static pf_status pf_m4_apply_hit_reaction(
     scratch->ground_knockback_velocity_q16[target_index] =
         armored != 0 || reset != 0 || launch_grounded == 0
             ? INT32_C(0)
-            : launch_velocity_x_q16;
+            : ground_knockback_scalar_q16;
     scratch->hitstun_ticks[target_index] =
         armored != 0 ? UINT16_C(0) : hitstun_ticks;
     if (armored == 0 && pf_m4_event_is_physical_hit(event_type))
@@ -3836,8 +3876,8 @@ static pf_status pf_m4_apply_hit_reaction(
                 (uint8_t)launch_grounded,
                 damage_level,
                 scratch->damage_q16[target_index],
-                launch_velocity_x_q16,
-                launch_velocity_y_q16,
+                motion_velocity_x_q16,
+                motion_velocity_y_q16,
                 rng_state,
                 &damage_motion) != PF_STATUS_OK)
         {
@@ -3873,6 +3913,18 @@ static pf_status pf_m4_apply_hit_reaction(
      * grounded launch. */
     if (armored == 0 && reset == 0 && launch_grounded == 0)
     {
+        if (content->fighter.reference_frame_data_enabled != UINT8_C(0) &&
+            damage_source_grounded != UINT8_C(0))
+        {
+            /* ftCo_8008DCE0 calls ftCommon_8007D5D4 before changing a
+             * ground-origin damage launch to GA_Air. A grounded desired ECB
+             * has bottom zero in root space; retain that exact source value
+             * through hitlag so the first released collision callback can
+             * recontact a downhill floor. */
+            scratch->ecb_bottom_lock_ticks[target_index] =
+                PF_M4_COMMON_AIR_ENTRY_ECB_LOCK_TICKS;
+            scratch->ecb_locked_bottom_y_q16[target_index] = INT32_C(0);
+        }
         scratch->grounded[target_index] = UINT8_C(0);
     }
     /* DownBound can retain its floor line while its animated ECB reports no

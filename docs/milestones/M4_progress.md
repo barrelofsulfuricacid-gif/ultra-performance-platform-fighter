@@ -6135,8 +6135,40 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   21-domain / 117-case stored gate plus replay passes in 898.577 ms on Windows
   and 825.175 ms in WSL; focused WSL ASan/UBSan combat also passes.
   Deterministic replay corpus/final/event SHA-256 values are
-  `2959415d4b85951e441b516720d2818bdab4b27b05ebda5465158cc4e1b420b7` /
+  `7f210b0b70d2a506f60da411d4212885a5714ddc816c6fb076ad6273939a5ef0` /
   `7d031c271e05fb0041fa749488689175fb6b775f44d58a794bc1aa1e1c47bd48` /
   `55581ad6489814368e540e8eb96779ece01d840b1dd6ce7899afd1c4f724ac6bd`.
   DamageFlyTop/Roll selection, explicit hit-entry ECB callback ownership, and
   broader physical damage routes remain open.
+
+## 2026-08-11 grounded slope damage launch and landing ownership
+
+- Pinned/current `ftCo_Damage.c` agree on `ftCo_8008DCE0`: compare the
+  pre-DI launch against the live floor normal, keep levels 0-2 grounded when
+  the vector does not point away, and always launch level three while
+  reflecting its vertical component only past 90 degrees plus common-data
+  `x1E8`. Production imports `x1E8=10 degrees` and `x1EC=0.8` and performs the
+  test in fixed-point Melee source coordinates.
+- The production resolver preserves three distinct values: the original
+  motion-selection vector, the projected/reflected physical `x8c` vector,
+  and raw `xF0_ground_kb_vel`. This keeps DamageFlyTop/Roll selection before
+  slope mutation and avoids an authored slope table or runtime float.
+- The focused live theorem uses actual Falcon Forward Tilt inputs on Hyrule
+  line 36. Mirrored attacks against a crouch-cancelled target produce one
+  grounded projected DamageN2 route and one airborne route that recontacts
+  into Landing on the first post-hitlag update. Both 60-row captures have
+  identical observations and semantic SHA-256
+  `657b816faa98658d10be6783b912a380cf88c24ccc1120d0a5836f61e6aa6ac9`;
+  production digest is
+  `99e2eeefbeffde01318bf81dee3b5f57a8ed7db3fef755d9860beaa7c1af2e1f`.
+- The route exposed two shared callback-order gaps. Ground-origin airborne
+  damage now installs the ten-update previous-bottom ECB lock before hitlag,
+  and basic Landing preserves incoming air `x8c` on its entry frame before
+  the next grounded callback projects it. The common lock adapter also stores
+  root-space bottom rather than its inverse collision-sweep extent.
+- The registered stored gate now covers 22 domains / 119 cases and passes in
+  1,707.169 ms on native Windows and 1,035.323 ms in WSL. Rebuilt Release
+  suites pass 35/35 on both. Replay corpus/final/event SHA-256 values are
+  `7f210b0b70d2a506f60da411d4212885a5714ddc816c6fb076ad6273939a5ef0` /
+  `7d031c271e05fb0041fa749488689175fb6b775f44d58a794bc1aa1e1c47bd48` /
+  `55581ad6489814368e5408eb96779ece01d840b1dd6ce7899afd1c4f724ac6bd`.

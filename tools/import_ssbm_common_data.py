@@ -344,6 +344,10 @@ def generate(raw: bytes) -> str:
         "damage_fly_top_horizontal_ratio_q16": q16(
             math.tan(math.pi / 2.0 - damage_fly_top_min_angle)
         ),
+        "ground_damage_steep_angle_sine_q16": q16(
+            math.sin(f32(0x1E8))
+        ),
+        "ground_damage_vertical_reflection_q16": q16(f32(0x1EC)),
         "damage_fly_roll_damage_threshold": (
             damage_fly_roll_damage_threshold
         ),
@@ -609,6 +613,8 @@ def generate(raw: bytes) -> str:
             f"    UINT16_C({attributes['damage_velocity_replace_window_ticks']}),",
             f"    UINT16_C({attributes['damage_jump_buffer_window_ticks']}),",
             f"    INT32_C({attributes['damage_fly_top_horizontal_ratio_q16']}),",
+            f"    INT32_C({attributes['ground_damage_steep_angle_sine_q16']}),",
+            f"    INT32_C({attributes['ground_damage_vertical_reflection_q16']}),",
             f"    UINT16_C({attributes['damage_fly_roll_damage_threshold']}),",
             f"    UINT16_C({attributes['damage_fly_roll_random_threshold_u16']}),",
             "};",

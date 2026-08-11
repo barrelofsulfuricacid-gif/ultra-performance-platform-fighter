@@ -22,11 +22,11 @@ separately because a stored pass cannot establish new SSBM truth.
 
 | Workstream | State | Current evidence or next gate |
 | --- | --- | --- |
-| Fast stored equivalence | done for twenty-one registered domains plus focused Wait lifecycle | The registry contains 117 cases plus deterministic replay. The pose domains hash 1,290 production poses: 714 common/ledge/guard, 33 Turn/TurnRun, 186 ordinary-airborne, 79 Pummel/CaptureWaitHi/CaptureDamageHi, and 278 CrouchWait/Appeal poses. Raptor Boost adds 502 field-masked numeric samples, Falcon Kick adds 399, natural movement adds 520, the five aerial-landing routes add 685, and passive shield break adds 500. Independent domains run concurrently while output retains manifest order. Eight fractional ground-loop, three direct Wait, six SquatRv-to-Wait entry, 32 Wait2/Wait3 lifecycle, and nine pressure-derived GuardSetOff observations use shared C pose gates. The Wait lifecycle also has its own focused 440-tick/38-pose native CTest. |
+| Fast stored equivalence | done for twenty-two registered domains plus focused Wait lifecycle | The registry contains 119 cases plus deterministic replay. The pose domains hash 1,290 production poses: 714 common/ledge/guard, 33 Turn/TurnRun, 186 ordinary-airborne, 79 Pummel/CaptureWaitHi/CaptureDamageHi, and 278 CrouchWait/Appeal poses. Raptor Boost adds 502 field-masked numeric samples, Falcon Kick adds 399, natural movement adds 520, the five aerial-landing routes add 685, passive shield break adds 500, and grounded slope damage adds 60. Independent domains run concurrently while output retains manifest order. Eight fractional ground-loop, three direct Wait, six SquatRv-to-Wait entry, 32 Wait2/Wait3 lifecycle, and nine pressure-derived GuardSetOff observations use shared C pose gates. The Wait lifecycle also has its own focused 440-tick/38-pose native CTest. |
 | Fast live Dolphin oracle | done for the current registered domains | Registered packs use headless/null/unlimited ExiAI and checkpoint-isolated cases. The focused Turn/TurnRun pack captures 39 rows in 0.228 seconds warm with fast-forward and 0.565 seconds with fast-forward disabled; both produce semantic SHA `1cc3543b1363ecb5c7427c36f4d8d8a2826f9fb7c5281877f54108e1ffe281a2`. Generic label-based projection reduces the WalkFast changed-domain capture from seven cases / 423 rows / 4.820601 seconds warm to one case / 32 rows / 0.160820 seconds warm. The full common-hurt pack now owns all 16 physical boundaries / 323 rows and measures 14.10-15.05 seconds warm; the focused guard-only capture is about 0.15 seconds warm. Restored-state memory overrides are reapplied after the load acknowledgement, so placement and RNG writes can no longer target the discarded pre-restore state. Unsafe cross-invocation observer reconnection is rejected. |
 | Falcon bounded hurt poses | common, complete Wait lifecycle, guard, turn, ledge, ordinary airborne, pummel/capture, crouch-wait, taunt, dynamic ground-loop, GuardSetOff, shield-break, all 26 ordinary-action ECB routes, and all 17 common damage motions imported | Base Wait's natural SquatRv entry and six-update blend remain qualified within one Q16 unit. Two byte-identical 440-row lifecycle captures now add every Wait2/Wait3 frame, exact 70/20/10 weighted HSD-RNG selection, same-secondary rejection, zero-blend variant entry, and six-update return/restart blends. The shared HSD evaluator matches 145 direct variant poses / 1,595 capsules plus ECB within one Q16 unit. Its action-owned extension matches 2,086 paired live observations / 1,850 unique frames for all three jabs, every rapid-jab phase, Dash Attack, all five forward tilts, Up/Down Tilt, three real forward-smash angles, Up/Down Smash, both grabs, and all five aerial attacks at maximum one-Q16 error for every qualified component. DamageN2 adds two independent 72-row physical captures: 276 qualified pose observations / 3,036 capsules and every post-entry damage-owned ECB agree within one Q16 unit. DamageFlyRoll additionally applies the decomp's velocity-oriented `XRotN` override to both hurt and ECB evaluation without a separate pose table. Existing guard, Turn/TurnRun, ledge, airborne, pummel/capture, grounded-loop, GuardSetOff, and shield-break qualifications remain intact. |
 | Falcon movement and combat | partial | Captured routes include wall/ceiling response, flat-floor missed/neutral/directional techs, both Up/Down prone/getup orientations, grounded player push from both ports/directions, imported Hyrule slope/DownBound/ordinary-ledge response, the exact common-data `x480` down-input ledge rejection boundary, all eight quick/slow ledge options, exact 640/480-frame CliffWait timeout and regrab cooldown, ordinary Jump/Fall airborne animation clocks, Falcon Punch's complete ground/air clocks and qualified air-physics tail, Raptor Boost's five complete fighter routes plus its live-only native Capsule branch, all six Falcon Kick routes, and a source-qualified complete Battlefield collision/environment catalog. Production imports complete Jump/Fall and all five aerial-attack HSD tracks, all 198 ShieldBreakFly/DownD/StandD/Furafura frames, all 25 GuardOn/Guard/GuardOff poses, both 26-frame DownBound tracks, both 70-frame DownWait loops, both neutral getups, both getup attacks, all four prone-orientation/direction roll tracks, and the complete 158-frame CrouchWait ECB cycle. The shared common-air conversion owns the decomp's ten-update previous-bottom ECB lock; aerial attacks no longer use a route-captured bottom table. All 26 ordinary action routes derive collision ECBs from the allocation-free evaluator, with 925 runtime poses covered by the native primitive. A generated submotion flag selects Melee's TransN-stripped or model-root ECB reference space without action-specific branches. A fresh 165-frame natural Falcon Dive miss route passes the identical-input comparator with the documented 640-Q16 position envelope. FallSpecial additionally reproduces the decomp's velocity-selected neutral/forward/back target, switch-update double blend, stable-update single blend, and persistent bottom-lock state. The former Raptor/Falcon Dive/FallSpecial/aerial-attack authored ECB arrays are removed. Broader special-action acquisition coverage stays open. |
-| Common damage response | numeric response and all common damage-motion selectors implemented; represented routes qualified | The six-case live Dolphin trace and generic stored numeric trace pass. Production ports the decomp's pre-launch ground/air, knockback-level, collided-hurtbox-height, strict 70/110-degree DamageFlyTop cone, 100% DamageFlyRoll threshold, and exact HSD-RNG draw. Source frame one is held through hitlag and advances on resumed updates. DamageN2 live pose/ECB evidence now includes all six mixed hit-entry rows: frame-one hurt belongs to DamageN2 while the ECB belongs to the preceding Wait variant after its animation update. The flat-ground DamageLw1 stored route and a fresh response-only 145-row surface capture containing DamageFlyRoll exercise the shared production machinery. Broader attack/stage routes remain open. |
+| Common damage response | numeric response and all common damage-motion selectors implemented; represented routes qualified | The six-case live Dolphin trace and generic stored numeric trace pass. Production ports the decomp's pre-launch ground/air, knockback-level, collided-hurtbox-height, strict 70/110-degree DamageFlyTop cone, 100% DamageFlyRoll threshold, and exact HSD-RNG draw. It also imports the slope launch/projection rule, level-three steep-floor reflection, ground-origin ECB lock, and landing-entry channel ownership. A deterministic two-case/60-row Hyrule line-36 theorem covers opposite horizontal launches from the same crouch-cancelled Forward Tilt: one remains grounded and projects onto the floor, while the other enters air and immediately recontacts on hitlag release. DamageN2 live pose/ECB evidence includes all six mixed hit-entry rows. Broader attack/stage routes remain open. |
 | Separate knockback velocity and decay | open-air and flat-ground routes qualified | A pinned 64-row late DashAttack route agrees for 15 damage samples on action/frame, grounded/tumble, damage, timers, self velocity, projected knockback, and `xF0_ground_kb_vel` within 0.001 source units. Canonical save/load, replay, Windows, WSL, and sanitizers pass. |
 | Remaining Falcon gaps | not complete | Work through every incomplete row in `docs/product/m4_ssbm_fidelity_audit.md`; do not infer whole-character equivalence from one domain. |
 | Native Battlefield frontend | implemented locally; hands-on gate remains | The SDL target runs the real simulation at fixed 60 Hz, supports 2P Duel and 4P Teams plus 1-8 stocks through the core config contract, renders the complete source-derived 23-line Battlefield catalog and blast-zone inset, and visualizes fighters, crouch, shields, hitboxes, exact 11-capsule source hurt poses, damage, stocks, and actions. Strict MSVC, WSL, smoke, and screenshot QA pass. One real-controller hands-on pass remains. |
@@ -36,9 +36,44 @@ The complete frame-data generator is source-closed against the current
 qualified shield-break profile: two regenerations produce include SHA-256
 `e936f0edef8cdab44a6507d8b1c7f5474ea1950ead5a82a1f5f9d2a2e9478ebe`.
 The active implementation slice is broader physical damage routes after
-closing DamageFlyTop/Roll selection, velocity-oriented Roll geometry, and the
-mixed hit-entry ECB callback theorem. Numeric response remains qualified
-separately.
+closing DamageFlyTop/Roll selection, velocity-oriented Roll geometry, mixed
+hit-entry ECB ownership, and grounded slope launch/recontact. Numeric response
+remains qualified separately.
+
+## Completed and verified: grounded slope damage launch and recontact
+
+- [x] Sweep pinned decomp revision `9509dc0`, current upstream `d882af9`, the
+  extracted `PlCo.dat`, the existing Hyrule line catalog, and registered
+  collision oracles before implementation. The governing `ftCo_Damage.c`
+  route is unchanged upstream and no parallel prior-art runtime supersedes the
+  existing fixed-point stage adapter.
+- [x] Import common-data `x1E8` (10 degrees) and `x1EC` (0.8). The shared
+  fixed-point resolver converts the anisotropic simulation vector back to
+  Melee coordinates, performs the floor-normal angle test, preserves the raw
+  `xF0_ground_kb_vel` scalar, projects grounded `x8c_kb_vel`, and applies the
+  strict level-three steep-floor vertical reflection without runtime float.
+- [x] Preserve source callback order and vector ownership. Damage motion
+  selection consumes the original pre-projection launch vector; a
+  ground-origin airborne launch installs `ftCommon_8007D5D4`'s ten-update ECB
+  bottom lock before hitlag; `Landing` keeps the incoming air `x8c` vector on
+  its entry row and begins floor projection on the following grounded physics
+  update. The common air-entry adapter now correctly converts collision-sweep
+  extent back to root-space bottom before storing a lock.
+- [x] Add an at-will two-case/60-row identical-input Hyrule line-36 theorem.
+  Opposite Forward Tilts against a crouch-cancelled Falcon qualify grounded
+  projection and airborne departure plus same-update downhill recontact.
+  Independent captures have identical observation rows and semantic source
+  SHA-256 `657b816faa98658d10be6783b912a380cf88c24ccc1120d0a5836f61e6aa6ac9`;
+  production SHA-256 is
+  `99e2eeefbeffde01318bf81dee3b5f57a8ed7db3fef755d9860beaa7c1af2e1f`.
+  Warm capture times are 0.806 and 0.738 seconds.
+- [x] Register the domain in the fast gate. Twenty-two domains / 119 cases
+  plus replay pass in 1,707.169 ms on native Windows and 1,035.323 ms in WSL,
+  below the two-second budget. Rebuilt Release suites pass 35/35 on both
+  platforms. The intentional ECB-lock serialization changes only the replay
+  corpus SHA-256 to
+  `7f210b0b70d2a506f60da411d4212885a5714ddc816c6fb076ad6273939a5ef0`;
+  final-state and event digests remain unchanged.
 
 ## Completed and verified: mixed hit-entry ECB ownership
 
@@ -1768,7 +1803,7 @@ other stage/pushbox topologies.
   height table entries are also checked against the decomp table.
 - [x] Requalify deterministic dependents after the intentional source-identity
   change. Replay corpus/final/event SHA-256 values are now
-  `2959415d4b85951e441b516720d2818bdab4b27b05ebda5465158cc4e1b420b7` /
+  `7f210b0b70d2a506f60da411d4212885a5714ddc816c6fb076ad6273939a5ef0` /
   `7d031c271e05fb0041fa749488689175fb6b775f44d58a794bc1aa1e1c47bd48` /
   `55581ad6489814368e540e8eb96779ece01d840b1dd6ce7899afd1c4f724ac6bd`.
   The Hyrule slope/ledge production digest is

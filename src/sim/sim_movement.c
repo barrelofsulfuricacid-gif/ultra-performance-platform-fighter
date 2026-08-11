@@ -5440,7 +5440,7 @@ static void pf_m4_enter_shield_break_launch(
     scratch->attack_stale_registered[player_index] = UINT8_C(0);
 }
 
-static void pf_m4_transfer_air_knockback_to_flat_ground(
+static void pf_m4_begin_ground_knockback_from_air(
     pf_sim_scratch *scratch,
     uint32_t player_index)
 {
@@ -5462,8 +5462,6 @@ static void pf_m4_transfer_air_knockback_to_flat_ground(
         scalar = -common->ground_knockback_max_speed_q16;
     }
     scratch->ground_knockback_velocity_q16[player_index] = scalar;
-    scratch->knockback_velocity_x_q16[player_index] = scalar;
-    scratch->knockback_velocity_y_q16[player_index] = INT32_C(0);
 }
 
 static void pf_m4_land_from_air(
@@ -5785,7 +5783,11 @@ static void pf_m4_land_from_air(
 
     if (scratch->tumble[player_index] == UINT8_C(0))
     {
-        pf_m4_transfer_air_knockback_to_flat_ground(
+        /* ftCo_Landing_Enter_Basic changes ground/air state without
+         * rewriting x8c_kb_vel. Preserve the incoming air vector on the
+         * landing entry frame; the following grounded physics callback
+         * decays xF0 and projects x8c onto the live floor tangent. */
+        pf_m4_begin_ground_knockback_from_air(
             scratch,
             player_index);
         scratch->hitstun_ticks[player_index] = UINT16_C(0);
@@ -13356,33 +13358,46 @@ pf_status pf_m4_step_player(
          * CollData.desired_ecb.bottom from the preceding map update; derive
          * that same value from canonical source state instead of storing a
          * second copy of the complete desired ECB. */
-        ecb_locked_bottom_y_q16 =
-            previous_locked_bottom_y_q16 !=
-                    PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16
-                ? previous_locked_bottom_y_q16
-                : pf_m4_floor_contact_bottom_extent_q16(
-                      fighter,
-                      pf_m4_effective_action_state(
-                          world->action_state[player_index],
-                          world->hitlag_resume_action[player_index]),
-                      world->action_ticks[player_index],
-                      world->grounded[player_index],
-                      PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16,
-                      world->source_submotion[player_index],
-                      world->source_animation_frame_q16[player_index],
-                      world->fall_animation_blend_q16[player_index],
-                      world->fall_animation_target_switched[player_index],
-                      world->prone_orientation[player_index],
-                      world->prone_roll_motion_orientation[player_index],
-                      world->tech_direction[player_index],
-                      world->facing[player_index],
-                      pf_m4_total_velocity_q16(
-                          world->velocity_x_q16[player_index],
-                          world->knockback_velocity_x_q16[player_index]),
-                      pf_m4_total_velocity_q16(
-                          world->velocity_y_q16[player_index],
-                          world->knockback_velocity_y_q16[player_index]),
-                      &previous_exact_pose);
+        if (previous_locked_bottom_y_q16 !=
+            PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16)
+        {
+            ecb_locked_bottom_y_q16 = previous_locked_bottom_y_q16;
+        }
+        else
+        {
+            const int32_t previous_floor_contact_bottom_extent_q16 =
+                pf_m4_floor_contact_bottom_extent_q16(
+                    fighter,
+                    pf_m4_effective_action_state(
+                        world->action_state[player_index],
+                        world->hitlag_resume_action[player_index]),
+                    world->action_ticks[player_index],
+                    world->grounded[player_index],
+                    PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16,
+                    world->source_submotion[player_index],
+                    world->source_animation_frame_q16[player_index],
+                    world->fall_animation_blend_q16[player_index],
+                    world->fall_animation_target_switched[player_index],
+                    world->prone_orientation[player_index],
+                    world->prone_roll_motion_orientation[player_index],
+                    world->tech_direction[player_index],
+                    world->facing[player_index],
+                    pf_m4_total_velocity_q16(
+                        world->velocity_x_q16[player_index],
+                        world->knockback_velocity_x_q16[player_index]),
+                    pf_m4_total_velocity_q16(
+                        world->velocity_y_q16[player_index],
+                        world->knockback_velocity_y_q16[player_index]),
+                    &previous_exact_pose);
+
+            /* Collision sweeps use the distance from our centre-space
+             * position to the ECB bottom. The source lock stores the
+             * inverse root-space ordinate, so convert instead of feeding
+             * the sweep extent back as a pose ordinate. */
+            ecb_locked_bottom_y_q16 =
+                fighter->half_height_q16 -
+                previous_floor_contact_bottom_extent_q16;
+        }
         (void)previous_exact_pose;
         ecb_bottom_lock_ticks = PF_M4_COMMON_AIR_ENTRY_ECB_LOCK_TICKS;
         inherited_locked_bottom_y_q16 = ecb_locked_bottom_y_q16;

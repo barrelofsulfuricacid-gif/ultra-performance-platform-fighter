@@ -1,0 +1,148 @@
+{
+  "schema": 1,
+  "scope": "falcon-common-ground-slope-damage",
+  "domain": "falcon-common-ground-slope-damage",
+  "character": "falcon",
+  "oracle": "SSBM GALE01 NTSC-U revision 2",
+  "checkpoint_pack": {
+    "protocol": "rebased-slippi-state-file-control-v1",
+    "expected_rows": 60,
+    "warm_budget_seconds": 3.0,
+    "capture_plan": {
+      "record_response_only": true,
+      "source_random_seed": 1,
+      "source_random_seed_post_hit_index": 0,
+      "surface_response_cases": [
+        {
+          "id": "hyrule_line36_forward_tilt_grounded_projection",
+          "damage_percent": 0.0,
+          "target_start": [160.0, 10.0],
+          "opponent_start": [145.0, 10.0],
+          "approach_main": 0,
+          "attack_main": [16000, 0],
+          "target_facing": 1,
+          "opponent_facing": 1,
+          "settle_ticks": 55,
+          "approach_ticks": 1,
+          "post_hit_ticks": 1,
+          "impact_x": null,
+          "impact_y": null,
+          "impact_main": [0, -32767],
+          "observe_ticks": 30
+        },
+        {
+          "id": "hyrule_line36_forward_tilt_airborne_departure",
+          "damage_percent": 0.0,
+          "target_start": [160.0, 10.0],
+          "opponent_start": [175.0, 10.0],
+          "approach_main": 0,
+          "attack_main": [-16000, 0],
+          "target_facing": -1,
+          "opponent_facing": -1,
+          "settle_ticks": 55,
+          "approach_ticks": 1,
+          "post_hit_ticks": 1,
+          "impact_x": null,
+          "impact_y": null,
+          "impact_main": [0, -32767],
+          "observe_ticks": 30
+        }
+      ]
+    }
+  },
+  "checkpoint_cases": [
+    {
+      "id": "hyrule-line36-forward-tilt-grounded-projection",
+      "start_label": "surface_response_hyrule_line36_forward_tilt_grounded_projection_setup"
+    },
+    {
+      "id": "hyrule-line36-forward-tilt-airborne-departure",
+      "start_label": "surface_response_hyrule_line36_forward_tilt_airborne_departure_setup"
+    }
+  ],
+  "selection": {
+    "paths": [
+      "generated/data/m4_ssbm_falcon_ground_slope_damage_oracle.inc",
+      "generated/data/m4_ssbm_ntsc102_common_data.inc",
+      "generated/data/m4_ssbm_ntsc102_hyrule_collision.inc",
+      "include/pf/m4.h",
+      "src/sim/sim_combat.c",
+      "src/sim/sim_movement.c",
+      "src/sim/sim_ssbm_common_data.c",
+      "src/sim/sim_ssbm_common_data.h",
+      "src/sim/sim_ssbm_damage.c",
+      "src/sim/sim_ssbm_damage.h",
+      "src/sim/sim_ssbm_stage_data.c",
+      "src/sim/sim_ssbm_stage_data.h",
+      "tests/sim/ssbm_stored_oracle.c",
+      "tests/sim/ssbm_stored_oracle.h",
+      "tests/sim/test_m4_combat.c",
+      "tools/capture_ssbm_movement.py",
+      "tools/data/ssbm_ntsc102_hyrule_collision.json",
+      "tools/generate_ssbm_stored_trace_oracle.py",
+      "tools/import_ssbm_common_data.py",
+      "tools/ssbm_live_trace.py",
+      "tools/ssbm_falcon_ground_slope_damage_coverage.json",
+      "tools/verify_ssbm_falcon_ground_slope_damage.py",
+      "tools/verify_ssbm_falcon_ground_slope_damage.sh"
+    ]
+  },
+  "stored_oracle": {
+    "kind": "numeric-trace-v1",
+    "source_trace_sha256": "657b816faa98658d10be6783b912a380cf88c24ccc1120d0a5836f61e6aa6ac9",
+    "production_trace_sha256": "99e2eeefbeffde01318bf81dee3b5f57a8ed7db3fef755d9860beaa7c1af2e1f",
+    "samples_per_case": 30,
+    "serialized_fields": [
+      "position_x",
+      "position_y",
+      "self_velocity_x",
+      "self_velocity_y",
+      "knockback_velocity_x",
+      "knockback_velocity_y",
+      "ground_knockback_velocity",
+      "action_ticks",
+      "hitlag_ticks",
+      "hitstun_ticks",
+      "action_state",
+      "hitlag_resume_action",
+      "grounded",
+      "tumble",
+      "facing"
+    ],
+    "cases": [
+      {
+        "id": "hyrule_line36_forward_tilt_grounded_projection",
+        "initial_state_variant": 0,
+        "initial_facing": 1,
+        "input_phases": [
+          { "ticks": 30, "lanes": [{ "main": [0, -32767] }] }
+        ]
+      },
+      {
+        "id": "hyrule_line36_forward_tilt_airborne_departure",
+        "initial_state_variant": 1,
+        "initial_facing": -1,
+        "input_phases": [
+          { "ticks": 30, "lanes": [{ "main": [0, -32767] }] }
+        ]
+      }
+    ],
+    "live_comparison": {
+      "velocity_tolerance_q16": 32,
+      "position_tolerance_q16": 192,
+      "position_drift_per_tick_q16": 32
+    },
+    "c": {
+      "symbol_prefix": "pf_m4_ssbm_falcon_ground_slope_damage",
+      "macro_prefix": "PF_M4_SSBM_FALCON_GROUND_SLOPE_DAMAGE"
+    },
+    "generator": {
+      "script": "tools/generate_ssbm_stored_trace_oracle.py",
+      "output": "generated/data/m4_ssbm_falcon_ground_slope_damage_oracle.inc"
+    },
+    "runner": {
+      "executable": "m4_combat_test",
+      "arguments": ["--ssbm-oracle", "falcon-common-ground-slope-damage"]
+    }
+  }
+}

@@ -33,6 +33,7 @@
 #include "../../generated/data/m4_ssbm_falcon_prone_response_oracle.inc"
 #include "../../generated/data/m4_ssbm_falcon_player_push_oracle.inc"
 #include "../../generated/data/m4_ssbm_falcon_slope_ledge_response_oracle.inc"
+#include "../../generated/data/m4_ssbm_falcon_ground_slope_damage_oracle.inc"
 #include "../../generated/data/m4_ssbm_falcon_ledge_options_oracle.inc"
 
 typedef struct pf_m4_hsd_hurt_oracle_case
@@ -15407,6 +15408,10 @@ static int run_ssbm_damage_source_test(const pf_m4_content *content)
     int32_t parallel_y = full_y;
     int32_t decayed_x = INT32_C(1179);
     int32_t decayed_y = -INT32_C(11369);
+    int32_t slope_x;
+    int32_t slope_y;
+    int32_t ground_scalar;
+    uint8_t slope_grounded;
     int64_t full_vertical;
     int64_t half_vertical;
     uint8_t grounded_index;
@@ -15421,6 +15426,8 @@ static int run_ssbm_damage_source_test(const pf_m4_content *content)
         raw_word_count != PF_M4_SSBM_COMMON_RAW_WORD_COUNT ||
         raw_words[0x154U / 4U] != UINT32_C(0x3ecccccd) ||
         raw_words[0x1A8U / 4U] != UINT32_C(0x41900000) ||
+        raw_words[0x1E8U / 4U] != UINT32_C(0x3e32b8c2) ||
+        raw_words[0x1ECU / 4U] != UINT32_C(0x3f4ccccd) ||
         raw_words[0x200U / 4U] != UINT32_C(0x3f800000) ||
         raw_words[0x204U / 4U] != UINT32_C(0x3d50e560) ||
         raw_words[0x4B0U / 4U] != UINT32_C(0x3f333333) ||
@@ -15446,10 +15453,98 @@ static int run_ssbm_damage_source_test(const pf_m4_content *content)
         content->fighter.asdi_distance_y_q16 !=
             source->asdi_distance_y_q16 ||
         source->damage_fly_top_horizontal_ratio_q16 != INT32_C(23853) ||
+        source->ground_damage_steep_angle_sine_q16 != INT32_C(11380) ||
+        source->ground_damage_vertical_reflection_q16 != INT32_C(52429) ||
         source->damage_fly_roll_damage_threshold != UINT16_C(100) ||
         source->damage_fly_roll_random_threshold_u16 != UINT16_C(19661))
     {
         return fail("ssbm-damage-source-data");
+    }
+
+    slope_x = INT32_C(65536);
+    slope_y = INT32_C(0);
+    if (!expect_status(
+            pf_m4_ssbm_resolve_ground_damage_launch_q16(
+                -INT32_C(15296),
+                INT32_C(63726),
+                INT32_C(63726),
+                -INT32_C(26007),
+                UINT8_C(2),
+                &slope_x,
+                &slope_y,
+                &ground_scalar,
+                &slope_grounded),
+            PF_STATUS_OK,
+            "ssbm-ground-damage-slope-projection") ||
+        slope_grounded != UINT8_C(1) ||
+        ground_scalar != INT32_C(65536) ||
+        slope_x != INT32_C(63726) ||
+        slope_y != -INT32_C(26007))
+    {
+        return fail("ssbm-ground-damage-slope-projection");
+    }
+    slope_x = -INT32_C(65536);
+    slope_y = INT32_C(0);
+    if (!expect_status(
+            pf_m4_ssbm_resolve_ground_damage_launch_q16(
+                -INT32_C(15296),
+                INT32_C(63726),
+                INT32_C(63726),
+                -INT32_C(26007),
+                UINT8_C(2),
+                &slope_x,
+                &slope_y,
+                &ground_scalar,
+                &slope_grounded),
+            PF_STATUS_OK,
+            "ssbm-ground-damage-slope-departure") ||
+        slope_grounded != UINT8_C(0) ||
+        ground_scalar != INT32_C(0) ||
+        slope_x != -INT32_C(65536) || slope_y != INT32_C(0))
+    {
+        return fail("ssbm-ground-damage-slope-departure");
+    }
+    slope_x = INT32_C(65536);
+    slope_y = INT32_C(65536);
+    if (!expect_status(
+            pf_m4_ssbm_resolve_ground_damage_launch_q16(
+                INT32_C(0),
+                INT32_C(65536),
+                INT32_C(65536),
+                INT32_C(0),
+                UINT8_C(3),
+                &slope_x,
+                &slope_y,
+                &ground_scalar,
+                &slope_grounded),
+            PF_STATUS_OK,
+            "ssbm-ground-damage-steep-reflection") ||
+        slope_grounded != UINT8_C(0) ||
+        ground_scalar != INT32_C(0) ||
+        slope_x != INT32_C(65536) || slope_y != -INT32_C(52429))
+    {
+        return fail("ssbm-ground-damage-steep-reflection");
+    }
+    slope_x = INT32_C(65536);
+    slope_y = INT32_C(100);
+    if (!expect_status(
+            pf_m4_ssbm_resolve_ground_damage_launch_q16(
+                INT32_C(0),
+                INT32_C(65536),
+                INT32_C(65536),
+                INT32_C(0),
+                UINT8_C(3),
+                &slope_x,
+                &slope_y,
+                &ground_scalar,
+                &slope_grounded),
+            PF_STATUS_OK,
+            "ssbm-ground-damage-shallow-departure") ||
+        slope_grounded != UINT8_C(0) ||
+        ground_scalar != INT32_C(0) ||
+        slope_x != INT32_C(65536) || slope_y != INT32_C(100))
+    {
+        return fail("ssbm-ground-damage-shallow-departure");
     }
 
     if (pf_m4_ssbm_stick_meets_radial_threshold(
@@ -18674,6 +18769,244 @@ static int place_player_on_reference_floor(
     sim->world.support[player_index] =
         (uint8_t)(line_index + UINT16_C(1));
     sim->world.facing[player_index] = facing;
+    return 1;
+}
+
+static int step_ground_slope_damage_setup(
+    pf_sim *sim,
+    int16_t attacker_main_x,
+    uint64_t attacker_buttons,
+    pf_m4_inspection *out_inspection)
+{
+    pf_input_frame inputs[PF_SIM_MAX_PLAYERS];
+    pf_m4_inspection before;
+
+    if (!expect_status(
+            pf_m4_inspect(sim, &before),
+            PF_STATUS_OK,
+            "ground-slope-damage-inspect-before-setup-step"))
+    {
+        return 0;
+    }
+    make_inputs(inputs, UINT8_C(2), before.tick);
+    inputs[0].main_stick_x = attacker_main_x;
+    inputs[0].buttons = attacker_buttons;
+    return expect_status(
+               pf_sim_tick(sim, inputs, (size_t)2, &test_last_result),
+               PF_STATUS_OK,
+               "ground-slope-damage-setup-step") &&
+           expect_status(
+               pf_m4_inspect(sim, out_inspection),
+               PF_STATUS_OK,
+               "ground-slope-damage-inspect-after-setup-step");
+}
+
+static int prepare_ground_slope_damage(
+    pf_sim *sim,
+    int airborne_case,
+    pf_m4_inspection *out_inspection)
+{
+    const int32_t target_x_q16 =
+        ssbm_source_x_hundredths_to_sim_q16(INT32_C(16000));
+    const int32_t attacker_x_q16 =
+        ssbm_source_x_hundredths_to_sim_q16(
+            airborne_case != 0 ? INT32_C(17500) : INT32_C(14500));
+    const int8_t setup_facing =
+        airborne_case != 0 ? INT8_C(-1) : INT8_C(1);
+    const int16_t attack_axis =
+        airborne_case != 0 ? -INT16_C(16000) : INT16_C(16000);
+
+    if (!place_player_on_reference_floor(
+            sim,
+            UINT32_C(1),
+            UINT16_C(36),
+            target_x_q16,
+            setup_facing) ||
+        !place_player_on_reference_floor(
+            sim,
+            UINT32_C(0),
+            UINT16_C(36),
+            attacker_x_q16,
+            setup_facing) ||
+        !step_ground_slope_damage_setup(
+            sim,
+            attack_axis,
+            PF_INPUT_BUTTON_ATTACK,
+            out_inspection) ||
+        !step_ground_slope_damage_setup(
+            sim,
+            INT16_C(0),
+            UINT64_C(0),
+            out_inspection) ||
+        !step_ground_slope_damage_setup(
+            sim,
+            INT16_C(0),
+            UINT64_C(0),
+            out_inspection))
+    {
+        return 0;
+    }
+    return out_inspection->players[0].action_state ==
+               (uint8_t)PF_M4_ACTION_FORWARD_ATTACK &&
+           out_inspection->players[1].action_state ==
+               (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+}
+
+static uint8_t run_ssbm_ground_slope_damage_trace_case(
+    void *context,
+    const pf_ssbm_stored_trace_case *stored_case,
+    pf_ssbm_stored_trace_sample *out_samples,
+    uint8_t capacity)
+{
+    test_sim_storage storage;
+    pf_m4_content content;
+    pf_content_view view;
+    pf_m4_inspection inspection;
+    pf_sim *sim = NULL;
+    int airborne_case;
+    uint8_t sample_index;
+    int32_t origin_x_q16;
+    int32_t origin_y_q16;
+
+    if (stored_case == NULL || stored_case->inputs == NULL ||
+        out_samples == NULL ||
+        capacity < PF_M4_SSBM_FALCON_GROUND_SLOPE_DAMAGE_SAMPLES_PER_CASE)
+    {
+        return UINT8_C(0);
+    }
+    airborne_case = strcmp(
+        stored_case->id,
+        "hyrule_line36_forward_tilt_airborne_departure") == 0;
+    if (airborne_case == 0 &&
+        strcmp(
+            stored_case->id,
+            "hyrule_line36_forward_tilt_grounded_projection") != 0)
+    {
+        return UINT8_C(0);
+    }
+    if (!make_hyrule_response_content(
+            UINT16_C(36),
+            ssbm_source_x_hundredths_to_sim_q16(INT32_C(19000)) -
+                (INT32_C(3) * PF_Q16_ONE) / INT32_C(5),
+            (INT32_C(3) * PF_Q16_ONE) / INT32_C(5),
+            &content,
+            &view))
+    {
+        return UINT8_C(0);
+    }
+    content.fighter.reference_frame_data_enabled = UINT8_C(1);
+    if (!expect_status(
+            pf_m4_make_content_view(&content, &view),
+            PF_STATUS_OK,
+            "ground-slope-damage-content-view") ||
+        !initialize_sim(
+            &storage,
+            &view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &sim) ||
+        !prepare_ground_slope_damage(sim, airborne_case, &inspection))
+    {
+        return UINT8_C(0);
+    }
+
+    origin_x_q16 = inspection.players[1].position_x_q16;
+    origin_y_q16 = inspection.players[1].position_y_q16;
+    for (sample_index = UINT8_C(0);
+         sample_index <
+             PF_M4_SSBM_FALCON_GROUND_SLOPE_DAMAGE_SAMPLES_PER_CASE;
+         ++sample_index)
+    {
+        if (!step_ssbm_trace_duel(
+                sim,
+                &stored_case->inputs[sample_index],
+                &inspection))
+        {
+            return UINT8_C(0);
+        }
+        capture_ssbm_stored_trace_sample(
+            &inspection.players[1],
+            origin_x_q16,
+            origin_y_q16,
+            &out_samples[sample_index]);
+        if (context != NULL && *(const int *)context != 0)
+        {
+            const pf_ssbm_stored_trace_sample *sample =
+                &out_samples[sample_index];
+
+            (void)printf(
+                "m4-ssbm-ground-slope-damage-observation case=%s"
+                " sample=%u action=%u resume=%u action_tick=%u"
+                " grounded=%u tumble=%u hitlag=%u hitstun=%u facing=%d"
+                " dx=%" PRId32 " dy=%" PRId32
+                " self_vx=%" PRId32 " self_vy=%" PRId32
+                " kb_vx=%" PRId32 " kb_vy=%" PRId32
+                " ground_kb=%" PRId32 "\n",
+                stored_case->id,
+                (unsigned int)sample_index + 1U,
+                (unsigned int)sample->action_state,
+                (unsigned int)sample->hitlag_resume_action,
+                (unsigned int)sample->action_ticks,
+                (unsigned int)sample->grounded,
+                (unsigned int)sample->tumble,
+                (unsigned int)sample->hitlag_ticks,
+                (unsigned int)sample->hitstun_ticks,
+                (int)sample->facing,
+                sample->position_x_q16,
+                sample->position_y_q16,
+                sample->self_velocity_x_q16,
+                sample->self_velocity_y_q16,
+                sample->knockback_velocity_x_q16,
+                sample->knockback_velocity_y_q16,
+                sample->ground_knockback_velocity_q16);
+        }
+    }
+    return PF_M4_SSBM_FALCON_GROUND_SLOPE_DAMAGE_SAMPLES_PER_CASE;
+}
+
+static int run_ssbm_ground_slope_damage_observation_oracle(void)
+{
+    int print_samples = 1;
+    const pf_ssbm_stored_trace_domain domain = {
+        "falcon-common-ground-slope-damage",
+        pf_m4_ssbm_falcon_ground_slope_damage_cases,
+        PF_M4_SSBM_FALCON_GROUND_SLOPE_DAMAGE_CASE_COUNT,
+        PF_M4_SSBM_FALCON_GROUND_SLOPE_DAMAGE_SAMPLES_PER_CASE,
+        PF_M4_SSBM_FALCON_GROUND_SLOPE_DAMAGE_LANES_PER_SAMPLE,
+        PF_M4_SSBM_FALCON_GROUND_SLOPE_DAMAGE_SERIALIZED_FIELDS,
+        PF_M4_SSBM_FALCON_GROUND_SLOPE_DAMAGE_PRODUCTION_TRACE_SHA256,
+        &print_samples,
+        run_ssbm_ground_slope_damage_trace_case};
+    pf_ssbm_stored_trace_result result;
+
+    if (!pf_ssbm_stored_trace_oracle_run(&domain, &result))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-ssbm-stored-oracle=fail domain=%s operation=%s case=%s "
+            "expected_production_trace_sha256=%s "
+            "actual_production_trace_sha256=%s\n",
+            domain.name,
+            result.failed_operation != NULL
+                ? result.failed_operation
+                : "unknown",
+            result.failed_case != NULL ? result.failed_case : "none",
+            domain.expected_production_trace_sha256,
+            result.production_trace_sha256[0] != '\0'
+                ? result.production_trace_sha256
+                : "unavailable");
+        return 0;
+    }
+    (void)printf(
+        "m4-ssbm-stored-oracle=pass domain=%s poses=0 cases=%u samples=%u "
+        "source_trace_sha256=%s production_trace_sha256=%s\n",
+        domain.name,
+        (unsigned int)PF_M4_SSBM_FALCON_GROUND_SLOPE_DAMAGE_CASE_COUNT,
+        (unsigned int)
+            PF_M4_SSBM_FALCON_GROUND_SLOPE_DAMAGE_TOTAL_SAMPLE_COUNT,
+        PF_M4_SSBM_FALCON_GROUND_SLOPE_DAMAGE_SOURCE_TRACE_SHA256,
+        result.production_trace_sha256);
     return 1;
 }
 
@@ -30458,6 +30791,15 @@ int main(int argc, char **argv)
                 "falcon-common-slope-ledge-response") == 0)
         {
             return run_ssbm_slope_ledge_response_observation_oracle()
+                       ? 0
+                       : 1;
+        }
+        if (argc == 3 && strcmp(argv[1], "--ssbm-oracle") == 0 &&
+            strcmp(
+                argv[2],
+                "falcon-common-ground-slope-damage") == 0)
+        {
+            return run_ssbm_ground_slope_damage_observation_oracle()
                        ? 0
                        : 1;
         }

@@ -21,6 +21,17 @@ pf_status pf_m4_ssbm_select_damage_motion(
     uint64_t *rng_state,
     pf_m4_ssbm_damage_motion_kind *out_motion);
 
+pf_status pf_m4_ssbm_resolve_ground_damage_launch_q16(
+    int32_t source_normal_x_q16,
+    int32_t source_normal_y_q16,
+    int32_t ground_projection_x_q16,
+    int32_t ground_projection_y_q16,
+    uint8_t damage_level,
+    int32_t *velocity_x_q16,
+    int32_t *velocity_y_q16,
+    int32_t *ground_scalar_q16,
+    uint8_t *launch_grounded);
+
 pf_status pf_m4_ssbm_apply_di_q16(
     int32_t max_angle_radians_q30,
     int16_t stick_x,

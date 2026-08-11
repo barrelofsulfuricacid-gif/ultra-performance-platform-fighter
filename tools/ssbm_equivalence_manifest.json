@@ -31,6 +31,7 @@
     "tools/ssbm_falcon_kick_coverage.json",
     "tools/ssbm_falcon_damage_response_coverage.json",
     "tools/ssbm_falcon_ground_knockback_coverage.json",
+    "tools/ssbm_falcon_ground_slope_damage_coverage.json",
     "tools/ssbm_falcon_surface_response_coverage.json",
     "tools/ssbm_falcon_floor_response_coverage.json",
     "tools/ssbm_falcon_prone_response_coverage.json",
@@ -50,7 +51,7 @@
       "ticks": "240",
       "players": "4",
       "bytes": "42519",
-      "corpus_sha256": "2959415d4b85951e441b516720d2818bdab4b27b05ebda5465158cc4e1b420b7",
+      "corpus_sha256": "7f210b0b70d2a506f60da411d4212885a5714ddc816c6fb076ad6273939a5ef0",
       "final_sha256": "7d031c271e05fb0041fa749488689175fb6b775f44d58a794bc1aa1e1c47bd48",
       "events_sha256": "55581ad6489814368e5408eb96779ece01d840b1dd6ce7899afd1c4f724ac6bd"
     }

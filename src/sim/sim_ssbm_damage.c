@@ -9,6 +9,126 @@
 #define PF_M4_Q30_ONE INT64_C(1073741824)
 #define PF_M4_SSBM_VECTOR_EXTRA_SCALE INT64_C(256)
 
+static int64_t pf_m4_ssbm_abs_i64(int64_t value)
+{
+    return value < INT64_C(0) ? -value : value;
+}
+
+pf_status pf_m4_ssbm_resolve_ground_damage_launch_q16(
+    int32_t source_normal_x_q16,
+    int32_t source_normal_y_q16,
+    int32_t ground_projection_x_q16,
+    int32_t ground_projection_y_q16,
+    uint8_t damage_level,
+    int32_t *velocity_x_q16,
+    int32_t *velocity_y_q16,
+    int32_t *ground_scalar_q16,
+    uint8_t *launch_grounded)
+{
+    const pf_m4_ssbm_damage_response_attributes *common =
+        pf_m4_ssbm_common_reference_damage_response();
+    int64_t source_x;
+    int64_t source_y_math;
+    int64_t maximum_component;
+    int64_t dot;
+    uint64_t magnitude_squared;
+    uint32_t magnitude;
+    uint32_t normal_magnitude;
+
+    if (velocity_x_q16 == NULL || velocity_y_q16 == NULL ||
+        ground_scalar_q16 == NULL || launch_grounded == NULL ||
+        common == NULL || damage_level > UINT8_C(3) ||
+        (source_normal_x_q16 == INT32_C(0) &&
+         source_normal_y_q16 == INT32_C(0)) ||
+        pf_m4_ssbm_abs_i64(source_normal_x_q16) > PF_Q16_ONE ||
+        pf_m4_ssbm_abs_i64(source_normal_y_q16) > PF_Q16_ONE)
+    {
+        return PF_STATUS_INVALID_ARGUMENT;
+    }
+
+    /* ftCo_8008DCE0 compares the launch vector with the current floor in
+     * Melee's isotropic positive-Y-up coordinates. Undo the world scale,
+     * then reduce only extreme, unreachable API inputs until squaring is
+     * safe; the common factor leaves every angle test unchanged. */
+    source_x =
+        (int64_t)*velocity_x_q16 * INT64_C(115) / INT64_C(12);
+    source_y_math =
+        -(int64_t)*velocity_y_q16 * INT64_C(62) / INT64_C(11);
+    maximum_component = pf_m4_ssbm_abs_i64(source_x);
+    if (pf_m4_ssbm_abs_i64(source_y_math) > maximum_component)
+    {
+        maximum_component = pf_m4_ssbm_abs_i64(source_y_math);
+    }
+    while (maximum_component > (INT64_C(1) << 30U))
+    {
+        source_x /= INT64_C(2);
+        source_y_math /= INT64_C(2);
+        maximum_component /= INT64_C(2);
+    }
+    dot =
+        source_x * (int64_t)source_normal_x_q16 +
+        source_y_math * (int64_t)source_normal_y_q16;
+
+    *ground_scalar_q16 = INT32_C(0);
+    *launch_grounded = UINT8_C(0);
+    if (dot > INT64_C(0))
+    {
+        return PF_STATUS_OK;
+    }
+    if (damage_level != UINT8_C(3))
+    {
+        const int64_t projected_x =
+            (int64_t)*velocity_x_q16 * ground_projection_x_q16 /
+            (int64_t)PF_Q16_ONE;
+        const int64_t projected_y =
+            (int64_t)*velocity_x_q16 * ground_projection_y_q16 /
+            (int64_t)PF_Q16_ONE;
+
+        if (projected_x < (int64_t)INT32_MIN ||
+            projected_x > (int64_t)INT32_MAX ||
+            projected_y < (int64_t)INT32_MIN ||
+            projected_y > (int64_t)INT32_MAX)
+        {
+            return PF_STATUS_DETERMINISTIC_FAULT;
+        }
+        *ground_scalar_q16 = *velocity_x_q16;
+        *velocity_x_q16 = (int32_t)projected_x;
+        *velocity_y_q16 = (int32_t)projected_y;
+        *launch_grounded = UINT8_C(1);
+        return PF_STATUS_OK;
+    }
+
+    magnitude_squared =
+        (uint64_t)(source_x * source_x) +
+        (uint64_t)(source_y_math * source_y_math);
+    magnitude = pf_m4_u64_sqrt(magnitude_squared);
+    normal_magnitude = pf_m4_u64_sqrt(
+        (uint64_t)((int64_t)source_normal_x_q16 *
+                   source_normal_x_q16) +
+        (uint64_t)((int64_t)source_normal_y_q16 *
+                   source_normal_y_q16));
+    /* The source comparison is strict: angle > 90 degrees + x1E8. For a
+     * unit floor normal this is -dot > |velocity| * sin(x1E8). */
+    if (-dot >
+        (int64_t)magnitude * (int64_t)normal_magnitude *
+            common->ground_damage_steep_angle_sine_q16 /
+            (int64_t)PF_Q16_ONE)
+    {
+        const int64_t reflected_y =
+            -(int64_t)*velocity_y_q16 *
+            common->ground_damage_vertical_reflection_q16 /
+            (int64_t)PF_Q16_ONE;
+
+        if (reflected_y < (int64_t)INT32_MIN ||
+            reflected_y > (int64_t)INT32_MAX)
+        {
+            return PF_STATUS_DETERMINISTIC_FAULT;
+        }
+        *velocity_y_q16 = (int32_t)reflected_y;
+    }
+    return PF_STATUS_OK;
+}
+
 pf_status pf_m4_ssbm_select_damage_motion(
     uint8_t launch_grounded,
     uint8_t damage_level,

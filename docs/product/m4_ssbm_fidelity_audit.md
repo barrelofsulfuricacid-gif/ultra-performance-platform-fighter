@@ -329,3 +329,15 @@ lock expires. A production double-jump/Nair lifecycle gate protects entry,
 frames 1-8, and frame-9 release. Rapid Jab Start is now closed by the generated
 submotion animation-flag rule: motions without translation extraction remain
 model-root-relative, while flagged motions subtract the animated TransN joint.
+
+Current grounded-damage addendum: a registered two-case/60-row Hyrule line-36
+theorem now qualifies the decomp's grounded slope angle test, tangent
+projection, raw ground-knockback scalar, ground-origin ten-update ECB lock,
+same-update post-hitlag floor recontact, Landing entry-vector retention, and
+next-update grounded projection. Opposite actual Forward Tilts produce the
+grounded and airborne branches from one crouch-cancelled setup. Both live
+captures have identical observations; source/production semantic digests are
+`657b816faa98658d10be6783b912a380cf88c24ccc1120d0a5836f61e6aa6ac9` /
+`99e2eeefbeffde01318bf81dee3b5f57a8ed7db3fef755d9860beaa7c1af2e1f`.
+This closes the represented line-36 slope-damage branch; wider attack, floor,
+and stage combinations remain outside the claim.
