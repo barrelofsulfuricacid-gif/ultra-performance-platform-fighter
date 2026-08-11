@@ -65,8 +65,9 @@ pose, and ordinary 16-frame `GuardOff` motion. The hash-pinned import manifest
 binds 25 poses / 275 capsules; the companion generated Falcon frame-data table
 owns the independently qualified 25 complete four-point ECB poses. Production
 selects both by retained source submotion and action tick with no runtime file
-parsing or new rollback state. `GuardSetOff` is intentionally excluded because
-its shield-stun callback supplies a dynamic animation rate.
+parsing or new rollback state. `GuardSetOff` is intentionally excluded from
+this bounded table because its shield-stun callback supplies a dynamic
+animation rate; the shared HSD source below owns that motion instead.
 
 `m4_ssbm_falcon_airborne_hurt.inc` is the same generic format for Falcon's
 complete JumpF, JumpB, JumpAerialF, JumpAerialB, Fall, and FallAerial tracks.
@@ -77,13 +78,13 @@ JumpF-specific copy.
 
 `m4_ssbm_falcon_ground_loop_hsd.inc` is the compact source-data form for
 velocity-driven WalkSlow/Middle/Fast and Run poses, Raptor Boost, Falcon Dive,
-common FallSpecial, and the animated ShieldBreakFly/DownD/StandD/Furafura
-hurt poses.
+common FallSpecial, dynamically rated GuardSetOff, and the animated
+ShieldBreakFly/DownD/StandD/Furafura hurt poses.
 The generic generator reads
 the four hash-pinned owner-extracted fighter/model DATs, validates the complete
 model and runtime part layout, retains only the 25 parent-closed joints needed
-by Falcon's 11 hurt capsules and six ECB selectors, and emits 21 motions
-containing 1,514 FObj tracks and 12,609 keys. The character-independent Q16
+by Falcon's 11 hurt capsules and six ECB selectors, and emits 22 motions
+containing 1,574 FObj tracks and 12,784 keys. The character-independent Q16
 runtime evaluator samples these
 tracks at the canonical fractional animation cursor; Falcon only binds its
 source submotion IDs and converts the shared capsule result. The same source
@@ -94,11 +95,16 @@ hurt capsules are evaluated from those retained HSD motions. Their collision ECB
 remain compact live-source tracks because Melee's runtime animation/collision
 callbacks do not reduce to the raw selector-joint matrices on this route. The
 companion
-`m4_ssbm_falcon_ground_loop_hsd_oracle.inc` contains eight test observations,
-not a duplicate production pose table. The live source verifier independently
+`m4_ssbm_falcon_ground_loop_hsd_oracle.inc` contains eight gait observations;
+`m4_ssbm_falcon_guard_setoff_hsd_oracle.inc` adds nine pressure-derived
+GuardSetOff observations. Neither duplicates production pose tables. The live
+source verifier independently
 compares the DAT evaluator against two manifest-pinned Dolphin captures after
-animation blending completes and checks the shield-break branch against two
-independent natural shield-depletion captures.
+animation blending completes, checks GuardSetOff across six independent
+pressure-banded captures, and checks the shield-break branch against two
+independent natural shield-depletion captures. Those six GuardSetOff captures
+also pass the identical-input native runner for 99 frames each, including 36
+direct source-animation clock comparisons.
 
 `m4_ssbm_falcon_turn_hurt.inc` contains the 11 `Turn` and 22 `TurnRun`
 source poses, including TurnRun frame zero. Its import manifest pins both an

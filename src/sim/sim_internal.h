@@ -239,6 +239,7 @@ static inline int pf_m4_action_uses_source_animation_clock(
                action_state,
                hitlag_resume_action) ||
            effective_action == (uint8_t)PF_M4_ACTION_CROUCH ||
+           effective_action == (uint8_t)PF_M4_ACTION_SHIELD_STUN ||
            effective_action ==
                (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN ||
            pf_m4_action_uses_fall_special_pose(effective_action) ||

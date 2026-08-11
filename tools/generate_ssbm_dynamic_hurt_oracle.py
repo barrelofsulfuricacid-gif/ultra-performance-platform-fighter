@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate a compact stored oracle for a dynamic HSD hurt-pose evaluator."""
+"""Generate a compact stored oracle for a dynamic HSD pose evaluator."""
 
 from __future__ import annotations
 
@@ -22,13 +22,25 @@ def main() -> int:
     parser.add_argument("manifest", type=Path)
     parser.add_argument("capture", type=Path)
     parser.add_argument("output", type=Path)
+    parser.add_argument("--oracle-key", default="stored_oracle")
+    parser.add_argument("--capture-id", default="primary")
+    parser.add_argument(
+        "--additional-capture",
+        action="append",
+        default=[],
+        metavar="ID=PATH",
+    )
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
     manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
-    oracle = manifest.get("stored_oracle")
+    oracle = manifest.get(args.oracle_key)
     expected = manifest.get("expected")
     conversion = manifest.get("pose_conversion")
-    symbol_prefix = str(manifest.get("symbol_prefix", ""))
+    symbol_prefix = str(
+        oracle.get("symbol_prefix", manifest.get("symbol_prefix", ""))
+        if isinstance(oracle, dict)
+        else ""
+    )
     if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", symbol_prefix):
         raise SystemExit("manifest symbol_prefix is not a C identifier")
     if not isinstance(expected, dict) or not isinstance(conversion, dict):
@@ -47,17 +59,51 @@ def main() -> int:
         raise SystemExit("manifest has invalid capsule count or coordinate scale")
     coordinate_scale_q16 = 65536.0 * float(numerator) / float(denominator)
     macro_prefix = symbol_prefix.upper() + "_ORACLE"
-    capture_bytes = args.capture.read_bytes()
-    capture = json.loads(capture_bytes)
     if not isinstance(oracle, dict) or not isinstance(oracle.get("cases"), list):
         raise SystemExit("manifest has no dynamic hurt-pose stored oracle")
-    actual_digest = hashlib.sha256(capture_bytes).hexdigest()
-    if oracle.get("capture_sha256") != actual_digest:
+    capture_paths = {args.capture_id: args.capture}
+    for value in args.additional_capture:
+        capture_id, separator, path = value.partition("=")
+        if (
+            not separator
+            or not capture_id
+            or not path
+            or capture_id in capture_paths
+        ):
+            raise SystemExit(f"invalid or duplicate --additional-capture: {value}")
+        capture_paths[capture_id] = Path(path)
+    capture_specs = oracle.get("captures")
+    if isinstance(capture_specs, list):
+        expected_digests = {
+            str(spec["id"]): str(spec["sha256"])
+            for spec in capture_specs
+            if isinstance(spec, dict) and "id" in spec and "sha256" in spec
+        }
+        if len(expected_digests) != len(capture_specs):
+            raise SystemExit("oracle has invalid capture specifications")
+    else:
+        expected_digests = {args.capture_id: str(oracle.get("capture_sha256", ""))}
+    if set(capture_paths) != set(expected_digests):
         raise SystemExit(
-            "unexpected dynamic hurt-pose capture SHA-256: "
-            f"expected={oracle.get('capture_sha256')} actual={actual_digest}"
+            "capture IDs do not match oracle: "
+            f"expected={sorted(expected_digests)} actual={sorted(capture_paths)}"
         )
-    rows = {int(row["trace_frame"]): row for row in capture.get("rows", [])}
+    rows_by_capture: dict[str, dict[int, dict[str, object]]] = {}
+    actual_digests: dict[str, str] = {}
+    for capture_id, capture_path in capture_paths.items():
+        capture_bytes = capture_path.read_bytes()
+        actual_digest = hashlib.sha256(capture_bytes).hexdigest()
+        if expected_digests[capture_id] != actual_digest:
+            raise SystemExit(
+                "unexpected dynamic hurt-pose capture SHA-256: "
+                f"id={capture_id} expected={expected_digests[capture_id]} "
+                f"actual={actual_digest}"
+            )
+        capture = json.loads(capture_bytes)
+        rows_by_capture[capture_id] = {
+            int(row["trace_frame"]): row for row in capture.get("rows", [])
+        }
+        actual_digests[capture_id] = actual_digest
     rendered_cases: list[
         tuple[
             dict[str, object],
@@ -67,10 +113,18 @@ def main() -> int:
         ]
     ] = []
     for case in oracle["cases"]:
+        capture_id = str(case.get("capture_id", args.capture_id))
+        rows = rows_by_capture.get(capture_id)
+        if rows is None:
+            raise SystemExit(
+                f"unknown capture ID for case {case.get('id')}: {capture_id}"
+            )
         trace_frame = int(case["trace_frame"])
         row = rows.get(trace_frame)
         if row is None:
-            raise SystemExit(f"missing capture trace frame {trace_frame}")
+            raise SystemExit(
+                f"missing capture trace frame {capture_id}:{trace_frame}"
+            )
         memory = row.get("hitbox_memory")
         if not isinstance(memory, dict):
             raise SystemExit(f"trace frame {trace_frame} has no hitbox memory")
@@ -138,7 +192,10 @@ def main() -> int:
     print(
         "ssbm-dynamic-hurt-oracle=pass "
         f"cases={len(rendered_cases)} capsules={len(rendered_cases) * capsule_count} "
-        f"capture_sha256={actual_digest}"
+        "captures=" + ",".join(
+            f"{capture_id}:{actual_digests[capture_id]}"
+            for capture_id in sorted(actual_digests)
+        )
     )
     return 0
 

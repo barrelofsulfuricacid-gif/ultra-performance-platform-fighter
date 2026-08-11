@@ -52,6 +52,7 @@ typedef int (*pf_m4_hsd_hurt_pose_evaluator)(
     uint8_t *out_count);
 
 #include "../../generated/data/m4_ssbm_falcon_ground_loop_hsd_oracle.inc"
+#include "../../generated/data/m4_ssbm_falcon_guard_setoff_hsd_oracle.inc"
 
 #define TEST_MEMORY_BYTES 4096U
 #define TEST_MEMORY_ALIGNMENT 64U
@@ -1377,6 +1378,30 @@ static uint16_t expected_shield_stun_ticks(
         ticks = INT64_C(1);
     }
     return (uint16_t)ticks;
+}
+
+static int32_t expected_guard_setoff_animation_rate_q16(
+    const pf_m4_fighter_data *fighter,
+    uint32_t attack_damage_q16,
+    uint16_t shield_strength)
+{
+    const pf_m4_falcon_submotion_data *motion =
+        pf_m4_falcon_reference_submotion(
+            (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD_SET_OFF);
+    const int64_t duration_q16 =
+        expected_shield_stun_duration_q16(
+            fighter, attack_damage_q16, shield_strength);
+    const int64_t endpoint_q16 =
+        motion != NULL
+            ? (int64_t)motion->animation_frame_count *
+                      (int64_t)PF_Q16_ONE +
+                  (int64_t)PF_Q16_ONE / INT64_C(10)
+            : INT64_C(0);
+
+    return duration_q16 > INT64_C(0)
+               ? (int32_t)(
+                     endpoint_q16 * (int64_t)PF_Q16_ONE / duration_q16)
+               : INT32_C(0);
 }
 
 static int32_t expected_shield_defender_pushback_q16(
@@ -13103,6 +13128,71 @@ static int run_shield_sdi_test(
     return 1;
 }
 
+static int verify_guard_setoff_clock(
+    pf_sim *sim,
+    uint16_t held_trigger,
+    int32_t expected_rate_q16,
+    pf_m4_inspection *inspection)
+{
+    const uint16_t receiving_submotion =
+        inspection->players[1].source_submotion;
+    uint16_t hitlag_steps = UINT16_C(0);
+
+    if (inspection->players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_HITLAG ||
+        inspection->players[1].hitlag_resume_action !=
+            (uint8_t)PF_M4_ACTION_SHIELD_STUN ||
+        (receiving_submotion !=
+             (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD_ON &&
+         receiving_submotion !=
+             (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD) ||
+        inspection->players[1].source_animation_frame_q16 != INT32_C(0) ||
+        inspection->players[1].source_animation_rate_q16 !=
+            expected_rate_q16)
+    {
+        return fail("guard-setoff-hitlag-entry-clock");
+    }
+    while (inspection->players[1].action_state ==
+           (uint8_t)PF_M4_ACTION_HITLAG)
+    {
+        if (++hitlag_steps > UINT16_C(64) ||
+            !step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                held_trigger,
+                inspection))
+        {
+            return fail("guard-setoff-hitlag-step");
+        }
+        if (inspection->players[1].action_state ==
+                (uint8_t)PF_M4_ACTION_HITLAG &&
+            (inspection->players[1].source_submotion !=
+                 receiving_submotion ||
+             inspection->players[1].source_animation_frame_q16 !=
+                 INT32_C(0) ||
+             inspection->players[1].source_animation_rate_q16 !=
+                 expected_rate_q16))
+        {
+            return fail("guard-setoff-hitlag-clock-frozen");
+        }
+    }
+    return (inspection->players[1].action_state ==
+                (uint8_t)PF_M4_ACTION_SHIELD_STUN &&
+            inspection->players[1].source_submotion ==
+                (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD_SET_OFF &&
+            inspection->players[1].source_animation_frame_q16 ==
+                expected_rate_q16 &&
+            inspection->players[1].source_animation_rate_q16 ==
+                expected_rate_q16) ||
+           fail("guard-setoff-first-resumed-pose");
+}
+
 static int run_light_shield_block_test(
     const pf_m4_content *content,
     const pf_content_view *view)
@@ -13183,6 +13273,21 @@ static int run_light_shield_block_test(
             &content->fighter,
             content->fighter.jab_damage_q16,
             midpoint_strength);
+    const int32_t expected_light_guard_setoff_rate =
+        expected_guard_setoff_animation_rate_q16(
+            &content->fighter,
+            content->fighter.jab_damage_q16,
+            light_strength);
+    const int32_t expected_midpoint_guard_setoff_rate =
+        expected_guard_setoff_animation_rate_q16(
+            &content->fighter,
+            content->fighter.jab_damage_q16,
+            midpoint_strength);
+    const int32_t expected_dense_guard_setoff_rate =
+        expected_guard_setoff_animation_rate_q16(
+            &content->fighter,
+            content->fighter.jab_damage_q16,
+            dense_strength);
     const int32_t expected_light_defender_pushback =
         expected_shield_defender_pushback_q16(
             &content->fighter,
@@ -13330,6 +13435,24 @@ static int run_light_shield_block_test(
               expected_dense_attacker_pushback))
     {
         return fail("shield-pressure-response-ordering");
+    }
+    if (!verify_guard_setoff_clock(
+            light,
+            light_input,
+            expected_light_guard_setoff_rate,
+            &light_inspection) ||
+        !verify_guard_setoff_clock(
+            midpoint,
+            midpoint_input,
+            expected_midpoint_guard_setoff_rate,
+            &midpoint_inspection) ||
+        !verify_guard_setoff_clock(
+            dense,
+            dense_strength,
+            expected_dense_guard_setoff_rate,
+            &dense_inspection))
+    {
+        return fail("guard-setoff-pressure-clocks");
     }
 
     if (!start_window_shield_block(
@@ -30273,6 +30396,12 @@ int main(int argc, char **argv)
             PF_M4_FALCON_GROUND_LOOP_HSD_ORACLE_CASE_COUNT,
             PF_M4_FALCON_GROUND_LOOP_HSD_ORACLE_CAPSULE_COUNT,
             PF_M4_FALCON_GROUND_LOOP_HSD_ORACLE_TOLERANCE_Q16,
+            pf_m4_falcon_reference_hsd_hurt_capsules) ||
+        !run_hsd_hurt_pose_oracle(
+            pf_m4_falcon_guard_setoff_hsd_oracle_cases,
+            PF_M4_FALCON_GUARD_SETOFF_HSD_ORACLE_CASE_COUNT,
+            PF_M4_FALCON_GUARD_SETOFF_HSD_ORACLE_CAPSULE_COUNT,
+            PF_M4_FALCON_GUARD_SETOFF_HSD_ORACLE_TOLERANCE_Q16,
             pf_m4_falcon_reference_hsd_hurt_capsules) ||
         !run_reference_common_hurt_stored_oracle(0) ||
         !run_reference_falcon_grounded_loop_hurt_stored_oracle(0) ||

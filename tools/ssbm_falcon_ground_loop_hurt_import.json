@@ -27,6 +27,7 @@
     { "submotion_index": 26, "c_submotion": "PF_M4_FALCON_SUBMOTION_FALL_SPECIAL" },
     { "submotion_index": 27, "c_submotion": "PF_M4_FALCON_SUBMOTION_FALL_SPECIAL_FORWARD" },
     { "submotion_index": 28, "c_submotion": "PF_M4_FALCON_SUBMOTION_FALL_SPECIAL_BACKWARD" },
+    { "submotion_index": 40, "c_submotion": "PF_M4_FALCON_SUBMOTION_GUARD_SET_OFF" },
     { "submotion_index": 303, "c_submotion": "PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_START_GROUND" },
     { "submotion_index": 304, "c_submotion": "PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_HIT_GROUND" },
     { "submotion_index": 305, "c_submotion": "PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_START_AIR" },
@@ -61,17 +62,17 @@
     "source_joint_count": 63,
     "runtime_part_count": 63,
     "joint_count": 25,
-    "motion_count": 21,
+    "motion_count": 22,
     "compact_motion_count": 6,
-    "track_count": 1514,
-    "key_count": 12609,
+    "track_count": 1574,
+    "key_count": 12784,
     "capsule_count": 11,
     "rotation_joint_count": 19,
     "translation_joint_count": 6,
     "copy_target_joint_count": 1,
     "joint_point_set_count": 1,
     "pose_branch_count": 1,
-    "data_sha256": "a5edfc9fabbd3ed9c351fbe68b3a91c16e4954243ca14e3d7273baadc44fc2b8"
+    "data_sha256": "386f7caf986b582363efc79aaf2efda04a93b812f9f3565ef62c6690eefe6e1b"
   },
   "action_hurt_qualification": {
     "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
@@ -95,6 +96,77 @@
       { "source_action": "SHIELD_BREAK_DOWN_D", "submotion_index": 289, "first_source_frame": 0, "last_source_frame": 25, "expected_samples": 26 },
       { "source_action": "SHIELD_BREAK_STAND_D", "submotion_index": 291, "first_source_frame": 0, "last_source_frame": 29, "expected_samples": 30 },
       { "source_action": "SHIELD_BREAK_TEETER", "submotion_index": 205, "first_source_frame": 0, "last_source_frame": 99, "source_frame_cycle": 100, "expected_samples": 127 }
+    ]
+  },
+  "guard_setoff_pose_qualification": {
+    "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
+    "dolphin_release_artifact_sha256": "87e9ef6d80ed03354a1647d0616016dbc91399aa9e86a69ae5a398edd0a0c2bd",
+    "probe_engine_version": "1.3.1",
+    "decomp_revision": "9509dc04406fb2028bfab01243841ba4787c0fb7",
+    "capture_route_field": "shield_hit_route",
+    "coordinate_tolerance_q16": 8,
+    "frame_tolerance_q16": 0,
+    "rate_tolerance_q16": 0,
+    "compare_ecb": true,
+    "ecb_joint_point_set_id": "ecb",
+    "captures": [
+      {
+        "id": "guard-setoff-light",
+        "sha256": "ed7023223832ca898467b5a30d55af9c62aa2abd8fc0da2d9f744cd1ecbeea36",
+        "cases": [
+          {
+            "source_action": "SHIELD_STUN",
+            "submotion_index": 40,
+            "minimum_source_frame_exclusive_q16": 0,
+            "expected_source_frames_q16": [279634, 559267, 838901, 1118534],
+            "expected_animation_rate_q16": 279634,
+            "expected_samples": 4
+          }
+        ]
+      },
+      {
+        "id": "guard-setoff-light-repeat",
+        "sha256": "fd3106778f8b3b4902068acb45993560b6e3a795c82c20bc029e0e26237f9621",
+        "repeat_of": "guard-setoff-light"
+      },
+      {
+        "id": "guard-setoff-mid",
+        "sha256": "07537b376ae658a9e173ade4b31295e3b4a981c1bc74f6093fe2f0e4c0faca2e",
+        "cases": [
+          {
+            "source_action": "SHIELD_STUN",
+            "submotion_index": 40,
+            "minimum_source_frame_exclusive_q16": 0,
+            "expected_source_frames_q16": [339942, 679883, 1019825],
+            "expected_animation_rate_q16": 339942,
+            "expected_samples": 3
+          }
+        ]
+      },
+      {
+        "id": "guard-setoff-mid-repeat",
+        "sha256": "fafff5fed079fc8963be4a0e5f042151771931443631cadde518f617fa96e350",
+        "repeat_of": "guard-setoff-mid"
+      },
+      {
+        "id": "guard-setoff-dense",
+        "sha256": "8fc1da4409473796523e3775d22dd07e2e90808580dcad23f43f2db40fc7b5b3",
+        "cases": [
+          {
+            "source_action": "SHIELD_STUN",
+            "submotion_index": 40,
+            "minimum_source_frame_exclusive_q16": 0,
+            "expected_source_frames_q16": [454232, 908465],
+            "expected_animation_rate_q16": 454232,
+            "expected_samples": 2
+          }
+        ]
+      },
+      {
+        "id": "guard-setoff-dense-repeat",
+        "sha256": "db5422a410358c9fba7e8853c2e338d53f925de80b6f944df130497ad9adae6c",
+        "repeat_of": "guard-setoff-dense"
+      }
     ]
   },
   "action_ecb_qualification": {
@@ -172,6 +244,26 @@
           { "source_action": "SWORD_DANCE_4_MID", "submotion_index": 310, "first_frame": 0, "last_frame": 59, "grounded": false, "bottom_lock_frame_ranges": [[1, 59]], "locked_bottom_source": { "submotion_index": 310, "source_frame": 0, "grounded": false } }
         ]
       }
+    ]
+  },
+  "guard_setoff_stored_oracle": {
+    "symbol_prefix": "pf_m4_falcon_guard_setoff_hsd",
+    "coordinate_tolerance_q16": 64,
+    "captures": [
+      { "id": "light", "sha256": "ed7023223832ca898467b5a30d55af9c62aa2abd8fc0da2d9f744cd1ecbeea36" },
+      { "id": "mid", "sha256": "07537b376ae658a9e173ade4b31295e3b4a981c1bc74f6093fe2f0e4c0faca2e" },
+      { "id": "dense", "sha256": "8fc1da4409473796523e3775d22dd07e2e90808580dcad23f43f2db40fc7b5b3" }
+    ],
+    "cases": [
+      { "id": "guard-setoff-light-1", "capture_id": "light", "trace_frame": 88, "c_submotion": "PF_M4_FALCON_SUBMOTION_GUARD_SET_OFF" },
+      { "id": "guard-setoff-light-2", "capture_id": "light", "trace_frame": 89, "c_submotion": "PF_M4_FALCON_SUBMOTION_GUARD_SET_OFF" },
+      { "id": "guard-setoff-light-3", "capture_id": "light", "trace_frame": 90, "c_submotion": "PF_M4_FALCON_SUBMOTION_GUARD_SET_OFF" },
+      { "id": "guard-setoff-light-4", "capture_id": "light", "trace_frame": 91, "c_submotion": "PF_M4_FALCON_SUBMOTION_GUARD_SET_OFF" },
+      { "id": "guard-setoff-mid-1", "capture_id": "mid", "trace_frame": 88, "c_submotion": "PF_M4_FALCON_SUBMOTION_GUARD_SET_OFF" },
+      { "id": "guard-setoff-mid-2", "capture_id": "mid", "trace_frame": 89, "c_submotion": "PF_M4_FALCON_SUBMOTION_GUARD_SET_OFF" },
+      { "id": "guard-setoff-mid-3", "capture_id": "mid", "trace_frame": 90, "c_submotion": "PF_M4_FALCON_SUBMOTION_GUARD_SET_OFF" },
+      { "id": "guard-setoff-dense-1", "capture_id": "dense", "trace_frame": 88, "c_submotion": "PF_M4_FALCON_SUBMOTION_GUARD_SET_OFF" },
+      { "id": "guard-setoff-dense-2", "capture_id": "dense", "trace_frame": 89, "c_submotion": "PF_M4_FALCON_SUBMOTION_GUARD_SET_OFF" }
     ]
   },
   "stored_oracle": {

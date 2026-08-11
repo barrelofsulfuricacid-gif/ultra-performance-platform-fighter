@@ -1510,4 +1510,39 @@ The complete Falcon source digest is now
 Production selects the immutable profiles from action plus retained source
 submotion in constant time. GuardSetOff/shield stun uses a callback-derived
 dynamic animation rate and is explicitly outside this profile rather than
-being approximated with Guard or raw HSD geometry.
+being approximated with Guard. It is qualified by the shared HSD source below.
+
+## Falcon GuardSetOff dynamic hurt and ECB poses
+
+Pinned `ftCo_80092F2C` enters ordinary submotion 40 at frame zero with rate
+`(0.1 + lbGetJObjEndFrame()) / f`, where `f` is the unrounded shield-stun
+duration. The integer stun countdown is therefore not an animation clock.
+During hitlag, the new rate exists but display/collision still owns the
+GuardOn/Guard pose that received the hit. The first resumed animation update
+switches to GuardSetOff and advances by the pressure-derived fractional rate.
+
+The light/mid/dense control captures have raw SHA-256 values
+`ed7023223832ca898467b5a30d55af9c62aa2abd8fc0da2d9f744cd1ecbeea36`,
+`07537b376ae658a9e173ade4b31295e3b4a981c1bc74f6093fe2f0e4c0faca2e`, and
+`8fc1da4409473796523e3775d22dd07e2e90808580dcad23f43f2db40fc7b5b3`.
+Independent repeats are respectively
+`fd3106778f8b3b4902068acb45993560b6e3a795c82c20bc029e0e26237f9621`,
+`fafff5fed079fc8963be4a0e5f042151771931443631cadde518f617fa96e350`, and
+`db5422a410358c9fba7e8853c2e338d53f925de80b6f944df130497ad9adae6c`.
+Each repeat has an identical address-free semantic projection. Across the six
+captures, the shared DAT/HSD evaluator qualifies 18 updates / 198 capsules
+with exact hurt coordinates and maximum one-Q16 four-point ECB difference.
+
+The parent-closed HSD profile now contains 22 motions, 1,574 FObj tracks, and
+12,784 keys under data SHA-256
+`386f7caf986b582363efc79aaf2efda04a93b812f9f3565ef62c6690eefe6e1b`.
+Production reuses the canonical source-animation cursor and adds no rollback
+field, runtime parsing, allocation, or host floating point. Nine generated
+stored observations cover every captured post-hitlag phase; ordinary
+production tests independently cover rate derivation, hitlag freeze, and the
+first resumed pose for each pressure band. The identical-input movement gate
+also replays every control and repeat capture from its explicit 22-unit
+placement boundary through the production combat runner. All six 99-frame
+comparisons pass and directly compare 36 live/native GuardSetOff frame/rate
+rows. The native fixture retains Falcon's imported Jab 1 timing and source
+spheres, rather than the removed legacy two-active-frame rectangle fallback.

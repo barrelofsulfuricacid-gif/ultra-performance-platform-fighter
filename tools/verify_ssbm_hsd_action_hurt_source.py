@@ -10,12 +10,14 @@ from pathlib import Path
 from typing import Any
 
 from hsd_figatree import decode_figatree
-from hsd_joint_pose import fighter_animation_slice
+from hsd_joint_pose import evaluate_joint_matrices, fighter_animation_slice
+from ssbm_ecb_pose import canonical_source_ecb, pose_q16
 from verify_ssbm_dynamic_hurt_pose_source import (
     build_hurt_pose_source,
     compare_hurt_pose_q16,
     load_pinned_source,
     require,
+    source_joint_ecb_q16,
 )
 
 
@@ -31,10 +33,15 @@ def main() -> int:
     parser.add_argument("common_dat", type=Path)
     parser.add_argument("model_dat", type=Path)
     parser.add_argument("captures", type=Path, nargs="+")
+    parser.add_argument(
+        "--qualification-key",
+        default="action_hurt_qualification",
+        help="manifest object owning the capture/source theorem",
+    )
     args = parser.parse_args()
 
     manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
-    qualification = manifest.get("action_hurt_qualification")
+    qualification = manifest.get(args.qualification_key)
     require(
         isinstance(qualification, dict),
         "manifest has no action hurt qualification",
@@ -42,8 +49,8 @@ def main() -> int:
     cases = qualification.get("cases")
     capture_specs = qualification.get("captures")
     require(
-        isinstance(cases, list) and cases,
-        "action hurt qualification has no cases",
+        cases is None or (isinstance(cases, list) and cases),
+        "action hurt qualification cases are invalid",
     )
     require(
         isinstance(capture_specs, list) and capture_specs,
@@ -54,9 +61,18 @@ def main() -> int:
         for spec in capture_specs
         if isinstance(spec, dict)
     }
+    specs_by_id = {
+        str(spec["id"]): spec
+        for spec in capture_specs
+        if isinstance(spec, dict) and "id" in spec
+    }
     require(
         len(specs_by_digest) == len(capture_specs),
         "action hurt capture digests must be unique",
+    )
+    require(
+        len(specs_by_id) == len(capture_specs),
+        "action hurt capture IDs must be unique",
     )
     supplied: dict[str, tuple[Path, dict[str, Any]]] = {}
     for path in args.captures:
@@ -87,9 +103,46 @@ def main() -> int:
     )
     tolerance = int(qualification["coordinate_tolerance_q16"])
     require(tolerance >= 0, "action hurt tolerance must be nonnegative")
+    frame_tolerance = int(qualification.get("frame_tolerance_q16", 0))
+    rate_tolerance = int(qualification.get("rate_tolerance_q16", 0))
+    require(
+        frame_tolerance >= 0 and rate_tolerance >= 0,
+        "action hurt clock tolerances must be nonnegative",
+    )
+    compare_ecb = qualification.get("compare_ecb", False)
+    require(isinstance(compare_ecb, bool), "compare_ecb must be boolean")
+    ecb_source_joints: tuple[int, ...] = ()
+    ecb_reference_joint: int | None = None
+    if compare_ecb:
+        point_set_id = qualification.get("ecb_joint_point_set_id")
+        point_sets = manifest.get("joint_point_sets")
+        matching = [
+            point_set
+            for point_set in point_sets
+            if isinstance(point_set, dict) and point_set.get("id") == point_set_id
+        ] if isinstance(point_sets, list) else []
+        require(len(matching) == 1, "ECB joint point set is not unique")
+        raw_indices = matching[0].get("source_joint_indices")
+        require(
+            isinstance(raw_indices, list)
+            and raw_indices
+            and all(isinstance(index, int) for index in raw_indices),
+            "ECB source joint indices are invalid",
+        )
+        ecb_source_joints = tuple(int(index) for index in raw_indices)
+        copy_targets = manifest.get("blend_copy_target_source_joint_indices")
+        require(
+            isinstance(copy_targets, list)
+            and len(copy_targets) == 1
+            and isinstance(copy_targets[0], int),
+            "ECB reference joint is invalid",
+        )
+        ecb_reference_joint = int(copy_targets[0])
     animations: dict[int, Any] = {}
+    total_cases = 0
     total_samples = 0
     maximum_difference = 0
+    maximum_ecb_difference = 0
 
     for digest, spec in specs_by_digest.items():
         _, capture = supplied[digest]
@@ -123,46 +176,129 @@ def main() -> int:
         )
         rows = capture.get("rows")
         require(isinstance(rows, list), f"{capture_name}: missing capture rows")
-        for case in cases:
+        capture_cases = spec.get("cases")
+        repeat_of = spec.get("repeat_of")
+        if capture_cases is None and repeat_of is not None:
+            repeated_spec = specs_by_id.get(str(repeat_of))
+            require(
+                repeated_spec is not None and repeated_spec is not spec,
+                f"{capture_name}: invalid repeated capture reference",
+            )
+            capture_cases = repeated_spec.get("cases")
+        if capture_cases is None:
+            capture_cases = cases
+        require(
+            isinstance(capture_cases, list) and capture_cases,
+            f"{capture_name}: action hurt qualification has no cases",
+        )
+        for case in capture_cases:
+            total_cases += 1
             action = str(case["source_action"])
             submotion = int(case["submotion_index"])
-            selected = [row for row in rows if row.get("action") == action]
+            minimum_frame_q16 = case.get("minimum_source_frame_exclusive_q16")
+            maximum_frame_q16 = case.get("maximum_source_frame_inclusive_q16")
+            selected = []
+            for row in rows:
+                if row.get("action") != action:
+                    continue
+                memory = row.get("hitbox_memory")
+                require(
+                    isinstance(memory, dict),
+                    f"{capture_name}/{action}: missing hitbox memory",
+                )
+                source_frame = memory.get("fighter_animation_frame")
+                require(
+                    isinstance(source_frame, (int, float)),
+                    f"{capture_name}/{action}: invalid source frame",
+                )
+                source_frame_q16 = round(float(source_frame) * 65536.0)
+                if (
+                    minimum_frame_q16 is not None
+                    and source_frame_q16 <= int(minimum_frame_q16)
+                ):
+                    continue
+                if (
+                    maximum_frame_q16 is not None
+                    and source_frame_q16 > int(maximum_frame_q16)
+                ):
+                    continue
+                selected.append(row)
             require(
                 len(selected) == int(case["expected_samples"]),
                 f"{capture_name}/{action}: expected "
                 f"{case['expected_samples']} rows, got {len(selected)}",
             )
-            source_frames = [
-                float(row["hitbox_memory"]["fighter_animation_frame"])
+            source_frames_q16 = [
+                round(
+                    float(row["hitbox_memory"]["fighter_animation_frame"])
+                    * 65536.0
+                )
                 for row in selected
             ]
-            first_source_frame = int(case["first_source_frame"])
-            last_source_frame = int(case["last_source_frame"])
-            source_frame_cycle = case.get("source_frame_cycle")
-            if source_frame_cycle is None:
-                expected_source_frames = [
-                    float(frame)
-                    for frame in range(
-                        first_source_frame,
-                        last_source_frame + 1,
-                    )
-                ]
-            else:
-                cycle = int(source_frame_cycle)
+            expected_frames_q16 = case.get("expected_source_frames_q16")
+            if expected_frames_q16 is not None:
                 require(
-                    cycle > 0
-                    and first_source_frame >= 0
-                    and last_source_frame == cycle - 1,
-                    f"{capture_name}/{action}: invalid source-frame cycle",
+                    isinstance(expected_frames_q16, list)
+                    and len(expected_frames_q16) == len(selected)
+                    and all(isinstance(value, int) for value in expected_frames_q16),
+                    f"{capture_name}/{action}: invalid expected source frames",
                 )
-                expected_source_frames = [
-                    float((first_source_frame + index) % cycle)
-                    for index in range(int(case["expected_samples"]))
+                require(
+                    all(
+                        abs(actual - expected) <= frame_tolerance
+                        for actual, expected in zip(
+                            source_frames_q16,
+                            expected_frames_q16,
+                            strict=True,
+                        )
+                    ),
+                    f"{capture_name}/{action}: source-frame sequence differs",
+                )
+            else:
+                first_source_frame = int(case["first_source_frame"])
+                last_source_frame = int(case["last_source_frame"])
+                source_frame_cycle = case.get("source_frame_cycle")
+                if source_frame_cycle is None:
+                    expected_frames_q16 = [
+                        frame * 65536
+                        for frame in range(
+                            first_source_frame,
+                            last_source_frame + 1,
+                        )
+                    ]
+                else:
+                    cycle = int(source_frame_cycle)
+                    require(
+                        cycle > 0
+                        and first_source_frame >= 0
+                        and last_source_frame == cycle - 1,
+                        f"{capture_name}/{action}: invalid source-frame cycle",
+                    )
+                    expected_frames_q16 = [
+                        ((first_source_frame + index) % cycle) * 65536
+                        for index in range(int(case["expected_samples"]))
+                    ]
+                require(
+                    source_frames_q16 == expected_frames_q16,
+                    f"{capture_name}/{action}: incomplete source-frame sequence",
+                )
+            expected_rate_q16 = case.get("expected_animation_rate_q16")
+            if expected_rate_q16 is not None:
+                require(isinstance(expected_rate_q16, int), "invalid animation rate")
+                actual_rates_q16 = [
+                    round(
+                        float(row["hitbox_memory"]["fighter_animation_rate"])
+                        * 65536.0
+                    )
+                    for row in selected
                 ]
-            require(
-                source_frames == expected_source_frames,
-                f"{capture_name}/{action}: incomplete source-frame sequence",
-            )
+                require(
+                    all(
+                        abs(actual - expected_rate_q16) <= rate_tolerance
+                        for actual in actual_rates_q16
+                    ),
+                    f"{capture_name}/{action}: animation rate differs",
+                )
             if submotion not in animations:
                 animations[submotion] = decode_figatree(
                     fighter_animation_slice(
@@ -173,6 +309,7 @@ def main() -> int:
                     )
                 )
             case_maximum = 0
+            case_ecb_maximum = 0
             for row in selected:
                 case_maximum = max(
                     case_maximum,
@@ -188,20 +325,56 @@ def main() -> int:
                         f"{capture_name}/{action}",
                     ),
                 )
+                if compare_ecb:
+                    memory = row["hitbox_memory"]
+                    frame = float(memory["fighter_animation_frame"])
+                    facing = int(row["facing"])
+                    captured_ecb = memory.get("fighter_ecb")
+                    require(
+                        isinstance(captured_ecb, dict),
+                        f"{capture_name}/{action}: missing fighter ECB",
+                    )
+                    expected_ecb = pose_q16(
+                        canonical_source_ecb(captured_ecb, facing)
+                    )
+                    actual_ecb = source_joint_ecb_q16(
+                        evaluate_joint_matrices(
+                            source.source_joints,
+                            animations[submotion],
+                            frame,
+                        ),
+                        ecb_source_joints,
+                        ecb_reference_joint,
+                    )
+                    ecb_difference = max(
+                        abs(actual_ecb[point][axis] - expected_ecb[point][axis])
+                        for point in ("top", "bottom", "right", "left")
+                        for axis in (0, 1)
+                    )
+                    require(
+                        ecb_difference <= tolerance,
+                        f"{capture_name}/{action}: trace={row['trace_frame']} "
+                        f"ECB Q16 difference={ecb_difference}",
+                    )
+                    case_ecb_maximum = max(case_ecb_maximum, ecb_difference)
             print(
                 "ssbm-hsd-action-hurt-source-case=pass "
                 f"capture={capture_name} action={action} "
-                f"samples={len(selected)} max_q16={case_maximum}"
+                f"samples={len(selected)} max_q16={case_maximum} "
+                f"ecb_max_q16={case_ecb_maximum}"
             )
             total_samples += len(selected)
             maximum_difference = max(maximum_difference, case_maximum)
+            maximum_ecb_difference = max(
+                maximum_ecb_difference, case_ecb_maximum
+            )
 
     print(
         "ssbm-hsd-action-hurt-source=pass "
-        f"captures={len(capture_specs)} cases={len(cases)} "
+        f"captures={len(capture_specs)} cases={total_cases} "
         f"motions={len(animations)} samples={total_samples} "
         f"capsules={total_samples * len(source.capsules)} "
-        f"max_q16={maximum_difference}"
+        f"max_q16={maximum_difference} ecb_max_q16={maximum_ecb_difference}"
     )
     return 0
 

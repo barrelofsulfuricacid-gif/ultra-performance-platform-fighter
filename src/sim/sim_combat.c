@@ -1322,9 +1322,39 @@ typedef struct pf_m4_shield_hit_response
 {
     uint32_t damage_q16;
     uint16_t stun_ticks;
+    int32_t stun_duration_q16;
     int32_t defender_pushback_q16;
     int32_t attacker_pushback_q16;
 } pf_m4_shield_hit_response;
+
+static int32_t pf_m4_guard_setoff_animation_rate_q16(
+    const pf_m4_fighter_data *fighter,
+    int32_t stun_duration_q16)
+{
+    const pf_m4_falcon_submotion_data *motion;
+    int64_t endpoint_q16;
+
+    if (fighter->reference_frame_data_enabled == UINT8_C(0) ||
+        stun_duration_q16 <= INT32_C(0))
+    {
+        return INT32_C(0);
+    }
+    motion = pf_m4_falcon_reference_submotion(
+        (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD_SET_OFF);
+    if (motion == NULL || motion->animation_frame_count == UINT16_C(0))
+    {
+        return INT32_C(0);
+    }
+    /* ftCo_80092F2C sets (lbGetJObjEndFrame() + 0.1) / shield_stun.
+     * The animation endpoint is imported per fighter; the 0.1 bias belongs
+     * to the common callback and is converted once to deterministic Q16. */
+    endpoint_q16 =
+        (int64_t)motion->animation_frame_count * (int64_t)PF_Q16_ONE +
+        (int64_t)PF_Q16_ONE / INT64_C(10);
+    return (int32_t)(
+        endpoint_q16 * (int64_t)PF_Q16_ONE /
+        (int64_t)stun_duration_q16);
+}
 
 static inline int32_t pf_m4_shield_pressure_lerp_q16(
     int32_t light_q16,
@@ -1411,6 +1441,7 @@ static pf_m4_shield_hit_response pf_m4_shield_hit_response_for(
         ticks = (int64_t)UINT16_MAX;
     }
     response.stun_ticks = (uint16_t)ticks;
+    response.stun_duration_q16 = (int32_t)stun_duration_q16;
 
     if (powershield == 0)
     {
@@ -1516,6 +1547,10 @@ static pf_status pf_m4_apply_shield_hit(
     else
     {
         scratch->shield_stun_ticks[target_index] = response.stun_ticks;
+        scratch->source_animation_frame_q16[target_index] = INT32_C(0);
+        scratch->source_animation_rate_q16[target_index] =
+            pf_m4_guard_setoff_animation_rate_q16(
+                fighter, response.stun_duration_q16);
         scratch->hitlag_resume_action[target_index] =
             (uint8_t)PF_M4_ACTION_SHIELD_STUN;
         event_type = powershield ? PF_SIM_EVENT_POWERSHIELD

@@ -720,8 +720,12 @@ hurt capsules and complete four-point ECBs are qualified independently in two
 fresh captures. The current full common-hurt checkpoint pack declares all 16
 physical boundaries / 323 rows and has a 16-second warm guardrail, while
 focused changed-domain projections remain the normal edit loop. Restored-state
-position/RNG writes are applied after load acknowledgement. GuardSetOff's
-dynamic-rate shield-stun geometry remains explicitly open.
+position/RNG writes are applied after load acknowledgement. GuardSetOff is now
+owned by the shared HSD evaluator: six independent light/mid/dense captures
+qualify its callback-derived fractional rate, receiving-pose hitlag freeze,
+first resumed advance, 18 live hurt/ECB samples, and nine stored C poses. The
+implementation reuses the canonical source-animation cursor and adds no
+rollback state or runtime parsing.
 
 Turn and TurnRun now use a separate focused two-case pack rather than
 lengthening the common-hurt session beyond its stable rollback window. The

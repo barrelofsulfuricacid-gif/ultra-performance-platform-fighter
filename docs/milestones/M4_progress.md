@@ -5835,3 +5835,33 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   in 3.12 seconds. The full 21-domain / 117-case stored-equivalence plus replay
   gate passes in 910.252 ms on Windows and 814.570 ms in WSL, below its
   two-second post-build budget.
+
+## 2026-08-11 GuardSetOff dynamic pose fidelity
+
+- `ftCo_80092F2C` derives GuardSetOff's ordinary animation rate from
+  `(0.1 + endpoint) / unrounded_shield_stun_duration`; the imported Falcon
+  endpoint is 20. Production now keeps that fractional clock separate from
+  the integer shield-stun countdown.
+- The canonical source-animation cursor is reused with source callback order:
+  hitlag freezes the receiving GuardOn/Guard collision pose while retaining
+  the dynamic rate, and the first resumed update switches to GuardSetOff and
+  advances once. No rollback field, runtime allocation, parser, or host float
+  was added.
+- Light, midpoint, and dense shield-hit routes were captured twice through
+  headless/null/no-fast-forward ExiAI. Their address-free semantic repeats are
+  identical; the shared HSD evaluator passes 18 live updates / 198 capsules
+  with exact hurt coordinates and maximum one-Q16 ECB difference.
+- The parent-closed source profile expands to 22 motions, 1,574 tracks, and
+  12,784 keys under SHA-256
+  `386f7caf986b582363efc79aaf2efda04a93b812f9f3565ef62c6690eefe6e1b`.
+  The reusable multi-capture generator emits nine stored pose/ECB observations,
+  while the existing shield production test owns rate and phase integration.
+- The identical-input comparator replays all six captures from the explicit
+  22-unit placement boundary. Six 99-frame comparisons pass and directly
+  check 36 live/native GuardSetOff clock rows. The native runner now retains
+  imported Jab 1 timing/source spheres instead of its obsolete two-active-frame
+  authored override.
+- Windows Release and WSL Release pass 40/40. WSL ASan/UBSan passes 26/26.
+  The full 21-domain / 117-case stored-plus-replay gate passes in 886.587 ms on
+  Windows and 823.440 ms in WSL. Two verifier runs reproduce deterministic
+  digest `e52299dd5cd51ec8`.

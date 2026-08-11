@@ -117,6 +117,7 @@ int main(int argc, char **argv)
     int platform_mode = 0;
     int push_mode = 0;
     int shield_hit_mode = 0;
+    int shield_hit_place_mode = 0;
     int falcon_punch_air_mode = 0;
     int raptor_boost_ground_hit_mode = 0;
     int raptor_boost_ground_edge_mode = 0;
@@ -143,6 +144,11 @@ int main(int argc, char **argv)
     else if (argc == 2 && strcmp(argv[1], "--shield-hit") == 0)
     {
         shield_hit_mode = 1;
+    }
+    else if (argc == 2 && strcmp(argv[1], "--shield-hit-place") == 0)
+    {
+        shield_hit_mode = 1;
+        shield_hit_place_mode = 1;
     }
     else if (argc == 2 && strcmp(argv[1], "--falcon-punch-air") == 0)
     {
@@ -238,7 +244,8 @@ int main(int argc, char **argv)
         (void)fprintf(
             stderr,
             "usage: pf_m4_movement_trace "
-            "[--platform|--push|--shield-hit|--falcon-punch-air|"
+            "[--platform|--push|--shield-hit|--shield-hit-place|"
+            "--falcon-punch-air|"
             "--raptor-boost-ground-miss|--raptor-boost-ground-hit|"
             "--raptor-boost-ground-edge|"
             "--raptor-boost-air-miss|--raptor-boost-air-hit|"
@@ -305,11 +312,22 @@ int main(int argc, char **argv)
             -INT32_C(25) * PF_Q16_ONE;
         content.stage.upper_platform_half_width_q16 = PF_Q16_ONE;
     }
-    if (push_mode != 0 || shield_hit_mode != 0)
+    if (push_mode != 0 ||
+        (shield_hit_mode != 0 && shield_hit_place_mode == 0))
     {
         /* Final Destination starts ports one and two at -60/+60. */
         content.stage.spawn_spacing_q16 =
             (int32_t)((INT64_C(144) * PF_Q16_ONE) / INT64_C(23));
+    }
+    else if (shield_hit_place_mode != 0)
+    {
+        /* The pinned shield-hit route places the defender at x=0 and the
+         * attacker at x=22 Melee units.  Spawn spacing is the symmetric
+         * half-separation, translated through the comparison scale. */
+        content.stage.spawn_spacing_q16 =
+            (int32_t)(
+                (INT64_C(11) * INT64_C(12) * PF_Q16_ONE) /
+                INT64_C(115));
     }
     else if (falcon_punch_air_mode != 0 || falcon_kick_air_mode != 0 ||
              falcon_dive_air_miss_mode != 0)
@@ -462,16 +480,6 @@ int main(int argc, char **argv)
             content.fighter.half_width_q16;
         content.stage.blast_bottom_q16 =
             INT32_C(2048) * PF_Q16_ONE;
-    }
-    if (shield_hit_mode != 0)
-    {
-        /* Falcon's Jab 1 hits on displayed frames 3-4 for 2 damage. */
-        content.fighter.jab_damage_q16 =
-            UINT32_C(2) * UINT32_C(65536);
-        content.fighter.jab_startup_ticks = UINT16_C(2);
-        content.fighter.jab_active_ticks = UINT16_C(2);
-        content.fighter.jab_recovery_ticks = UINT16_C(18);
-        content.fighter.jab_hitlag_ticks = UINT16_C(3);
     }
     status = pf_m4_make_content_view(&content, &view);
     if (status != PF_STATUS_OK)

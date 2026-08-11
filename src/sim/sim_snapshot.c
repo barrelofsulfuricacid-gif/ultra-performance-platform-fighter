@@ -2159,8 +2159,7 @@ static int pf_m4_snapshot_source_submotion_valid_for_action(
 
     if (reference_frame_data_enabled == UINT8_C(0) &&
         (pf_m4_action_uses_ledge(effective_action) ||
-         effective_action == (uint8_t)PF_M4_ACTION_WALK ||
-         effective_action == (uint8_t)PF_M4_ACTION_RUN))
+         pf_m4_action_uses_source_animation_clock(action, resume_action)))
     {
         return submotion ==
                (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT;

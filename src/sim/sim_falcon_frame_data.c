@@ -468,7 +468,10 @@ pf_m4_falcon_reference_guard_ecb_pose(
     uint16_t source_submotion,
     uint16_t action_ticks)
 {
-    if (action_state == (uint8_t)PF_M4_ACTION_SHIELD)
+    if ((action_state == (uint8_t)PF_M4_ACTION_SHIELD ||
+         action_state == (uint8_t)PF_M4_ACTION_SHIELD_STUN) &&
+        source_submotion !=
+            (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD_SET_OFF)
     {
         if (source_submotion ==
             (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD_ON)
@@ -1682,6 +1685,10 @@ int pf_m4_falcon_reference_retained_hsd_pose(
     }
     switch ((pf_m4_action_state)action_state)
     {
+    case PF_M4_ACTION_SHIELD_STUN:
+        expected_submotion =
+            (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD_SET_OFF;
+        break;
     case PF_M4_ACTION_SHIELD_BREAK:
         expected_submotion =
             (uint16_t)PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_FLY;
@@ -1709,7 +1716,8 @@ int pf_m4_falcon_reference_retained_hsd_pose(
         return 0;
     }
     *out_frame_q16 =
-        action_state == (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN
+        action_state == (uint8_t)PF_M4_ACTION_SHIELD_STUN ||
+            action_state == (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN
             ? source_animation_frame_q16
             : (int32_t)action_ticks * PF_Q16_ONE;
     return 1;
@@ -1815,7 +1823,12 @@ pf_m4_falcon_reference_common_hurt_capsules_for_submotion_at_frame(
                 out_count);
         }
     }
-    if (action_state == (uint8_t)PF_M4_ACTION_SHIELD)
+    if ((action_state == (uint8_t)PF_M4_ACTION_SHIELD ||
+         action_state == (uint8_t)PF_M4_ACTION_SHIELD_STUN) &&
+        (source_submotion ==
+             (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD_ON ||
+         source_submotion ==
+             (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD))
     {
         uint8_t guard_track;
 

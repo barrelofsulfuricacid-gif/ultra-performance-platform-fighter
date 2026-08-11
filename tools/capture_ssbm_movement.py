@@ -1391,13 +1391,16 @@ def input_trace(
 
     if shield_hit_only:
         repeat("shield_hit_settle", 60)
-        repeat(
-            "shield_hit_close_distance",
-            115,
-            main_x=0.7,
-            opponent_main_x=0.3,
+        trace.append(
+            command(
+                "shield_hit_place",
+                fighter_x_override=0.0,
+                fighter_y_override=0.0001,
+                opponent_x_override=22.0,
+                opponent_y_override=0.0001,
+            )
         )
-        repeat("shield_hit_neutral_settle", 20)
+        repeat("shield_hit_neutral_settle", 10)
         repeat(
             "shield_hit_hold",
             12,
@@ -7303,6 +7306,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             "shield_hit_requested_pressure": (
                 args.shield_hit_pressure if args.shield_hit_only else None
             ),
+            "shield_hit_route": bool(args.shield_hit_only),
             "damage_hit_route": bool(args.damage_hit_only),
             "defense_state_route": bool(args.defense_state_only),
             "shield_break_orientation_route": bool(
@@ -7648,6 +7652,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     if args.memory_probe_hitbox and not (
         args.defense_state_only
         or args.common_hurt_geometry_only
+        or args.shield_hit_only
         or args.hitbox_geometry_only
         or args.throw_geometry_only
         or args.special_geometry_only

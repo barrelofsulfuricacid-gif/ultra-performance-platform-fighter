@@ -534,6 +534,12 @@ def main() -> int:
         ),
     )
     parser.add_argument(
+        "--animation-clock-tolerance-q16",
+        type=int,
+        default=1,
+        help="allowed float-to-fixed source animation clock difference",
+    )
+    parser.add_argument(
         "--native-output",
         type=Path,
         help="optionally preserve the native CSV trace for diagnostics",
@@ -555,6 +561,8 @@ def main() -> int:
         help="select one route from a combined special-geometry capture",
     )
     args = parser.parse_args()
+    if args.animation_clock_tolerance_q16 < 0:
+        parser.error("--animation-clock-tolerance-q16 must be non-negative")
 
     capture = json.loads(args.capture.read_text(encoding="utf-8"))
     disc = capture.get("disc")
@@ -979,6 +987,22 @@ def main() -> int:
     shield_hit_mode = bool(oracle_rows) and str(
         oracle_rows[0].get("label", "")
     ).startswith("shield_hit_")
+    shield_placement_index = next(
+        (
+            index
+            for index, row in enumerate(oracle_rows)
+            if str(row.get("label", "")) == "shield_hit_place"
+        ),
+        None,
+    )
+    if shield_hit_mode and shield_placement_index is not None:
+        # The placement row is the deterministic theorem boundary.  The
+        # preceding Dolphin-only settle frames neither encode inputs nor have
+        # a native analogue, so compare both fighters relative to this row.
+        oracle_rows = oracle_rows[shield_placement_index:]
+    shield_clock_mode = shield_hit_mode and any(
+        isinstance(row.get("hitbox_memory"), dict) for row in oracle_rows
+    )
     two_player_mode = push_mode or shield_hit_mode
     # Q16.16 accumulation can move a strict float overlap across the boundary
     # by one tick. Accept at most one 0.3-unit Melee push nudge per fighter in
@@ -996,7 +1020,11 @@ def main() -> int:
     elif push_mode:
         runner_command.append("--push")
     elif shield_hit_mode:
-        runner_command.append("--shield-hit")
+        runner_command.append(
+            "--shield-hit-place"
+            if shield_placement_index is not None
+            else "--shield-hit"
+        )
     elif falcon_punch_air_mode:
         runner_command.append("--falcon-punch-air")
     elif raptor_boost_ground_miss_mode:
@@ -1086,11 +1114,23 @@ def main() -> int:
         oracle_anchor_y = float(oracle_rows[0]["position_y"])
     native_anchor_x = 0
     native_anchor_y = 0
+    oracle_opponent_anchor_x = 0.0
+    native_opponent_anchor_x = 0
+    if shield_hit_mode and shield_placement_index is not None:
+        oracle_anchor_x = float(oracle_rows[0]["position_x_from_origin"])
+        native_anchor_x = int(native_rows[0]["position_x_q16_from_origin"])
+        oracle_opponent_anchor_x = float(
+            oracle_rows[0]["opponent_position_x_from_origin"]
+        )
+        native_opponent_anchor_x = int(
+            native_rows[0]["opponent_position_x_q16_from_origin"]
+        )
     horizontal_mirror = -1 if falcon_punch_air_mode or falcon_kick_air_mode else 1
     previous_label: str | None = None
     skip_character_content = False
     shield_contact_seen = False
     shield_numeric_ticks = 0
+    shield_clock_checked_frames = 0
     expected_shield_strength = 0
     source_action_elapsed_ticks = 0
     for oracle_index, (oracle, native) in enumerate(
@@ -1400,6 +1440,56 @@ def main() -> int:
         )
         actual_invulnerable = int(native["invulnerable"])
         differences: list[str] = []
+        if shield_clock_mode and action_name == "SHIELD_STUN":
+            memory = oracle.get("hitbox_memory")
+            if not isinstance(memory, dict):
+                differences.append("missing_shield_hitbox_memory")
+            else:
+                expected_source_frame_q16 = round(
+                    float(memory["fighter_animation_frame"]) * 65536.0
+                )
+                expected_source_rate_q16 = round(
+                    float(memory["fighter_animation_rate"]) * 65536.0
+                )
+                actual_source_frame_q16 = int(
+                    native["source_animation_frame_q16"]
+                )
+                actual_source_rate_q16 = int(
+                    native["source_animation_rate_q16"]
+                )
+                rate_magnitude_q16 = max(1, abs(expected_source_rate_q16))
+                clock_updates = max(
+                    1,
+                    (
+                        abs(expected_source_frame_q16)
+                        + rate_magnitude_q16
+                        - 1
+                    )
+                    // rate_magnitude_q16,
+                )
+                frame_tolerance_q16 = (
+                    args.animation_clock_tolerance_q16 * clock_updates
+                )
+                if (
+                    abs(actual_source_frame_q16 - expected_source_frame_q16)
+                    > frame_tolerance_q16
+                ):
+                    differences.append(
+                        "source_animation_frame_q16 "
+                        f"expected={expected_source_frame_q16} "
+                        f"actual={actual_source_frame_q16} "
+                        f"tolerance={frame_tolerance_q16}"
+                    )
+                if (
+                    abs(actual_source_rate_q16 - expected_source_rate_q16)
+                    > args.animation_clock_tolerance_q16
+                ):
+                    differences.append(
+                        "source_animation_rate_q16 "
+                        f"expected={expected_source_rate_q16} "
+                        f"actual={actual_source_rate_q16}"
+                    )
+                shield_clock_checked_frames += 1
         if aerial_iasa_mode:
             qualifies_boundary = not (
                 label.endswith("_settle") or label.endswith("_recover")
@@ -1752,10 +1842,11 @@ def main() -> int:
             actual_opponent_facing = int(native["opponent_facing"])
             expected_opponent_position = scaled_q16(
                 float(oracle["opponent_position_x_from_origin"])
+                - oracle_opponent_anchor_x
             )
             actual_opponent_position = int(
                 native["opponent_position_x_q16_from_origin"]
-            )
+            ) - native_opponent_anchor_x
             expected_opponent_grounded = 1 if bool(oracle["opponent_grounded"]) else 0
             actual_opponent_grounded = int(native["opponent_grounded"])
             expected_opponent_velocity = scaled_q16(
@@ -1869,6 +1960,14 @@ def main() -> int:
         target_summary += (
             f" aerial_iasa_action_frames={aerial_iasa_qualified_frames}"
         )
+    if shield_clock_mode:
+        if shield_clock_checked_frames == 0:
+            print(
+                "ssbm-movement-compare=fail reason=no-shield-clock-frames",
+                file=sys.stderr,
+            )
+            return 1
+        target_summary += f" shield_clock_frames={shield_clock_checked_frames}"
     print(
         f"ssbm-movement-compare=pass frames={len(oracle_rows)} "
         f"position_tolerance_q16={position_tolerance_q16}"

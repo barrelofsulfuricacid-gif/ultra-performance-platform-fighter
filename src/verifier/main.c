@@ -26,7 +26,7 @@
 #define PF_VERIFIER_M4_MATCH_CHECKPOINT_TICK 24U
 #define PF_VERIFIER_M4_REPLAY_CAPACITY (256U * 1024U)
 #define PF_VERIFIER_M4_MATCH_EXPECTED_DIGEST \
-    UINT64_C(0x83f2bdc274c8920a)
+    UINT64_C(0xe52299dd5cd51ec8)
 
 typedef struct pf_verifier_storage
 {
@@ -755,7 +755,10 @@ static int run_m4_match_soak_invariant(pf_verifier_checks *checks)
                             stderr,
                             " player=%" PRIu32 " active=%u action=%u"
                             " resume=%u submotion=%u frame=%" PRId32
-                            " rate=%" PRId32 " ticks=%u hitlag=%u\n",
+                            " rate=%" PRId32 " ticks=%u hitlag=%u"
+                            " grounded=%u support=%u vx=%" PRId32
+                            " vy=%" PRId32 " recoil=%" PRId32
+                            " fast_fall=%u recovery=%u\n",
                             player_index,
                             (unsigned int)player->active,
                             (unsigned int)player->action_state,
@@ -764,7 +767,14 @@ static int run_m4_match_soak_invariant(pf_verifier_checks *checks)
                             player->source_animation_frame_q16,
                             player->source_animation_rate_q16,
                             (unsigned int)player->action_ticks,
-                            (unsigned int)player->hitlag_ticks);
+                            (unsigned int)player->hitlag_ticks,
+                            (unsigned int)player->grounded,
+                            (unsigned int)player->support,
+                            player->velocity_x_q16,
+                            player->velocity_y_q16,
+                            player->shield_recoil_x_q16,
+                            (unsigned int)player->fast_fall,
+                            (unsigned int)player->recovery_available);
                     }
                 }
                 passed = 0;
