@@ -53,6 +53,7 @@ typedef int (*pf_m4_hsd_hurt_pose_evaluator)(
 
 #include "../../generated/data/m4_ssbm_falcon_ground_loop_hsd_oracle.inc"
 #include "../../generated/data/m4_ssbm_falcon_wait_hsd_oracle.inc"
+#include "../../generated/data/m4_ssbm_falcon_wait_transition_hsd_oracle.inc"
 #include "../../generated/data/m4_ssbm_falcon_guard_setoff_hsd_oracle.inc"
 
 #define TEST_MEMORY_BYTES 4096U
@@ -29792,6 +29793,162 @@ static int run_wait_source_animation_clock_test(void)
     return 1;
 }
 
+static int run_wait_transition_pose_test(void)
+{
+    pf_m4_content content;
+    pf_content_view view;
+    test_sim_storage storage;
+    pf_sim *sim = NULL;
+    pf_m4_inspection inspection;
+    const int16_t neutral_x[PF_SIM_MAX_PLAYERS] = {0};
+    int16_t axes_y[PF_SIM_MAX_PLAYERS] = {0};
+    const uint64_t buttons[PF_SIM_MAX_PLAYERS] = {0};
+    uint32_t tick;
+    uint8_t case_index = UINT8_C(0);
+
+    if (!make_combat_content(&content, &view) ||
+        !initialize_sim(
+            &storage, &view, UINT8_C(2), PF_SIM_MODE_DUEL, 1, &sim))
+    {
+        return 0;
+    }
+    axes_y[0] = INT16_MAX;
+    for (tick = UINT32_C(0); tick < UINT32_C(120); ++tick)
+    {
+        if (!step_players(
+                sim, UINT8_C(2), neutral_x, axes_y, buttons, &inspection))
+        {
+            return 0;
+        }
+        if (inspection.players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_CROUCH)
+        {
+            break;
+        }
+    }
+    if (tick == UINT32_C(120))
+    {
+        return fail("wait-transition-crouch-entry");
+    }
+    axes_y[0] = INT16_C(0);
+    for (tick = UINT32_C(0);
+         tick < UINT32_C(120) &&
+         case_index < PF_M4_FALCON_WAIT_TRANSITION_HSD_ORACLE_CASE_COUNT;
+         ++tick)
+    {
+        const pf_m4_hsd_hurt_oracle_case *oracle;
+        uint8_t capsule_index;
+
+        if (!step_players(
+                sim, UINT8_C(2), neutral_x, axes_y, buttons, &inspection))
+        {
+            return 0;
+        }
+        if (inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+        {
+            continue;
+        }
+        oracle = &pf_m4_falcon_wait_transition_hsd_oracle_cases[case_index];
+        if (inspection.players[0].source_submotion !=
+                oracle->source_submotion ||
+            inspection.players[0].source_animation_frame_q16 !=
+                oracle->source_animation_frame_q16 ||
+            inspection.players[0].hurt_capsule_count !=
+                PF_M4_FALCON_WAIT_TRANSITION_HSD_ORACLE_CAPSULE_COUNT)
+        {
+            return fail("wait-transition-state");
+        }
+        for (capsule_index = UINT8_C(0);
+             capsule_index < inspection.players[0].hurt_capsule_count;
+             ++capsule_index)
+        {
+            const pf_m4_reference_hurt_capsule *expected =
+                &oracle->capsules[capsule_index];
+            const pf_m4_hurt_capsule_inspection *actual =
+                &inspection.players[0].hurt_capsules[capsule_index];
+            const int32_t origin_y_q16 =
+                inspection.players[0].position_y_q16 +
+                content.fighter.half_height_q16;
+            const int32_t facing = inspection.players[0].facing;
+            const int32_t expected_values[7] = {
+                inspection.players[0].position_x_q16 +
+                    facing * expected->endpoint_a_x_q16,
+                origin_y_q16 + expected->endpoint_a_y_q16,
+                facing * expected->endpoint_a_z_q16,
+                inspection.players[0].position_x_q16 +
+                    facing * expected->endpoint_b_x_q16,
+                origin_y_q16 + expected->endpoint_b_y_q16,
+                facing * expected->endpoint_b_z_q16,
+                expected->radius_q16};
+            const int32_t actual_values[7] = {
+                actual->endpoint_a_x_q16,
+                actual->endpoint_a_y_q16,
+                actual->endpoint_a_z_q16,
+                actual->endpoint_b_x_q16,
+                actual->endpoint_b_y_q16,
+                actual->endpoint_b_z_q16,
+                actual->radius_q16};
+            uint8_t field_index;
+
+            if (actual->hurtbox_id != expected->hurtbox_id ||
+                actual->height != expected->height ||
+                actual->grabbable != expected->grabbable)
+            {
+                return fail("wait-transition-hurt-metadata");
+            }
+            for (field_index = UINT8_C(0);
+                 field_index < UINT8_C(7);
+                 ++field_index)
+            {
+                int64_t difference =
+                    (int64_t)actual_values[field_index] -
+                    (int64_t)expected_values[field_index];
+
+                if (difference < INT64_C(0))
+                {
+                    difference = -difference;
+                }
+                if (difference >
+                    PF_M4_FALCON_WAIT_TRANSITION_HSD_ORACLE_TOLERANCE_Q16)
+                {
+                    (void)fprintf(
+                        stderr,
+                        "case=%s capsule=%u field=%u expected=%" PRId32
+                        " actual=%" PRId32 " difference=%" PRId64 "\n",
+                        oracle->id,
+                        (unsigned int)capsule_index,
+                        (unsigned int)field_index,
+                        expected_values[field_index],
+                        actual_values[field_index],
+                        difference);
+                    return fail("wait-transition-hurt-pose");
+                }
+            }
+        }
+        {
+            int64_t difference =
+                (int64_t)inspection.players[0].ecb_bottom_y_from_origin_q16 -
+                (int64_t)oracle->ecb.bottom_y_from_origin_q16;
+
+            if (difference < INT64_C(0))
+            {
+                difference = -difference;
+            }
+            if (difference >
+                PF_M4_FALCON_WAIT_TRANSITION_HSD_ORACLE_TOLERANCE_Q16)
+            {
+                return fail("wait-transition-ecb-bottom");
+            }
+        }
+        ++case_index;
+    }
+    return case_index ==
+                   PF_M4_FALCON_WAIT_TRANSITION_HSD_ORACLE_CASE_COUNT
+               ? 1
+               : fail("wait-transition-case-count");
+}
+
 int main(int argc, char **argv)
 {
     pf_m4_content content;
@@ -30509,6 +30666,7 @@ int main(int argc, char **argv)
         !run_reference_shield_boundary_test() ||
         !run_reference_moving_hit_sweep_test() ||
         !run_wait_source_animation_clock_test() ||
+        !run_wait_transition_pose_test() ||
         !run_hsd_hurt_pose_oracle(
             pf_m4_falcon_ground_loop_hsd_oracle_cases,
             PF_M4_FALCON_GROUND_LOOP_HSD_ORACLE_CASE_COUNT,

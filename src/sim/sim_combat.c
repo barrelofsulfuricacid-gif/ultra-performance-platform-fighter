@@ -2350,6 +2350,7 @@ static const pf_m4_reference_hurt_capsule *pf_m4_reference_hurt_pose(
     uint16_t action_ticks,
     const pf_m4_hsd_local_pose *ground_loop_pose,
     const pf_m4_hsd_compact_pose *ground_loop_compact,
+    int32_t ground_loop_progress_q16,
     pf_m4_reference_hurt_capsule
         dynamic_capsules[PF_M4_HSD_POSE_MAX_CAPSULES],
     uint8_t *out_count)
@@ -2371,7 +2372,9 @@ static const pf_m4_reference_hurt_capsule *pf_m4_reference_hurt_pose(
     }
     if (grounded != UINT8_C(0) &&
         (action_state == (uint8_t)PF_M4_ACTION_WALK ||
-         action_state == (uint8_t)PF_M4_ACTION_RUN))
+         action_state == (uint8_t)PF_M4_ACTION_RUN ||
+         (action_state == (uint8_t)PF_M4_ACTION_GROUND_IDLE &&
+          (ground_loop_pose != NULL || ground_loop_compact != NULL))))
     {
         int evaluated = 0;
 
@@ -2385,17 +2388,12 @@ static const pf_m4_reference_hurt_capsule *pf_m4_reference_hurt_pose(
         {
             const pf_m4_hsd_pose_data *data =
                 pf_m4_falcon_reference_hsd_pose_data();
-            pf_m4_hsd_local_pose target[PF_M4_HSD_POSE_MAX_JOINTS];
             pf_m4_hsd_local_pose pose[PF_M4_HSD_POSE_MAX_JOINTS];
 
             evaluated = data != NULL &&
-                pf_m4_hsd_evaluate_local_pose_q16(
-                    data,
-                    source_submotion,
-                    source_animation_frame_q16,
-                    target) &&
-                pf_m4_hsd_inflate_compact_pose_q16(
-                    data, target, ground_loop_compact, pose) &&
+                pf_m4_hsd_resolve_compact_pose_q16(
+                    data, source_submotion, source_animation_frame_q16,
+                    ground_loop_progress_q16, ground_loop_compact, pose) &&
                 pf_m4_falcon_reference_hsd_hurt_capsules_from_local_pose(
                     pose, dynamic_capsules, out_count);
         }
@@ -2546,6 +2544,7 @@ uint8_t pf_m4_reference_world_hurt_capsules(
         action_ticks,
         ground_loop_pose,
         NULL,
+        INT32_C(0),
         dynamic_capsules,
         &capsule_count);
     if (source_capsules == NULL ||
@@ -2640,6 +2639,7 @@ static int pf_m4_hitbox_overlaps_player(
             scratch->ground_blend_progress_q16[target_index] > INT32_C(0)
                 ? &scratch->ground_blend_pose[target_index]
                 : NULL,
+            scratch->ground_blend_progress_q16[target_index],
             dynamic_capsules,
             &capsule_count);
 
@@ -2870,6 +2870,7 @@ static int pf_m4_hit_sphere_overlaps_player(
             scratch->ground_blend_progress_q16[target_index] > INT32_C(0)
                 ? &scratch->ground_blend_pose[target_index]
                 : NULL,
+            scratch->ground_blend_progress_q16[target_index],
             dynamic_capsules,
             &capsule_count);
 
@@ -2942,6 +2943,7 @@ static int pf_m4_grab_sphere_overlaps_player(
             scratch->ground_blend_progress_q16[target_index] > INT32_C(0)
                 ? &scratch->ground_blend_pose[target_index]
                 : NULL,
+            scratch->ground_blend_progress_q16[target_index],
             dynamic_capsules,
             &capsule_count);
 

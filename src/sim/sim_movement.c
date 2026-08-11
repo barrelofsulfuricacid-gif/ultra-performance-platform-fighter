@@ -727,6 +727,15 @@ static int pf_m4_falcon_ground_blend_source_pose(
                 : dash->animation_frame_count - UINT16_C(1)) *
             PF_Q16_ONE;
     }
+    else if ((previous_action == (uint8_t)PF_M4_ACTION_CROUCH_END ||
+              pf_m4_action_uses_direct_hsd_pose(previous_action)) &&
+             world->source_animation_rate_q16[player_index] > INT32_C(0))
+    {
+        source_submotion = world->source_submotion[player_index];
+        source_frame_q16 =
+            world->source_animation_frame_q16[player_index] +
+            world->source_animation_rate_q16[player_index];
+    }
     else
     {
         return 0;
@@ -763,8 +772,8 @@ static pf_status pf_m4_evaluate_falcon_ground_blend_pose(
         return PF_STATUS_INVALID_ARGUMENT;
     }
     if (data == NULL ||
-        (action != (uint8_t)PF_M4_ACTION_WALK &&
-         action != (uint8_t)PF_M4_ACTION_RUN))
+        !pf_m4_action_uses_ground_animation_clock(
+            action_state, hitlag_resume_action))
     {
         (void)memset(out_pose, 0, sizeof(*out_pose));
         *out_progress_q16 = INT32_C(0);
@@ -787,7 +796,11 @@ static pf_status pf_m4_evaluate_falcon_ground_blend_pose(
     if (source_submotion != world->source_submotion[player_index] ||
         action != previous_action)
     {
-        if (action == (uint8_t)PF_M4_ACTION_WALK)
+        if (action == (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+        {
+            transition_steps = 1;
+        }
+        else if (action == (uint8_t)PF_M4_ACTION_WALK)
         {
             transition_steps =
                 previous_action == (uint8_t)PF_M4_ACTION_WALK ? 3 : 2;
@@ -796,6 +809,26 @@ static pf_status pf_m4_evaluate_falcon_ground_blend_pose(
         {
             transition_steps = 1;
         }
+    }
+    if (transition_steps == 1 &&
+        action == (uint8_t)PF_M4_ACTION_GROUND_IDLE &&
+        (previous_action == (uint8_t)PF_M4_ACTION_CROUCH_END ||
+         pf_m4_action_uses_direct_hsd_pose(previous_action)) &&
+        world->source_animation_rate_q16[player_index] == PF_Q16_ONE)
+    {
+        (void)memset(out_pose, 0, sizeof(*out_pose));
+        out_pose->replay.source_submotion =
+            world->source_submotion[player_index];
+        out_pose->replay.source_frame_q16 =
+            world->source_animation_frame_q16[player_index] + PF_Q16_ONE;
+        out_pose->replay.target_entry_frame_q16 =
+            source_animation_frame_q16;
+        out_pose->replay.target_step_q16 = PF_Q16_ONE;
+        out_pose->replay.blend_frames_q16 =
+            INT32_C(6) * PF_Q16_ONE;
+        out_pose->mode = (uint8_t)PF_M4_HSD_COMPACT_POSE_REPLAY;
+        *out_progress_q16 = PF_Q16_ONE;
+        return PF_STATUS_OK;
     }
     if (transition_steps > 0 &&
         pf_m4_falcon_ground_blend_source_pose(
@@ -864,7 +897,15 @@ static pf_status pf_m4_evaluate_falcon_ground_blend_pose(
         }
         progress_q16 = world->ground_blend_progress_q16[player_index] +
                        frame_delta_q16;
-        if (progress_q16 < INT32_C(6) * PF_Q16_ONE)
+        if (progress_q16 < INT32_C(6) * PF_Q16_ONE &&
+            world->ground_blend_pose[player_index].mode ==
+                (uint8_t)PF_M4_HSD_COMPACT_POSE_REPLAY)
+        {
+            *out_pose = world->ground_blend_pose[player_index];
+            *out_progress_q16 = progress_q16;
+            return PF_STATUS_OK;
+        }
+        else if (progress_q16 < INT32_C(6) * PF_Q16_ONE)
         {
             if (!pf_m4_falcon_continue_ground_blend_pose(
                     data,
@@ -2350,6 +2391,7 @@ static int pf_m4_reference_ecb_pose_q16(
     uint8_t prone_roll_motion_orientation,
     int8_t tech_direction,
     int8_t facing,
+    int32_t ground_loop_progress_q16,
     const pf_m4_hsd_compact_pose *ground_loop_compact,
     pf_m4_falcon_ecb_pose_q16 *out_pose)
 {
@@ -2373,17 +2415,12 @@ static int pf_m4_reference_ecb_pose_q16(
     {
         const pf_m4_hsd_pose_data *data =
             pf_m4_falcon_reference_hsd_pose_data();
-        pf_m4_hsd_local_pose target[PF_M4_HSD_POSE_MAX_JOINTS];
         pf_m4_hsd_local_pose blended[PF_M4_HSD_POSE_MAX_JOINTS];
 
         if (data == NULL ||
-            !pf_m4_hsd_evaluate_local_pose_q16(
-                data,
-                source_submotion,
-                source_animation_frame_q16,
-                target) ||
-            !pf_m4_hsd_inflate_compact_pose_q16(
-                data, target, ground_loop_compact, blended) ||
+            !pf_m4_hsd_resolve_compact_pose_q16(
+                data, source_submotion, source_animation_frame_q16,
+                ground_loop_progress_q16, ground_loop_compact, blended) ||
             !pf_m4_falcon_reference_hsd_ground_ecb_pose_from_local_pose(
                 blended, out_pose))
         {
@@ -2640,6 +2677,7 @@ static int32_t pf_m4_floor_contact_bottom_extent_q16(
             prone_roll_motion_orientation,
             tech_direction,
             facing,
+            INT32_C(0),
             NULL,
             &action_pose) != 0)
     {
@@ -13438,6 +13476,7 @@ pf_status pf_m4_step_player(
             scratch->prone_roll_motion_orientation[player_index],
             scratch->tech_direction[player_index],
             facing,
+            wall_blend_progress_q16,
             wall_blend_pose_or_null,
             &wall_pose);
         if (exact_reference_wall_pose != 0)
@@ -13512,6 +13551,7 @@ pf_status pf_m4_step_player(
                     world->prone_roll_motion_orientation[player_index],
                     world->tech_direction[player_index],
                     world->facing[player_index],
+                    world->ground_blend_progress_q16[player_index],
                     world->ground_blend_progress_q16[player_index] >
                             INT32_C(0)
                         ? &world->ground_blend_pose[player_index]
@@ -14016,6 +14056,7 @@ pf_status pf_m4_step_player(
                 scratch->prone_roll_motion_orientation[player_index],
                 scratch->tech_direction[player_index],
                 facing,
+                INT32_C(0),
                 NULL,
                 &ceiling_pose) != 0)
         {
@@ -14781,6 +14822,21 @@ pf_status pf_m4_step_player(
         source_animation_rate_q16 = (int32_t)PF_Q16_ONE;
     }
     else if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
+             pf_m4_effective_action_state(
+                 action_state,
+                 scratch->hitlag_resume_action[player_index]) ==
+                 (uint8_t)PF_M4_ACTION_CROUCH_END)
+    {
+        source_submotion =
+            (uint16_t)PF_M4_FALCON_SUBMOTION_SQUAT_REVERSE;
+        if (action_state != (uint8_t)PF_M4_ACTION_HITLAG)
+        {
+            source_animation_frame_q16 =
+                (int32_t)(action_ticks - UINT16_C(1)) * PF_Q16_ONE;
+        }
+        source_animation_rate_q16 = PF_Q16_ONE;
+    }
+    else if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
              pf_m4_action_uses_direct_hsd_pose(
                  pf_m4_effective_action_state(
                      action_state,
@@ -15243,6 +15299,7 @@ pf_status pf_m4_inspect(
                     sim->world.prone_roll_motion_orientation[player_index],
                     sim->world.tech_direction[player_index],
                     sim->world.facing[player_index],
+                    sim->world.ground_blend_progress_q16[player_index],
                     sim->world.ground_blend_progress_q16[player_index] >
                             INT32_C(0)
                         ? &sim->world.ground_blend_pose[player_index]
@@ -15499,17 +15556,12 @@ pf_status pf_m4_inspect(
         {
             const pf_m4_hsd_pose_data *data =
                 pf_m4_falcon_reference_hsd_pose_data();
-            pf_m4_hsd_local_pose target[PF_M4_HSD_POSE_MAX_JOINTS];
-
             if (data == NULL ||
-                !pf_m4_hsd_evaluate_local_pose_q16(
+                !pf_m4_hsd_resolve_compact_pose_q16(
                     data,
                     sim->world.source_submotion[player_index],
                     sim->world.source_animation_frame_q16[player_index],
-                    target) ||
-                !pf_m4_hsd_inflate_compact_pose_q16(
-                    data,
-                    target,
+                    sim->world.ground_blend_progress_q16[player_index],
                     &sim->world.ground_blend_pose[player_index],
                     ground_loop_pose))
             {

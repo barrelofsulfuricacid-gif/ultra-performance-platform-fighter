@@ -42,17 +42,21 @@ guessed frame constants. That slice was intentionally not built or executed;
 its provenance is source-level until the next validation pass.
 
 The later base-Wait geometry slice enters Wait through Falcon's native
-`SquatRv` callback rather than sampling incidental menu idle. Two independent
-headless/null/unlimited captures have raw SHA-256 values
-`2a7a0d34e06655d9528bf64180fd053c154855f59184f6a88d81ed991e18ac3d`
-and `e5584ca5e52dd0b7c3d54d9f16e45fe08ad74c0b00268b8f1fc0269bfabe7ca8`;
-their address-free semantic projection is identical at
-`f2a336241e781472352210197d444b1dbe94b2d4b9ccf6f008f5d8efec079489`.
-Live motion state proves frames 0-5 are the ordinary incoming six-frame HSD
-blend. The source-direct theorem therefore covers only Wait frames 6-59:
-108 observations / 1,188 hurt capsules plus ECB agree with the compact HSD
-evaluator within one Q16 unit. Three generated stored observations protect the
-first unblended, middle, and terminal source poses. `ftCo_Wait_Anim` then calls
+`SquatRv` callback rather than sampling incidental menu idle. Its final paired
+hurt captures have raw SHA-256 values
+`a9c9b5456f421304e08ae5b63165283b529a3612ee6d991379836f6cb3314dc3`
+and `ef72ec895024aa44f96d0b6f99f2913a7d2b370583ab1535654581ff1b7a1089`.
+All ten SquatRv observations and direct Wait frames 6-59 contribute 128 source
+observations / 1,408 hurt capsules plus ECB and agree with the HSD evaluator
+within one Q16 unit. Independent surface-memory captures with raw SHA-256
+`0146d99544d0908fc60d962d53cb7356a347175023804e3a49e8e56303e7f1f0`
+and `60b2dc3cd36d630cfd7b9d0414ff47d6220cb6a6e27915d44c20be30b00d81c9`
+prove frames 0-5 as the ordinary six-update moving-target recurrence under
+semantic SHA-256
+`0c7ba43ab7022bc2e88bcb369e4fcb9812ebf2397abd7afddfed931e61734983`.
+The entry source is SquatRv frame 10, one update beyond its last displayed
+frame. Three direct and six transition observations protect the production
+route. `ftCo_Wait_Anim` then calls
 `ftCo_8008A7A8`, and `ftwaitanim.c` selects Wait2/Wait3 with process-global
 `HSD_Randi`; that RNG state and call ordering remain outside the imported
 slice, so the production frame-59 clamp is documented as a bound, not an exact

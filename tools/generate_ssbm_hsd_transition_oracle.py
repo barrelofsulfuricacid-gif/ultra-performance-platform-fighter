@@ -203,7 +203,13 @@ def emit_compact(pose: dict[str, list[list[int]]]) -> str:
         "{ " + ", ".join(c_i32(value) for value in row) + " }"
         for row in pose["translation_q16"]
     )
-    return "{ { " + rotations + " }, { " + translations + " } }"
+    return (
+        "{ { "
+        + rotations
+        + " }, { { "
+        + translations
+        + " } }, UINT8_C(0), { UINT8_C(0), UINT8_C(0), UINT8_C(0) } }"
+    )
 
 
 def emit(

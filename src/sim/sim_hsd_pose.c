@@ -941,7 +941,8 @@ int pf_m4_hsd_inflate_compact_pose_q16(
         data->joint_count > PF_M4_HSD_POSE_MAX_JOINTS ||
         data->rotation_joint_count > PF_M4_HSD_COMPACT_ROTATION_CAPACITY ||
         data->translation_joint_count >
-            PF_M4_HSD_COMPACT_TRANSLATION_CAPACITY)
+            PF_M4_HSD_COMPACT_TRANSLATION_CAPACITY ||
+        compact->mode != (uint8_t)PF_M4_HSD_COMPACT_POSE_PACKED)
     {
         return 0;
     }
@@ -1000,6 +1001,88 @@ int pf_m4_hsd_inflate_compact_pose_q16(
             sizeof(out_pose[joint_index].translation_q16));
     }
     return 1;
+}
+
+int pf_m4_hsd_resolve_compact_pose_q16(
+    const pf_m4_hsd_pose_data *data,
+    uint16_t target_submotion,
+    int32_t target_frame_q16,
+    int32_t progress_q16,
+    const pf_m4_hsd_compact_pose *compact,
+    pf_m4_hsd_local_pose out_pose[PF_M4_HSD_POSE_MAX_JOINTS])
+{
+    pf_m4_hsd_local_pose target[PF_M4_HSD_POSE_MAX_JOINTS];
+
+    if (data == NULL || compact == NULL || out_pose == NULL ||
+        !pf_m4_hsd_evaluate_local_pose_q16(
+            data, target_submotion, target_frame_q16, target))
+    {
+        return 0;
+    }
+    if (compact->mode == (uint8_t)PF_M4_HSD_COMPACT_POSE_PACKED)
+    {
+        return pf_m4_hsd_inflate_compact_pose_q16(
+            data, target, compact, out_pose);
+    }
+    if (compact->mode == (uint8_t)PF_M4_HSD_COMPACT_POSE_REPLAY)
+    {
+        pf_m4_hsd_local_pose current[PF_M4_HSD_POSE_MAX_JOINTS];
+        pf_m4_hsd_local_pose next[PF_M4_HSD_POSE_MAX_JOINTS];
+        const int32_t step_q16 = compact->replay.target_step_q16;
+        const int32_t blend_frames_q16 =
+            compact->replay.blend_frames_q16;
+        int32_t old_progress_q16 = INT32_C(0);
+        int32_t step_progress_q16;
+
+        if (step_q16 != PF_HSD_Q16_ONE ||
+            blend_frames_q16 != INT32_C(6) * PF_HSD_Q16_ONE ||
+            progress_q16 <= INT32_C(0) ||
+            progress_q16 >= blend_frames_q16 ||
+            progress_q16 % step_q16 != INT32_C(0) ||
+            (int64_t)target_frame_q16 !=
+                (int64_t)compact->replay.target_entry_frame_q16 +
+                    (int64_t)(progress_q16 / step_q16 - INT32_C(1)) *
+                        step_q16 ||
+            !pf_m4_hsd_evaluate_local_pose_q16(
+                data,
+                compact->replay.source_submotion,
+                compact->replay.source_frame_q16,
+                current))
+        {
+            return 0;
+        }
+        for (step_progress_q16 = step_q16;
+             step_progress_q16 <= progress_q16;
+             step_progress_q16 += step_q16)
+        {
+            const int32_t remaining_q16 =
+                blend_frames_q16 - old_progress_q16;
+            const int32_t current_weight_q16 =
+                (int32_t)(
+                    ((int64_t)(blend_frames_q16 - step_progress_q16) *
+                         PF_HSD_Q16_ONE +
+                     remaining_q16 / INT32_C(2)) /
+                    remaining_q16);
+            const int32_t step_frame_q16 =
+                compact->replay.target_entry_frame_q16 +
+                (step_progress_q16 / step_q16 - INT32_C(1)) * step_q16;
+
+            if (!pf_m4_hsd_evaluate_local_pose_q16(
+                    data, target_submotion, step_frame_q16, target) ||
+                !pf_m4_hsd_blend_local_pose_q16(
+                    data, target, current, current_weight_q16, next))
+            {
+                return 0;
+            }
+            (void)memcpy(
+                current, next, sizeof(*next) * data->joint_count);
+            old_progress_q16 = step_progress_q16;
+        }
+        (void)memcpy(
+            out_pose, current, sizeof(*current) * data->joint_count);
+        return 1;
+    }
+    return 0;
 }
 
 static int pf_m4_hsd_evaluate_joint_matrices_from_local_pose(

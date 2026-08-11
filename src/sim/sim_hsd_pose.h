@@ -102,8 +102,28 @@ typedef struct pf_m4_hsd_local_pose
 typedef struct pf_m4_hsd_compact_pose
 {
     int16_t rotation_q15[PF_M4_HSD_COMPACT_ROTATION_CAPACITY][3];
-    int32_t translation_q16[PF_M4_HSD_COMPACT_TRANSLATION_CAPACITY][3];
+    union
+    {
+        int32_t translation_q16[PF_M4_HSD_COMPACT_TRANSLATION_CAPACITY][3];
+        struct
+        {
+            int32_t source_frame_q16;
+            int32_t target_entry_frame_q16;
+            int32_t target_step_q16;
+            int32_t blend_frames_q16;
+            uint16_t source_submotion;
+            uint16_t reserved;
+        } replay;
+    };
+    uint8_t mode;
+    uint8_t reserved[3];
 } pf_m4_hsd_compact_pose;
+
+typedef enum pf_m4_hsd_compact_pose_mode
+{
+    PF_M4_HSD_COMPACT_POSE_PACKED = 0,
+    PF_M4_HSD_COMPACT_POSE_REPLAY = 1
+} pf_m4_hsd_compact_pose_mode;
 
 typedef struct pf_m4_hsd_evaluated_capsule
 {
@@ -137,6 +157,14 @@ int pf_m4_hsd_pack_compact_pose_q16(
 int pf_m4_hsd_inflate_compact_pose_q16(
     const pf_m4_hsd_pose_data *data,
     const pf_m4_hsd_local_pose target[PF_M4_HSD_POSE_MAX_JOINTS],
+    const pf_m4_hsd_compact_pose *compact,
+    pf_m4_hsd_local_pose out_pose[PF_M4_HSD_POSE_MAX_JOINTS]);
+
+int pf_m4_hsd_resolve_compact_pose_q16(
+    const pf_m4_hsd_pose_data *data,
+    uint16_t target_submotion,
+    int32_t target_frame_q16,
+    int32_t progress_q16,
     const pf_m4_hsd_compact_pose *compact,
     pf_m4_hsd_local_pose out_pose[PF_M4_HSD_POSE_MAX_JOINTS]);
 

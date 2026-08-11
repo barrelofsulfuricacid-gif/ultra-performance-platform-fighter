@@ -97,12 +97,15 @@ callbacks do not reduce to the raw selector-joint matrices on this route. The
 companion
 `m4_ssbm_falcon_ground_loop_hsd_oracle.inc` contains eight gait observations;
 `m4_ssbm_falcon_wait_hsd_oracle.inc` adds three direct base-Wait observations;
+`m4_ssbm_falcon_wait_transition_hsd_oracle.inc` adds all six natural
+SquatRv-to-Wait blend observations;
 `m4_ssbm_falcon_guard_setoff_hsd_oracle.inc` adds nine pressure-derived
 GuardSetOff observations. Neither duplicates production pose tables. The live
-source verifier independently
-compares the DAT evaluator against two manifest-pinned Dolphin captures after
-animation blending completes, checks base Wait frames 6-59 against two clean-
-entry captures, checks GuardSetOff across six independent
+source verifier independently compares the DAT evaluator against two
+manifest-pinned Dolphin captures, checks all ten SquatRv poses and base Wait
+frames 6-59 against two clean-entry captures, checks the six incoming Wait
+blend updates against an independent surface-memory pair, checks GuardSetOff
+across six independent
 pressure-banded captures, and checks the shield-break branch against two
 independent natural shield-depletion captures. Those six GuardSetOff captures
 also pass the identical-input native runner for 99 frames each, including 36

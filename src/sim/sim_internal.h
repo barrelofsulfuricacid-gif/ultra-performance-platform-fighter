@@ -155,6 +155,7 @@ static inline int pf_m4_action_retains_source_submotion(
         action_state == (uint8_t)PF_M4_ACTION_STANDING_TURN ||
         action_state == (uint8_t)PF_M4_ACTION_RUN_TURNAROUND ||
         action_state == (uint8_t)PF_M4_ACTION_CROUCH ||
+        action_state == (uint8_t)PF_M4_ACTION_CROUCH_END ||
         action_state == (uint8_t)PF_M4_ACTION_TAUNT ||
         action_state == (uint8_t)PF_M4_ACTION_SHIELD ||
         action_state == (uint8_t)PF_M4_ACTION_SHIELD_RELEASE ||
@@ -182,6 +183,7 @@ static inline int pf_m4_action_retains_source_submotion(
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_STANDING_TURN ||
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_RUN_TURNAROUND ||
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_CROUCH ||
+        hitlag_resume_action == (uint8_t)PF_M4_ACTION_CROUCH_END ||
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_TAUNT ||
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_SHIELD ||
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_SHIELD_RELEASE ||
@@ -254,6 +256,7 @@ static inline int pf_m4_action_uses_source_animation_clock(
                action_state,
                hitlag_resume_action) ||
            effective_action == (uint8_t)PF_M4_ACTION_CROUCH ||
+           effective_action == (uint8_t)PF_M4_ACTION_CROUCH_END ||
            effective_action == (uint8_t)PF_M4_ACTION_SHIELD_STUN ||
            effective_action ==
                (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN ||

@@ -210,7 +210,7 @@ typedef enum pf_m4_falcon_submotion_index
 
 /* Ordinary motion changes use Falcon's six-frame default HSD blend. A Wait
  * pose is source-direct only after this displayed-frame boundary. */
-#define PF_M4_FALCON_WAIT_HSD_FIRST_UNBLENDED_FRAME UINT16_C(6)
+#define PF_M4_FALCON_WAIT_HSD_FIRST_UNBLENDED_FRAME UINT16_C(5)
 
 static inline int pf_m4_falcon_wait_hsd_pose_is_direct(
     uint16_t source_submotion,

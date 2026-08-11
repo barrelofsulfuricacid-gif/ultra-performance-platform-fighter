@@ -12,6 +12,8 @@
 #define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)1607)
 #define PF_SIM_SAVE_TOTAL_BYTES \
     (PF_SIM_SAVE_HEADER_BYTES + PF_SIM_SAVE_PAYLOAD_BYTES)
+#define PF_M4_SNAPSHOT_GROUND_BLEND_REPLAY_TAG INT32_C(0x40000000)
+#define PF_M4_SNAPSHOT_GROUND_BLEND_PROGRESS_MASK INT32_C(0x3fffffff)
 
 typedef struct pf_byte_writer
 {
@@ -428,7 +430,11 @@ static void pf_write_payload(
         pf_writer_i32(
             writer,
             active != 0
-                ? world->ground_blend_progress_q16[player_index]
+                ? world->ground_blend_progress_q16[player_index] |
+                      (world->ground_blend_pose[player_index].mode ==
+                               (uint8_t)PF_M4_HSD_COMPACT_POSE_REPLAY
+                           ? PF_M4_SNAPSHOT_GROUND_BLEND_REPLAY_TAG
+                           : INT32_C(0))
                 : INT32_C(0));
         for (rotation_index = UINT8_C(0);
              rotation_index < PF_M4_HSD_COMPACT_ROTATION_CAPACITY;
@@ -1128,8 +1134,20 @@ static void pf_read_payload(
     {
         uint8_t rotation_index;
 
+        const int32_t encoded_progress_q16 = pf_reader_i32(reader);
+
+        if (encoded_progress_q16 < INT32_C(0))
+        {
+            reader->failed = 1;
+        }
+        world->ground_blend_pose[player_index].mode =
+            (encoded_progress_q16 &
+             PF_M4_SNAPSHOT_GROUND_BLEND_REPLAY_TAG) != INT32_C(0)
+                ? (uint8_t)PF_M4_HSD_COMPACT_POSE_REPLAY
+                : (uint8_t)PF_M4_HSD_COMPACT_POSE_PACKED;
         world->ground_blend_progress_q16[player_index] =
-            pf_reader_i32(reader);
+            encoded_progress_q16 &
+            PF_M4_SNAPSHOT_GROUND_BLEND_PROGRESS_MASK;
         for (rotation_index = UINT8_C(0);
              rotation_index < PF_M4_HSD_COMPACT_ROTATION_CAPACITY;
              ++rotation_index)
@@ -2217,6 +2235,12 @@ static int pf_m4_snapshot_source_submotion_valid_for_action(
                    (uint16_t)PF_M4_FALCON_SUBMOTION_SQUAT_WAIT &&
                action_ticks <= UINT16_C(600);
     }
+    else if (effective_action == (uint8_t)PF_M4_ACTION_CROUCH_END)
+    {
+        return motion != NULL &&
+               submotion ==
+                   (uint16_t)PF_M4_FALCON_SUBMOTION_SQUAT_REVERSE;
+    }
     else if (pf_m4_action_uses_fall_special_pose(effective_action))
     {
         if (reference_frame_data_enabled == UINT8_C(0))
@@ -2458,6 +2482,11 @@ static int pf_m4_snapshot_ground_blend_valid(
 
     if (progress_q16 == INT32_C(0))
     {
+        if (compact->mode !=
+            (uint8_t)PF_M4_HSD_COMPACT_POSE_PACKED)
+        {
+            return 0;
+        }
         for (rotation_index = UINT8_C(0);
              rotation_index < PF_M4_HSD_COMPACT_ROTATION_CAPACITY;
              ++rotation_index)
@@ -2492,7 +2521,7 @@ static int pf_m4_snapshot_ground_blend_valid(
     }
     if (fighter->reference_frame_data_enabled == UINT8_C(0) ||
         world->active[player_index] == UINT8_C(0) ||
-        !pf_m4_action_uses_velocity_animation_clock(
+        !pf_m4_action_uses_ground_animation_clock(
             world->action_state[player_index],
             world->hitlag_resume_action[player_index]) ||
         progress_q16 <= INT32_C(0) ||
@@ -2503,20 +2532,57 @@ static int pf_m4_snapshot_ground_blend_valid(
     {
         const pf_m4_hsd_pose_data *data =
             pf_m4_falcon_reference_hsd_pose_data();
-        pf_m4_hsd_local_pose target[PF_M4_HSD_POSE_MAX_JOINTS];
         pf_m4_hsd_local_pose pose[PF_M4_HSD_POSE_MAX_JOINTS];
         pf_m4_reference_hurt_capsule
             capsules[PF_M4_HSD_POSE_MAX_CAPSULES];
         uint8_t count;
 
+        if (compact->mode == (uint8_t)PF_M4_HSD_COMPACT_POSE_REPLAY)
+        {
+            const int32_t *const replay_words =
+                &compact->translation_q16[0][0];
+            uint8_t replay_word_index;
+
+            if (compact->replay.reserved != UINT16_C(0))
+            {
+                return 0;
+            }
+            for (rotation_index = UINT8_C(0);
+                 rotation_index < PF_M4_HSD_COMPACT_ROTATION_CAPACITY;
+                 ++rotation_index)
+            {
+                for (uint8_t component = UINT8_C(0);
+                     component < UINT8_C(3);
+                     ++component)
+                {
+                    if (compact->rotation_q15[rotation_index][component] !=
+                        INT16_C(0))
+                    {
+                        return 0;
+                    }
+                }
+            }
+            for (replay_word_index = UINT8_C(5);
+                 replay_word_index <
+                     (uint8_t)(
+                         PF_M4_HSD_COMPACT_TRANSLATION_CAPACITY * UINT8_C(3));
+                 ++replay_word_index)
+            {
+                if (replay_words[replay_word_index] != INT32_C(0))
+                {
+                    return 0;
+                }
+            }
+        }
+
         return data != NULL &&
-               pf_m4_hsd_evaluate_local_pose_q16(
+               pf_m4_hsd_resolve_compact_pose_q16(
                    data,
                    world->source_submotion[player_index],
                    world->source_animation_frame_q16[player_index],
-                   target) &&
-               pf_m4_hsd_inflate_compact_pose_q16(
-                   data, target, compact, pose) &&
+                   progress_q16,
+                   compact,
+                   pose) &&
                pf_m4_falcon_reference_hsd_hurt_capsules_from_local_pose(
                    pose, capsules, &count) &&
                count != UINT8_C(0);

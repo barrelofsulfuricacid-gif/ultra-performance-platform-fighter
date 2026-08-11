@@ -417,7 +417,7 @@ static void pf_m4_canonicalize_source_animation_state(
             scratch->fall_animation_target_switched[player_index] =
                 UINT8_C(0);
         }
-        if (!pf_m4_action_uses_velocity_animation_clock(
+        if (!pf_m4_action_uses_ground_animation_clock(
                 scratch->action_state[player_index],
                 scratch->hitlag_resume_action[player_index]))
         {

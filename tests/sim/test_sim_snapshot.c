@@ -245,7 +245,7 @@ static int verify_wire_prefix(
         save_bytes[13] != UINT8_C(0) ||
         save_bytes[14] != UINT8_C(0) ||
         save_bytes[15] != UINT8_C(0) ||
-        save_bytes[16] != UINT8_C(74) ||
+        save_bytes[16] != UINT8_C(75) ||
         save_bytes[17] != UINT8_C(0) ||
         save_bytes[22] != UINT8_C(5) ||
         save_bytes[23] != UINT8_C(0) ||

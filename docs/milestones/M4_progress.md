@@ -5885,3 +5885,37 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   The full 21-domain / 117-case stored-plus-replay gate passes in 886.587 ms on
   Windows and 823.440 ms in WSL. Two verifier runs reproduce deterministic
   digest `e52299dd5cd51ec8`.
+
+## 2026-08-11 SquatRv-to-Wait transition fidelity
+
+- Two fresh 70-row headless/null/unlimited hurt captures cover ten displayed
+  SquatRv updates followed by all 60 base-Wait updates. The shared DAT/HSD
+  evaluator matches both captures across all ten SquatRv poses and direct Wait
+  frames 6-59: 128 observations / 1,408 hurt capsules plus ECB, with maximum
+  one-Q16 coordinate error.
+- A separate pair of surface-memory captures proves Wait frames 0-5 as
+  Melee's exact six-update moving-target recurrence. The hidden source is
+  SquatRv frame 10, one update after its last displayed frame; the target begins
+  at Wait frame 0 and advances one frame per update. The paired 140-row theorem
+  passes 210 joint updates at maximum local error `4.76837158e-07` and
+  quaternion error `1.71211921e-07`, with semantic SHA-256
+  `0c7ba43ab7022bc2e88bcb369e4fcb9812ebf2397abd7afddfed931e61734983`.
+- Production retains SquatRv's real source clock through CrouchEnd and uses a
+  compact replay descriptor to reconstruct the wide-SRT blend on demand. This
+  avoids storing six full translation vectors per player: the in-memory compact
+  pose grows only four bytes, while save format 66 remains 1,747 bytes and the
+  replay remains 42,519 bytes. State schema advances to 75.
+- Six generated Dolphin observations check every natural blend update through
+  the real tick, hurt-capsule, inspection, and ECB paths. The compact resolver
+  accepts only the bounded one-frame/six-update descriptor, so malformed saves
+  cannot request unbounded replay work.
+- Windows Release passes 40/40 in 11.19 seconds, WSL Release passes 40/40 in
+  9.81 seconds, and WSL ASan/UBSan passes 26/26. The complete 21-domain /
+  117-case stored gate plus replay takes 970.038 ms on Windows and 925.398 ms
+  in WSL. Replay corpus/final/event SHA-256 values are
+  `f7f59a2f68b3431ff459fb8342684f4701e936cb6f83298834adddcbc365a49e` /
+  `f7697243c6a07965e31224c54f015798bef6d615ce6e2d1441576d6f1450f98b` /
+  `6f0f9376198d1f9507e6502da4eece00110a6ebe7c18233c78303d5b9764743d`.
+- Base Wait's incoming geometry gap is closed. Process-global `HSD_Randi`
+  state and exact Wait2/Wait3 selection ordering remain the next idle-lifecycle
+  gap and are not claimed by this slice.
