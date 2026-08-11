@@ -1560,7 +1560,7 @@ The committed hurt and ECB profile SHA-256 values are respectively
 and `4ac108b18b77438b84760dd0dbea1ac830e8b5f323429aaeb01ecd4b66e48165`.
 
 The complete Falcon source digest is now
-`3f3eac0d534cb2f29c9a6a4d6fd9156aeb48162d8acb918a5e41eeeb10cb0988`.
+`1e26a7fcb73c506e7dd446119896f6df90bdea0bb244c178066b4f19f5b72946`.
 Production selects the immutable profiles from action plus retained source
 submotion in constant time. GuardSetOff/shield stun uses a callback-derived
 dynamic animation rate and is explicitly outside this profile rather than

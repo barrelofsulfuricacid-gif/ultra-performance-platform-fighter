@@ -9,7 +9,7 @@
 /* PlCo.dat SHA-256: 63841336337eb5a7366b06ccc60ea4bd37c3604ab56e19939d78b9aa9cdd234c */
 /* bounce ECB profile SHA-256: d6ccb5701f0bada0d7de1874004281e8ca46fcc0070db94e529d84d3fc637608 */
 /* bounce ECB semantic SHA-256: 9d162fe7917f0c23894ad1fe54a1a665d5c8e446d5ca439180811d706b2431a5 */
-/* shield-break ECB profile SHA-256: f63e2b09209ae7b7f85d53eb2a589fa593f7a8700d5d503e4a4b465a92aab677 */
+/* shield-break ECB profile SHA-256: 2b4354f075594264ddb1686c9123c78459658a8dec145d78445c1b115585bc7c */
 /* shield-break ECB semantic SHA-256: 11b28d22f68f7bb87c99dbc5f949f5456d1a69ab7bfa78360927ecb334064eeb */
 /* guard ECB profile SHA-256: 4ac108b18b77438b84760dd0dbea1ac830e8b5f323429aaeb01ecd4b66e48165 */
 /* guard ECB semantic SHA-256: a1bd5b9937cb342a053415ecc674b36dc5a01fb575ed688b32f8e097e1b209c1 */
@@ -19,7 +19,7 @@
 /* getup ECB semantic SHA-256: f519d632a88bcb582cb68865dd9a58d27e862fe619fc05d76ff3252ad5204f19 */
 /* ground-loop ECB profile SHA-256: a1d4a9eb47dd16630812fbdb59eaaf377f3580e313436523d0ea81088cafceb3 */
 /* ground-loop ECB semantic SHA-256: ba47ef2736a5677d1909262a20f32991b7c2515407fae26626d5869b95edd265 */
-/* complete Falcon source SHA-256: 3f3eac0d534cb2f29c9a6a4d6fd9156aeb48162d8acb918a5e41eeeb10cb0988 */
+/* complete Falcon source SHA-256: 1e26a7fcb73c506e7dd446119896f6df90bdea0bb244c178066b4f19f5b72946 */
 /* complete 318-submotion catalog SHA-256: 9bd124115e6eb66db0f6152dd6fade2886c85d1ae2368b4ae88b9084c7cc67ce */
 /* complete action-script SHA-256: 6bf1021da93ea2f829c812b2bc425fe310808c8ad6e6e75eaf103c42b7ea4cfe */
 /* complete decoded animation-track SHA-256: d8a09bf451ce547d8d24634f40f654564e42cbf14ad5339a0c7d93ff7edc15dc */
@@ -29,7 +29,7 @@ static const uint8_t pf_m4_falcon_source_sha256[32] = {
 };
 
 static const uint8_t pf_m4_falcon_complete_source_sha256[32] = {
-    UINT8_C(0x3f), UINT8_C(0x3e), UINT8_C(0xac), UINT8_C(0x0d), UINT8_C(0x53), UINT8_C(0x4c), UINT8_C(0xb2), UINT8_C(0xf2), UINT8_C(0x9c), UINT8_C(0x9a), UINT8_C(0x6a), UINT8_C(0x4d), UINT8_C(0x6f), UINT8_C(0xd9), UINT8_C(0x15), UINT8_C(0x6a), UINT8_C(0xeb), UINT8_C(0x48), UINT8_C(0x16), UINT8_C(0x2d), UINT8_C(0x8a), UINT8_C(0xcb), UINT8_C(0x91), UINT8_C(0x8a), UINT8_C(0x5e), UINT8_C(0x41), UINT8_C(0xee), UINT8_C(0xeb), UINT8_C(0x10), UINT8_C(0xcb), UINT8_C(0x09), UINT8_C(0x88)
+    UINT8_C(0x1e), UINT8_C(0x26), UINT8_C(0xa7), UINT8_C(0xfc), UINT8_C(0xb7), UINT8_C(0x3c), UINT8_C(0x50), UINT8_C(0x6e), UINT8_C(0x7d), UINT8_C(0xd4), UINT8_C(0x46), UINT8_C(0x11), UINT8_C(0x98), UINT8_C(0x96), UINT8_C(0xf6), UINT8_C(0xdf), UINT8_C(0x90), UINT8_C(0xbd), UINT8_C(0xea), UINT8_C(0x0b), UINT8_C(0xb2), UINT8_C(0x44), UINT8_C(0xc1), UINT8_C(0x78), UINT8_C(0x06), UINT8_C(0x6b), UINT8_C(0x4f), UINT8_C(0x19), UINT8_C(0xf5), UINT8_C(0xb7), UINT8_C(0x29), UINT8_C(0x46)
 };
 
 static const uint8_t pf_m4_falcon_submotion_catalog_sha256[32] = {

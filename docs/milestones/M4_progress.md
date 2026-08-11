@@ -6054,3 +6054,15 @@ M5 content scaling remains blocked until M4 combat feel is approved.
 - Rebuilt native Windows and WSL Release trees pass all 41 CTests. The complete
   21-domain / 117-case stored gate plus deterministic replay passes in
   1,120.723 ms on Windows and 1,486.147 ms in WSL, below its two-second budget.
+
+## 2026-08-11 shield-break ECB source-closure repair
+
+- Propagated the qualified current shield-break ECB profile/capture identities
+  into the complete Falcon frame-data importer. The prior pins still named the
+  older source capture even though the runtime semantic payload was unchanged.
+- Two independent runs from all five pinned external inputs now regenerate the
+  include byte-identically at SHA-256
+  `e936f0edef8cdab44a6507d8b1c7f5474ea1950ead5a82a1f5f9d2a2e9478ebe`.
+  The complete Falcon source digest is
+  `1e26a7fcb73c506e7dd446119896f6df90bdea0bb244c178066b4f19f5b72946`;
+  runtime numeric tables are unchanged.

@@ -32,6 +32,12 @@ separately because a stored pass cannot establish new SSBM truth.
 | Native Battlefield frontend | implemented locally; hands-on gate remains | The SDL target runs the real simulation at fixed 60 Hz, supports 2P Duel and 4P Teams plus 1-8 stocks through the core config contract, renders the complete source-derived 23-line Battlefield catalog and blast-zone inset, and visualizes fighters, crouch, shields, hitboxes, exact 11-capsule source hurt poses, damage, stocks, and actions. Strict MSVC, WSL, smoke, and screenshot QA pass. One real-controller hands-on pass remains. |
 | Character-importer skill | active | The skill records reusable HSD/PlCo import, damage-channel, callback-order, ground-projection, save/load, action-release, physical surface-route, lifecycle, semantic-digest, `StageInfo`/JObj stage-import, per-surface collision routing, previous/current animated-ECB identity, bounded one-way-platform crossing qualification, source-pose matrix-branch guidance, moving-target recurrence, compact source-replay descriptors for wide SRT transitions, target-skeleton switch versus stable-update blend semantics, `Ft_MF_SkipAnim` manual/frozen guard-pose clocks, clean native Wait entry, blend-completion boundaries, HSD-RNG-owned idle variants, action-owned displayed-frame/HSD-frame offsets, and independent live qualification of HSD hurt poses versus runtime-derived ECBs. |
 
+The complete frame-data generator is source-closed against the current
+qualified shield-break profile: two regenerations produce include SHA-256
+`e936f0edef8cdab44a6507d8b1c7f5474ea1950ead5a82a1f5f9d2a2e9478ebe`.
+The active implementation slice is live-qualified damage-action hurt/ECB
+geometry; its numeric damage response was already qualified separately.
+
 ## Completed and verified: complete base/secondary Wait lifecycle
 
 - [x] Sweep current and pinned `doldecomp/melee` plus current HSDLib before
