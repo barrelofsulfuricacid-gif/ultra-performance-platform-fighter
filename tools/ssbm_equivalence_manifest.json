@@ -23,6 +23,7 @@
   "domains": [
     "tools/ssbm_falcon_common_hurt_coverage.json",
     "tools/ssbm_falcon_turn_hurt_coverage.json",
+    "tools/ssbm_falcon_grounded_loop_hurt_coverage.json",
     "tools/ssbm_falcon_pummel_capture_coverage.json",
     "tools/ssbm_falcon_dive_grab_coverage.json",
     "tools/ssbm_falcon_punch_coverage.json",

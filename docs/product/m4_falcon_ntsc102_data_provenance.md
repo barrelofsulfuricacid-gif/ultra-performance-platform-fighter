@@ -1209,6 +1209,34 @@ display facing for that update without adding rollback state. Three generic
 stored pose-facing cases bind pre-flip frame 9, pending-display frame 9, and
 resumed frame 10 to the live-qualified phase; the domain now owns seven cases.
 
+## Falcon CrouchWait and Appeal hurt poses
+
+The grounded-loop checkpoint pack keeps one headless/null/unlimited ExiAI
+process and resets to seven independent checkpoints. Its raw 391-row control
+and repeat captures have SHA-256
+`0c40e316047eab2b4922049a80cdc9e9b05a55b16e2299ad4ca64467ac257348`
+and
+`3d63b959c5b7aa7ef6d820fc188d3e249475b0d58abd3384ba7d7457e0333609`;
+their qualified CrouchWait/Appeal observations reproduce semantic SHA-256
+`3c72296c3c1558d7df32228892f5b1adec4b4370e72e4d415fdc981cd2aa3ed3`.
+The qualified capture portions complete in 4.130326 and 3.683832 seconds.
+
+The canonical profile contains all 158 `SquatWait`, 60 `AppealR`, and 60
+`AppealL` displayed poses: 278 poses and 3,058 eleven-capsule rows under profile
+SHA-256
+`67d3f20d79b808c5d193892fd529c7e270fa1f175a8a2f92ee403c8a3e8d0ac7`.
+Its source pose serialization is pinned at SHA-256
+`f3c9ca8bfa7fc3d85acf2a0b74eeb6ab2452159cd7c8c7dbb3f66bd870cf84e6`;
+the independent production accessor serializes to SHA-256
+`1a83c02e310c097ad609dd2e18787bec2b6589fc76f5daa039578b8e04f6a81f`.
+Six physical hit/miss controls cover the three retained submotion identities.
+
+The same raw pack records WalkSlow/Middle/Fast and Run only as diagnostic clock
+probes. `ftWalkCommon_800DFDDC` derives animation rate from ground velocity and
+`ftWalkCommon_800DFEC8` changes gait while remapping animation phase. Because
+production does not yet retain that dynamic animation cursor, those rows are
+not canonicalized into pose tracks and are not claimed as qualified coverage.
+
 ## Repository controls
 
 - Only the converted constants and independently written C state machine ship.

@@ -10,6 +10,7 @@
 #include "../../generated/data/m4_ssbm_falcon_ledge_hurt.inc"
 #include "../../generated/data/m4_ssbm_falcon_airborne_hurt.inc"
 #include "../../generated/data/m4_ssbm_falcon_turn_hurt.inc"
+#include "../../generated/data/m4_ssbm_falcon_crouch_taunt_hurt.inc"
 
 _Static_assert(
     (size_t)PF_M4_FALCON_LEDGE_HURT_COUNT ==
@@ -1021,6 +1022,61 @@ pf_m4_falcon_reference_common_hurt_capsules_for_submotion_at_frame(
             pf_m4_falcon_turn_hurt_capsules,
             action_frame,
             out_count);
+    }
+    if (action_state == (uint8_t)PF_M4_ACTION_CROUCH &&
+        source_submotion ==
+            (uint16_t)PF_M4_FALCON_SUBMOTION_SQUAT_WAIT)
+    {
+        const pf_m4_reference_hurt_move *track =
+            &pf_m4_falcon_crouch_taunt_hurt_moves[
+                PF_M4_FALCON_CROUCH_TAUNT_HURT_CROUCH_WAIT];
+
+        if (action_frame >= track->first_frame &&
+            track->frame_count != UINT8_C(0))
+        {
+            action_frame =
+                (uint16_t)(
+                    track->first_frame +
+                    (action_frame - track->first_frame) %
+                        track->frame_count);
+        }
+        return pf_m4_falcon_reference_hurt_track_at_frame(
+            track,
+            pf_m4_falcon_crouch_taunt_hurt_frames,
+            pf_m4_falcon_crouch_taunt_hurt_capsules,
+            action_frame,
+            out_count);
+    }
+    if (action_state == (uint8_t)PF_M4_ACTION_TAUNT)
+    {
+        uint8_t taunt_track_index;
+
+        if (source_submotion ==
+            (uint16_t)PF_M4_FALCON_SUBMOTION_APPEAL_RIGHT)
+        {
+            taunt_track_index =
+                PF_M4_FALCON_CROUCH_TAUNT_HURT_TAUNT_RIGHT;
+        }
+        else if (source_submotion ==
+                 (uint16_t)PF_M4_FALCON_SUBMOTION_APPEAL_LEFT)
+        {
+            taunt_track_index =
+                PF_M4_FALCON_CROUCH_TAUNT_HURT_TAUNT_LEFT;
+        }
+        else
+        {
+            taunt_track_index = UINT8_MAX;
+        }
+        if (taunt_track_index != UINT8_MAX)
+        {
+            return pf_m4_falcon_reference_hurt_track_at_frame(
+                &pf_m4_falcon_crouch_taunt_hurt_moves[
+                    taunt_track_index],
+                pf_m4_falcon_crouch_taunt_hurt_frames,
+                pf_m4_falcon_crouch_taunt_hurt_capsules,
+                action_frame,
+                out_count);
+        }
     }
 
     switch ((pf_m4_action_state)action_state)

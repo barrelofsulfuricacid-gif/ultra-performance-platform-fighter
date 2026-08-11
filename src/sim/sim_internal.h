@@ -147,6 +147,8 @@ static inline int pf_m4_action_retains_source_submotion(
         action_state == (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP ||
         action_state == (uint8_t)PF_M4_ACTION_STANDING_TURN ||
         action_state == (uint8_t)PF_M4_ACTION_RUN_TURNAROUND ||
+        action_state == (uint8_t)PF_M4_ACTION_CROUCH ||
+        action_state == (uint8_t)PF_M4_ACTION_TAUNT ||
         action_state == (uint8_t)PF_M4_ACTION_SHIELD_BREAK ||
         action_state == (uint8_t)PF_M4_ACTION_SHIELD_BREAK_DOWN ||
         action_state == (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STAND ||
@@ -164,6 +166,8 @@ static inline int pf_m4_action_retains_source_submotion(
             (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP ||
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_STANDING_TURN ||
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_RUN_TURNAROUND ||
+        hitlag_resume_action == (uint8_t)PF_M4_ACTION_CROUCH ||
+        hitlag_resume_action == (uint8_t)PF_M4_ACTION_TAUNT ||
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_SHIELD_BREAK ||
         hitlag_resume_action ==
             (uint8_t)PF_M4_ACTION_SHIELD_BREAK_DOWN ||

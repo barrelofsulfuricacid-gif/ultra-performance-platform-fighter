@@ -13545,7 +13545,19 @@ pf_status pf_m4_step_player(
         scratch->shield_strength[player_index] = UINT16_C(0);
     }
 
-    if (action_state == (uint8_t)PF_M4_ACTION_STANDING_TURN)
+    if (action_state == (uint8_t)PF_M4_ACTION_CROUCH)
+    {
+        source_submotion =
+            (uint16_t)PF_M4_FALCON_SUBMOTION_SQUAT_WAIT;
+    }
+    else if (action_state == (uint8_t)PF_M4_ACTION_TAUNT)
+    {
+        source_submotion =
+            facing > INT8_C(0)
+                ? (uint16_t)PF_M4_FALCON_SUBMOTION_APPEAL_RIGHT
+                : (uint16_t)PF_M4_FALCON_SUBMOTION_APPEAL_LEFT;
+    }
+    else if (action_state == (uint8_t)PF_M4_ACTION_STANDING_TURN)
     {
         source_submotion =
             (uint16_t)PF_M4_FALCON_SUBMOTION_TURN;

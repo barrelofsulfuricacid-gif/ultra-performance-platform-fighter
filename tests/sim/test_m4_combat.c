@@ -20,6 +20,7 @@
 
 #include "../../generated/data/m4_ssbm_falcon_common_hurt_oracle.inc"
 #include "../../generated/data/m4_ssbm_falcon_turn_hurt_oracle.inc"
+#include "../../generated/data/m4_ssbm_falcon_grounded_loop_hurt_oracle.inc"
 #include "../../generated/data/m4_ssbm_falcon_pummel_capture_oracle.inc"
 #include "../../generated/data/m4_ssbm_falcon_dive_grab_oracle.inc"
 #include "../../generated/data/m4_ssbm_falcon_punch_oracle.inc"
@@ -14435,6 +14436,32 @@ static int reference_geometry_only_runtime_case(
     (void)context;
     (void)stored_case;
     return 0;
+}
+
+static int run_reference_falcon_grounded_loop_hurt_stored_oracle(
+    int print_pass)
+{
+    static const pf_ssbm_stored_oracle_domain domain = {
+        "falcon-grounded-loop-hurt",
+        pf_m4_ssbm_falcon_grounded_loop_hurt_pose_tracks,
+        (uint16_t)(
+            sizeof(pf_m4_ssbm_falcon_grounded_loop_hurt_pose_tracks) /
+            sizeof(pf_m4_ssbm_falcon_grounded_loop_hurt_pose_tracks[0])),
+        pf_m4_ssbm_falcon_grounded_loop_hurt_cases,
+        PF_M4_SSBM_FALCON_GROUNDED_LOOP_HURT_CASE_COUNT,
+        PF_M4_SSBM_FALCON_GROUNDED_LOOP_HURT_POSE_COUNT,
+        PF_M4_SSBM_FALCON_GROUNDED_LOOP_HURT_CAPSULES_PER_POSE,
+        PF_M4_SSBM_FALCON_GROUNDED_LOOP_HURT_PRODUCTION_POSE_SHA256,
+        NULL,
+        reference_common_hurt_read_pose,
+        reference_geometry_only_runtime_case,
+        reference_common_hurt_run_geometry_case,
+        NULL};
+
+    return run_reference_pose_stored_oracle(
+        &domain,
+        PF_M4_SSBM_FALCON_GROUNDED_LOOP_HURT_SOURCE_POSE_SHA256,
+        print_pass);
 }
 
 static int reference_falcon_dive_grab_geometry_case(
@@ -29190,6 +29217,13 @@ int main(int argc, char **argv)
             return run_reference_falcon_turn_hurt_stored_oracle(1) ? 0 : 1;
         }
         if (argc == 3 && strcmp(argv[1], "--ssbm-oracle") == 0 &&
+            strcmp(argv[2], "falcon-grounded-loop-hurt") == 0)
+        {
+            return run_reference_falcon_grounded_loop_hurt_stored_oracle(1)
+                       ? 0
+                       : 1;
+        }
+        if (argc == 3 && strcmp(argv[1], "--ssbm-oracle") == 0 &&
             strcmp(argv[2], "falcon-dive-grab-geometry") == 0)
         {
             return run_reference_falcon_dive_grab_stored_oracle(1) ? 0 : 1;
@@ -29781,6 +29815,7 @@ int main(int argc, char **argv)
         !run_reference_shield_boundary_test() ||
         !run_reference_moving_hit_sweep_test() ||
         !run_reference_common_hurt_stored_oracle(0) ||
+        !run_reference_falcon_grounded_loop_hurt_stored_oracle(0) ||
         !run_reference_falcon_dive_grab_stored_oracle(0) ||
         !run_reference_falcon_pummel_capture_stored_oracle(0) ||
         !run_ssbm_falcon_punch_observation_oracle() ||

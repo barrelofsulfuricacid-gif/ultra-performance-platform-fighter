@@ -1952,6 +1952,20 @@ static int pf_m4_snapshot_source_submotion_valid_for_action(
         identity_valid =
             submotion == (uint16_t)PF_M4_FALCON_SUBMOTION_TURN_RUN;
     }
+    else if (effective_action == (uint8_t)PF_M4_ACTION_CROUCH)
+    {
+        return submotion ==
+                   (uint16_t)PF_M4_FALCON_SUBMOTION_SQUAT_WAIT &&
+               action_ticks <= UINT16_C(600);
+    }
+    else if (effective_action == (uint8_t)PF_M4_ACTION_TAUNT)
+    {
+        return (submotion ==
+                    (uint16_t)PF_M4_FALCON_SUBMOTION_APPEAL_RIGHT ||
+                submotion ==
+                    (uint16_t)PF_M4_FALCON_SUBMOTION_APPEAL_LEFT) &&
+               action_ticks <= UINT16_C(60);
+    }
     else if (effective_action == (uint8_t)PF_M4_ACTION_SHIELD_BREAK)
     {
         identity_valid =

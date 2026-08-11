@@ -1613,6 +1613,13 @@ def input_trace(
                 "common_hurt_run_turn_place",
                 "common_hurt_crouch_place",
                 "common_hurt_spot_dodge_shield",
+                "common_hurt_crouch_wait_place",
+                "common_hurt_walk_slow_place",
+                "common_hurt_walk_middle_place",
+                "common_hurt_walk_fast_place",
+                "common_hurt_run_place",
+                "common_hurt_taunt_right_place",
+                "common_hurt_taunt_left_place",
             }
             positive_facing_opponent_cases = (
                 "common_hurt_spot_dodge_collision_",
@@ -2217,6 +2224,82 @@ def input_trace(
             )
             repeat(f"{route_prefix}_observe", 8)
             repeat(f"{route_prefix}_recover", 40)
+
+        # Long-lived grounded motions form a compact supplemental pose pack.
+        # Each route starts from the same checkpoint and records one complete
+        # source animation cycle; one extra held sample on looping motions
+        # proves the terminal-to-first-frame wrap without another oracle.
+        reset_common_hurt_route("common_hurt_crouch_wait")
+        trace.append(
+            command(
+                "common_hurt_crouch_wait_place",
+                fighter_x_override=-20.0,
+                fighter_y_override=0.0001,
+                opponent_x_override=60.0,
+                opponent_y_override=0.0001,
+            )
+        )
+        repeat("common_hurt_crouch_wait_settle", 10)
+        trace.append(command("common_hurt_crouch_wait_prime"))
+        repeat("common_hurt_crouch_wait_entry", 8, main_y=0.0)
+        repeat("common_hurt_crouch_wait_hold", 160, main_y=0.0)
+
+        for walk_name, main_x, sample_count in (
+            ("slow", 0.65, 55),
+            ("middle", 0.75, 41),
+            ("fast", 0.85, 26),
+        ):
+            prefix = f"common_hurt_walk_{walk_name}"
+            reset_common_hurt_route(prefix)
+            trace.append(
+                command(
+                    f"{prefix}_place",
+                    fighter_x_override=-20.0,
+                    fighter_y_override=0.0001,
+                    opponent_x_override=60.0,
+                    opponent_y_override=0.0001,
+                )
+            )
+            repeat(f"{prefix}_settle", 10)
+            trace.append(command(f"{prefix}_prime"))
+            repeat(f"{prefix}_hold", sample_count, main_x=main_x)
+
+        reset_common_hurt_route("common_hurt_run")
+        trace.append(
+            command(
+                "common_hurt_run_place",
+                fighter_x_override=-20.0,
+                fighter_y_override=0.0001,
+                opponent_x_override=60.0,
+                opponent_y_override=0.0001,
+            )
+        )
+        repeat("common_hurt_run_settle", 10)
+        trace.append(command("common_hurt_run_prime"))
+        repeat("common_hurt_run_entry", 20, main_x=1.0)
+        repeat("common_hurt_run_hold", 21, main_x=1.0)
+
+        for taunt_name in ("right", "left"):
+            prefix = f"common_hurt_taunt_{taunt_name}"
+            reset_common_hurt_route(prefix)
+            trace.append(
+                command(
+                    f"{prefix}_place",
+                    fighter_x_override=(
+                        0.0 if taunt_name == "left" else -20.0
+                    ),
+                    fighter_y_override=0.0001,
+                    opponent_x_override=60.0,
+                    opponent_y_override=0.0001,
+                )
+            )
+            repeat(f"{prefix}_settle", 10)
+            trace.append(command(f"{prefix}_prime"))
+            if taunt_name == "left":
+                trace.append(command(f"{prefix}_orient", main_x=0.0))
+                repeat(f"{prefix}_orient_neutral", 15)
+            trace.append(command(f"{prefix}_entry", taunt=True))
+            repeat(f"{prefix}_hold", 60)
 
         if (
             checkpoint_capture_plan is not None
