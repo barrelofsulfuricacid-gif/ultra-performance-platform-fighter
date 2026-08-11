@@ -6519,7 +6519,20 @@ static int pf_m4_action_can_start_vector_ascent(uint8_t action_state)
            pf_m4_action_is_damage(action_state);
 }
 
-static int pf_m4_reference_action_allows_special(
+enum
+{
+    PF_M4_REFERENCE_SPECIAL_SIDE = 1U << 0U,
+    PF_M4_REFERENCE_SPECIAL_UP = 1U << 1U,
+    PF_M4_REFERENCE_SPECIAL_NEUTRAL = 1U << 2U,
+    PF_M4_REFERENCE_SPECIAL_DOWN = 1U << 3U,
+    PF_M4_REFERENCE_SPECIAL_ALL =
+        PF_M4_REFERENCE_SPECIAL_SIDE |
+        PF_M4_REFERENCE_SPECIAL_UP |
+        PF_M4_REFERENCE_SPECIAL_NEUTRAL |
+        PF_M4_REFERENCE_SPECIAL_DOWN
+};
+
+static uint8_t pf_m4_reference_action_special_capabilities(
     uint8_t action_state,
     uint16_t action_ticks,
     uint8_t grounded,
@@ -6532,29 +6545,46 @@ static int pf_m4_reference_action_allows_special(
         /* Fall/Jump IASA routes SpecialAir first. DamageFall uses that same
          * table once damage lockout has ended; EscapeAir, passive-wall states,
          * and FallSpecial use narrower callback tables. */
-        return action_state == (uint8_t)PF_M4_ACTION_AIRBORNE ||
-               action_state ==
-                   (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP ||
-               pf_m4_action_is_damage(action_state);
+        return (action_state == (uint8_t)PF_M4_ACTION_AIRBORNE ||
+                action_state ==
+                    (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP ||
+                pf_m4_action_is_damage(action_state))
+                   ? (uint8_t)PF_M4_REFERENCE_SPECIAL_ALL
+                   : UINT8_C(0);
     }
     if (pf_m4_action_is_ground_attack(action_state))
     {
         return (ground_iasa_capabilities &
-                PF_M4_FALCON_IASA_SPECIAL) != UINT8_C(0);
+                PF_M4_FALCON_IASA_SPECIAL) != UINT8_C(0)
+                   ? (uint8_t)PF_M4_REFERENCE_SPECIAL_ALL
+                   : UINT8_C(0);
     }
-    /* Squat has the full common IASA table; SquatWait and SquatRv do not.
-     * Guard, GuardOff, RunBrake, TurnRun, and every recovery state likewise
-     * have no SpecialS/Hi/N/Lw check. */
-    return action_state == (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
-           action_state == (uint8_t)PF_M4_ACTION_WALK ||
-           (action_state == (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
-            action_ticks <= initial_dash_special_end_frame) ||
-           action_state == (uint8_t)PF_M4_ACTION_RUN ||
-           action_state == (uint8_t)PF_M4_ACTION_STANDING_TURN ||
-           action_state == (uint8_t)PF_M4_ACTION_CROUCH_START ||
-           pf_m4_action_is_damage(action_state) ||
-           (action_state == (uint8_t)PF_M4_ACTION_LANDING &&
-            normal_landing_interruptible != 0);
+    /* SquatWait and SquatRv call only SpecialLw. Turn calls SpecialS,
+     * SpecialLw, then SpecialHi, deliberately omitting SpecialN. Guard,
+     * GuardOff, RunBrake, TurnRun, and recovery states have no special
+     * dispatcher. Every remaining listed state owns the full common table. */
+    if (action_state == (uint8_t)PF_M4_ACTION_CROUCH ||
+        action_state == (uint8_t)PF_M4_ACTION_CROUCH_END)
+    {
+        return (uint8_t)PF_M4_REFERENCE_SPECIAL_DOWN;
+    }
+    if (action_state == (uint8_t)PF_M4_ACTION_STANDING_TURN)
+    {
+        return (uint8_t)(PF_M4_REFERENCE_SPECIAL_SIDE |
+                         PF_M4_REFERENCE_SPECIAL_UP |
+                         PF_M4_REFERENCE_SPECIAL_DOWN);
+    }
+    return (action_state == (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
+            action_state == (uint8_t)PF_M4_ACTION_WALK ||
+            (action_state == (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
+             action_ticks <= initial_dash_special_end_frame) ||
+            action_state == (uint8_t)PF_M4_ACTION_RUN ||
+            action_state == (uint8_t)PF_M4_ACTION_CROUCH_START ||
+            pf_m4_action_is_damage(action_state) ||
+            (action_state == (uint8_t)PF_M4_ACTION_LANDING &&
+             normal_landing_interruptible != 0))
+               ? (uint8_t)PF_M4_REFERENCE_SPECIAL_ALL
+               : UINT8_C(0);
 }
 
 typedef enum pf_m4_prone_option
@@ -8878,6 +8908,20 @@ pf_status pf_m4_step_player(
         }
     }
 
+    const uint8_t reference_special_capabilities =
+        fighter->reference_frame_data_enabled != UINT8_C(0)
+            ? pf_m4_reference_action_special_capabilities(
+                  action_state,
+                  action_ticks,
+                  grounded,
+                  pf_m4_normal_landing_is_interruptible(
+                      fighter,
+                      action_state,
+                      action_ticks),
+                  ground_iasa_capabilities,
+                  initial_dash_special_end_frame)
+            : UINT8_C(0);
+
     if (!ledge_motion_handled &&
         released_ledge_this_tick == 0 &&
         !hitstun_locked &&
@@ -8964,16 +9008,7 @@ pf_status pf_m4_step_player(
           grab_pressed != 0) &&
         (fighter->reference_frame_data_enabled == UINT8_C(0) ||
          powershield_release_cancel_ready != 0 ||
-         pf_m4_reference_action_allows_special(
-             action_state,
-             action_ticks,
-             grounded,
-             pf_m4_normal_landing_is_interruptible(
-                 fighter,
-                 action_state,
-                 action_ticks),
-             ground_iasa_capabilities,
-             initial_dash_special_end_frame)) &&
+         reference_special_capabilities != UINT8_C(0)) &&
         (!pf_m4_action_is_ground_attack(action_state) ||
          ground_reference_attack == NULL ||
          (ground_iasa_capabilities &
@@ -9004,12 +9039,30 @@ pf_status pf_m4_step_player(
              special_stick_x_q16 <=
                  -common_special_attributes
                       ->side_special_stick_threshold_q16);
+        const int reference_side_special_enabled =
+            fighter->reference_frame_data_enabled == UINT8_C(0) ||
+            (reference_special_capabilities &
+             PF_M4_REFERENCE_SPECIAL_SIDE) != UINT8_C(0);
+        const int reference_up_special_enabled =
+            fighter->reference_frame_data_enabled == UINT8_C(0) ||
+            (reference_special_capabilities &
+             PF_M4_REFERENCE_SPECIAL_UP) != UINT8_C(0);
+        const int reference_neutral_special_enabled =
+            fighter->reference_frame_data_enabled == UINT8_C(0) ||
+            (reference_special_capabilities &
+             PF_M4_REFERENCE_SPECIAL_NEUTRAL) != UINT8_C(0);
+        const int reference_down_special_enabled =
+            fighter->reference_frame_data_enabled == UINT8_C(0) ||
+            (reference_special_capabilities &
+             PF_M4_REFERENCE_SPECIAL_DOWN) != UINT8_C(0);
         /* Ground common IASA checks SpecialS before Hi/N/Lw. SpecialAir
          * instead checks Hi, Lw, S, then N. */
         const int up_special_requested =
             raw_up_special_requested != 0 &&
+            reference_up_special_enabled != 0 &&
             (grounded == UINT8_C(0) ||
-             raw_side_special_requested == 0);
+             raw_side_special_requested == 0 ||
+             reference_side_special_enabled == 0);
         const int charge_requested =
             content->charge.enabled != UINT8_C(0) &&
             grounded != UINT8_C(0) &&
@@ -9020,8 +9073,10 @@ pf_status pf_m4_step_player(
         const int falcon_down_special_requested =
             fighter->reference_frame_data_enabled != UINT8_C(0) &&
             raw_down_special_requested != 0 &&
+            reference_down_special_enabled != 0 &&
             (grounded == UINT8_C(0) ||
-             raw_side_special_requested == 0);
+             raw_side_special_requested == 0 ||
+             reference_side_special_enabled == 0);
         const int reflector_requested =
             fighter->reference_frame_data_enabled == UINT8_C(0) &&
             content->reflector.enabled != UINT8_C(0) &&
@@ -9029,22 +9084,24 @@ pf_status pf_m4_step_player(
                 (int16_t)fighter->crouch_axis_threshold;
         const int falcon_side_special_requested =
             raw_side_special_requested != 0 &&
+            reference_side_special_enabled != 0 &&
             (grounded != UINT8_C(0) ||
              (up_special_requested == 0 &&
               falcon_down_special_requested == 0)) &&
             reflector_requested == 0;
         const int falcon_neutral_special_requested =
             fighter->reference_frame_data_enabled != UINT8_C(0) &&
+            reference_neutral_special_enabled != 0 &&
             up_special_requested == 0 &&
             falcon_down_special_requested == 0 &&
             reflector_requested == 0 &&
             falcon_side_special_requested == 0;
-        const int falcon_punch_blocked =
-            falcon_neutral_special_requested != 0 &&
-            (world->action_state[player_index] ==
-                 (uint8_t)PF_M4_ACTION_CROUCH ||
-             world->action_state[player_index] ==
-                 (uint8_t)PF_M4_ACTION_CROUCH_END);
+        const int reference_special_input_blocked =
+            fighter->reference_frame_data_enabled != UINT8_C(0) &&
+            up_special_requested == 0 &&
+            falcon_down_special_requested == 0 &&
+            falcon_side_special_requested == 0 &&
+            falcon_neutral_special_requested == 0;
 
         if (vector_ascent_requested != 0)
         {
@@ -9089,7 +9146,7 @@ pf_status pf_m4_step_player(
                 scratch->tumble[player_index] = UINT8_C(0);
             }
         }
-        else if (falcon_punch_blocked == 0)
+        else if (reference_special_input_blocked == 0)
         {
             if (falcon_side_special_requested != 0)
             {
@@ -9161,7 +9218,7 @@ pf_status pf_m4_step_player(
             }
             action_ticks = UINT16_C(0);
         }
-        if (falcon_punch_blocked == 0 &&
+        if (reference_special_input_blocked == 0 &&
             (vector_ascent_requested == 0 ||
              action_state == (uint8_t)PF_M4_ACTION_VECTOR_ASCENT ||
              action_state ==

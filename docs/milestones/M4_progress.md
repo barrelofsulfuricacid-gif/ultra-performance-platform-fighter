@@ -4471,13 +4471,13 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   selected base remains ExiAI revision
   `bf1aec4de4856eab412996137287f447daa8ae17`; its existing
   `SlippiSavestate` avoids disconnecting the live ENet observer.
-- `tools/ssbm_exiai_checkpoint.patch` adds a small atomic file-control channel
-  to the pinned NoGUI runner. Loads occur while Melee is blocked at the EXI
-  input boundary, preserve the game-side protocol/interrupt fields, and
-  immediately rebase the restored checkpoint. The rebase is required because
-  ExiAI's primitive was designed for a short rollback window, not unlimited
-  reuse of one stale host/game boundary. The reproducible WSL build is
-  `tools/bootstrap_ssbm_checkpoint_oracle.sh`.
+- `tools/ssbm_exiai_checkpoint.patch` added a small atomic file-control channel
+  to the pinned NoGUI runner. At this historical checkpoint, loads occurred
+  while Melee was blocked at the EXI input boundary and immediately rebased
+  the restored checkpoint. The 2026-08-11 common-special slice supersedes that
+  policy with immutable multi-slot protocol v2 after a divergent branch proved
+  that immediate rebasing was not valid isolation. The reproducible WSL build
+  remains `tools/bootstrap_ssbm_checkpoint_oracle.sh`.
 - The DME reader now resolves a fighter with two contiguous reads, snapshots
   each complete fighter once, and reads each unique bone matrix once. Linux
   ExiAI capture exposes the same interface over Dolphin's read-only MEM1
@@ -6227,3 +6227,35 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   in 1,142.906 ms on native Windows and 894.651 ms in WSL, retaining the
   two-second budget. Rebuilt Release suites pass 41/41 on native Windows and
   WSL; the full 20,000-tick WSL ASan/UBSan combat trace also passes.
+
+## 2026-08-11 common special acquisition masks
+
+- Pinned decomp `9509dc0` and current upstream `d882af9` agree on the common
+  IASA callback lists. `SquatWait` and `SquatRv` expose only `SpecialLw`;
+  `Turn` exposes `SpecialS`, `SpecialLw`, and `SpecialHi`, but no `SpecialN`.
+- Production now represents those callback lists as a four-bit stack-local
+  capability mask rather than a coarse action boolean. Direction priority is
+  evaluated after masking absent callbacks, which preserves diagonal down-B
+  from crouch wait/end while rejecting neutral-B during Turn. No parser,
+  allocation, duplicated state table, or rollback byte was added.
+- The first live run revealed that a recorded input shared the same EXI frame
+  as checkpoint restoration and could therefore observe or mutate the branch
+  being discarded. Checkpoint protocol v2 now owns sixteen fixed immutable
+  slots and consumes each requested load on an unrecorded neutral boundary
+  before sending the case's first input. Eight one-shot Wait snapshots keep
+  divergent specials independent inside one Dolphin process.
+- Two fresh headless/null/unlimited captures are byte-identical at raw SHA-256
+  `9459f985c09db1ef05f8ec0792225780ffe69f3547c71b13721d8c6fc477db63`.
+  They cover eight cases / 134 rows in 1.048235 and 0.721242 seconds warm:
+  Turn neutral/side/up/down and SquatWait/SquatRv straight/diagonal down-B.
+  Source semantic SHA-256 is
+  `ff769518d416614109e793ead93b30e6d3c1d07c7422484ecfe434954233698f`;
+  matched production SHA-256 is
+  `f16e1d6a7d390a8d8a6a99a93c4952e8ca848ec3679e037a70dfba8a702fbd1d`.
+- The shared natural-movement projector now accepts declarative action-state
+  and displayed-frame offsets for character action aliases, allowing Falcon
+  Dive/Falcon Kick source names to reuse the generic native-CSV runner. The
+  registered gate is 23 domains / 129 cases plus replay. The focused domain
+  passes in 359.829 ms on Windows and 462.900 ms in WSL; the complete gate
+  passes in 1,190.123/987.654 ms. Windows and WSL Release pass 41/41, and
+  focused WSL ASan/UBSan movement/combat pass.

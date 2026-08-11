@@ -1815,3 +1815,43 @@ the matched production trace is
 `cb0b203a0a211baa55b800cd9e0cf0eb8e4595eaa069c8e865369cad8c94de61`.
 This extends an existing actual-input theorem rather than introducing a web
 probe, synthetic source truth, duplicate action table, or rollback field.
+
+## Falcon common special acquisition masks
+
+Pinned decomp revision `9509dc04406fb2028bfab01243841ba4787c0fb7` and
+current upstream `d882af94175e3c880ad51039e2979aa9a50aea09` have identical
+callback lists in `ftCo_SquatWait_IASA`, `ftCo_SquatRv_IASA`, and
+`ftCo_Turn_IASA`. The two crouch states call only `ftCo_800D68C0`
+(`SpecialLw`). Turn calls the side, down, and up dispatchers in source order
+and never calls the neutral-special dispatcher.
+
+Production stores that source surface in a local four-bit capability mask.
+Unavailable directions are removed before the common direction-priority
+calculation, so a radial-gate diagonal with both side and down components
+still reaches crouch's only legal callback. This is a zero-allocation control
+abstraction; it adds no character data table, parser, canonical state, save
+field, or duplicated special implementation.
+
+The live oracle uses Final Destination and actual controller inputs. Four Turn
+cases submit neutral, side, up, and down B on displayed Turn frame 2. Four
+crouch cases submit straight or normalized diagonal down-B from SquatWait and
+SquatRv. The exact source outcomes are Turn retention, Falcon Raptor Boost,
+Falcon Dive, and Falcon Kick, plus Falcon Kick for every crouch route.
+
+This slice also closes a checkpoint-transport flaw exposed by those divergent
+branches. Protocol `immutable-multislot-slippi-state-file-control-v2` keeps up
+to sixteen fixed snapshot owners and consumes a load on an unrecorded neutral
+EXI frame before the first recorded case input. The manifest saves eight
+one-shot neutral-Wait slots, avoiding cross-case branch contamination without
+reconnecting the observer or relaunching Dolphin.
+
+Two fresh 134-row captures are byte-identical at raw SHA-256
+`9459f985c09db1ef05f8ec0792225780ffe69f3547c71b13721d8c6fc477db63`.
+Their warm durations are 1.048235 and 0.721242 seconds. The selected
+action/tick/facing/grounded source trace hashes to
+`ff769518d416614109e793ead93b30e6d3c1d07c7422484ecfe434954233698f`;
+the native production trace hashes to
+`f16e1d6a7d390a8d8a6a99a93c4952e8ca848ec3679e037a70dfba8a702fbd1d`.
+The shared natural-movement projector's declarative action aliases keep the
+Falcon-specific names in the manifest while all extraction, input expansion,
+field selection, hashing, replay, and runner execution remain generic.

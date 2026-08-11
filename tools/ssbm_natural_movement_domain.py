@@ -116,6 +116,47 @@ def _source_action_ticks(
     return elapsed
 
 
+def _action_mapping(
+    raw: object,
+    context: str,
+) -> dict[str, tuple[int, int | None]]:
+    if raw is None:
+        return {}
+    if not isinstance(raw, dict):
+        raise NaturalMovementDomainError(f"action-mapping context={context}")
+    result: dict[str, tuple[int, int | None]] = {}
+    for action, config in raw.items():
+        if (
+            not isinstance(action, str)
+            or not action
+            or not isinstance(config, dict)
+            or set(config) != {"action_state", "action_tick_offset"}
+        ):
+            raise NaturalMovementDomainError(
+                f"action-mapping context={context} action={action!r}"
+            )
+        action_state = config["action_state"]
+        tick_offset = config["action_tick_offset"]
+        if (
+            not isinstance(action_state, int)
+            or isinstance(action_state, bool)
+            or not 0 <= action_state <= 65535
+            or (
+                tick_offset is not None
+                and (
+                    not isinstance(tick_offset, int)
+                    or isinstance(tick_offset, bool)
+                    or not -4096 <= tick_offset <= 4096
+                )
+            )
+        ):
+            raise NaturalMovementDomainError(
+                f"action-mapping context={context} action={action!r}"
+            )
+        result[action] = (action_state, tick_offset)
+    return result
+
+
 def canonical_capture(
     capture: dict[str, Any],
     coverage: dict[str, Any],
@@ -126,12 +167,23 @@ def canonical_capture(
     fields = stored.get("serialized_fields")
     if not isinstance(cases, list) or not cases or not isinstance(fields, list):
         raise NaturalMovementDomainError("stored-case-schema")
+    domain_action_mapping = _action_mapping(
+        stored.get("action_mapping"),
+        "stored-oracle",
+    )
 
     canonical_cases: list[dict[str, Any]] = []
     for case in cases:
         if not isinstance(case, dict):
             raise NaturalMovementDomainError("stored-case-schema")
         case_id = str(case.get("id"))
+        action_mapping = {
+            **domain_action_mapping,
+            **_action_mapping(
+                case.get("action_mapping"),
+                f"case={case_id}",
+            ),
+        }
         rows = _case_rows(all_rows, case)
         if len(rows) != case.get("sample_count"):
             raise NaturalMovementDomainError(
@@ -164,11 +216,19 @@ def canonical_capture(
         origin_y = float(rows[0]["position_y"])
         samples: list[dict[str, int]] = []
         for sample_index, row in enumerate(rows):
-            action_state = expected_action_state(
-                str(row["action"]),
-                float(row["action_frame"]),
-            )
-            action_ticks = _source_action_ticks(rows, sample_index)
+            action = str(row["action"])
+            action_frame = float(row["action_frame"])
+            mapped_action = action_mapping.get(action)
+            if mapped_action is None:
+                action_state = expected_action_state(action, action_frame)
+                action_ticks = _source_action_ticks(rows, sample_index)
+            else:
+                action_state, tick_offset = mapped_action
+                action_ticks = (
+                    None
+                    if tick_offset is None
+                    else round(action_frame) + tick_offset
+                )
             selected_fields = selected_trace_fields(
                 fields,
                 exclusions,

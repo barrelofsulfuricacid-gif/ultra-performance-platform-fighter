@@ -2,10 +2,11 @@ diff --git a/Source/Core/Core/HW/EXI_DeviceSlippi.cpp b/Source/Core/Core/HW/EXI_
 index 71eb6cfe4..b95f03334 100644
 --- a/Source/Core/Core/HW/EXI_DeviceSlippi.cpp
 +++ b/Source/Core/Core/HW/EXI_DeviceSlippi.cpp
-@@ -10,7 +10,10 @@
+@@ -10,7 +10,11 @@
  #include <SlippiLib/SlippiGame.h>
  
  #include <semver/include/semver200.h>
++#include <array>
 +#include <cstdio>
 +#include <memory>
  #include <utility> // std::move
@@ -13,11 +14,12 @@ index 71eb6cfe4..b95f03334 100644
  
  #include "Common/CommonPaths.h"
  #include "Common/CommonTypes.h"
-@@ -55,6 +58,62 @@
+@@ -55,6 +59,61 @@
  static std::unordered_map<u8, std::string> slippi_names;
  static std::unordered_map<u8, std::string> slippi_connect_codes;
  
-+static std::unique_ptr<SlippiSavestate> s_oracle_checkpoint;
++static std::array<std::unique_ptr<SlippiSavestate>, 16>
++    s_oracle_checkpoints;
 +static unsigned int s_oracle_checkpoint_generation = 0;
 +
 +static void WriteOracleCheckpointStatus(
@@ -47,24 +49,22 @@ index 71eb6cfe4..b95f03334 100644
 +	const int fields = fscanf(request, "%15s %u", action, &slot);
 +	fclose(request);
 +	unlink(path.c_str());
-+	if (fields < 1 || slot != 0)
++	if (fields < 1 || slot >= s_oracle_checkpoints.size())
 +		return;
 +	if (strcmp(action, "save") == 0)
 +	{
-+		s_oracle_checkpoint = std::make_unique<SlippiSavestate>();
-+		s_oracle_checkpoint->Capture();
++		s_oracle_checkpoints[slot] = std::make_unique<SlippiSavestate>();
++		s_oracle_checkpoints[slot]->Capture();
 +		WriteOracleCheckpointStatus("saved", slot);
 +	}
-+	else if (strcmp(action, "load") == 0 && s_oracle_checkpoint)
++	else if (strcmp(action, "load") == 0 && s_oracle_checkpoints[slot])
 +	{
-+		s_oracle_checkpoint->Load({
++		s_oracle_checkpoints[slot]->Load({
 +		    {0x804BF9D2, 4},
 +		    {0x804C3DE4, 20},
 +		    {0x804C4560, 44},
 +		    {0x804D7760, 36},
 +		});
-+		s_oracle_checkpoint = std::make_unique<SlippiSavestate>();
-+		s_oracle_checkpoint->Capture();
 +		WriteOracleCheckpointStatus("loaded", slot);
 +	}
 +	else if (strcmp(action, "load") == 0)

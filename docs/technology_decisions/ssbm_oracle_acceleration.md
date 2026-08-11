@@ -44,8 +44,12 @@ The sweep found no maintained external experiment server that supplies this
 checkpoint protocol. `tools/ssbm_exiai_checkpoint.patch` adds an atomic,
 process-owned save/load control channel to NoGUI. It preserves the existing
 ENet observer, services requests only while the game is blocked for EXI input,
-and rebases the restored checkpoint after every load so monotonic Slippi state
-does not outlive the short rollback window for which the primitive was built.
+and exposes sixteen fixed snapshot slots. Protocol v2 assigns divergent cases
+one immutable slot each and performs the load on a hidden neutral EXI boundary
+before submitting the first recorded input. The original immediate-rebase
+prototype was deterministic for linear routes but was retired after a
+branching special-action pack proved that it could retain state from the
+discarded branch.
 
 ## Reproducible setup
 
@@ -225,6 +229,15 @@ rejected: controller pipes reconnect, but a new Slippi client resumes with a
 desynchronized event stream and then blocks. Persistence therefore stays
 inside one connected runner/packed invocation rather than relying on unsafe
 cross-process reattachment.
+
+The v2 boundary is intentionally unrecorded. A restore request, neutral
+controller sample, and acknowledgement complete first; only then are direct
+memory overrides and the case's first input applied. This prevents both the
+controller sample and placement/RNG writes from targeting the pre-restore
+branch. A repeated-load probe protects one-slot reuse, while domains with
+divergent action flows can declare up to sixteen one-shot slots. The first
+eight-slot pack captures 134 special-acquisition rows in 0.721-1.048 seconds
+warm inside one connected process.
 
 ## Manifest-selected stored regression lane
 

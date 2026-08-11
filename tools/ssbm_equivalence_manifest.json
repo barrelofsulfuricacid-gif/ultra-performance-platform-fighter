@@ -42,6 +42,7 @@
     "tools/ssbm_falcon_ledge_options_coverage.json",
     "tools/ssbm_falcon_airborne_landing_coverage.json",
     "tools/ssbm_falcon_aerial_attack_landing_coverage.json",
+    "tools/ssbm_falcon_special_acquisition_coverage.json",
     "tools/ssbm_falcon_shield_break_coverage.json"
   ],
   "replay": {

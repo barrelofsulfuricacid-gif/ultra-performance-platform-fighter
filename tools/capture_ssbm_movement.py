@@ -65,7 +65,7 @@ EXIAI_020_APPIMAGE_SHA256 = (
 # independent Dolphin boots.
 HSD_RANDOM_SEED_ADDRESS = 0x804D5F90
 HSD_RANDOM_SEED_POINTER_ADDRESS = 0x804D5F94
-CHECKPOINT_SLOT_COUNT = 1
+CHECKPOINT_SLOT_COUNT = 16
 
 # MnSlMap.usd's stage-entry table maps St_Kind_Shrine (0x0E) to entry 5. The
 # matching x90 anchor animation resolves to (-3.3, 15.7), and odd entry 5 uses
@@ -91,6 +91,7 @@ def input_trace(
     checkpoint_isolated: bool = False,
     damage_hit_only: bool = False,
     defense_state_only: bool = False,
+    special_acquisition_only: bool = False,
     attack_iasa_only: bool = False,
     aerial_iasa_only: bool = False,
     aerial_attack_ecb_only: bool = False,
@@ -244,6 +245,81 @@ def input_trace(
             )
         )
         repeat(f"{prefix}_settle", 60)
+
+    if special_acquisition_only:
+        if not checkpoint_isolated or checkpoint_capture_plan is None:
+            raise ValueError(
+                "special acquisition requires a checkpoint capture plan"
+            )
+        raw_cases = checkpoint_capture_plan.get("special_acquisition_cases")
+        if not isinstance(raw_cases, list) or not raw_cases:
+            raise ValueError("special acquisition checkpoint cases are required")
+        case_ids: set[str] = set()
+        for raw_case in raw_cases:
+            if not isinstance(raw_case, dict):
+                raise ValueError("special acquisition case must be an object")
+            case_id = raw_case.get("id")
+            source_state = raw_case.get("source_state")
+            edge_main = raw_case.get("edge_main")
+            observe_ticks = raw_case.get("observe_ticks", 5)
+            checkpoint_slot = raw_case.get("checkpoint_slot", 0)
+            if (
+                not isinstance(case_id, str)
+                or not case_id
+                or case_id in case_ids
+                or source_state not in {"squat_wait", "squat_rv", "turn"}
+                or not isinstance(edge_main, list)
+                or len(edge_main) != 2
+                or any(
+                    not isinstance(value, int)
+                    or isinstance(value, bool)
+                    or not -32767 <= value <= 32767
+                    for value in edge_main
+                )
+                or not isinstance(observe_ticks, int)
+                or isinstance(observe_ticks, bool)
+                or not 1 <= observe_ticks <= 16
+                or not isinstance(checkpoint_slot, int)
+                or isinstance(checkpoint_slot, bool)
+                or not 0 <= checkpoint_slot < CHECKPOINT_SLOT_COUNT
+            ):
+                raise ValueError(
+                    f"invalid special acquisition case {case_id!r}"
+                )
+            prefix = f"special_acquisition_{case_id}"
+            first = command(
+                f"{prefix}_setup",
+                main_x=(
+                    controller_axis(-16384)
+                    if source_state == "turn"
+                    else 0.5
+                ),
+                main_y=(0.5 if source_state == "turn" else 0.0),
+            )
+            trace.append(
+                {
+                    **first,
+                    "restore_before": True,
+                    "checkpoint_slot": checkpoint_slot,
+                }
+            )
+            if source_state in {"squat_wait", "squat_rv"}:
+                repeat(f"{prefix}_setup", 19, main_y=0.0)
+                if source_state == "squat_rv":
+                    trace.append(command(f"{prefix}_release"))
+            edge_x = controller_axis(edge_main[0])
+            edge_y = controller_axis(-edge_main[1])
+            trace.append(
+                command(
+                    f"{prefix}_edge",
+                    main_x=edge_x,
+                    main_y=edge_y,
+                    special=True,
+                )
+            )
+            repeat(f"{prefix}_observe", observe_ticks)
+            case_ids.add(case_id)
+        return trace
 
     if push_only:
         if checkpoint_isolated:
@@ -6093,6 +6169,20 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
         if checkpoint_capture_plan is not None
         else False
     )
+    checkpoint_slot_count = (
+        checkpoint_capture_plan.get("checkpoint_slot_count", 1)
+        if checkpoint_capture_plan is not None
+        else 1
+    )
+    if (
+        not isinstance(checkpoint_slot_count, int)
+        or isinstance(checkpoint_slot_count, bool)
+        or not 1 <= checkpoint_slot_count <= CHECKPOINT_SLOT_COUNT
+    ):
+        raise ValueError(
+            "checkpoint_pack.capture_plan.checkpoint_slot_count must be "
+            f"between 1 and {CHECKPOINT_SLOT_COUNT}"
+        )
     if not isinstance(checkpoint_batch_inputs, bool):
         raise ValueError("checkpoint_pack.capture_plan.batch_exi_inputs must be boolean")
     if args.oracle_checkpoint_no_batch_inputs:
@@ -6348,6 +6438,26 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
 
         player_one.release_all()
         player_two.release_all()
+        if args.special_acquisition_only:
+            # Menu navigation can leave Falcon in a carried-over crouch when
+            # the match first reaches the capture frame.  This domain needs a
+            # neutral Wait checkpoint so every case can acquire its declared
+            # source state independently.
+            for _ in range(180):
+                player_one.release_all()
+                player_two.release_all()
+                gamestate = console.step()
+                if gamestate is None:
+                    raise RuntimeError(
+                        "missing game state while settling special acquisition"
+                    )
+                player = gamestate.players.get(1)
+                if player is not None and player.action == melee.Action.STANDING:
+                    break
+            else:
+                raise RuntimeError(
+                    "special acquisition checkpoint did not settle to Wait"
+                )
         checkpoint_probe = None
         checkpoint_pack_started_at = None
         checkpoint_pack_save_seconds = 0.0
@@ -6389,16 +6499,49 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             )
             restored_game_frame = int(gamestate.frame)
             restored_position_x = float(gamestate.players[1].position.x)
+            for _ in range(5):
+                player_one.release_all()
+                player_two.release_all()
+                player_one.tilt_analog(melee.Button.BUTTON_MAIN, 1.0, 0.5)
+                gamestate = console.step()
+                if gamestate is None:
+                    raise RuntimeError(
+                        "missing game state during repeated checkpoint probe"
+                    )
+            repeated_advanced_position_x = float(
+                gamestate.players[1].position.x
+            )
+            player_one.release_all()
+            player_two.release_all()
+            pending_checkpoint = begin_headless_checkpoint(
+                console._process, "loaded"
+            )
+            gamestate = console.step()
+            if gamestate is None:
+                raise RuntimeError(
+                    "missing game state after repeated checkpoint restore"
+                )
+            repeated_load_seconds = finish_headless_checkpoint(
+                console._process, pending_checkpoint
+            )
+            repeated_restored_position_x = float(
+                gamestate.players[1].position.x
+            )
             if (
                 advanced_position_x <= saved_position_x + 0.01
                 or abs(restored_position_x - saved_position_x) > 0.000001
+                or repeated_advanced_position_x <= saved_position_x + 0.01
+                or abs(repeated_restored_position_x - saved_position_x)
+                > 0.000001
             ):
                 raise RuntimeError(
                     "checkpoint did not restore the captured state: "
                     f"saved={saved_game_frame} advanced={advanced_game_frame} "
                     f"restored={restored_game_frame} "
                     f"saved_x={saved_position_x} advanced_x={advanced_position_x} "
-                    f"restored_x={restored_position_x}"
+                    f"restored_x={restored_position_x} "
+                    f"repeated_advanced_x={repeated_advanced_position_x} "
+                    f"repeated_restored_x={repeated_restored_position_x}"
                 )
             checkpoint_probe = {
                 "saved_game_frame": saved_game_frame,
@@ -6407,25 +6550,31 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 "saved_position_x": saved_position_x,
                 "advanced_position_x": advanced_position_x,
                 "restored_position_x": restored_position_x,
+                "repeated_advanced_position_x": repeated_advanced_position_x,
+                "repeated_restored_position_x": repeated_restored_position_x,
                 "save_seconds": save_seconds,
                 "load_seconds": load_seconds,
+                "repeated_load_seconds": repeated_load_seconds,
             }
         elif args.oracle_checkpoint_pack:
             if console._process is None:
                 raise RuntimeError("checkpoint pack requires a local Dolphin process")
             if memory_engine is None:
                 raise RuntimeError("checkpoint pack requires memory placement")
-            pending_checkpoint = begin_headless_checkpoint(
-                console._process, "saved"
-            )
-            player_one.release_all()
-            player_two.release_all()
-            gamestate = console.step()
-            if gamestate is None:
-                raise RuntimeError("missing game state while saving checkpoint pack")
-            checkpoint_pack_save_seconds = finish_headless_checkpoint(
-                console._process, pending_checkpoint
-            )
+            for checkpoint_slot in range(checkpoint_slot_count):
+                pending_checkpoint = begin_headless_checkpoint(
+                    console._process, "saved", slot=checkpoint_slot
+                )
+                player_one.release_all()
+                player_two.release_all()
+                gamestate = console.step()
+                if gamestate is None:
+                    raise RuntimeError(
+                        "missing game state while saving checkpoint pack"
+                    )
+                checkpoint_pack_save_seconds += finish_headless_checkpoint(
+                    console._process, pending_checkpoint
+                )
             checkpoint_pack_started_at = time.monotonic()
         rows: list[dict[str, object]] = []
         origin_x: float | None = None
@@ -6452,6 +6601,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             checkpoint_isolated=args.oracle_checkpoint_pack,
             damage_hit_only=args.damage_hit_only,
             defense_state_only=args.defense_state_only,
+            special_acquisition_only=args.special_acquisition_only,
             attack_iasa_only=args.attack_iasa_only,
             aerial_iasa_only=args.aerial_iasa_only,
             aerial_attack_ecb_only=args.aerial_attack_ecb_only,
@@ -6528,7 +6678,6 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
         }
         checkpoint_restore_seconds = 0.0
         checkpoint_case_labels: list[str] = []
-        pending_restore: dict[str, object] | None = None
         batch_exi_inputs = checkpoint_batch_inputs
         if batch_exi_inputs:
             # Switch only after menus and checkpoint setup are complete. Before
@@ -6718,11 +6867,36 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                         flush=True,
                     )
 
-                pending_restore = begin_headless_checkpoint(
+                if buffered_input_frames != 0:
+                    raise RuntimeError(
+                        "checkpoint boundary reached with buffered EXI inputs"
+                    )
+                checkpoint_request = begin_headless_checkpoint(
                     console._process,
                     "loaded",
                     slot=checkpoint_slot,
                 )
+                player_one.release_all()
+                player_two.release_all()
+                gamestate = console.step()
+                if (
+                    gamestate is None
+                    or 1 not in gamestate.players
+                    or 2 not in gamestate.players
+                ):
+                    raise RuntimeError(
+                        "missing player state at checkpoint restore boundary"
+                    )
+                try:
+                    checkpoint_restore_seconds += finish_headless_checkpoint(
+                        console._process,
+                        checkpoint_request,
+                    )
+                except Exception as error:
+                    raise RuntimeError(
+                        "checkpoint restore failed before case "
+                        f"{case_number} ({sample['label']})"
+                    ) from error
                 origin_x = None
                 origin_two_x = None
                 cliff_wait_fighter_address = None
@@ -6736,6 +6910,14 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 ledge_cooldown_recording_armed = False
                 ledge_cooldown_by_command_index.clear()
                 checkpoint_case_labels.append(str(sample["label"]))
+                if args.oracle_checkpoint_pack:
+                    print(
+                        "ssbm-checkpoint-restore=pass "
+                        f"case={len(checkpoint_case_labels)} seconds="
+                        f"{time.monotonic() - case_started_at:.6f}",
+                        file=sys.stderr,
+                        flush=True,
+                    )
             conditional_edge_fired_now = False
             conditional_edges = command_conditional_edges(sample)
             if conditional_edges:
@@ -6842,10 +7024,9 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             source_random_seed_override = sample[
                 "source_random_seed_override"
             ]
-            if pending_restore is None:
-                apply_memory_overrides(
-                    fighter_overrides, source_random_seed_override
-                )
+            apply_memory_overrides(
+                fighter_overrides, source_random_seed_override
+            )
             input_was_buffered = buffered_input_frames != 0
             if input_was_buffered:
                 attached_controllers = console.controllers
@@ -6865,34 +7046,6 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 raise RuntimeError(
                     f"missing player state at command frame {command_index}"
                 )
-            if pending_restore is not None:
-                try:
-                    checkpoint_restore_seconds += finish_headless_checkpoint(
-                        console._process,
-                        pending_restore,
-                    )
-                except Exception as error:
-                    raise RuntimeError(
-                        "checkpoint restore failed before case "
-                        f"{len(checkpoint_case_labels)} "
-                        f"({sample['label']})"
-                    ) from error
-                pending_restore = None
-                # The load is acknowledged only after this EXI boundary. Any
-                # direct writes made before the step targeted the discarded
-                # pre-restore state, so apply them once to the restored state
-                # before recording the case boundary.
-                apply_memory_overrides(
-                    fighter_overrides, source_random_seed_override
-                )
-                if args.oracle_checkpoint_pack:
-                    print(
-                        "ssbm-checkpoint-restore=pass "
-                        f"case={len(checkpoint_case_labels)} seconds="
-                        f"{time.monotonic() - case_started_at:.6f}",
-                        file=sys.stderr,
-                        flush=True,
-                    )
             if command_index < pipeline_delay:
                 continue
             index = command_index - pipeline_delay
@@ -7404,7 +7557,14 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             )
         checkpoint_pack = (
             {
-                "protocol": "rebased-slippi-state-file-control-v1",
+                "protocol": (
+                    checkpoint_coverage_manifest.get("checkpoint_pack", {}).get(
+                        "protocol", "rebased-slippi-state-file-control-v1"
+                    )
+                    if isinstance(checkpoint_coverage_manifest, dict)
+                    else "rebased-slippi-state-file-control-v1"
+                ),
+                "slot_count": checkpoint_slot_count,
                 "case_count": len(checkpoint_case_labels),
                 "case_start_labels": checkpoint_case_labels,
                 "coverage_manifest": checkpoint_coverage_manifest,
@@ -7493,6 +7653,9 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             "shield_hit_route": bool(args.shield_hit_only),
             "damage_hit_route": bool(args.damage_hit_only),
             "defense_state_route": bool(args.defense_state_only),
+            "special_acquisition_route": bool(
+                args.special_acquisition_only
+            ),
             "shield_break_orientation_route": bool(
                 args.shield_break_orientation_only
             ),
@@ -7727,6 +7890,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     mode.add_argument("--common-hurt-geometry-only", action="store_true")
     mode.add_argument("--damage-hit-only", action="store_true")
     mode.add_argument("--defense-state-only", action="store_true")
+    mode.add_argument("--special-acquisition-only", action="store_true")
     mode.add_argument("--attack-iasa-only", action="store_true")
     mode.add_argument("--aerial-iasa-only", action="store_true")
     mode.add_argument("--aerial-attack-ecb-only", action="store_true")
@@ -7778,6 +7942,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             args.common_hurt_geometry_only
             or args.damage_hit_only
             or args.push_only
+            or args.special_acquisition_only
         )
     ):
         parser.error(

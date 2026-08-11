@@ -365,3 +365,16 @@ matched production SHA-256 is
 The 5.0 DownBound boundary is protected by exact native threshold tests because
 ordinary actual-input knockback reaches tumbling routes before exposing that
 non-tumble branch. Wider attack, stage, and interrupt combinations remain open.
+
+Current common-special acquisition addendum: the decomp's callback lists are
+now represented directly rather than treating every interruptible common
+state as having all four specials. `SquatWait` and `SquatRv` accept only
+Falcon Kick, including a radial-gate diagonal whose side component has no
+callback. `Turn` accepts Raptor Boost, Falcon Dive, and Falcon Kick while a
+neutral B edge leaves Turn active. An eight-case/134-row actual-input Dolphin
+domain and the generic native-CSV stored runner match on action, action clock,
+facing, and grounded state under source/production SHA-256
+`ff769518d416614109e793ead93b30e6d3c1d07c7422484ecfe434954233698f` /
+`f16e1d6a7d390a8d8a6a99a93c4952e8ca848ec3679e037a70dfba8a702fbd1d`.
+This closes those three callback surfaces only; unrepresented common and
+character-state callback lists remain subject to the continuing source audit.

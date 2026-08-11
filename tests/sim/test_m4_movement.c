@@ -3522,9 +3522,7 @@ static int run_crouch_common_iasa_test(
     {
         const uint8_t crouch_action = crouch_actions[action_index];
         const uint8_t expected_action =
-            crouch_action == (uint8_t)PF_M4_ACTION_CROUCH_START
-                ? (uint8_t)PF_M4_ACTION_FALCON_KICK_START_GROUND
-                : crouch_action;
+            (uint8_t)PF_M4_ACTION_FALCON_KICK_START_GROUND;
 
         if (!reset_to_crouch_action(
                 sim,
@@ -3545,6 +3543,64 @@ static int run_crouch_common_iasa_test(
                 (unsigned int)crouch_action);
             return 0;
         }
+    }
+
+    /* SquatWait/SquatRv dispatch SpecialLw directly, so a simultaneous
+     * horizontal special tilt cannot steal or suppress the down-special. */
+    for (action_index = (size_t)1;
+         action_index <
+             sizeof(crouch_actions) / sizeof(crouch_actions[0]);
+         ++action_index)
+    {
+        if (!reset_to_crouch_action(
+                sim,
+                &route_content,
+                crouch_actions[action_index],
+                &inspection) ||
+            !step_duel(
+                sim,
+                INT16_MAX,
+                (int16_t)route_content.fighter.crouch_axis_threshold,
+                PF_INPUT_BUTTON_SPECIAL,
+                &inspection) ||
+            inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_FALCON_KICK_START_GROUND)
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=crouch-diagonal-down-special-%u\n",
+                (unsigned int)crouch_actions[action_index]);
+            return 0;
+        }
+    }
+
+    /* Turn omits SpecialN even though it dispatches the other three Falcon
+     * specials. A neutral B edge must leave the turn active. */
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(3)),
+            PF_STATUS_OK,
+            "turn-neutral-special-reset") ||
+        !step_duel(
+            sim,
+            INT16_MIN,
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_STANDING_TURN ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_SPECIAL,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_STANDING_TURN)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=turn-neutral-special-rejected\n");
+        return 0;
     }
 
     for (action_index = (size_t)0;
