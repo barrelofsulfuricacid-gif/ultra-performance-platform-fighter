@@ -371,12 +371,15 @@ now represented directly rather than treating every interruptible common
 state as having all four specials. `SquatWait` and `SquatRv` accept only
 Falcon Kick, including a radial-gate diagonal whose side component has no
 callback. `Turn` accepts Raptor Boost, Falcon Dive, and Falcon Kick while a
-neutral B edge leaves Turn active. An eight-case/134-row actual-input Dolphin
+neutral B edge leaves Turn active. A twelve-case/160-row actual-input Dolphin
 domain and the generic native-CSV stored runner match on action, action clock,
 facing, and grounded state under source/production SHA-256
-`ff769518d416614109e793ead93b30e6d3c1d07c7422484ecfe434954233698f` /
-`f16e1d6a7d390a8d8a6a99a93c4952e8ca848ec3679e037a70dfba8a702fbd1d`.
-This closes those three callback surfaces only; unrepresented common and
+`92ed40ead35b06ae754f1289a585ca0744fa3864adf5a25ed2d4f06278a09867` /
+`92ed40ead35b06ae754f1289a585ca0744fa3864adf5a25ed2d4f06278a09867`.
+The added Walk/Wait cases prove opposite Catch/Special ordering and prevent
+generic projectile/charge/reflector frontends from consuming Falcon's B edge.
+The reusable direct comparator also closed Turn-special facing. This closes
+those callback surfaces only; unrepresented common and
 character-state callback lists remain subject to the continuing source audit.
 
 The teeter addendum closes two more source callback surfaces. Pinned and
@@ -390,8 +393,10 @@ byte-identical at SHA-256
 `a21b615da3f45642278ce4a1b2f6ba8335588e2568e423b2467fd1d55119bcca`;
 source/production semantic SHA-256 values are
 `2065e789ba0285f8b3d878bdc2615bf0a7e983ee02da356f6f46d0b924a6908e` /
-`63ca98b93c32df9a1937f69d47c3f8e6ab75645d48405a7b67f6579c61b5f9ba`.
-The fixture never writes a teeter action directly. Unrepresented callback
+`2065e789ba0285f8b3d878bdc2615bf0a7e983ee02da356f6f46d0b924a6908e`.
+The direct comparator exposed and closed both Teeter up-special eligibility
+and Falcon Punch's `ft_800827A0` mode-2 endpoint clamp. The fixture never
+writes a teeter action directly. Unrepresented callback
 lists remain open.
 
 The GuardOff addendum closes its complete represented acquisition surface.
@@ -407,7 +412,9 @@ all three smashes, grab, an ordinary-shield neutral-B negative control, and
 ordinary/powershield jump and spot dodge. Its
 source/production semantic SHA-256 values are
 `851a0c05e393bd644344bf8a49d70fceea179727903ff68feacebb1c12a27c0d` /
-`0b56d0726ae0eb248d244107b50741d1451d8550889c481d8881d6b726a04d00`.
+`851a0c05e393bd644344bf8a49d70fceea179727903ff68feacebb1c12a27c0d`.
+The direct comparator additionally fixes and protects EscapeN and ground-
+attack displayed frame 1 on the GuardOff acquisition update.
 The setup resets both fighters' collision-position history, begins shield on
 the attack edge, and reaffirms it at the opponent's observed Jab frame. Six
 concurrent shards keep each divergent worker at three cases or fewer; it is

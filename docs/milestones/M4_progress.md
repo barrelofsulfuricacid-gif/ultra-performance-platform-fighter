@@ -6245,13 +6245,13 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   before sending the case's first input. Eight one-shot Wait snapshots keep
   divergent specials independent inside one Dolphin process.
 - Two fresh headless/null/unlimited captures are byte-identical at raw SHA-256
-  `9459f985c09db1ef05f8ec0792225780ffe69f3547c71b13721d8c6fc477db63`.
-  They cover eight cases / 134 rows in 1.048235 and 0.721242 seconds warm:
+  `eed4476d41a97641c48114b453985f0306ab55785aeb49c4be8869e1fc51f5e5`.
+  They cover twelve cases / 160 rows in 1.693055 and 1.447210 seconds warm:
   Turn neutral/side/up/down and SquatWait/SquatRv straight/diagonal down-B.
   Source semantic SHA-256 is
-  `ff769518d416614109e793ead93b30e6d3c1d07c7422484ecfe434954233698f`;
+  `92ed40ead35b06ae754f1289a585ca0744fa3864adf5a25ed2d4f06278a09867`;
   matched production SHA-256 is
-  `f16e1d6a7d390a8d8a6a99a93c4952e8ca848ec3679e037a70dfba8a702fbd1d`.
+  `92ed40ead35b06ae754f1289a585ca0744fa3864adf5a25ed2d4f06278a09867`.
 - The shared natural-movement projector now accepts declarative action-state
   and displayed-frame offsets for character action aliases, allowing Falcon
   Dive/Falcon Kick source names to reuse the generic native-CSV runner. The
@@ -6278,7 +6278,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   Source semantic SHA-256 is
   `2065e789ba0285f8b3d878bdc2615bf0a7e983ee02da356f6f46d0b924a6908e`;
   matching production SHA-256 is
-  `63ca98b93c32df9a1937f69d47c3f8e6ab75645d48405a7b67f6579c61b5f9ba`.
+  `2065e789ba0285f8b3d878bdc2615bf0a7e983ee02da356f6f46d0b924a6908e`.
   Warm captures take 0.268028 and 0.245186 seconds.
 - The generic stored registry now covers 24 domains / 133 cases plus replay.
   The complete gate passes in 1,124.230 ms on Windows and 1,271.197 ms in WSL.
@@ -6309,11 +6309,43 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   `20e3d7a2e5e5cba93df059069b72cf560a0c4641258582997fd6aebc6bdc8649`.
   Source/production semantic SHA-256 values are
   `851a0c05e393bd644344bf8a49d70fceea179727903ff68feacebb1c12a27c0d` /
-  `0b56d0726ae0eb248d244107b50741d1451d8550889c481d8881d6b726a04d00`;
+  `851a0c05e393bd644344bf8a49d70fceea179727903ff68feacebb1c12a27c0d`;
   warm captures take 7.867078 and 7.607262 seconds, while complete cold runs
   take 9.102883 and 7.937196 seconds.
-- The registry now covers 25 domains / 150 cases plus replay. The complete
+- The registry now covers 25 domains / 154 cases plus replay. The complete
   gate passes in 1,138.696 ms on Windows and 923.125 ms in WSL; the focused
   17-case lane passes in 879.898/417.053 ms. Both post-rename Release suites
   pass 41/41; focused WSL ASan/UBSan movement/combat passed for the production
   implementation.
+
+## 2026-08-11: callback-priority fidelity and exact live/native equality
+
+- Audited pinned decomp `9509dc0` and current upstream `d882af9` before the
+  implementation. `ftCo_Walk_IASA` checks Catch before Special, whereas
+  `ftCo_Wait_IASA` checks Special before Catch and attacks. Falcon's reference
+  dispatcher now receives those raw chords before the authored charge,
+  reflector, and projectile frontends can consume them.
+- Extended the checkpoint acquisition pack to twelve cases / 160 rows with
+  actual Walk and Wait entries. Walk Z+B selects Grab, low-axis Walk B selects
+  Falcon Punch, Wait Z+B selects Falcon Punch, and Wait up+A+B selects Falcon
+  Dive. Two live captures are byte-identical at raw SHA-256
+  `eed4476d41a97641c48114b453985f0306ab55785aeb49c4be8869e1fc51f5e5`.
+- Extracted the native CSV execution/canonicalization into
+  `ssbm_native_csv_trace.py` and added a generic direct comparator. The first
+  direct comparison exposed four previously pinned divergences: Turn-special
+  facing, Teeter up-special eligibility, Falcon Punch's `ft_800827A0` mode-2
+  endpoint clamp, and GuardOff EscapeN/attack entry clocks. All are closed.
+- Common acquisition, Teeter acquisition, and GuardOff acquisition now have
+  byte-for-byte equal canonical source/production payloads with SHA-256 values
+  `92ed40ead35b06ae754f1289a585ca0744fa3864adf5a25ed2d4f06278a09867`,
+  `2065e789ba0285f8b3d878bdc2615bf0a7e983ee02da356f6f46d0b924a6908e`,
+  and `851a0c05e393bd644344bf8a49d70fceea179727903ff68feacebb1c12a27c0d`.
+  Their manifests require exact source equality, preventing a divergent
+  production digest from being relabeled as equivalence.
+- The complete 25-domain / 154-case stored registry plus replay passes in
+  1.129 seconds on Windows and 1.210 seconds in WSL. Direct live/native
+  comparison passes for all three upgraded domains on both platforms. The
+  final Windows and WSL Release suites pass 41/41; WSL ASan/UBSan passes the
+  movement, combat, projectile, reflector, and charge lanes. The corrected
+  match-soak digest `c14457eb6af305b9` repeats identically across three
+  Windows and three WSL runs before repinning.

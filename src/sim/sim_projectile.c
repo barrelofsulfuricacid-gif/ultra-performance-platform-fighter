@@ -109,28 +109,10 @@ pf_m4_projectile_input_intent pf_m4_prepare_projectile_input(
     if (special_pressed != 0 &&
         content->fighter.reference_frame_data_enabled != UINT8_C(0))
     {
-        const pf_m4_falcon_common_special_attributes *attributes =
-            pf_m4_falcon_reference_common_special_attributes();
-        const int32_t stick_x_q16 = pf_m4_axis_q16(input->main_stick_x);
-
-        if (attributes == NULL ||
-            stick_x_q16 >= attributes->side_special_stick_threshold_q16 ||
-            stick_x_q16 <= -attributes->side_special_stick_threshold_q16)
-        {
-            return PF_M4_PROJECTILE_INPUT_NONE;
-        }
-    }
-    if (special_pressed != 0 &&
-        content->fighter.reference_frame_data_enabled != UINT8_C(0) &&
-        input->main_stick_x >=
-            -(int16_t)content->fighter.axis_dead_zone &&
-        input->main_stick_x <=
-            (int16_t)content->fighter.axis_dead_zone &&
-        input->main_stick_y >=
-            -(int16_t)content->fighter.axis_dead_zone &&
-        input->main_stick_y <=
-            (int16_t)content->fighter.axis_dead_zone)
-    {
+        /* The reference fighter's complete SpecialN/S/Hi/Lw dispatcher lives
+         * in movement. A low non-neutral axis is still Falcon Punch when it
+         * misses every directional threshold; it must not leak into the
+         * authored Pulse Bolt frontend. */
         return PF_M4_PROJECTILE_INPUT_NONE;
     }
     if (special_pressed != 0 &&

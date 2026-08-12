@@ -9072,6 +9072,7 @@ pf_status pf_m4_step_player(
              raw_side_special_requested == 0 ||
              reference_side_special_enabled == 0);
         const int charge_requested =
+            fighter->reference_frame_data_enabled == UINT8_C(0) &&
             content->charge.enabled != UINT8_C(0) &&
             grounded != UINT8_C(0) &&
             up_special_requested != 0 &&
@@ -9111,12 +9112,25 @@ pf_status pf_m4_step_player(
             falcon_side_special_requested == 0 &&
             falcon_neutral_special_requested == 0;
 
+        if (reference_special_input_blocked == 0 &&
+            fighter->reference_frame_data_enabled != UINT8_C(0) &&
+            action_state == (uint8_t)PF_M4_ACTION_STANDING_TURN)
+        {
+            /* Turn's facing update precedes its SpecialS/Lw/Hi callbacks on
+             * the source frame, even though the turn animation is canceled. */
+            facing = (int8_t)-facing;
+        }
+
         if (vector_ascent_requested != 0)
         {
+            /* reference_special_capabilities is the state-specific decomp
+             * callback table. It is authoritative for Falcon; the authored
+             * Vector Ascent allowlist intentionally describes fewer states. */
             if ((fighter->reference_frame_data_enabled != UINT8_C(0) ||
                  (content->recovery.enabled != UINT8_C(0) &&
                   recovery_available != UINT8_C(0))) &&
-                pf_m4_action_can_start_vector_ascent(action_state))
+                (fighter->reference_frame_data_enabled != UINT8_C(0) ||
+                 pf_m4_action_can_start_vector_ascent(action_state)))
             {
                 if (fighter->reference_frame_data_enabled != UINT8_C(0))
                 {
@@ -9932,7 +9946,10 @@ pf_status pf_m4_step_player(
                 strong_attack_pressed
                     ? ground_strong_attack_action
                     : ground_light_attack_action;
-            action_ticks = UINT16_C(0);
+            /* GuardOff's powershield attack callbacks enter the selected
+             * attack at displayed frame 1 after its ordinary update branch
+             * has already passed for this tick. */
+            action_ticks = UINT16_C(1);
             scratch->attack_hit_mask[player_index] = UINT8_C(0);
             scratch->attack_stale_registered[player_index] =
                 UINT8_C(0);
@@ -9952,7 +9969,10 @@ pf_status pf_m4_step_player(
         else if (shield_release_spot_dodge_pressed != 0)
         {
             action_state = (uint8_t)PF_M4_ACTION_SPOT_DODGE;
-            action_ticks = UINT16_C(0);
+            /* EscapeN begins at displayed frame 1 on the GuardOff IASA
+             * acquisition tick. Its ordinary update branch has already run
+             * earlier in this function, so commit that frame explicitly. */
+            action_ticks = UINT16_C(1);
             velocity_x = INT32_C(0);
             short_hop_latched = UINT8_C(0);
             dash_direction = INT8_C(0);
@@ -14184,6 +14204,21 @@ pf_status pf_m4_step_player(
                     fighter->half_width_q16,
                     surface_left,
                     surface_right);
+        }
+        if (action_state ==
+                (uint8_t)PF_M4_ACTION_FALCON_PUNCH_GROUND &&
+            previous_position_x >= surface_left &&
+            previous_position_x <= surface_right &&
+            (position_x < surface_left || position_x > surface_right))
+        {
+            /* ftCa_SpecialN_Coll uses ft_800827A0, whose mode-2 floor
+             * callback snaps the ECB bottom to the crossed floor endpoint
+             * and remains grounded. This also prevents one-Q16 root motion
+             * from spuriously cascading into SpecialAirN at a ledge. */
+            position_x = position_x < surface_left
+                             ? surface_left
+                             : surface_right;
+            retains_surface = 1;
         }
         if (horizontal_magnitude <= fighter->axis_dead_zone &&
             pf_m4_action_can_enter_teeter(action_state) != 0 &&

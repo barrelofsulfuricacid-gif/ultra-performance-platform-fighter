@@ -272,7 +272,8 @@ static int run_guardoff_acquisition_pre_roll(
         }
         if (inspection->players[0].action_state ==
                 (uint8_t)PF_M4_ACTION_SHIELD_RELEASE &&
-            inspection->players[0].action_ticks == UINT16_C(3))
+            inspection->players[0].action_ticks ==
+                (powershield != 0 ? UINT16_C(3) : UINT16_C(0)))
         {
             return inspection->players[0].powershield ==
                            (powershield != 0 ? UINT8_C(1) : UINT8_C(0))
@@ -281,6 +282,32 @@ static int run_guardoff_acquisition_pre_roll(
         }
     }
     return 1;
+}
+
+static int run_walk_acquisition_pre_roll(
+    pf_sim *sim,
+    pf_m4_inspection *inspection)
+{
+    pf_input_frame inputs[PF_SIM_MAX_PLAYERS];
+    pf_tick_result result;
+
+    (void)memset(inputs, 0, sizeof(inputs));
+    inputs[0].tick = inspection->tick;
+    inputs[0].schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
+    inputs[0].player_slot = UINT8_C(0);
+    inputs[0].main_stick_x = INT16_C(11878);
+    inputs[1].tick = inspection->tick;
+    inputs[1].schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
+    inputs[1].player_slot = UINT8_C(1);
+    if (pf_sim_tick(sim, inputs, (size_t)2, &result) != PF_STATUS_OK ||
+        pf_m4_inspect(sim, inspection) != PF_STATUS_OK)
+    {
+        return 1;
+    }
+    return inspection->players[0].action_state ==
+                   (uint8_t)PF_M4_ACTION_WALK
+               ? 0
+               : 1;
 }
 
 int main(int argc, char **argv)
@@ -326,6 +353,7 @@ int main(int argc, char **argv)
     int falcon_kick_air_mode = 0;
     int falcon_kick_air_land_mode = 0;
     int teeter_special_mode = 0;
+    int walk_acquisition_mode = 0;
     int guardoff_acquisition_mode = 0;
     int powershield_guardoff_mode = 0;
 
@@ -439,6 +467,10 @@ int main(int argc, char **argv)
     {
         teeter_special_mode = 1;
     }
+    else if (argc == 2 && strcmp(argv[1], "--walk-acquisition") == 0)
+    {
+        walk_acquisition_mode = 1;
+    }
     else if (argc == 2 && strcmp(argv[1], "--powershield-guardoff") == 0)
     {
         shield_hit_mode = 1;
@@ -470,7 +502,7 @@ int main(int argc, char **argv)
             "--falcon-kick-ground|--falcon-kick-ground-edge|"
             "--falcon-kick-ground-hit|--falcon-kick-ground-wall|"
             "--falcon-kick-air|"
-            "--falcon-kick-air-land|--teeter-special|"
+            "--falcon-kick-air-land|--teeter-special|--walk-acquisition|"
             "--powershield-guardoff|--ordinary-guardoff]\n");
         return 1;
     }
@@ -765,6 +797,16 @@ int main(int argc, char **argv)
             (void)fprintf(
                 stderr,
                 "m4-movement-trace=fail operation=guardoff-acquisition-pre-roll\n");
+            return 1;
+        }
+    }
+    else if (walk_acquisition_mode != 0)
+    {
+        if (run_walk_acquisition_pre_roll(sim, &inspection) != 0)
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement-trace=fail operation=walk-acquisition-pre-roll\n");
             return 1;
         }
     }

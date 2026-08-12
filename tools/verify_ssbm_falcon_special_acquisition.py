@@ -55,12 +55,16 @@ def qualify_capture(
     expected_labels = [
         case["start_label"] for case in coverage["checkpoint_cases"]
     ]
+    expected_count = len(expected_labels)
+    expected_slots = coverage["checkpoint_pack"]["capture_plan"][
+        "checkpoint_slot_count"
+    ]
     if (
         not isinstance(checkpoint, dict)
         or checkpoint.get("protocol")
         != "immutable-multislot-slippi-state-file-control-v2"
-        or checkpoint.get("slot_count") != 8
-        or checkpoint.get("case_count") != 8
+        or checkpoint.get("slot_count") != expected_slots
+        or checkpoint.get("case_count") != expected_count
         or checkpoint.get("case_start_labels") != expected_labels
     ):
         fail("checkpoint-isolation")
@@ -122,6 +126,52 @@ def qualify_capture(
             case_id,
         )
 
+    walk_priority = case_rows(rows, "walk_grab_special_priority")
+    if (
+        len(walk_priority) != 7
+        or walk_priority[0].get("action")
+        not in {"WALK_SLOW", "WALK_MIDDLE", "WALK_FAST"}
+    ):
+        fail("walk-source case=walk_grab_special_priority")
+    require_action_frames(
+        walk_priority[1:],
+        "GRAB",
+        list(range(1, 7)),
+        "walk_grab_special_priority",
+    )
+
+    walk_special = case_rows(rows, "walk_side_special")
+    if (
+        len(walk_special) != 7
+        or walk_special[0].get("action")
+        not in {"WALK_SLOW", "WALK_MIDDLE", "WALK_FAST"}
+    ):
+        fail("walk-source case=walk_side_special")
+    require_action_frames(
+        walk_special[1:],
+        "NEUTRAL_B_ATTACKING_AIR",
+        list(range(1, 7)),
+        "walk_side_special",
+    )
+
+    wait_priority = case_rows(rows, "wait_grab_special_priority")
+    require_action_frames(
+        wait_priority,
+        "NEUTRAL_B_ATTACKING_AIR",
+        list(range(1, 7)),
+        "wait_grab_special_priority",
+    )
+
+    wait_up_priority = case_rows(
+        rows, "wait_up_special_attack_priority"
+    )
+    require_action_frames(
+        wait_up_priority,
+        "SWORD_DANCE_3_MID",
+        list(range(1, 7)),
+        "wait_up_special_attack_priority",
+    )
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -172,7 +222,8 @@ def main() -> int:
         )
     print(
         "ssbm-falcon-special-acquisition=pass "
-        f"rows={len(capture['rows'])} stored_cases=8 "
+        f"rows={len(capture['rows'])} "
+        f"stored_cases={len(coverage['checkpoint_cases'])} "
         f"source_trace_sha256={observed_digest}"
     )
     return 0

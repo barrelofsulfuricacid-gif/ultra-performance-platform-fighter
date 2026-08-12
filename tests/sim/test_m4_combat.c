@@ -10488,7 +10488,7 @@ static int run_powershield_cancel_test(
             &inspection) ||
         inspection.players[1].action_state !=
             (uint8_t)PF_M4_ACTION_GROUND_ATTACK ||
-        inspection.players[1].action_ticks != UINT16_C(0) ||
+        inspection.players[1].action_ticks != UINT16_C(1) ||
         inspection.players[1].powershield != UINT8_C(0))
     {
         return fail("powershield-cancel-frame-two-attack");
@@ -10523,7 +10523,7 @@ static int run_powershield_cancel_test(
             &inspection) ||
         inspection.players[1].action_state !=
             (uint8_t)PF_M4_ACTION_STRONG_ATTACK ||
-        inspection.players[1].action_ticks != UINT16_C(0) ||
+        inspection.players[1].action_ticks != UINT16_C(1) ||
         inspection.players[1].powershield != UINT8_C(0))
     {
         return fail("powershield-cancel-frame-two-strong-attack");
@@ -10558,7 +10558,7 @@ static int run_powershield_cancel_test(
             &inspection) ||
         inspection.players[1].action_state !=
             (uint8_t)PF_M4_ACTION_UP_ATTACK ||
-        inspection.players[1].action_ticks != UINT16_C(0) ||
+        inspection.players[1].action_ticks != UINT16_C(1) ||
         inspection.players[1].powershield != UINT8_C(0))
     {
         return fail("powershield-cancel-frame-two-up-attack");
@@ -10593,7 +10593,7 @@ static int run_powershield_cancel_test(
             &inspection) ||
         inspection.players[1].action_state !=
             (uint8_t)PF_M4_ACTION_DOWN_ATTACK ||
-        inspection.players[1].action_ticks != UINT16_C(0) ||
+        inspection.players[1].action_ticks != UINT16_C(1) ||
         inspection.players[1].powershield != UINT8_C(0))
     {
         return fail("powershield-cancel-frame-two-down-attack");

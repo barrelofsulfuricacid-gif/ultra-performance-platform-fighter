@@ -10,12 +10,14 @@
       "tools/bootstrap_ssbm_checkpoint_oracle.sh",
       "tools/capture_ssbm_checkpoint_shards.py",
       "tools/capture_ssbm_movement.py",
+      "tools/compare_ssbm_live_native_trace.py",
       "tools/generate_ssbm_stored_oracle.py",
       "tools/ssbm_checkpoint_manifest.py",
       "tools/ssbm_collision.py",
       "tools/ssbm_equivalence_manifest.json",
       "tools/ssbm_exiai_checkpoint.patch",
       "tools/ssbm_live_trace.py",
+      "tools/ssbm_native_csv_trace.py",
       "tools/verify_ssbm_oracle_acceleration.py",
       "tools/verify_ssbm_stored_equivalence.py"
     ]

@@ -34,6 +34,12 @@ void pf_m4_prepare_charge_input(
         return;
     }
     *effective_input = *input;
+    if (content->fighter.reference_frame_data_enabled != UINT8_C(0))
+    {
+        /* Falcon's SpecialHi callback owns this chord. The authored charge
+         * frontend must neither consume nor suppress a reference input. */
+        return;
+    }
     up_special =
         (input->buttons & PF_INPUT_BUTTON_SPECIAL) != UINT64_C(0) &&
         (input->buttons & PF_INPUT_BUTTON_ATTACK) != UINT64_C(0) &&

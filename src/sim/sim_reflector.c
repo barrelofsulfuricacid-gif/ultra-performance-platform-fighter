@@ -38,6 +38,12 @@ void pf_m4_prepare_reflector_input(
         return;
     }
     *effective_input = *input;
+    if (content->fighter.reference_frame_data_enabled != UINT8_C(0))
+    {
+        /* Falcon's SpecialLw callback owns this chord. The authored
+         * reflector frontend must not filter reference-fighter inputs. */
+        return;
+    }
     down_special =
         (input->buttons & PF_INPUT_BUTTON_SPECIAL) != UINT64_C(0) &&
         input->main_stick_y >=

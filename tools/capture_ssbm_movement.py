@@ -264,7 +264,12 @@ def input_trace(
             source_state = raw_case.get("source_state")
             edge_main = raw_case.get("edge_main")
             edge_c = raw_case.get("edge_c", [0, 0])
-            edge_action = raw_case.get("edge_action", "special")
+            raw_edge_actions = raw_case.get("edge_actions")
+            edge_actions = (
+                [raw_case.get("edge_action", "special")]
+                if raw_edge_actions is None
+                else raw_edge_actions
+            )
             observe_ticks = raw_case.get("observe_ticks", 5)
             checkpoint_slot = raw_case.get("checkpoint_slot", 0)
             if (
@@ -277,6 +282,8 @@ def input_trace(
                     "powershield_release",
                     "teeter",
                     "turn",
+                    "walk",
+                    "wait",
                 }
                 or not isinstance(edge_main, list)
                 or len(edge_main) != 2
@@ -294,14 +301,22 @@ def input_trace(
                     or not -32767 <= value <= 32767
                     for value in edge_c
                 )
-                or edge_action not in {
-                    "attack",
-                    "grab",
-                    "jump",
-                    "none",
-                    "special",
-                    "spot_dodge",
-                }
+                or not isinstance(edge_actions, list)
+                or not edge_actions
+                or any(
+                    not isinstance(edge_action, str)
+                    or edge_action not in {
+                        "attack",
+                        "grab",
+                        "jump",
+                        "none",
+                        "special",
+                        "spot_dodge",
+                    }
+                    for edge_action in edge_actions
+                )
+                or len(set(edge_actions)) != len(edge_actions)
+                or ("none" in edge_actions and len(edge_actions) != 1)
                 or not isinstance(observe_ticks, int)
                 or isinstance(observe_ticks, bool)
                 or not 1 <= observe_ticks <= 16
@@ -318,7 +333,15 @@ def input_trace(
                 main_x=(
                     controller_axis(-16384)
                     if source_state == "turn"
-                    else (0.65 if source_state == "teeter" else 0.5)
+                    else (
+                        0.65
+                        if source_state == "teeter"
+                        else (
+                            controller_axis(12000)
+                            if source_state == "walk"
+                            else 0.5
+                        )
+                    )
                 ),
                 main_y=(
                     0.5
@@ -326,6 +349,8 @@ def input_trace(
                         "powershield_release",
                         "teeter",
                         "turn",
+                        "walk",
+                        "wait",
                     }
                     else 0.0
                 ),
@@ -348,6 +373,8 @@ def input_trace(
                     "record": source_state not in {
                         "powershield_release",
                         "teeter",
+                        "walk",
+                        "wait",
                     },
                 }
             )
@@ -367,6 +394,13 @@ def input_trace(
                     {**command(f"{prefix}_setup"), "record": False}
                 )
                 trace.append(command(f"{prefix}_setup"))
+            elif source_state == "walk":
+                trace.append(
+                    command(
+                        f"{prefix}_setup",
+                        main_x=controller_axis(12000),
+                    )
+                )
             elif source_state == "powershield_release":
                 # Reach GuardOff's powershield-only IASA branch through an
                 # actual Falcon Jab 1 collision. Placement and the complete
@@ -473,10 +507,10 @@ def input_trace(
                     main_y=edge_y,
                     c_x=edge_c_x,
                     c_y=edge_c_y,
-                    attack=edge_action == "attack",
-                    grab=edge_action == "grab",
-                    jump=edge_action == "jump",
-                    special=edge_action == "special",
+                    attack="attack" in edge_actions,
+                    grab="grab" in edge_actions,
+                    jump="jump" in edge_actions,
+                    special="special" in edge_actions,
                 )
             )
             repeat(f"{prefix}_observe", observe_ticks)

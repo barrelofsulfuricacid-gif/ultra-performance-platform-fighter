@@ -236,7 +236,7 @@ memory overrides and the case's first input applied. This prevents both the
 controller sample and placement/RNG writes from targeting the pre-restore
 branch. A repeated-load probe protects one-slot reuse, while domains with
 divergent action flows can declare up to sixteen one-shot slots. The first
-eight-slot pack captures 134 special-acquisition rows in 0.721-1.048 seconds
+twelve-slot pack captures 160 special-acquisition rows in 1.447-1.693 seconds
 warm inside one connected process.
 
 Natural source-state setup can remain outside the recorded theorem. The
@@ -322,12 +322,12 @@ Idle animation phase can vary between otherwise equivalent boots, so the
 verifier pins the ordered action/frame/Q16.16 payload and explicit physical
 discriminator instead of hashing incidental idle rows.
 
-The registry currently contains sixteen domains and 96 cases. Independent
+The registry currently contains 25 domains and 154 cases. Independent
 domain generation and execution run concurrently; each native-CSV domain also
 runs its independent cases concurrently, and both levels restore manifest
 order before counting or hashing. The complete stored gate, including
-deterministic replay, measures 0.430-0.508 seconds across three native Windows
-runs and 0.384-0.408 seconds across three WSL runs.
+deterministic replay, most recently measured 1.141 seconds on native Windows
+and 1.308 seconds in WSL.
 Numeric C cases may narrow a domain's inherited serialized-field mask when a
 physical setup intentionally isolates only part of the response; the generated
 C always writes an explicit zero for inherited masks so GCC and MSVC apply the
@@ -344,6 +344,17 @@ Boost uses this route for five cases / 502 samples and Falcon Kick for six
 cases / 399 samples. Raptor Boost's separate native Capsule
 search remains live-only because the project-specific Relay Rod is not source-
 equivalent item content.
+
+Native CSV execution is centralized in `ssbm_native_csv_trace.py`; both the
+fast stored gate and the live-source comparator consume the same canonical
+runner result. Domains whose selected fields admit no representation tolerance
+set `require_exact_source_match`. For those domains, the verifier requires the
+production semantic digest to equal the qualified live-source digest before it
+checks the pinned regression digest. This prevents a behavior divergence from
+being hidden by updating a second independent golden. Common special
+acquisition, Teeter acquisition, and GuardOff acquisition currently use this
+strict route. Simultaneous semantic edge actions are declarative manifest data,
+so state-specific callback priority needs no character-specific capture loop.
 
 ## Geometry-sampling limitation
 

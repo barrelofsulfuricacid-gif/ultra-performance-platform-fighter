@@ -1835,26 +1835,33 @@ field, or duplicated special implementation.
 The live oracle uses Final Destination and actual controller inputs. Four Turn
 cases submit neutral, side, up, and down B on displayed Turn frame 2. Four
 crouch cases submit straight or normalized diagonal down-B from SquatWait and
-SquatRv. The exact source outcomes are Turn retention, Falcon Raptor Boost,
-Falcon Dive, and Falcon Kick, plus Falcon Kick for every crouch route.
+SquatRv. Four priority cases distinguish Walk Catch-before-Special from Wait
+Special-before-Catch/Attack and protect up+A+B from the authored charge
+frontend. The exact source outcomes are Turn retention, Falcon Raptor Boost,
+Falcon Dive, Falcon Kick, Grab, and Falcon Punch.
 
 This slice also closes a checkpoint-transport flaw exposed by those divergent
 branches. Protocol `immutable-multislot-slippi-state-file-control-v2` keeps up
 to sixteen fixed snapshot owners and consumes a load on an unrecorded neutral
-EXI frame before the first recorded case input. The manifest saves eight
+EXI frame before the first recorded case input. The manifest saves twelve
 one-shot neutral-Wait slots, avoiding cross-case branch contamination without
 reconnecting the observer or relaunching Dolphin.
 
-Two fresh 134-row captures are byte-identical at raw SHA-256
-`9459f985c09db1ef05f8ec0792225780ffe69f3547c71b13721d8c6fc477db63`.
-Their warm durations are 1.048235 and 0.721242 seconds. The selected
+Two fresh 160-row captures are byte-identical at raw SHA-256
+`eed4476d41a97641c48114b453985f0306ab55785aeb49c4be8869e1fc51f5e5`.
+Their warm durations are 1.693055 and 1.447210 seconds. The selected
 action/tick/facing/grounded source trace hashes to
-`ff769518d416614109e793ead93b30e6d3c1d07c7422484ecfe434954233698f`;
+`92ed40ead35b06ae754f1289a585ca0744fa3864adf5a25ed2d4f06278a09867`;
 the native production trace hashes to
-`f16e1d6a7d390a8d8a6a99a93c4952e8ca848ec3679e037a70dfba8a702fbd1d`.
+`92ed40ead35b06ae754f1289a585ca0744fa3864adf5a25ed2d4f06278a09867`.
 The shared natural-movement projector's declarative action aliases keep the
 Falcon-specific names in the manifest while all extraction, input expansion,
 field selection, hashing, replay, and runner execution remain generic.
+The generic live/native comparator executes the generated native CSV cases and
+compares that canonical payload directly with the qualified capture. This
+domain, Teeter, and GuardOff set `require_exact_source_match`; the stored gate
+therefore rejects a divergent production digest instead of accepting two
+independently pinned regressions.
 
 ## Falcon teeter special acquisition
 
@@ -1888,7 +1895,7 @@ Their warm durations are 0.268028 and 0.245186 seconds. Selected source fields
 hash to
 `2065e789ba0285f8b3d878bdc2615bf0a7e983ee02da356f6f46d0b924a6908e`;
 the matching production trace hashes to
-`63ca98b93c32df9a1937f69d47c3f8e6ab75645d48405a7b67f6579c61b5f9ba`.
+`2065e789ba0285f8b3d878bdc2615bf0a7e983ee02da356f6f46d0b924a6908e`.
 This extends the generic special-acquisition schema with a reusable natural
 teeter setup, not a web probe or synthetic source state.
 
@@ -1927,6 +1934,6 @@ Their warm durations are 7.867078 and 7.607262 seconds, and complete cold
 durations are 9.102883 and 7.937196 seconds. Selected source fields hash to
 `851a0c05e393bd644344bf8a49d70fceea179727903ff68feacebb1c12a27c0d`;
 the matching production trace hashes to
-`0b56d0726ae0eb248d244107b50741d1451d8550889c481d8881d6b726a04d00`.
+`851a0c05e393bd644344bf8a49d70fceea179727903ff68feacebb1c12a27c0d`.
 This is an actual two-controller collision theorem, not a web probe or a
 direct write of action or Guard work state.

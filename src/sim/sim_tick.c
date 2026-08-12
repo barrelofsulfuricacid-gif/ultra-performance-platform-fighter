@@ -136,6 +136,36 @@ static pf_status pf_m4_begin_sudden_death(
     return PF_STATUS_OK;
 }
 
+static pf_input_frame pf_m4_reference_priority_input(
+    const pf_m4_content *content,
+    const pf_world_state *world,
+    const pf_input_frame *input,
+    uint32_t player_index)
+{
+    pf_input_frame result = *input;
+    const int attack_edge =
+        (input->buttons & PF_INPUT_BUTTON_ATTACK) != UINT64_C(0) &&
+        (world->previous_buttons[player_index] &
+         PF_INPUT_BUTTON_ATTACK) == UINT64_C(0);
+    const int shield_held =
+        input->left_trigger >=
+            content->fighter.light_shield_trigger_threshold ||
+        input->right_trigger >=
+            content->fighter.light_shield_trigger_threshold;
+
+    if (content->fighter.reference_frame_data_enabled != UINT8_C(0) &&
+        world->action_state[player_index] ==
+            (uint8_t)PF_M4_ACTION_WALK &&
+        attack_edge != 0 && shield_held != 0)
+    {
+        /* Walk_IASA checks Catch before SpecialS and returns immediately.
+         * Clear B before the charge/reflector/projectile intent pipeline so
+         * those generic frontends observe the same source callback result. */
+        result.buttons &= ~PF_INPUT_BUTTON_SPECIAL;
+    }
+    return result;
+}
+
 static int32_t pf_m4_player_nudge_x_q16(
     const pf_m4_content *content,
     const pf_world_state *world,
@@ -540,6 +570,12 @@ pf_status pf_sim_tick_impl(
          ++player_index)
     {
         const pf_input_frame *input = &inputs[player_index];
+        const pf_input_frame priority_input =
+            pf_m4_reference_priority_input(
+                &sim->content,
+                world,
+                input,
+                player_index);
         pf_input_frame charge_input;
         pf_input_frame reflector_input;
         pf_input_frame projectile_input;
@@ -547,7 +583,7 @@ pf_status pf_sim_tick_impl(
         pf_m4_prepare_charge_input(
             &sim->content,
             world,
-            input,
+            &priority_input,
             player_index,
             &charge_input);
         pf_m4_prepare_reflector_input(
@@ -583,7 +619,7 @@ pf_status pf_sim_tick_impl(
             world,
             scratch,
             &effective_input,
-            input,
+            &priority_input,
             player_index,
             player_nudge_x_q16[player_index],
             &rng_state);

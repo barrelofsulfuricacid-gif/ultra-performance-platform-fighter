@@ -251,9 +251,7 @@ def canonical_capture(
                 raise NaturalMovementDomainError(
                     f"action-state case={case_id} sample={sample_index}"
                 )
-            if (action_ticks is not None) != (
-                "action_ticks" in selected_fields
-            ):
+            if action_ticks is None and "action_ticks" in selected_fields:
                 raise NaturalMovementDomainError(
                     f"action-tick-mask case={case_id} sample={sample_index}"
                 )

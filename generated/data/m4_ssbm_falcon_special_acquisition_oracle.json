@@ -215,11 +215,111 @@
         "facing",
         "grounded"
       ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "walk_grab_special_priority",
+      "input_runs": [
+        {
+          "input": "11878,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "11878,0,0,0,65535,0,10,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [
+        "--walk-acquisition"
+      ],
+      "sample_count": 7,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "walk_side_special",
+      "input_runs": [
+        {
+          "input": "11878,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "11878,0,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [
+        "--walk-acquisition"
+      ],
+      "sample_count": 7,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "wait_grab_special_priority",
+      "input_runs": [
+        {
+          "input": "0,0,0,0,65535,0,10,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 6,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "wait_up_special_attack_priority",
+      "input_runs": [
+        {
+          "input": "0,-32767,0,0,0,0,10,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 6,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
     }
   ],
   "domain": "falcon-common-special-acquisition",
   "kind": "native-csv-trace-v1",
-  "production_trace_sha256": "f16e1d6a7d390a8d8a6a99a93c4952e8ca848ec3679e037a70dfba8a702fbd1d",
+  "production_trace_sha256": "92ed40ead35b06ae754f1289a585ca0744fa3864adf5a25ed2d4f06278a09867",
   "schema": 1,
-  "source_trace_sha256": "ff769518d416614109e793ead93b30e6d3c1d07c7422484ecfe434954233698f"
+  "source_trace_sha256": "92ed40ead35b06ae754f1289a585ca0744fa3864adf5a25ed2d4f06278a09867"
 }

@@ -257,7 +257,8 @@
   "stored_oracle": {
     "kind": "native-csv-trace-v1",
     "source_trace_sha256": "851a0c05e393bd644344bf8a49d70fceea179727903ff68feacebb1c12a27c0d",
-    "production_trace_sha256": "0b56d0726ae0eb248d244107b50741d1451d8550889c481d8881d6b726a04d00",
+    "production_trace_sha256": "851a0c05e393bd644344bf8a49d70fceea179727903ff68feacebb1c12a27c0d",
+    "require_exact_source_match": true,
     "serialized_fields": [
       "action_state",
       "action_ticks",

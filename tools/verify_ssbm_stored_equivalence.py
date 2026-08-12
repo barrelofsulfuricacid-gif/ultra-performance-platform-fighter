@@ -5,10 +5,8 @@ from __future__ import annotations
 
 import argparse
 from concurrent.futures import ThreadPoolExecutor
-import csv
 import fnmatch
 import hashlib
-import io
 import json
 import os
 from pathlib import Path
@@ -17,7 +15,8 @@ import sys
 import time
 from typing import Any
 
-from ssbm_live_trace import canonical_sha256, selected_trace_fields
+from ssbm_live_trace import canonical_sha256
+from ssbm_native_csv_trace import NativeCsvTraceError, canonical_runner_trace
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
@@ -179,122 +178,34 @@ def run_native_csv_trace_domain(
             f"operation=stored-runner-{domain_name} "
             "reason=invalid-generated-native-csv-cases"
         )
-    executable_file = executable_path(build_directory, executable)
-    prepared_cases: list[
-        tuple[str, list[str], list[str], dict[str, Any], int, str]
-    ] = []
-    for case_index, case in enumerate(cases):
-        if not isinstance(case, dict):
-            fail(
-                f"operation=stored-runner-{domain_name} "
-                f"reason=invalid-native-csv-case index={case_index}"
-            )
-        case_id = case.get("id")
-        arguments = case.get("runner_arguments")
-        fields = case.get("serialized_fields")
-        field_exclusions = case.get("field_exclusions")
-        runs = case.get("input_runs")
-        sample_count = case.get("sample_count")
-        if (
-            not isinstance(case_id, str)
-            or not isinstance(arguments, list)
-            or any(not isinstance(value, str) for value in arguments)
-            or not isinstance(fields, list)
-            or not fields
-            or any(not isinstance(value, str) for value in fields)
-            or not isinstance(field_exclusions, dict)
-            or not isinstance(runs, list)
-            or not isinstance(sample_count, int)
-        ):
-            fail(
-                f"operation=stored-runner-{domain_name} "
-                f"reason=invalid-native-csv-case case={case_id!r}"
-            )
-        input_lines: list[str] = []
-        for run in runs:
-            if (
-                not isinstance(run, dict)
-                or not isinstance(run.get("ticks"), int)
-                or run["ticks"] <= 0
-                or not isinstance(run.get("input"), str)
-            ):
-                fail(
-                    f"operation=stored-runner-{domain_name} "
-                    f"reason=invalid-native-csv-input-run case={case_id}"
-                )
-            input_lines.extend([run["input"]] * run["ticks"])
-        if len(input_lines) != sample_count:
-            fail(
-                f"operation=stored-runner-{domain_name} "
-                f"reason=native-csv-input-count case={case_id} "
-                f"expected={sample_count} actual={len(input_lines)}"
-            )
-        prepared_cases.append(
-            (
-                case_id,
-                arguments,
-                fields,
-                field_exclusions,
-                sample_count,
-                "\n".join(input_lines) + "\n",
-            )
+    try:
+        canonical = canonical_runner_trace(
+            generated,
+            executable_path(build_directory, executable),
+            common_arguments,
         )
-
-    def run_case(
-        prepared: tuple[str, list[str], list[str], dict[str, Any], int, str],
-    ) -> dict[str, Any]:
-        (
-            case_id,
-            arguments,
-            fields,
-            field_exclusions,
-            sample_count,
-            input_text,
-        ) = prepared
-        output = run_checked(
-            [
-                str(executable_file),
-                *common_arguments,
-                *arguments,
-            ],
-            f"stored-runner-{domain_name}-{case_id}",
-            input_text,
+    except NativeCsvTraceError as error:
+        fail(
+            f"operation=stored-runner-{domain_name} "
+            f"reason={error}"
         )
-        reader = csv.DictReader(io.StringIO(output))
-        rows = list(reader)
-        if len(rows) != sample_count:
-            fail(
-                f"operation=stored-runner-{domain_name} "
-                f"reason=native-csv-row-count case={case_id} "
-                f"expected={sample_count} actual={len(rows)}"
-            )
-        samples: list[dict[str, int]] = []
-        try:
-            for sample_index, row in enumerate(rows):
-                selected_fields = selected_trace_fields(
-                    fields,
-                    field_exclusions,
-                    sample_index,
-                )
-                samples.append(
-                    {field: int(row[field]) for field in selected_fields}
-                )
-        except (KeyError, TypeError, ValueError) as error:
-            fail(
-                f"operation=stored-runner-{domain_name} "
-                f"reason=native-csv-field case={case_id} detail={error}"
-            )
-        return {"id": case_id, "samples": samples}
-
-    worker_count = min(len(prepared_cases), os.cpu_count() or 1, 8)
-    with ThreadPoolExecutor(max_workers=worker_count) as executor:
-        canonical_cases = list(executor.map(run_case, prepared_cases))
-    canonical = {
-        "schema": 1,
-        "domain": domain_name,
-        "cases": canonical_cases,
-    }
     actual_digest = canonical_sha256(canonical)
+    require_exact_source_match = stored.get(
+        "require_exact_source_match",
+        False,
+    )
+    if not isinstance(require_exact_source_match, bool):
+        fail(
+            f"operation=stored-runner-{domain_name} "
+            "reason=invalid-require-exact-source-match"
+        )
+    source_digest = stored.get("source_trace_sha256")
+    if require_exact_source_match and actual_digest != source_digest:
+        fail(
+            f"operation=stored-runner-{domain_name} "
+            "reason=source-production-semantic-mismatch "
+            f"source={source_digest} production={actual_digest}"
+        )
     expected_digest = stored.get("production_trace_sha256")
     if actual_digest != expected_digest:
         fail(
