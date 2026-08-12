@@ -6770,3 +6770,26 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   and `787d63c5edf270cdc72d93dbe857c487bdc1ab7bdde59a1975299f1973fa7256`.
   The real Emscripten/Chrome smoke passes with 82 typed events; the removed two
   events were artificial intermediate transitions.
+
+## 2026-08-12: UCF 0.84 DBOOC and shield-input boundary domain
+
+- A new seven-case / 137-row Battlefield checkpoint pack covers DBOOC radial
+  over/under and age control, shield-drop suppression at raw Y -63/-64, and
+  extended pad-buffer delta 50 versus 44. No gameplay-specific runner or web
+  probe was added; the route reuses `native-csv-trace-v1` and extends generic
+  special acquisition with a naturally settled `platform_guard` owner.
+- The capture wrapper can compose its existing schema-2 input and surface
+  probes for checkpoint acquisition. Both probe descriptors are merge
+  invariants, every platform case proves source floor line 2 immediately before
+  the edge, and trigger-valued guard phases fail closed if omitted.
+- Independent raw captures SHA-256
+  `ebe6fe613e4e691adc8fec8f168ade7025ae1898544de1e084c2e59f42475874`
+  and `493fe81f07dbcfeeb1674d959f3ed9db1416062e52450f33b379fe1928c58812`
+  canonicalize identically. Source and production are byte-exact at
+  `73198f0ee5ab242d72598c4fa149d6f13e60112d69ddeb1d1f83e0218683c009`.
+- Full captures take 8.632-10.983 seconds; warm parent time is 8.048-9.618
+  seconds. The focused stored gate takes 136.530-181.125 ms on Windows and
+  384.845 ms in WSL. The complete 33-domain / 212-case registry passes under
+  manifest SHA-256
+  `d983e7855a31f696e87d00da97ea6e8ae28eefa0c4b353de61c4b68ad2aee788`
+  in 588.997-719.748 ms on Windows and 779.541-1,095.532 ms in WSL.

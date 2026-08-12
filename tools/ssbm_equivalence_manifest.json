@@ -51,6 +51,7 @@
     "tools/ssbm_falcon_aerial_attack_landing_coverage.json",
     "tools/ssbm_falcon_special_acquisition_coverage.json",
     "tools/ssbm_ucf084_cardinal_input_coverage.json",
+    "tools/ssbm_ucf084_shield_input_coverage.json",
     "tools/ssbm_falcon_turn_interrupt_coverage.json",
     "tools/ssbm_falcon_run_brake_acquisition_coverage.json",
     "tools/ssbm_falcon_kneebend_up_special_coverage.json",

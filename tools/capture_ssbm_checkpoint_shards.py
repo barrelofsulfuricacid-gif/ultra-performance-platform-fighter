@@ -18,6 +18,26 @@ import merge_ssbm_checkpoint_captures
 from ssbm_checkpoint_manifest import projected_manifest
 
 
+MEMORY_PROBE_CHOICES = (
+    "none",
+    "input",
+    "surface",
+    "input-surface",
+    "hitbox",
+    "hurtbox",
+)
+
+
+def memory_probe_arguments(memory_probe: str) -> tuple[str, ...]:
+    if memory_probe == "none":
+        return ()
+    if memory_probe == "input-surface":
+        return ("--memory-probe-input", "--memory-probe-surface")
+    if memory_probe not in MEMORY_PROBE_CHOICES:
+        raise ValueError(f"unknown memory probe: {memory_probe}")
+    return (f"--memory-probe-{memory_probe}",)
+
+
 def run_worker(argv: list[str]) -> None:
     status = 1
     try:
@@ -53,7 +73,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--memory-probe",
-        choices=("none", "input", "surface", "hitbox", "hurtbox"),
+        choices=MEMORY_PROBE_CHOICES,
         default=None,
         help=(
             "live-memory observation family recorded by every shard "
@@ -206,8 +226,7 @@ def main() -> int:
                     "--oracle-coverage-manifest",
                     str(manifest_path),
                 ]
-                if memory_probe != "none":
-                    worker_argv.append(f"--memory-probe-{memory_probe}")
+                worker_argv.extend(memory_probe_arguments(memory_probe))
                 if args.disable_fast_forward:
                     worker_argv.append("--oracle-exiai-no-fast-forward")
                 if args.checkpoint_no_batch_inputs:

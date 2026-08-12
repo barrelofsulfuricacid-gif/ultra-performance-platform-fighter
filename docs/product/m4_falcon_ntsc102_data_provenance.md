@@ -2280,3 +2280,20 @@ current 42,555-byte corpus/final/event identities are
 `649b9ab2540b5e8d38b972756925b3349e82209235ed1aa8c58c8f51485ce1be`,
 `e4834ffac8b7be8ce77cf604710ca307caea512cca5eb00fae8487ca0fdc75b4`,
 and `787d63c5edf270cdc72d93dbe857c487bdc1ab7bdde59a1975299f1973fa7256`.
+
+### UCF DBOOC and shield-input provenance
+
+The seven-case domain targets the active pinned UCF 0.84 policy
+`ssbm-ntsc102-ucf084-oracle-v2`, official release tag
+`ucf0.84_2024-06-27`, and release revision
+`01122231ea97683cf7adea43d732ce0a4784c849`. Its two raw Dolphin captures hash
+to `ebe6fe613e4e691adc8fec8f168ade7025ae1898544de1e084c2e59f42475874`
+and `493fe81f07dbcfeeb1674d959f3ed9db1416062e52450f33b379fe1928c58812`.
+The capture rows retain the runtime-verified UCF policy, exact consumed raw pad,
+fighter processed axes, ordinary/UCF input ages, private pad-buffer count, and
+the source collision line. The canonical source trace and production both hash
+to `73198f0ee5ab242d72598c4fa149d6f13e60112d69ddeb1d1f83e0218683c009`.
+
+The natural Battlefield setup is deliberately outside retained theorem rows.
+Each guard case then independently proves floor line 2 before the input edge;
+Guard action state alone is never treated as platform provenance.

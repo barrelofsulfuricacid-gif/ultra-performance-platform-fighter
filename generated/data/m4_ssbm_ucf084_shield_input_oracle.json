@@ -1,0 +1,295 @@
+{
+  "cases": [
+    {
+      "field_exclusions": {
+        "support": [
+          [
+            0,
+            22
+          ]
+        ]
+      },
+      "id": "dbooc_radial_over",
+      "input_runs": [
+        {
+          "input": "0,32767,0,0,0,0,0,0,0,0,-80,0,0,15",
+          "ticks": 20
+        },
+        {
+          "input": "25804,19660,0,0,0,0,0,0,0,63,-48,0,0,15",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0,0,0,0,0,15",
+          "ticks": 1
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 22,
+      "serialized_fields": [
+        "effective_main_x_q15",
+        "effective_main_y_q15",
+        "effective_c_x_q15",
+        "effective_c_y_q15",
+        "action_state",
+        "facing",
+        "grounded",
+        "support",
+        "tilt_x_age",
+        "tilt_y_age",
+        "ucf_tilt_x_age",
+        "ucf_tilt_y_age",
+        "ucf_pad_buffer_count"
+      ]
+    },
+    {
+      "field_exclusions": {
+        "support": [
+          [
+            0,
+            22
+          ]
+        ]
+      },
+      "id": "dbooc_radial_under",
+      "input_runs": [
+        {
+          "input": "0,32767,0,0,0,0,0,0,0,0,-80,0,0,15",
+          "ticks": 20
+        },
+        {
+          "input": "24575,19660,0,0,0,0,0,0,0,60,-48,0,0,15",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0,0,0,0,0,15",
+          "ticks": 1
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 22,
+      "serialized_fields": [
+        "effective_main_x_q15",
+        "effective_main_y_q15",
+        "effective_c_x_q15",
+        "effective_c_y_q15",
+        "action_state",
+        "facing",
+        "grounded",
+        "support",
+        "tilt_x_age",
+        "tilt_y_age",
+        "ucf_tilt_x_age",
+        "ucf_tilt_y_age",
+        "ucf_pad_buffer_count"
+      ]
+    },
+    {
+      "field_exclusions": {
+        "support": [
+          [
+            0,
+            23
+          ]
+        ]
+      },
+      "id": "dbooc_age1",
+      "input_runs": [
+        {
+          "input": "0,32767,0,0,0,0,0,0,0,0,-80,0,0,15",
+          "ticks": 20
+        },
+        {
+          "input": "22937,23346,0,0,0,0,0,0,0,63,-64,0,0,15",
+          "ticks": 1
+        },
+        {
+          "input": "25804,19660,0,0,0,0,0,0,0,63,-48,0,0,15",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0,0,0,0,0,15",
+          "ticks": 1
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 23,
+      "serialized_fields": [
+        "effective_main_x_q15",
+        "effective_main_y_q15",
+        "effective_c_x_q15",
+        "effective_c_y_q15",
+        "action_state",
+        "facing",
+        "grounded",
+        "support",
+        "tilt_x_age",
+        "tilt_y_age",
+        "ucf_tilt_x_age",
+        "ucf_tilt_y_age",
+        "ucf_pad_buffer_count"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "shield_drop_raw_y63",
+      "input_runs": [
+        {
+          "input": "19660,0,0,0,65535,0,0,0,0,48,0,0,0,15",
+          "ticks": 12
+        },
+        {
+          "input": "19660,25804,0,0,65535,0,0,0,0,48,-63,0,0,15",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0,0,0,0,0,15",
+          "ticks": 1
+        }
+      ],
+      "runner_arguments": [
+        "--platform"
+      ],
+      "sample_count": 14,
+      "serialized_fields": [
+        "effective_main_x_q15",
+        "effective_main_y_q15",
+        "effective_c_x_q15",
+        "effective_c_y_q15",
+        "action_state",
+        "facing",
+        "grounded",
+        "support",
+        "tilt_x_age",
+        "tilt_y_age",
+        "ucf_tilt_x_age",
+        "ucf_tilt_y_age",
+        "ucf_pad_buffer_count"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "shield_drop_raw_y64",
+      "input_runs": [
+        {
+          "input": "19660,0,0,0,65535,0,0,0,0,48,0,0,0,15",
+          "ticks": 12
+        },
+        {
+          "input": "19660,26214,0,0,65535,0,0,0,0,48,-64,0,0,15",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0,0,0,0,0,15",
+          "ticks": 1
+        }
+      ],
+      "runner_arguments": [
+        "--platform"
+      ],
+      "sample_count": 14,
+      "serialized_fields": [
+        "effective_main_x_q15",
+        "effective_main_y_q15",
+        "effective_c_x_q15",
+        "effective_c_y_q15",
+        "action_state",
+        "facing",
+        "grounded",
+        "support",
+        "tilt_x_age",
+        "tilt_y_age",
+        "ucf_tilt_x_age",
+        "ucf_tilt_y_age",
+        "ucf_pad_buffer_count"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "shield_drop_extended_delta50",
+      "input_runs": [
+        {
+          "input": "24985,0,0,0,0,0,0,0,0,61,0,0,0,15",
+          "ticks": 6
+        },
+        {
+          "input": "24985,0,0,0,65535,0,0,0,0,61,0,0,0,15",
+          "ticks": 12
+        },
+        {
+          "input": "24985,20479,0,0,65535,0,0,0,0,61,-50,0,0,15",
+          "ticks": 2
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0,0,0,0,0,15",
+          "ticks": 1
+        }
+      ],
+      "runner_arguments": [
+        "--platform"
+      ],
+      "sample_count": 21,
+      "serialized_fields": [
+        "effective_main_x_q15",
+        "effective_main_y_q15",
+        "effective_c_x_q15",
+        "effective_c_y_q15",
+        "action_state",
+        "facing",
+        "grounded",
+        "support",
+        "tilt_x_age",
+        "tilt_y_age",
+        "ucf_tilt_x_age",
+        "ucf_tilt_y_age",
+        "ucf_pad_buffer_count"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "shield_drop_extended_delta44",
+      "input_runs": [
+        {
+          "input": "24985,0,0,0,0,0,0,0,0,61,-6,0,0,15",
+          "ticks": 6
+        },
+        {
+          "input": "24985,0,0,0,65535,0,0,0,0,61,-6,0,0,15",
+          "ticks": 12
+        },
+        {
+          "input": "24985,20479,0,0,65535,0,0,0,0,61,-50,0,0,15",
+          "ticks": 2
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0,0,0,0,0,15",
+          "ticks": 1
+        }
+      ],
+      "runner_arguments": [
+        "--platform"
+      ],
+      "sample_count": 21,
+      "serialized_fields": [
+        "effective_main_x_q15",
+        "effective_main_y_q15",
+        "effective_c_x_q15",
+        "effective_c_y_q15",
+        "action_state",
+        "facing",
+        "grounded",
+        "support",
+        "tilt_x_age",
+        "tilt_y_age",
+        "ucf_tilt_x_age",
+        "ucf_tilt_y_age",
+        "ucf_pad_buffer_count"
+      ]
+    }
+  ],
+  "domain": "falcon-common-ucf084-shield-input",
+  "kind": "native-csv-trace-v1",
+  "production_trace_sha256": "73198f0ee5ab242d72598c4fa149d6f13e60112d69ddeb1d1f83e0218683c009",
+  "schema": 1,
+  "source_trace_sha256": "73198f0ee5ab242d72598c4fa149d6f13e60112d69ddeb1d1f83e0218683c009"
+}

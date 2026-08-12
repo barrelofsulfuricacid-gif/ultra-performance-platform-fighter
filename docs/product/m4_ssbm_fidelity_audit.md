@@ -679,3 +679,19 @@ produce identical corpus/final/event SHA-256 values
 `649b9ab2540b5e8d38b972756925b3349e82209235ed1aa8c58c8f51485ce1be`,
 `e4834ffac8b7be8ce77cf604710ca307caea512cca5eb00fae8487ca0fdc75b4`,
 and `787d63c5edf270cdc72d93dbe857c487bdc1ab7bdde59a1975299f1973fa7256`.
+
+### UCF DBOOC and shield-input boundaries
+
+The pinned UCF 0.84 DBOOC, Shield Drop, and Shield Drop Extended hooks are now
+bounded by a seven-case live/stored theorem. It proves the adjusted radial
+predicate on fresh versus aged X, the spotdodge-suppression split at raw main Y
+-63/-64, and the private pad-counter's strict raw-delta behavior at 50 versus
+44. Platform rows require Battlefield pass-through floor line 2; input history,
+processed fighter axes, ordinary/UCF ages, and pad count are compared alongside
+action and support. Two independent 137-row captures canonicalize identically,
+and source equals production at SHA-256
+`73198f0ee5ab242d72598c4fa149d6f13e60112d69ddeb1d1f83e0218683c009`.
+
+This closes direct live qualification for three UCF families. SDI, shield SDI,
+and tumble remain open live-boundary domains; whole-ruleset equivalence is not
+inferred from the completed Dashback, cardinal, DBOOC, and shield slices.

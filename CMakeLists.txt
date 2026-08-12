@@ -698,13 +698,25 @@ if(BUILD_TESTING)
                        "ssbm-stored-equivalence=pass domains=falcon-common-ucf084-cardinal-input generated_checks=1 stored_cases=16 replay=pass")
 
         add_test(
+            NAME sim.m4_ssbm_falcon_ucf084_shield_input
+            COMMAND
+                "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_ssbm_stored_equivalence.py"
+                --build-dir "${CMAKE_BINARY_DIR}"
+                --domain falcon-common-ucf084-shield-input)
+        set_tests_properties(
+            sim.m4_ssbm_falcon_ucf084_shield_input
+            PROPERTIES PASS_REGULAR_EXPRESSION
+                       "ssbm-stored-equivalence=pass domains=falcon-common-ucf084-shield-input generated_checks=1 stored_cases=7 replay=pass")
+
+        add_test(
             NAME tools.ssbm_ucf_input_trace
             COMMAND
                 "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tests/tools/test_ssbm_ucf_input_trace.py")
         set_tests_properties(
             tools.ssbm_ucf_input_trace
-            PROPERTIES PASS_REGULAR_EXPRESSION "Ran 4 tests")
+            PROPERTIES PASS_REGULAR_EXPRESSION "Ran 9 tests")
 
         add_test(
             NAME sim.m4_ssbm_falcon_ground_animation_clock

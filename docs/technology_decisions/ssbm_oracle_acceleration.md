@@ -565,3 +565,20 @@ The resulting 42,555-byte corpus/final/event identities are
 and `787d63c5edf270cdc72d93dbe857c487bdc1ab7bdde59a1975299f1973fa7256`.
 The browser re-simulation contains 82 typed events; the two-event reduction is
 the removal of artificial intermediate action transitions, not lost evidence.
+
+## Compose existing memory probes when a predicate crosses domains
+
+UCF shield-drop qualification needs both controller-history memory and exact
+pass-through surface identity on the same row. The checkpoint sharder therefore
+supports a bounded `input-surface` composition of the existing probes. It emits
+both ordinary descriptors, requires both as merge invariants, and is accepted
+only for checkpoint special acquisition. This is not a new observation
+protocol, and unrelated domains retain their prior single-probe schemas.
+
+The reusable `platform_guard` setup runs natural Battlefield movement outside
+the retained trace, then requires a trigger-valued guard phase and source floor
+line 2 immediately before each tested edge. That gives one seven-case / 137-row
+domain for DBOOC, shield-drop suppression, and extended pad count instead of a
+surface-response fork or three duplicated runners. Its exact source/production
+SHA-256 is
+`73198f0ee5ab242d72598c4fa149d6f13e60112d69ddeb1d1f83e0218683c009`.

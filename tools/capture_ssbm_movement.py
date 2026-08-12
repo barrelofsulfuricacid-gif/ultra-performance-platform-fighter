@@ -222,6 +222,12 @@ def input_trace(
         effective_count = repeat_count_overrides.get(label, count)
         trace.extend(command(label, **inputs) for _ in range(effective_count))
 
+    def repeat_unrecorded(label: str, count: int, **inputs: object) -> None:
+        trace.extend(
+            {**command(label, **inputs), "record": False}
+            for _ in range(count)
+        )
+
     def controller_axis(source_axis: object) -> float:
         if (
             not isinstance(source_axis, int)
@@ -273,6 +279,10 @@ def input_trace(
             raw_pre_source_phases = raw_case.get("pre_source_phases", [])
             raw_pre_edge_phases = raw_case.get("pre_edge_phases", [])
             raw_edge_actions = raw_case.get("edge_actions")
+            edge_left_trigger = raw_case.get("edge_left_trigger", 0)
+            edge_right_trigger = raw_case.get("edge_right_trigger", 0)
+            edge_digital_left = raw_case.get("edge_digital_left", False)
+            edge_digital_right = raw_case.get("edge_digital_right", False)
             edge_actions = (
                 [raw_case.get("edge_action", "special")]
                 if raw_edge_actions is None
@@ -293,6 +303,7 @@ def input_trace(
                     "turn",
                     "walk",
                     "wait",
+                    "platform_guard",
                 }
                 or not isinstance(edge_main, list)
                 or len(edge_main) != 2
@@ -329,6 +340,14 @@ def input_trace(
                 )
                 or len(set(edge_actions)) != len(edge_actions)
                 or ("none" in edge_actions and len(edge_actions) != 1)
+                or not isinstance(edge_left_trigger, int)
+                or isinstance(edge_left_trigger, bool)
+                or not 0 <= edge_left_trigger <= 65535
+                or not isinstance(edge_right_trigger, int)
+                or isinstance(edge_right_trigger, bool)
+                or not 0 <= edge_right_trigger <= 65535
+                or not isinstance(edge_digital_left, bool)
+                or not isinstance(edge_digital_right, bool)
                 or not isinstance(observe_ticks, int)
                 or isinstance(observe_ticks, bool)
                 or not 1 <= observe_ticks <= 16
@@ -341,10 +360,8 @@ def input_trace(
                 )
             def parse_input_phases(
                 raw_phases: list[object], phase_kind: str
-            ) -> list[tuple[int, list[int], list[int], list[str]]]:
-                phases: list[
-                    tuple[int, list[int], list[int], list[str]]
-                ] = []
+            ) -> list[tuple[int, dict[str, object]]]:
+                phases: list[tuple[int, dict[str, object]]] = []
                 for phase_index, raw_phase in enumerate(raw_phases):
                     if not isinstance(raw_phase, dict):
                         raise ValueError(
@@ -355,9 +372,22 @@ def input_trace(
                     phase_main = raw_phase.get("main", [0, 0])
                     phase_c = raw_phase.get("c_stick", [0, 0])
                     phase_actions = raw_phase.get("actions", [])
+                    phase_left_trigger = raw_phase.get("left_trigger", 0)
+                    phase_right_trigger = raw_phase.get("right_trigger", 0)
+                    phase_digital_left = raw_phase.get("digital_left", False)
+                    phase_digital_right = raw_phase.get("digital_right", False)
                     if (
                         set(raw_phase)
-                        - {"ticks", "main", "c_stick", "actions"}
+                        - {
+                            "ticks",
+                            "main",
+                            "c_stick",
+                            "actions",
+                            "left_trigger",
+                            "right_trigger",
+                            "digital_left",
+                            "digital_right",
+                        }
                         or not isinstance(phase_ticks, int)
                         or isinstance(phase_ticks, bool)
                         or not 1 <= phase_ticks <= 254
@@ -385,22 +415,60 @@ def input_trace(
                             for action in phase_actions
                         )
                         or len(set(phase_actions)) != len(phase_actions)
+                        or not isinstance(phase_left_trigger, int)
+                        or isinstance(phase_left_trigger, bool)
+                        or not 0 <= phase_left_trigger <= 65535
+                        or not isinstance(phase_right_trigger, int)
+                        or isinstance(phase_right_trigger, bool)
+                        or not 0 <= phase_right_trigger <= 65535
+                        or not isinstance(phase_digital_left, bool)
+                        or not isinstance(phase_digital_right, bool)
                     ):
                         raise ValueError(
                             f"invalid special acquisition {phase_kind} phase "
                             f"case={case_id!r} phase={phase_index}"
                         )
                     phases.append(
-                        (phase_ticks, phase_main, phase_c, phase_actions)
+                        (
+                            phase_ticks,
+                            {
+                                "main_x": controller_axis(phase_main[0]),
+                                "main_y": controller_axis(-phase_main[1]),
+                                "c_x": controller_axis(phase_c[0]),
+                                "c_y": controller_axis(-phase_c[1]),
+                                "left_shoulder": phase_left_trigger / 65535.0,
+                                "right_shoulder": phase_right_trigger / 65535.0,
+                                "digital_left": phase_digital_left,
+                                "digital_right": phase_digital_right,
+                                "attack": "attack" in phase_actions,
+                                "grab": "grab" in phase_actions,
+                                "jump": "jump" in phase_actions,
+                                "special": "special" in phase_actions,
+                            },
+                        )
                     )
                 return phases
 
             pre_source_phases = parse_input_phases(
                 raw_pre_source_phases, "pre-source"
             )
-            pre_edge_phases: list[
-                tuple[int, list[int], list[int], list[str]]
-            ] = parse_input_phases(raw_pre_edge_phases, "pre-edge")
+            pre_edge_phases = parse_input_phases(
+                raw_pre_edge_phases, "pre-edge"
+            )
+            if source_state == "platform_guard" and (
+                not pre_edge_phases
+                or not any(
+                    bool(inputs["digital_left"])
+                    or bool(inputs["digital_right"])
+                    or float(inputs["left_shoulder"]) > 0.0
+                    or float(inputs["right_shoulder"]) > 0.0
+                    for _, inputs in pre_edge_phases
+                )
+            ):
+                raise ValueError(
+                    f"platform guard case {case_id!r} requires a "
+                    "trigger-valued pre-edge phase"
+                )
             prefix = f"special_acquisition_{case_id}"
             first = command(
                 f"{prefix}_setup",
@@ -430,37 +498,37 @@ def input_trace(
                         "turn",
                         "walk",
                         "wait",
+                        "platform_guard",
                     }
                     else 0.0
                 ),
                 fighter_x_override=(
-                    85.0 if source_state == "teeter" else None
+                    -38.8 if source_state == "platform_guard" else (
+                        85.0 if source_state == "teeter" else None
+                    )
                 ),
                 fighter_y_override=(
-                    0.0001 if source_state == "teeter" else None
+                    27.2001 if source_state == "platform_guard" else (
+                        0.0001 if source_state == "teeter" else None
+                    )
                 ),
                 fighter_facing_override=(
-                    1.0 if source_state == "teeter" else None
+                    1.0
+                    if source_state in {"teeter", "platform_guard"}
+                    else None
                 ),
-                fighter_position_state_reset=source_state == "teeter",
+                fighter_position_state_reset=source_state in {
+                    "teeter",
+                    "platform_guard",
+                },
             )
             if pre_source_phases:
-                phase_ticks, phase_main, phase_c, phase_actions = (
+                phase_ticks, phase_inputs = (
                     pre_source_phases[0]
                 )
                 trace.append(
                     {
-                        **command(
-                            f"{prefix}_setup",
-                            main_x=controller_axis(phase_main[0]),
-                            main_y=controller_axis(-phase_main[1]),
-                            c_x=controller_axis(phase_c[0]),
-                            c_y=controller_axis(-phase_c[1]),
-                            attack="attack" in phase_actions,
-                            grab="grab" in phase_actions,
-                            jump="jump" in phase_actions,
-                            special="special" in phase_actions,
-                        ),
+                        **command(f"{prefix}_setup", **phase_inputs),
                         "restore_before": True,
                         "checkpoint_slot": checkpoint_slot,
                         "record": True,
@@ -469,29 +537,15 @@ def input_trace(
                 repeat(
                     f"{prefix}_setup",
                     phase_ticks - 1,
-                    main_x=controller_axis(phase_main[0]),
-                    main_y=controller_axis(-phase_main[1]),
-                    c_x=controller_axis(phase_c[0]),
-                    c_y=controller_axis(-phase_c[1]),
-                    attack="attack" in phase_actions,
-                    grab="grab" in phase_actions,
-                    jump="jump" in phase_actions,
-                    special="special" in phase_actions,
+                    **phase_inputs,
                 )
-                for phase_ticks, phase_main, phase_c, phase_actions in (
+                for phase_ticks, phase_inputs in (
                     pre_source_phases[1:]
                 ):
                     repeat(
                         f"{prefix}_setup",
                         phase_ticks,
-                        main_x=controller_axis(phase_main[0]),
-                        main_y=controller_axis(-phase_main[1]),
-                        c_x=controller_axis(phase_c[0]),
-                        c_y=controller_axis(-phase_c[1]),
-                        attack="attack" in phase_actions,
-                        grab="grab" in phase_actions,
-                        jump="jump" in phase_actions,
-                        special="special" in phase_actions,
+                        **phase_inputs,
                     )
                 trace.append(first)
             else:
@@ -505,6 +559,7 @@ def input_trace(
                             "teeter",
                             "walk",
                             "wait",
+                            "platform_guard",
                         },
                     }
                 )
@@ -512,6 +567,22 @@ def input_trace(
                 repeat(f"{prefix}_setup", 19, main_y=0.0)
                 if source_state == "squat_rv":
                     trace.append(command(f"{prefix}_release"))
+            elif source_state == "platform_guard":
+                # The restored Battlefield checkpoint begins on the left soft
+                # platform. Reuse the established neutral jump/landing route
+                # to settle on source line 2. Acquisition stays outside the
+                # retained theorem; the trigger-valued phases below begin the
+                # recorded guard rows.
+                repeat_unrecorded(f"{prefix}_setup", 59)
+                trace.append(
+                    {
+                        **command(f"{prefix}_platform_jump", jump=True),
+                        "record": False,
+                    }
+                )
+                repeat_unrecorded(f"{prefix}_platform_jump_squat", 5)
+                repeat_unrecorded(f"{prefix}_platform_landing_setup", 100)
+                repeat_unrecorded(f"{prefix}_platform_landing_settle", 30)
             elif source_state == "teeter":
                 for _ in range(2):
                     trace.append(
@@ -626,20 +697,11 @@ def input_trace(
                         {**command(f"{prefix}_setup"), "record": False}
                     )
                 trace.append(command(f"{prefix}_setup"))
-            for phase_ticks, phase_main, phase_c, phase_actions in (
-                pre_edge_phases
-            ):
+            for phase_ticks, phase_inputs in pre_edge_phases:
                 repeat(
                     f"{prefix}_setup",
                     phase_ticks,
-                    main_x=controller_axis(phase_main[0]),
-                    main_y=controller_axis(-phase_main[1]),
-                    c_x=controller_axis(phase_c[0]),
-                    c_y=controller_axis(-phase_c[1]),
-                    attack="attack" in phase_actions,
-                    grab="grab" in phase_actions,
-                    jump="jump" in phase_actions,
-                    special="special" in phase_actions,
+                    **phase_inputs,
                 )
             edge_x = controller_axis(edge_main[0])
             edge_y = controller_axis(-edge_main[1])
@@ -652,6 +714,10 @@ def input_trace(
                     main_y=edge_y,
                     c_x=edge_c_x,
                     c_y=edge_c_y,
+                    left_shoulder=edge_left_trigger / 65535.0,
+                    right_shoulder=edge_right_trigger / 65535.0,
+                    digital_left=edge_digital_left,
+                    digital_right=edge_digital_right,
                     attack="attack" in edge_actions,
                     grab="grab" in edge_actions,
                     jump="jump" in edge_actions,
@@ -6732,9 +6798,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
     hyrule_stage_route = wall_geometry_route or (
         surface_response_route and surface_response_stage == "HYRULE_TEMPLE"
     )
-    battlefield_checkpoint_route = bool(
-        surface_response_route and surface_response_stage == "BATTLEFIELD"
-    )
+    battlefield_checkpoint_route = checkpoint_stage == "BATTLEFIELD"
     raw_special_acquisition_cases = (
         checkpoint_capture_plan.get("special_acquisition_cases", [])
         if checkpoint_capture_plan is not None
@@ -8674,6 +8738,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             and (
                 args.damage_hit_only
                 or args.common_hurt_geometry_only
+                or args.special_acquisition_only
             )
         )
     ):
@@ -8682,8 +8747,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "--platform-drop-ecb-only, --airborne-ecb-only, "
             "--aerial-attack-ecb-only, --aerial-attack-landing-only, "
             "--airborne-landing-only, --shield-break-orientation-only, "
-            "--special-geometry-only, or a "
-            "--damage-hit-only/--common-hurt-geometry-only checkpoint pack"
+            "--special-geometry-only, or a damage-hit/common-hurt-geometry/"
+            "special-acquisition checkpoint pack"
         )
     if args.memory_probe_hitbox and not (
         args.defense_state_only
@@ -8720,20 +8785,23 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "--memory-probe-collision requires --shield-collision-only or "
             "--moving-hit-sweep-only or --shield-break-orientation-only"
         )
-    if (
-        sum(
-            (
-                args.memory_probe_shield,
-                args.memory_probe_damage,
-                args.memory_probe_input,
-                args.memory_probe_hitbox,
-                args.memory_probe_hurtbox,
-                args.memory_probe_collision,
-                args.memory_probe_surface,
-            )
-        )
-        > 1
-    ):
+    selected_memory_probes = (
+        args.memory_probe_shield,
+        args.memory_probe_damage,
+        args.memory_probe_input,
+        args.memory_probe_hitbox,
+        args.memory_probe_hurtbox,
+        args.memory_probe_collision,
+        args.memory_probe_surface,
+    )
+    input_surface_checkpoint_probe = (
+        args.memory_probe_input
+        and args.memory_probe_surface
+        and args.oracle_checkpoint_pack
+        and args.special_acquisition_only
+        and sum(selected_memory_probes) == 2
+    )
+    if sum(selected_memory_probes) > 1 and not input_surface_checkpoint_probe:
         parser.error("select only one memory probe")
     return args
 

@@ -234,6 +234,8 @@ def native_input_line(
         raise ValueError("exact raw C-stick input requires exact raw main input")
 
     observed_analog = float(row.get("observed_analog_shoulder", 0.0))
+    observed_left = float(row.get("observed_left_shoulder", observed_analog))
+    observed_right = float(row.get("observed_right_shoulder", observed_analog))
     # The project action packet has no device-specific Z bit. Its input
     # normalizer represents GameCube Z as the canonical full-shield-plus-A
     # grab chord, so replay the same physical sample through that mapping.
@@ -242,7 +244,7 @@ def native_input_line(
         if bool(row.get("observed_grab", False))
         or bool(row.get("requested_digital_left"))
         else (
-            controller_trigger(observed_analog)
+            controller_trigger(observed_left)
             if float(row.get("requested_left_shoulder", 0.0)) > 0.0
             else 0
         )
@@ -251,7 +253,7 @@ def native_input_line(
         65535
         if bool(row.get("requested_digital_right"))
         else (
-            controller_trigger(observed_analog)
+            controller_trigger(observed_right)
             if float(row.get("requested_right_shoulder", 0.0)) > 0.0
             else 0
         )

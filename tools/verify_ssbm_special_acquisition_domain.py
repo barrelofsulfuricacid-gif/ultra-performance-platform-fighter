@@ -6,7 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from ssbm_live_trace import canonical_sha256
 from ssbm_natural_movement_domain import (
@@ -16,8 +16,12 @@ from ssbm_natural_movement_domain import (
 )
 
 
+class SpecialAcquisitionVerificationError(ValueError):
+    """A capture pair does not satisfy its acquisition-domain contract."""
+
+
 def fail(message: str) -> None:
-    raise SystemExit(f"ssbm-special-acquisition=fail reason={message}")
+    raise SpecialAcquisitionVerificationError(message)
 
 
 def case_rows(
@@ -85,9 +89,18 @@ def qualify_capture(
         expected_edge_rows = expected.get("edge_rows")
         edge_facing = expected.get("edge_facing")
         pre_edge_grounded = expected.get("pre_edge_grounded")
+        pre_edge_support_line = expected.get("pre_edge_support_line")
         if (
             edge_index <= 0
             or not isinstance(pre_edge_grounded, bool)
+            or (
+                pre_edge_support_line is not None
+                and (
+                    not isinstance(pre_edge_support_line, int)
+                    or isinstance(pre_edge_support_line, bool)
+                    or not 0 <= pre_edge_support_line < 0xFFFFFFFF
+                )
+            )
         ):
             fail(f"expectation-schema case={case_id}")
         pre_edge_action = expected.get("pre_edge_action")
@@ -111,8 +124,18 @@ def qualify_capture(
         ):
             fail(f"expectation-schema case={case_id}")
         pre_edge = current[edge_index - 1]
+        collision = pre_edge.get("surface_collision_memory")
+        surfaces = collision.get("surfaces") if isinstance(collision, dict) else None
+        floor = surfaces.get("floor") if isinstance(surfaces, dict) else None
+        actual_support_line = (
+            floor.get("index") if isinstance(floor, dict) else None
+        )
         if (
             bool(pre_edge.get("grounded")) != pre_edge_grounded
+            or (
+                pre_edge_support_line is not None
+                and actual_support_line != pre_edge_support_line
+            )
             or (
                 pre_edge_action is not None
                 and (
@@ -185,14 +208,15 @@ def qualify_capture(
             fail(f"edge-outcome case={case_id}")
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("coverage", type=Path)
-    parser.add_argument("capture", type=Path)
-    parser.add_argument("repeat_capture", type=Path)
-    args = parser.parse_args()
-
-    coverage = json.loads(args.coverage.read_text(encoding="utf-8"))
+def verify_capture_pair(
+    coverage: dict[str, Any],
+    capture_path: Path,
+    repeat_capture_path: Path,
+    *,
+    extra_qualifier: Callable[
+        [dict[str, Any], dict[str, Any]], None
+    ] | None = None,
+) -> tuple[dict[str, Any], str]:
     live_source = coverage.get("live_source")
     if (
         coverage.get("schema") != 1
@@ -202,32 +226,59 @@ def main() -> int:
         != "native-csv-trace-v1"
     ):
         fail("coverage-schema")
-    try:
-        capture = load_capture(
-            args.capture,
-            str(live_source["capture_sha256"]),
-            live_source,
-        )
-        repeat_capture = load_capture(
-            args.repeat_capture,
-            str(live_source["repeat_capture_sha256"]),
-            live_source,
-        )
-        qualify_capture(capture, coverage)
-        qualify_capture(repeat_capture, coverage)
-        canonical = canonical_capture(capture, coverage)
-        repeat_canonical = canonical_capture(repeat_capture, coverage)
-    except (KeyError, NaturalMovementDomainError) as error:
-        fail(str(error))
+    capture = load_capture(
+        capture_path,
+        str(live_source["capture_sha256"]),
+        live_source,
+    )
+    repeat_capture = load_capture(
+        repeat_capture_path,
+        str(live_source["repeat_capture_sha256"]),
+        live_source,
+    )
+    qualify_capture(capture, coverage)
+    qualify_capture(repeat_capture, coverage)
+    if extra_qualifier is not None:
+        extra_qualifier(capture, coverage)
+        extra_qualifier(repeat_capture, coverage)
+    canonical = canonical_capture(capture, coverage)
+    repeat_canonical = canonical_capture(repeat_capture, coverage)
     if canonical != repeat_canonical:
         fail("repeat-semantic-trace")
     observed_digest = canonical_sha256(canonical)
-    expected_digest = coverage["stored_oracle"].get("source_trace_sha256")
+    expected_digest = coverage["stored_oracle"].get(
+        "source_trace_sha256"
+    )
     if observed_digest != expected_digest:
         fail(
             f"source-trace-sha256 expected={expected_digest} "
             f"actual={observed_digest}"
         )
+    return capture, observed_digest
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("coverage", type=Path)
+    parser.add_argument("capture", type=Path)
+    parser.add_argument("repeat_capture", type=Path)
+    args = parser.parse_args()
+
+    coverage = json.loads(args.coverage.read_text(encoding="utf-8"))
+    try:
+        capture, observed_digest = verify_capture_pair(
+            coverage,
+            args.capture,
+            args.repeat_capture,
+        )
+    except (
+        KeyError,
+        NaturalMovementDomainError,
+        SpecialAcquisitionVerificationError,
+    ) as error:
+        raise SystemExit(
+            f"ssbm-special-acquisition=fail reason={error}"
+        ) from error
     print(
         "ssbm-special-acquisition=pass "
         f"domain={coverage['domain']} rows={len(capture['rows'])} "
