@@ -11737,6 +11737,8 @@ pf_status pf_m4_step_player(
              action_state !=
                  (uint8_t)PF_M4_ACTION_CROUCH_END &&
              !(source_ground_input != NULL &&
+               action_state == (uint8_t)PF_M4_ACTION_RUN) &&
+             !(source_ground_input != NULL &&
                action_state == (uint8_t)PF_M4_ACTION_INITIAL_DASH) &&
              input->main_stick_y >=
                  (int16_t)fighter->crouch_axis_threshold &&
@@ -11746,32 +11748,16 @@ pf_status pf_m4_step_player(
                    action_state,
                    input->main_stick_y)))
     {
-        if (action_state == (uint8_t)PF_M4_ACTION_RUN)
-        {
-            action_state = (uint8_t)PF_M4_ACTION_CROUCH_START;
-            action_ticks = UINT16_C(1);
-            velocity_x = pf_m4_approach(
-                velocity_x,
-                INT32_C(0),
-                velocity_x > fighter->walk_speed_q16 ||
-                        velocity_x < -fighter->walk_speed_q16
-                    ? fighter->turn_acceleration_q16
-                    : fighter->traction_q16);
-            dash_direction = INT8_C(0);
-        }
-        else
-        {
-            action_state = (uint8_t)PF_M4_ACTION_CROUCH_START;
-            action_ticks = UINT16_C(1);
-            velocity_x = pf_m4_approach(
-                velocity_x,
-                INT32_C(0),
-                velocity_x > fighter->walk_speed_q16 ||
-                        velocity_x < -fighter->walk_speed_q16
-                    ? fighter->turn_acceleration_q16
-                    : fighter->traction_q16);
-            dash_direction = INT8_C(0);
-        }
+        action_state = (uint8_t)PF_M4_ACTION_CROUCH_START;
+        action_ticks = UINT16_C(1);
+        velocity_x = pf_m4_approach(
+            velocity_x,
+            INT32_C(0),
+            velocity_x > fighter->walk_speed_q16 ||
+                    velocity_x < -fighter->walk_speed_q16
+                ? fighter->turn_acceleration_q16
+                : fighter->traction_q16);
+        dash_direction = INT8_C(0);
     }
     else if (!ledge_motion_handled &&
              !hitstun_locked &&

@@ -1,5 +1,39 @@
 # Plan modifications
 
+## 2026-08-12 - Falcon completion, native Battlefield, and reusable character import
+
+The active M4 outcome is now explicitly twofold: finish the Captain Falcon
+NTSC 1.02 simulation port under the existing exact-behavior/Q16.16 contract,
+and provide a native frontend in which the owner can playtest that simulation
+on Battlefield. A browser frontend remains useful, but it does not substitute
+for the required native Battlefield playtest path.
+
+When a source audit establishes that legacy authored simulation code blatantly
+diverges from Melee, remove that code instead of retaining it as a parallel
+Falcon path or dormant compatibility fixture. Preserve original/custom fighter
+behavior only where it is explicitly outside the imported-reference content
+path; use a zero-cost imported/reference gate when the same runtime supports
+both contracts. Superseded tests and current player-facing documentation must
+be deleted or corrected with the implementation. Historical milestone text may
+remain only when it is clearly marked as superseded.
+
+Every Falcon slice must use and improve the `ssbm-character-importer` skill.
+The long-term target is a source-driven toolchain that can import a new Melee
+character completely, quickly, and without human intervention: discover and
+validate data, map action/callback tables, generate compact runtime artifacts,
+produce provenance, construct identical-input live cases, and bind stored
+regressions. Until full automation is reached, each manual discovery must be
+captured as reusable skill guidance, a character-independent routine, or an
+explicitly documented gap rather than remaining implicit Falcon knowledge.
+
+Equivalence validation follows the same reuse rule. Capture protocols,
+checkpoint orchestration, trace schemas, projection/comparison logic,
+generation, affected-domain selection, hashing, budgets, and result reporting
+must be character-independent. Character-specific files should contain only
+data bindings, source mappings, case declarations, and irreducible semantic
+adapters. Do not clone a runner or verifier for each character when a manifest
+entry or typed generated descriptor can express the distinction.
+
 ## 2026-08-04 - Beautiful zero-cost implementation gate
 
 The owner added implementation quality as a binding requirement alongside

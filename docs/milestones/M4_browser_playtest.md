@@ -363,11 +363,11 @@ residual reversal momentum slides under traction. Omitting the attack remains
 in the empty standing turn; holding the reversal enters the opposite dash, and
 attempting the route after `RUN` instead enters `RUN TURNAROUND`.
 
-For a dash cancel, press jump during `INITIAL DASH` to enter `JUMP SQUAT`, or
-reach `RUN` and either press down for a sliding `CROUCH` or hold shield for a
-sliding `SHIELD`. A ground attack can immediately interrupt the crouch while
-the remaining momentum carries forward. Shield during `INITIAL DASH` and down
-during `RUN TURNAROUND` are deliberate negative cases.
+For the corrected Run callback route, press jump during `INITIAL DASH` to enter
+`JUMP SQUAT`, or reach `RUN` and either hold down through one displayed
+`RUN BRAKE` tick into a sliding `CROUCH` or hold shield for a sliding `SHIELD`.
+A ground attack can interrupt the crouch while the remaining momentum carries
+forward. Down during a locked `RUN TURNAROUND` cannot bypass that lock.
 
 For a jump-cancel attack, begin a dash, press jump, then keep full up held and
 freshly press light or strong during `JUMP SQUAT`. The grounded `UP STRONG`
@@ -821,10 +821,10 @@ broader acceptance evidence.
 3. Hold a direction until the inspector says `RUN`, then press the opposite
    full direction. Confirm `RUN TURNAROUND`, never `INITIAL DASH`, appears
    before the fighter begins running the other way. Release from a run and
-   confirm `RUN BRAKE`. Repeat from `RUN` with down and confirm a forward slide
-   in `CROUCH`, then immediately attack; repeat with shield for `SHIELD`. Jump
-   during `INITIAL DASH` for `JUMP SQUAT`, then confirm shield in that same
-   early state and down during `RUN TURNAROUND` do not take the cancel routes.
+   confirm `RUN BRAKE`. Repeat from `RUN` while holding down and confirm one
+   `RUN BRAKE` tick before the forward slide enters `CROUCH`, then attack;
+   repeat with shield for `SHIELD`. Jump during `INITIAL DASH` for
+   `JUMP SQUAT`, and confirm down cannot bypass a locked `RUN TURNAROUND`.
 4. Rhythmically tap and release `D` at least four times. Confirm every fresh
    press returns to tick 1 of `INITIAL DASH`, facing remains right, and the
    fighter keeps advancing without reaching `RUN`. Then hold `D` to confirm
@@ -1154,9 +1154,9 @@ through:
 - a one-tick initial-dash reversal followed by an immediate ground attack or
   empty pivot while retaining facing and momentum, plus held-reversal and
   post-run negative routes;
-- initial-dash jump cancel plus run-to-crouch and run-to-shield cancels, an
-  immediate crouch attack with retained slide, and early-shield/turnaround
-  negative routes;
+- initial-dash jump cancel plus the corrected Run-to-RunBrake-to-Crouch and
+  run-to-shield routes, an attack from crouch with retained slide, and the
+  TurnRun-lock control;
 - one-tick run-to-shield tap/release travel through the minimum hold and full
   release, compared with a held shield stop on the same traction path and an
   idle no-travel negative route;

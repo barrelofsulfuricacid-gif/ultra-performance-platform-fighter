@@ -1260,6 +1260,10 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 ## Delivered in the dash-cancel route
 
+- Superseded by the 2026-08-12 Run-to-RunBrake live qualification below: the
+  direct Run-to-Crouch behavior recorded in this historical delivery section
+  was project behavior, not the final Melee-equivalent route. Current
+  production enters RunBrake first and accepts crouch from RunBrake.
 - Down from an unlocked `RUN` now enters `CROUCH` directly instead of
   `RUN BRAKE`, preserving a traction-reduced forward slide and allowing an
   immediate grounded attack. Initial-dash jump cancel and run-to-shield remain
@@ -2472,9 +2476,9 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   the pivot route in `STANDING TURN`. Holding the reversal enters opposite
   initial dash, while waiting until `RUN` produces `RUN TURNAROUND` rather than
   an empty pivot.
-- Down from an unlocked run remains the sliding crouch-cancel route; jump and
-  shield remain the other live dash cancels. Initial-dash shield and
-  run-turnaround crouch input remain rejected.
+- Down from an unlocked run enters `RUN BRAKE`; down from RunBrake remains the
+  sliding crouch-cancel route. Jump and shield remain the other live dash
+  cancels. Initial-dash shield and run-turnaround crouch input remain rejected.
 - A one-tick shield tap from run retains the held shield stop's traction path,
   but enters release as soon as the eight-tick minimum completes. Holding the
   trigger remains `SHIELD`, while the same tap from idle has no travel.
@@ -6477,3 +6481,42 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   `b4406686d48f9bcc8719d89f558a246dad05d25d5cb8362cde4b64d093aa0be2`.
   Windows serial CTest passes 40/40 in 8.42 seconds; WSL passes 42/42 in 9.82
   seconds.
+
+## 2026-08-12: Run-to-RunBrake acquisition fidelity
+
+- Pinned decomp revision
+  `9509dc04406fb2028bfab01243841ba4787c0fb7` and current upstream
+  `d882af94175e3c880ad51039e2979aa9a50aea09` establish the captured callback
+  split: straight full down from ordinary Run enters RunBrake, a radial-gate
+  diagonal-down edge remains Run, down from RunBrake enters CrouchStart, and
+  the locked Run phase following TurnRun rejects direct down. The normalized
+  source SHA-256 values are
+  `72a9ce8c19948d468f6aea484b72db3b1f0c280846adc4d5677e4c6a20b810fe`
+  for `ftCo_Run.c`,
+  `0c75e6a95319f2be3a42dcade65b07671d47d7a31e7191e04cb617fce13866bb`
+  for `ftCo_RunBrake.c`, and
+  `80c2e71e50622e942754bfcdd3bd89f3762fe4df2400d8055f059ab6cc4b8082`
+  for `ftCo_Squat.c`.
+- Production excludes Run from the generic direct-crouch predicate and reuses
+  the existing shared RunBrake transition plus the existing RunBrake-to-crouch
+  path. No new state, lookup table, parser field, allocation, snapshot byte, or
+  duplicate movement router was added. This supersedes the older direct
+  Run-to-Crouch project behavior recorded above.
+- Four immutable checkpoint cases retain 127 source rows. The independent
+  captures reproduce identical ordered rows; their raw artifact SHA-256 values
+  are
+  `1d3c568f38f6dcd359e77c3b1616a6e7d81480dff4e8b3aa5262e528533fd8b9`
+  and
+  `e74a8c0ecc7628ba2886e7ad10b4633d2e1ad0eac5ecf6c5ec86f057a9d1ab16`.
+  Warm work takes 0.541609/0.311504 seconds and complete lifecycles take
+  6.177062/3.647950 seconds.
+- The selected action/tick/facing/grounded source payload and native production
+  payload are structurally identical at SHA-256
+  `dfa7be0339110c98c9107a069ef7e9751b14f2c174bd04a7e977c90ae745f6ad`.
+  The generated native-CSV domain keeps all four cases / 127 samples and passes
+  in 263.089 ms on Windows and 403.007 ms in WSL.
+- The registry now contains 30 domains / 174 cases plus deterministic replay.
+  Three isolated complete Windows passes take
+  1178.830/1319.197/1471.076 ms, and three isolated WSL passes take
+  919.397/986.464/1270.306 ms under manifest SHA-256
+  `99b5f633b2f4f6c33173ca285af0634e0ac51d1acc6df8b2a5b3c57f22cb261d`.

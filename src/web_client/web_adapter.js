@@ -1867,9 +1867,9 @@ mergeInto(LibraryManager.library, {
       "platform, press down with the attacker, then press light attack on the " +
       "first airborne tick; a hit returns the attacker to AERIAL LANDING on " +
       "that platform. Waiting one extra tick or whiffing falls through. " +
-      "To dash-cancel a run, press down for a traction slide into CROUCH, then " +
-      "attack; jump and shield are the other live cancel routes. Shield remains " +
-      "locked out during INITIAL DASH and down cannot cancel RUN TURNAROUND. " +
+      "To crouch from a run, hold down through the one-frame RUN BRAKE entry " +
+      "into CROUCH, then attack; jump and shield are the other live run " +
+      "interrupts. Down cannot bypass a locked RUN TURNAROUND. " +
       "Fall beside a ledge while facing inward " +
       "to grab it; after the catch, press inward to climb, a fresh trigger to " +
       "ledge-roll, light or strong attack to ledge-attack, down or away to " +

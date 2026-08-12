@@ -2050,3 +2050,56 @@ cases plus deterministic replay. It passes in 1.286 seconds on Windows and
 `b4406686d48f9bcc8719d89f558a246dad05d25d5cb8362cde4b64d093aa0be2`.
 Windows serial CTest passes 40/40 in 8.42 seconds; WSL passes 42/42 in 9.82
 seconds. No web probe participates in this source or regression theorem.
+
+## Falcon Run-to-RunBrake acquisition
+
+`tools/ssbm_falcon_run_brake_acquisition_coverage.json` pins decomp revision
+`9509dc04406fb2028bfab01243841ba4787c0fb7` and records current upstream
+`d882af94175e3c880ad51039e2979aa9a50aea09`. Its four Final Destination
+checkpoint cases use only recorded controller phases to establish these
+boundaries:
+
+- straight full down from ordinary Run enters RunBrake frames 1-4;
+- radial-gate diagonal down from Run frame 5 remains Run for frame 6 before
+  the following neutral tail enters RunBrake;
+- straight down from RunBrake frame 1 enters CrouchStart frames 1-3;
+- full opposite input reaches TurnRun's locked Run phase, where straight down
+  preserves Run across the retained frame-2 duplicate and frame 3.
+
+The normalized source-file SHA-256 values are
+`72a9ce8c19948d468f6aea484b72db3b1f0c280846adc4d5677e4c6a20b810fe`
+for `ftCo_Run.c`,
+`0c75e6a95319f2be3a42dcade65b07671d47d7a31e7191e04cb617fce13866bb`
+for `ftCo_RunBrake.c`, and
+`80c2e71e50622e942754bfcdd3bd89f3762fe4df2400d8055f059ab6cc4b8082`
+for `ftCo_Squat.c`.
+
+The production correction excludes Run from the generic direct-crouch
+predicate so the already-shared run-brake predicate owns that input. The
+existing RunBrake-to-crouch callback remains unchanged. This is a zero-cost
+predicate correction: it adds no source constant, action-specific router,
+table, allocation, canonical field, save field, or snapshot byte. It
+supersedes the earlier project-specific direct Run-to-Crouch behavior.
+
+The two live artifacts each contain 127 ordered rows, and their row payloads
+are identical. Their independently pinned raw file SHA-256 values are
+`1d3c568f38f6dcd359e77c3b1616a6e7d81480dff4e8b3aa5262e528533fd8b9`
+and
+`e74a8c0ecc7628ba2886e7ad10b4633d2e1ad0eac5ecf6c5ec86f057a9d1ab16`.
+Capture A takes 0.541609 seconds warm and 6.177062 seconds for its complete
+launch-to-cleanup lifecycle; capture B takes 0.311504 seconds warm and
+3.647950 seconds complete. The raw files differ because provenance metadata is
+artifact-specific; the selected source trace and native production trace are
+exactly equal at SHA-256
+`dfa7be0339110c98c9107a069ef7e9751b14f2c174bd04a7e977c90ae745f6ad`.
+
+The generated `native-csv-trace-v1` regression preserves all four cases / 127
+samples and serializes action tick, action state, facing, and grounded state,
+with manifest-owned exclusions only on unqualified setup clock rows. The
+focused domain passes in 263.089 ms on Windows and 403.007 ms in WSL.
+The shared registry now contains 30 domains / 174 cases plus deterministic
+replay. Three isolated Windows passes take 1178.830/1319.197/1471.076 ms;
+three isolated WSL passes take 919.397/986.464/1270.306 ms under manifest
+SHA-256
+`99b5f633b2f4f6c33173ca285af0634e0ac51d1acc6df8b2a5b3c57f22cb261d`.
+No web probe participates in the source or regression theorem.

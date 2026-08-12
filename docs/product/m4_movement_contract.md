@@ -91,11 +91,11 @@ to the simulation.
   Guard, roll, spot-dodge, C-stick escape, attack, grab, special, and taunt
   inputs do not interrupt it. Shield-plus-main-stick-down still takes the
   crouch branch because crouch has independent priority.
-- Down from an unlocked `RUN` cancels directly into `CROUCH`, retaining a
-  traction-reduced forward slide and exposing immediate grounded actions.
-  Jump and shield provide the other current production dash-cancel routes.
-  Shield remains excluded during `INITIAL DASH`, and down cannot cancel the
-  locked `RUN TURNAROUND` state.
+- Down from an unlocked `RUN` first enters `RUN BRAKE`; held down then takes
+  the ordered RunBrake crouch callback into `CROUCH START` on the following
+  simulation tick. This preserves the traction-reduced forward slide without
+  inventing a direct Run-to-Crouch callback. Jump and shield remain legal Run
+  interrupts, while down cannot bypass the locked `RUN TURNAROUND` state.
 - Tapping shield for one tick from `RUN` preserves that run momentum through
   the data-defined eight-tick minimum hold, then enters the 15-tick
   `SHIELD RELEASE` while ordinary traction finishes the slide. Holding shield
@@ -465,8 +465,8 @@ bounds, and blast zones.
   held-run and weak-walk negative cases, mid-rhythm save/load continuation,
   one-tick empty/action pivoting with facing and momentum preservation,
   held-reversal and post-run negative cases, mid-pivot save/load continuation,
-  jump/shield dash cancels, sliding run-to-crouch cancel and immediate attack,
-  early-shield and run-turnaround negative cases, mid-crouch save/load equality,
+  jump/shield run interrupts, the exact Run-to-RunBrake-to-Crouch acquisition
+  order, diagonal-down and TurnRun-lock controls,
   dash-dance reversal, run turnaround, turnaround lockout, run brake, facing,
   traction, and crouch;
 - neutral trigger-to-shield behavior; fresh and shield-held forward/backward

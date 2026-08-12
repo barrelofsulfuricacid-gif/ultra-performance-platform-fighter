@@ -1,0 +1,222 @@
+{
+  "schema": 1,
+  "scope": "falcon-common-run-brake-acquisition",
+  "domain": "falcon-common-run-brake-acquisition",
+  "character": "falcon",
+  "oracle": "SSBM GALE01 NTSC-U revision 2",
+  "live_source": {
+    "capture_sha256": "1d3c568f38f6dcd359e77c3b1616a6e7d81480dff4e8b3aa5262e528533fd8b9",
+    "repeat_capture_sha256": "e74a8c0ecc7628ba2886e7ad10b4633d2e1ad0eac5ecf6c5ec86f057a9d1ab16",
+    "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
+    "release_artifact_sha256": "87e9ef6d80ed03354a1647d0616016dbc91399aa9e86a69ae5a398edd0a0c2bd",
+    "launcher_sha256": "9eb024aa9347648f020e2a76666e5c5597b77b32ef26752f563c99f0772b1e82",
+    "decomp_revision": "9509dc04406fb2028bfab01243841ba4787c0fb7",
+    "current_decomp_revision": "d882af94175e3c880ad51039e2979aa9a50aea09",
+    "dolphin_version": "3.5.1",
+    "libmelee_version": "0.47.2",
+    "capture_schema": 7,
+    "stage": "FINAL_DESTINATION",
+    "row_count": 127
+  },
+  "checkpoint_pack": {
+    "protocol": "immutable-multislot-slippi-state-file-control-v2",
+    "expected_rows": 127,
+    "warm_budget_seconds": 2.0,
+    "capture_plan": {
+      "batch_exi_inputs": true,
+      "checkpoint_slot_count": 4,
+      "special_acquisition_cases": [
+        {
+          "id": "run_down_brakes",
+          "checkpoint_slot": 0,
+          "source_state": "dash",
+          "pre_edge_phases": [
+            { "ticks": 20, "main": [32767, 0] }
+          ],
+          "edge_main": [0, 32767],
+          "edge_action": "none",
+          "observe_ticks": 3
+        },
+        {
+          "id": "run_diagonal_down_continues",
+          "checkpoint_slot": 1,
+          "source_state": "dash",
+          "pre_edge_phases": [
+            { "ticks": 20, "main": [32767, 0] }
+          ],
+          "edge_main": [22937, 22937],
+          "edge_action": "none",
+          "observe_ticks": 2
+        },
+        {
+          "id": "run_brake_down_crouches",
+          "checkpoint_slot": 2,
+          "source_state": "dash",
+          "pre_edge_phases": [
+            { "ticks": 20, "main": [32767, 0] },
+            { "ticks": 1, "main": [0, 0] }
+          ],
+          "edge_main": [0, 32767],
+          "edge_action": "none",
+          "observe_ticks": 2
+        },
+        {
+          "id": "turnrun_locked_run_rejects_down",
+          "checkpoint_slot": 3,
+          "source_state": "dash",
+          "pre_edge_phases": [
+            { "ticks": 20, "main": [32767, 0] },
+            { "ticks": 29, "main": [-32767, 0] }
+          ],
+          "edge_main": [0, 32767],
+          "edge_action": "none",
+          "observe_ticks": 2
+        }
+      ]
+    }
+  },
+  "checkpoint_cases": [
+    { "id": "run-down-brakes", "start_label": "special_acquisition_run_down_brakes_setup" },
+    { "id": "run-diagonal-down-continues", "start_label": "special_acquisition_run_diagonal_down_continues_setup" },
+    { "id": "run-brake-down-crouches", "start_label": "special_acquisition_run_brake_down_crouches_setup" },
+    { "id": "turnrun-locked-run-rejects-down", "start_label": "special_acquisition_turnrun_locked_run_rejects_down_setup" }
+  ],
+  "live_expectations": {
+    "run_down_brakes": {
+      "pre_edge_action": "RUNNING",
+      "pre_edge_action_frame": 5,
+      "pre_edge_grounded": true,
+      "edge_rows": [
+        { "action": "RUN_BRAKE", "action_frame": 1, "facing": 1, "grounded": true },
+        { "action": "RUN_BRAKE", "action_frame": 2, "facing": 1, "grounded": true },
+        { "action": "RUN_BRAKE", "action_frame": 3, "facing": 1, "grounded": true },
+        { "action": "RUN_BRAKE", "action_frame": 4, "facing": 1, "grounded": true }
+      ]
+    },
+    "run_diagonal_down_continues": {
+      "pre_edge_action": "RUNNING",
+      "pre_edge_action_frame": 5,
+      "pre_edge_grounded": true,
+      "edge_rows": [
+        { "action": "RUNNING", "action_frame": 6, "facing": 1, "grounded": true },
+        { "action": "RUN_BRAKE", "action_frame": 1, "facing": 1, "grounded": true },
+        { "action": "RUN_BRAKE", "action_frame": 2, "facing": 1, "grounded": true }
+      ]
+    },
+    "run_brake_down_crouches": {
+      "pre_edge_action": "RUN_BRAKE",
+      "pre_edge_action_frame": 1,
+      "pre_edge_grounded": true,
+      "edge_rows": [
+        { "action": "CROUCH_START", "action_frame": 1, "facing": 1, "grounded": true },
+        { "action": "CROUCH_START", "action_frame": 2, "facing": 1, "grounded": true },
+        { "action": "CROUCH_START", "action_frame": 3, "facing": 1, "grounded": true }
+      ]
+    },
+    "turnrun_locked_run_rejects_down": {
+      "pre_edge_action": "RUNNING",
+      "pre_edge_action_frame": 1,
+      "pre_edge_grounded": true,
+      "edge_rows": [
+        { "action": "RUNNING", "action_frame": 2, "facing": -1, "grounded": true },
+        { "action": "RUNNING", "action_frame": 2, "facing": -1, "grounded": true },
+        { "action": "RUNNING", "action_frame": 3, "facing": -1, "grounded": true }
+      ]
+    }
+  },
+  "selection": {
+    "paths": [
+      "generated/data/m4_ssbm_falcon_run_brake_acquisition_oracle.json",
+      "src/sim/sim_movement.c",
+      "src/tools/m4_movement_trace.c",
+      "tests/sim/test_m4_movement.c",
+      "tools/capture_ssbm_movement.py",
+      "tools/compare_ssbm_movement.py",
+      "tools/generate_ssbm_stored_trace_oracle.py",
+      "tools/ssbm_falcon_run_brake_acquisition_coverage.json",
+      "tools/ssbm_live_trace.py",
+      "tools/ssbm_natural_movement_domain.py",
+      "tools/verify_ssbm_special_acquisition_domain.py"
+    ]
+  },
+  "stored_oracle": {
+    "kind": "native-csv-trace-v1",
+    "source_trace_sha256": "dfa7be0339110c98c9107a069ef7e9751b14f2c174bd04a7e977c90ae745f6ad",
+    "production_trace_sha256": "dfa7be0339110c98c9107a069ef7e9751b14f2c174bd04a7e977c90ae745f6ad",
+    "require_exact_source_match": true,
+    "serialized_fields": [
+      "action_ticks",
+      "action_state",
+      "facing",
+      "grounded"
+    ],
+    "cases": [
+      {
+        "id": "run_down_brakes",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_run_down_brakes_",
+        "sample_count": 25,
+        "field_exclusions": {
+          "action_ticks": [[15, 21]]
+        },
+        "input_phases": [
+          { "ticks": 21, "lanes": [{ "main": [32767, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [0, -32767] }, {}] },
+          { "ticks": 3, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "run_diagonal_down_continues",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_run_diagonal_down_continues_",
+        "sample_count": 24,
+        "field_exclusions": {
+          "action_ticks": [[15, 22]]
+        },
+        "input_phases": [
+          { "ticks": 21, "lanes": [{ "main": [32767, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [22937, -22937] }, {}] },
+          { "ticks": 2, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "run_brake_down_crouches",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_run_brake_down_crouches_",
+        "sample_count": 25,
+        "field_exclusions": {
+          "action_ticks": [[15, 21]]
+        },
+        "input_phases": [
+          { "ticks": 21, "lanes": [{ "main": [32767, 0] }, {}] },
+          { "ticks": 1, "lanes": [{}, {}] },
+          { "ticks": 1, "lanes": [{ "main": [0, -32767] }, {}] },
+          { "ticks": 2, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "turnrun_locked_run_rejects_down",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_turnrun_locked_run_rejects_down_",
+        "sample_count": 53,
+        "field_exclusions": {
+          "action_ticks": [[15, 21], [49, 53]]
+        },
+        "input_phases": [
+          { "ticks": 21, "lanes": [{ "main": [32767, 0] }, {}] },
+          { "ticks": 29, "lanes": [{ "main": [-32767, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [0, -32767] }, {}] },
+          { "ticks": 2, "lanes": [{}, {}] }
+        ]
+      }
+    ],
+    "generator": {
+      "script": "tools/generate_ssbm_stored_trace_oracle.py",
+      "output": "generated/data/m4_ssbm_falcon_run_brake_acquisition_oracle.json"
+    },
+    "runner": {
+      "executable": "pf_m4_movement_trace",
+      "arguments": []
+    }
+  }
+}

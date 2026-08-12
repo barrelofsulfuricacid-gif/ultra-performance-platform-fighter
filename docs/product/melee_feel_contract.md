@@ -53,7 +53,7 @@ The game must feel:
 | Initial dash | A brief, commitment-bearing initial dash supports dash-dancing, pivots, and character-specific dash lengths. |
 | Dash-dance and foxtrot | Reversing during the initial-dash window and chaining dashes provide deliberate spacing tools. |
 | Traction and momentum | Ground friction is fighter-specific and affects slides, landings, wavedashes, and punish options. |
-| Crouch | Crouch changes profile and enables intentional dash/run cancellation and crouch-cancel interactions. |
+| Crouch | Crouch changes profile and supports Melee's ordered ground-state callbacks, including Run-to-RunBrake-to-Squat, plus damage crouch-cancel interactions. |
 | Jump squat | Jump has a fighter-specific grounded startup. Ground traction continues during it, then takeoff combines scaled ground momentum with the current horizontal stick contribution under an authored cap. Reversing the stick during jump squat can therefore produce an almost in-place jump. Releasing during jump squat selects one short-hop launch; holding through jump squat selects one full-hop launch. Hold duration after launch never scales either height. |
 | Air movement | Gravity, fall speed, fast-fall speed, air acceleration, air-speed cap, and jumps are fighter-specific. |
 | Fast fall | A deliberate downward input after the apex accelerates descent and interacts with aerial timing. |
@@ -109,7 +109,7 @@ The game must feel:
 The following are designed and tested as supported mechanics because they
 materially shape Melee-like feel:
 
-- Dash-dance, foxtrot, pivot, run/crouch cancel, and platform movement.
+- Dash-dance, foxtrot, pivot, exact RunBrake-to-crouch acquisition, and platform movement.
 - Short-hop fast-fall aerial pressure.
 - L-cancel-like landing-lag reduction with a precise pre-landing input window.
 - Wavedash, waveland, ledgedash, edge cancel, and momentum transfer.

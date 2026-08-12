@@ -50,7 +50,7 @@ controls. Remaining common-state poses stay explicitly incomplete.
 | Initial dash and dash physics | equivalent | One-shot Falcon 2.0 impulse with no entry-frame displacement, full A/B dash acceleration from the next frame, held transition after 15 displayed dash frames, and released completion after 28 displayed dash frames match the executable oracle. Every displayed Dash hurt pose is imported; a pinned Falcon Jab 1 route hits at 31.0 Melee units and misses at 31.5, while the old generic body rectangle misses the positive route by 3.503404617 units. |
 | Walk/run acceleration and friction | equivalent | The generated typed view of Falcon's raw NTSC 1.02 common attributes drives the runtime friction-aware target/overshoot formulas; slow stick motion enters walk rather than dash. |
 | Dash dance and backward dash acceleration | equivalent | A fresh reversal enters one displayed frame of smash `TURNING` with the old facing and damped velocity; a held reversal then enters opposite dash with the measured residual momentum plus Falcon's impulse. |
-| Run braking and common IASA | equivalent for captured routes | Neutral from terminal run produces 28 displayed `RUN_BRAKE` frames with Falcon's 0.08 friction before standing. Jump and main-stick down enter frame-1 `KneeBend`/`Squat`; shield-plus-down keeps crouch priority. Opposite stick on displayed brake frame 2 enters displayed TurnRun frame 1 with the old facing, resumed cursor, and 0.16 acceleration. Neutral guard, C-stick roll/spot, taunt, A, Z, and B remain in RunBrake. The executable and simulator agree for the complete captured IASA matrix. |
+| Run braking and common IASA | equivalent for captured routes | A four-case/127-row exact acquisition theorem proves that straight full down from ordinary Run enters `RUN_BRAKE`, radial-gate diagonal down remains `RUNNING` for the edge row, down from RunBrake enters frame-1 `Squat`, and the locked Run phase following TurnRun rejects direct down. Source and production action/tick/facing/grounded payloads are identical at SHA-256 `dfa7be0339110c98c9107a069ef7e9751b14f2c174bd04a7e977c90ae745f6ad`. Neutral from terminal run produces 28 displayed `RUN_BRAKE` frames with Falcon's 0.08 friction before standing. Jump and main-stick down from RunBrake enter frame-1 `KneeBend`/`Squat`; shield-plus-down keeps crouch priority. Opposite stick on displayed brake frame 2 enters displayed TurnRun frame 1 with the old facing, resumed cursor, and 0.16 acceleration. Neutral guard, C-stick roll/spot, taunt, A, Z, and B remain in RunBrake. The executable and simulator agree for the captured IASA matrix. |
 | Standing turn | equivalent for captured routes | Smash turn flips on the following frame and can enter dash; basic turn flips on displayed frame 8 and completes after displayed frame 11. All 11 displayed hurt poses are imported from matching accelerated/control captures. A fresh second-frame taunt applies the turn's facing flip first and then enters Falcon's 60-frame taunt. Timing and friction routes match the executable oracle. |
 | Run turnaround | equivalent for captured routes | Full reversal from terminal run retains the old facing, applies full TurnRun acceleration, freezes displayed frame 9 until velocity crosses the common 0.01 threshold, flips facing on the following physics tick, resumes through displayed frame 21, and enters the ten-tick locked run route. All 22 source poses, including frame zero, are imported and source submotion is retained. The live oracle exposes one frame-9 update where gameplay facing has flipped but display bones still use the previous facing. Production derives that collision-facing phase from the existing tick/facing/direction tuple without snapshot state; combat and inspection consume it. Stored phase cases cover old-facing frame 9, the pending-display duplicate, and resumed frame 10. |
 | Jump squat and takeoff momentum | equivalent | Falcon startup 4, 0.75 retained momentum, 0.95 stick contribution, and 2.1 cap are mapped. X/Y and main-stick tap jump match from idle, Landing, shield, and air. |
@@ -497,3 +497,44 @@ manifest SHA-256
 Windows serial CTest passes 40/40 in 8.42 seconds and WSL passes 42/42 in 9.82
 seconds. This closes only the represented released-air-dodge distinction;
 uncaptured damage callbacks and interactions remain outside the claim.
+
+## Run-to-RunBrake acquisition
+
+Pinned decomp revision `9509dc04406fb2028bfab01243841ba4787c0fb7` and
+current upstream `d882af94175e3c880ad51039e2979aa9a50aea09` are represented
+by four natural input routes. From ordinary Run, straight full down enters
+RunBrake while a radial-gate diagonal-down edge remains Run for its first row.
+Once RunBrake is active, straight down enters CrouchStart. A separate
+full-opposite TurnRun setup reaches its locked Run phase and proves that the
+same down edge is rejected there. This supersedes the simulation's former
+direct Run-to-Crouch behavior; it does not broaden the claim to uncaptured Run
+or TurnRun callbacks. Normalized source SHA-256 values are
+`72a9ce8c19948d468f6aea484b72db3b1f0c280846adc4d5677e4c6a20b810fe`
+for `ftCo_Run.c`,
+`0c75e6a95319f2be3a42dcade65b07671d47d7a31e7191e04cb617fce13866bb`
+for `ftCo_RunBrake.c`, and
+`80c2e71e50622e942754bfcdd3bd89f3762fe4df2400d8055f059ab6cc4b8082`
+for `ftCo_Squat.c`.
+
+Production removes Run from the generic direct-crouch predicate and therefore
+falls through to the existing shared RunBrake transition. The existing
+RunBrake-to-crouch route remains the sole represented sliding crouch entry.
+This adds no content constant, action-specific router, allocation, lookup
+table, canonical field, save field, or snapshot byte.
+
+The live pack retains 127 rows across four immutable checkpoint slots. Two
+captures have identical ordered rows and distinct raw artifact SHA-256 values
+`1d3c568f38f6dcd359e77c3b1616a6e7d81480dff4e8b3aa5262e528533fd8b9`
+and
+`e74a8c0ecc7628ba2886e7ad10b4633d2e1ad0eac5ecf6c5ec86f057a9d1ab16`.
+Warm capture work takes 0.541609 and 0.311504 seconds; complete lifecycles take
+6.177062 and 3.647950 seconds. The selected source and production
+action/tick/facing/grounded payloads are structurally identical at SHA-256
+`dfa7be0339110c98c9107a069ef7e9751b14f2c174bd04a7e977c90ae745f6ad`.
+
+The reusable native-CSV stored domain keeps all four cases / 127 samples and
+passes by itself in 263.089 ms on Windows and 403.007 ms in WSL. The 30-domain /
+174-case registry plus replay passes in three isolated runs per platform:
+1178.830/1319.197/1471.076 ms on Windows and
+919.397/986.464/1270.306 ms in WSL under manifest SHA-256
+`99b5f633b2f4f6c33173ca285af0634e0ac51d1acc6df8b2a5b3c57f22cb261d`.

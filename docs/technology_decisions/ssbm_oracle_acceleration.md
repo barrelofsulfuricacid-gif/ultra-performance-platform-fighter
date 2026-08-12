@@ -322,13 +322,15 @@ Idle animation phase can vary between otherwise equivalent boots, so the
 verifier pins the ordered action/frame/Q16.16 payload and explicit physical
 discriminator instead of hashing incidental idle rows.
 
-The registry currently contains 29 domains and 170 cases. Independent
-domain generation and execution run concurrently; each native-CSV domain also
-runs its independent cases concurrently, and both levels restore manifest
-order before counting or hashing. The complete stored gate, including
-deterministic replay, most recently measured 1.286 seconds on native Windows
-and 1.188 seconds in WSL. Its current manifest SHA-256 is
-`b4406686d48f9bcc8719d89f558a246dad05d25d5cb8362cde4b64d093aa0be2`.
+The registry currently contains 30 domains and 174 cases. Independent domain
+generation and execution run concurrently; each native-CSV domain also runs
+its independent cases concurrently, and both levels restore manifest order
+before counting or hashing. Three isolated complete runs per platform pass the
+two-second guard: 1178.830/1319.197/1471.076 ms on native Windows and
+919.397/986.464/1270.306 ms in WSL. The new focused Run-to-RunBrake domain
+passes in 263.089 ms and 403.007 ms respectively. The current registry manifest
+SHA-256 is
+`99b5f633b2f4f6c33173ca285af0634e0ac51d1acc6df8b2a5b3c57f22cb261d`.
 Numeric C cases may narrow a domain's inherited serialized-field mask when a
 physical setup intentionally isolates only part of the response; the generated
 C always writes an explicit zero for inherited masks so GCC and MSVC apply the
@@ -348,6 +350,26 @@ emulator lifecycle takes 4.981875 seconds. The updated native suites pass
 40/40 serial CTests on Windows in 8.42 seconds and 42/42 in WSL in 9.82
 seconds.
 
+The Run-to-RunBrake domain demonstrates the same native-CSV route for a natural
+movement callback boundary. Four immutable source checkpoints retain 127 rows:
+straight down from Run enters RunBrake, radial-gate diagonal down remains Run
+for the edge row, down from RunBrake enters CrouchStart, and locked post-TurnRun
+Run rejects down. Normalized source SHA-256 values are
+`72a9ce8c19948d468f6aea484b72db3b1f0c280846adc4d5677e4c6a20b810fe`
+for `ftCo_Run.c`,
+`0c75e6a95319f2be3a42dcade65b07671d47d7a31e7191e04cb617fce13866bb`
+for `ftCo_RunBrake.c`, and
+`80c2e71e50622e942754bfcdd3bd89f3762fe4df2400d8055f059ab6cc4b8082`
+for `ftCo_Squat.c`. The two live captures have identical ordered rows and raw
+artifact SHA-256 values
+`1d3c568f38f6dcd359e77c3b1616a6e7d81480dff4e8b3aa5262e528533fd8b9` /
+`e74a8c0ecc7628ba2886e7ad10b4633d2e1ad0eac5ecf6c5ec86f057a9d1ab16`.
+Warm work takes 0.541609/0.311504 seconds; complete lifecycles take
+6.177062/3.647950 seconds. Manifest-owned compressed phases reproduce those
+same 127 inputs in the production trace runner, and exact source/production
+action-tick-facing-grounded equality is required at SHA-256
+`dfa7be0339110c98c9107a069ef7e9751b14f2c174bd04a7e977c90ae745f6ad`.
+
 The reusable `native-csv-trace-v1` kind admits an already-qualified production
 trace executable without adding another character-specific C adapter. Its
 manifest owns runner arguments, compressed input phases, exact integer fields,
@@ -355,8 +377,9 @@ and half-open per-field row exclusions matching the live comparator. The
 generator emits only immutable JSON execution metadata; the root verifier
 expands inputs, runs independent cases concurrently, parses declared CSV
 columns, restores manifest order, and hashes one canonical payload. Raptor
-Boost uses this route for five cases / 502 samples and Falcon Kick for six
-cases / 399 samples. Raptor Boost's separate native Capsule
+Boost uses this route for five cases / 502 samples, Falcon Kick for six cases /
+399 samples, and Run-to-RunBrake acquisition for four cases / 127 samples.
+Raptor Boost's separate native Capsule
 search remains live-only because the project-specific Relay Rod is not source-
 equivalent item content.
 
@@ -368,8 +391,8 @@ production semantic digest to equal the qualified live-source digest before it
 checks the pinned regression digest. This prevents a behavior divergence from
 being hidden by updating a second independent golden. Common special
 acquisition, KneeBend up-special acquisition, aerial neutral-special
-turnaround, Teeter acquisition, and GuardOff acquisition currently use this
-strict route. Simultaneous semantic
+turnaround, Teeter acquisition, GuardOff acquisition, and Run-to-RunBrake
+acquisition currently use this strict route. Simultaneous semantic
 edge actions and causal pre-edge input phases are declarative manifest data,
 so state-specific callback priority and input-history boundaries need no
 character-specific capture loop or native pre-roll.
