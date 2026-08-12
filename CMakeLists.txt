@@ -639,6 +639,14 @@ if(BUILD_TESTING)
         PROPERTIES PASS_REGULAR_EXPRESSION
                    "m4-ssbm-stored-oracle=pass domain=falcon-neutral-special poses=0 cases=3 samples=251")
 
+    add_test(
+        NAME sim.m4_ssbm_falcon_damage_iasa
+        COMMAND m4_combat_test --ssbm-oracle falcon-common-damage-iasa)
+    set_tests_properties(
+        sim.m4_ssbm_falcon_damage_iasa
+        PROPERTIES PASS_REGULAR_EXPRESSION
+                   "m4-ssbm-stored-oracle=pass domain=falcon-common-damage-iasa poses=0 cases=2 samples=4")
+
     if(PF_BUILD_TOOLS)
         find_package(Python3 REQUIRED COMPONENTS Interpreter)
         add_test(

@@ -322,16 +322,31 @@ Idle animation phase can vary between otherwise equivalent boots, so the
 verifier pins the ordered action/frame/Q16.16 payload and explicit physical
 discriminator instead of hashing incidental idle rows.
 
-The registry currently contains 28 domains and 168 cases. Independent
+The registry currently contains 29 domains and 170 cases. Independent
 domain generation and execution run concurrently; each native-CSV domain also
 runs its independent cases concurrently, and both levels restore manifest
 order before counting or hashing. The complete stored gate, including
-deterministic replay, most recently measured 1.293 seconds on native Windows
-and 0.979 seconds in WSL.
+deterministic replay, most recently measured 1.286 seconds on native Windows
+and 1.188 seconds in WSL. Its current manifest SHA-256 is
+`b4406686d48f9bcc8719d89f558a246dad05d25d5cb8362cde4b64d093aa0be2`.
 Numeric C cases may narrow a domain's inherited serialized-field mask when a
 physical setup intentionally isolates only part of the response; the generated
 C always writes an explicit zero for inherited masks so GCC and MSVC apply the
 same zero-cost representation.
+
+The released-Damage/DamageFall air-dodge domain demonstrates this sparse
+numeric-C route. Its two physical Dolphin cases retain 68 source rows, but the
+stored gate needs only four action/tumble samples to protect the discrete
+callback result: ordinary non-tumble Damage accepts fresh L into AirDodge,
+whereas DamageFly/DamageFall rejects it and remains tumbling. Source semantic
+SHA-256 is
+`7ce52b784989e56f7539b79dd779eed94ab41e4bcd624b980c263af0b916084b`;
+production canonical SHA-256 is
+`cec3d2b1d9b67ad906bf68b074c8975f6e53bf48cc714650c6498bef7aeba93e`.
+Warm capture work takes 0.587707/0.897459 seconds, and the second complete
+emulator lifecycle takes 4.981875 seconds. The updated native suites pass
+40/40 serial CTests on Windows in 8.42 seconds and 42/42 in WSL in 9.82
+seconds.
 
 The reusable `native-csv-trace-v1` kind admits an already-qualified production
 trace executable without adding another character-specific C adapter. Its

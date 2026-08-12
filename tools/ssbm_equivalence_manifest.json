@@ -32,6 +32,7 @@
     "tools/ssbm_falcon_raptor_boost_coverage.json",
     "tools/ssbm_falcon_kick_coverage.json",
     "tools/ssbm_falcon_damage_response_coverage.json",
+    "tools/ssbm_falcon_damage_iasa_coverage.json",
     "tools/ssbm_falcon_ground_knockback_coverage.json",
     "tools/ssbm_falcon_ground_slope_damage_coverage.json",
     "tools/ssbm_falcon_surface_response_coverage.json",

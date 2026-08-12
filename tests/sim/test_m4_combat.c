@@ -25,6 +25,7 @@
 #include "../../generated/data/m4_ssbm_falcon_dive_grab_oracle.inc"
 #include "../../generated/data/m4_ssbm_falcon_punch_oracle.inc"
 #include "../../generated/data/m4_ssbm_falcon_damage_response_oracle.inc"
+#include "../../generated/data/m4_ssbm_falcon_damage_iasa_oracle.inc"
 #include "../../generated/data/m4_ssbm_falcon_ground_knockback_oracle.inc"
 #include "../../generated/data/m4_ssbm_falcon_surface_response_oracle.inc"
 #include "../../generated/data/m4_ssbm_falcon_battlefield_surface_response_oracle.inc"
@@ -16542,6 +16543,177 @@ static int run_ssbm_damage_observation_oracle(void)
     return 1;
 }
 
+static int prepare_ssbm_damage_iasa_release(
+    pf_sim *sim,
+    uint8_t state_variant,
+    pf_m4_inspection *out_inspection)
+{
+    const uint32_t player_index = UINT32_C(1);
+
+    if (sim == NULL || out_inspection == NULL ||
+        state_variant > UINT8_C(1))
+    {
+        return 0;
+    }
+    sim->world.position_x_q16[player_index] = INT32_C(0);
+    sim->world.position_y_q16[player_index] =
+        INT32_C(16) * PF_Q16_ONE;
+    sim->world.velocity_x_q16[player_index] = INT32_C(0);
+    sim->world.velocity_y_q16[player_index] = INT32_C(0);
+    sim->world.knockback_velocity_x_q16[player_index] = INT32_C(0);
+    sim->world.knockback_velocity_y_q16[player_index] = INT32_C(0);
+    sim->world.ground_knockback_velocity_q16[player_index] = INT32_C(0);
+    sim->world.action_state[player_index] =
+        (uint8_t)PF_M4_ACTION_HITSTUN;
+    sim->world.action_ticks[player_index] = UINT16_C(0);
+    sim->world.source_submotion[player_index] =
+        state_variant == UINT8_C(0)
+            ? (uint16_t)PF_M4_FALCON_SUBMOTION_DAMAGE_NEUTRAL_2
+            : (uint16_t)PF_M4_FALCON_SUBMOTION_DAMAGE_FLY_NEUTRAL;
+    sim->world.source_animation_frame_q16[player_index] = INT32_C(0);
+    sim->world.source_animation_rate_q16[player_index] = PF_Q16_ONE;
+    sim->world.grounded[player_index] = UINT8_C(0);
+    sim->world.support[player_index] = (uint8_t)PF_M4_SURFACE_NONE;
+    sim->world.fast_fall[player_index] = UINT8_C(0);
+    sim->world.damage_q16[player_index] =
+        (state_variant == UINT8_C(0) ? UINT32_C(2) : UINT32_C(61)) *
+        (uint32_t)PF_Q16_ONE;
+    sim->world.hitlag_ticks[player_index] = UINT16_C(0);
+    sim->world.hitstun_ticks[player_index] = UINT16_C(1);
+    sim->world.hitlag_resume_action[player_index] =
+        (uint8_t)PF_M4_ACTION_HITSTUN;
+    sim->world.tech_window_ticks[player_index] = UINT16_C(0);
+    sim->world.tech_lockout_ticks[player_index] = UINT16_C(0);
+    sim->world.shield_held[player_index] = UINT8_C(0);
+    sim->world.tumble[player_index] = state_variant;
+    return expect_status(
+        pf_m4_inspect(sim, out_inspection),
+        PF_STATUS_OK,
+        "damage-iasa-setup-inspect");
+}
+
+static uint8_t run_ssbm_damage_iasa_trace_case(
+    void *context,
+    const pf_ssbm_stored_trace_case *stored_case,
+    pf_ssbm_stored_trace_sample *out_samples,
+    uint8_t capacity)
+{
+    test_sim_storage storage;
+    pf_m4_content content;
+    pf_content_view view;
+    pf_m4_inspection inspection;
+    pf_sim *sim = NULL;
+    uint8_t sample_index;
+
+    if (stored_case == NULL || stored_case->inputs == NULL ||
+        out_samples == NULL || stored_case->sample_count == UINT8_C(0) ||
+        capacity < stored_case->sample_count ||
+        !make_combat_content(&content, &view) ||
+        !initialize_sim(
+            &storage,
+            &view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &sim) ||
+        !prepare_ssbm_damage_iasa_release(
+            sim,
+            stored_case->initial_state_variant,
+            &inspection))
+    {
+        return UINT8_C(0);
+    }
+    if ((stored_case->initial_state_variant == UINT8_C(0) &&
+         strcmp(stored_case->id, "hyrule_line36_damage_airdodge") != 0) ||
+        (stored_case->initial_state_variant == UINT8_C(1) &&
+         strcmp(
+             stored_case->id,
+             "hyrule_tumble_damage_reject_airdodge") != 0) ||
+        stored_case->initial_state_variant > UINT8_C(1))
+    {
+        return UINT8_C(0);
+    }
+
+    for (sample_index = UINT8_C(0);
+         sample_index < stored_case->sample_count;
+         ++sample_index)
+    {
+        pf_ssbm_stored_trace_sample *sample = &out_samples[sample_index];
+
+        if (!step_ssbm_trace_duel(
+                sim,
+                &stored_case->inputs[sample_index],
+                &inspection))
+        {
+            return UINT8_C(0);
+        }
+        capture_ssbm_stored_trace_sample(
+            &inspection.players[1],
+            inspection.players[1].position_x_q16,
+            inspection.players[1].position_y_q16,
+            sample);
+        if (context != NULL && *(const int *)context != 0)
+        {
+            (void)printf(
+                "m4-ssbm-damage-iasa-observation case=%s sample=%u"
+                " action=%u action_tick=%u grounded=%u tumble=%u"
+                " hitstun=%u\n",
+                stored_case->id,
+                (unsigned int)sample_index + 1U,
+                (unsigned int)sample->action_state,
+                (unsigned int)sample->action_ticks,
+                (unsigned int)sample->grounded,
+                (unsigned int)sample->tumble,
+                (unsigned int)sample->hitstun_ticks);
+        }
+    }
+    return stored_case->sample_count;
+}
+
+static int run_ssbm_damage_iasa_observation_oracle(void)
+{
+    int print_samples = 1;
+    const pf_ssbm_stored_trace_domain domain = {
+        "falcon-common-damage-iasa",
+        pf_m4_ssbm_falcon_damage_iasa_cases,
+        PF_M4_SSBM_FALCON_DAMAGE_IASA_CASE_COUNT,
+        PF_M4_SSBM_FALCON_DAMAGE_IASA_SAMPLES_PER_CASE,
+        PF_M4_SSBM_FALCON_DAMAGE_IASA_LANES_PER_SAMPLE,
+        PF_M4_SSBM_FALCON_DAMAGE_IASA_SERIALIZED_FIELDS,
+        PF_M4_SSBM_FALCON_DAMAGE_IASA_PRODUCTION_TRACE_SHA256,
+        &print_samples,
+        run_ssbm_damage_iasa_trace_case};
+    pf_ssbm_stored_trace_result result;
+
+    if (!pf_ssbm_stored_trace_oracle_run(&domain, &result))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-ssbm-stored-oracle=fail domain=%s operation=%s case=%s "
+            "expected_production_trace_sha256=%s "
+            "actual_production_trace_sha256=%s\n",
+            domain.name,
+            result.failed_operation != NULL
+                ? result.failed_operation
+                : "unknown",
+            result.failed_case != NULL ? result.failed_case : "none",
+            domain.expected_production_trace_sha256,
+            result.production_trace_sha256[0] != '\0'
+                ? result.production_trace_sha256
+                : "unavailable");
+        return 0;
+    }
+    (void)printf(
+        "m4-ssbm-stored-oracle=pass domain=%s poses=0 cases=%u samples=%u "
+        "source_trace_sha256=%s production_trace_sha256=%s\n",
+        domain.name,
+        (unsigned int)PF_M4_SSBM_FALCON_DAMAGE_IASA_CASE_COUNT,
+        (unsigned int)PF_M4_SSBM_FALCON_DAMAGE_IASA_TOTAL_SAMPLE_COUNT,
+        PF_M4_SSBM_FALCON_DAMAGE_IASA_SOURCE_TRACE_SHA256,
+        result.production_trace_sha256);
+    return 1;
+}
+
 static uint8_t run_ssbm_ground_knockback_trace_case(
     void *context,
     const pf_ssbm_stored_trace_case *stored_case,
@@ -30816,6 +30988,11 @@ int main(int argc, char **argv)
             strcmp(argv[2], "falcon-common-damage-response") == 0)
         {
             return run_ssbm_damage_observation_oracle() ? 0 : 1;
+        }
+        if (argc == 3 && strcmp(argv[1], "--ssbm-oracle") == 0 &&
+            strcmp(argv[2], "falcon-common-damage-iasa") == 0)
+        {
+            return run_ssbm_damage_iasa_observation_oracle() ? 0 : 1;
         }
         if (argc == 3 && strcmp(argv[1], "--ssbm-oracle") == 0 &&
             strcmp(argv[2], "falcon-common-ground-knockback") == 0)

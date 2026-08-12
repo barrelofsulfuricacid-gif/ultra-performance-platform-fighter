@@ -75,6 +75,7 @@ controls. Remaining common-state poses stay explicitly incomplete.
 | Items, projectiles, reflector, charge | divergent | These are original technique-support fixtures rather than SSBM content tables. |
 | Stage geometry, blast zones, spawns | partial | The Relay Rod laboratory remains an original test stage. A source-derived immutable Hyrule catalog covers MapCollData lines 34-37 with world-space vertices, normals, adjacency, endpoints, and ledge flags under semantic digest `4a0dd57bb8d9532589d3ecd129213d3a0876538a2dc7f733eca6c1e73c04db9c`; only this response slice is routed. Battlefield now has a complete source-derived 23-line collision catalog plus effective camera/blast bounds, stage kind 36, and all four initial-player points under address-free semantic digest `29525b7e0db4de8bf1a228f47e4216869ca362aff9d558a0c9ae81340103aa50`; two independent live captures regenerate it byte-identically. Its content constructor routes current floor/platform primitives, exact blast bounds, and settled initial supports. The 348-frame floor/platform route binds selected supports, while the two-case sloped-surface theorem binds ceiling line 10 and right-wall line 15, their source-space normals, exact DamageFly ECB contact, and natural reflection response. Pre-match entry choreography and remaining edge/action-specific collision branches are still open; complete Hyrule and full Battlefield behavior remain incomplete. |
 | Stocks, respawn, match result | partial | Deterministic four-stock flow exists. The static slice imports and routes the source 60-tick descent, 240-tick wait, 120-tick invulnerability, and RebirthWait input priority. Dynamic stage/player revival targets, companion coordination, tournament rules, and entry choreography remain outside the compact model. |
+| Released Damage versus DamageFall air dodge | equivalent for the captured callback split | Pinned `ftCo_Damage_IASA` delegates released ordinary airborne Damage to the ordinary Fall IASA table and therefore permits EscapeAir; pinned `ftCo_DamageFall_IASA` omits EscapeAir for released DamageFly/DamageFall. A two-case/68-row physical theorem proves fresh L enters `AIRDODGE` from non-tumble Damage while the same edge leaves DamageFall `TUMBLING` for two airborne rows. Source semantic SHA-256 is `7ce52b784989e56f7539b79dd779eed94ab41e4bcd624b980c263af0b916084b`; the two-case/four-sample stored trace pins production SHA-256 `cec3d2b1d9b67ad906bf68b074c8975f6e53bf48cc714650c6498bef7aeba93e`. Other unrepresented damage callbacks remain open. |
 | Replay, save/load, rollback state, RL API | project-specific | These are deterministic project infrastructure and have no claim of equivalence to SSBM internals. |
 
 The ordinary-airborne hurt-pose inventory is now source-complete for the six
@@ -460,3 +461,39 @@ The same body audit closes SquatWait and SquatRv: each calls down special and
 then up special, while omitting side and neutral. Production expresses this as
 the up+down capability mask for Crouch/CrouchEnd. Four natural axial/diagonal
 routes match source for all 106 action/tick/facing/grounded observations.
+
+## Released Damage and DamageFall air-dodge callback
+
+Pinned revision `9509dc04406fb2028bfab01243841ba4787c0fb7` distinguishes
+two post-hitstun airborne callback tables. Ordinary non-tumble Damage reaches
+the Fall IASA table through `ftCo_Damage_IASA`; that table calls the EscapeAir
+checker. DamageFly/DamageFall reaches `ftCo_DamageFall_IASA`, whose sourced
+special, item, tether, double-jump, and wiggle branches do not include
+EscapeAir. The relevant source files are independently pinned at SHA-256
+`a3852f6377a71d03736b70b3869016a437b68c17dd703faead5be2954eb0278a`
+(`ftCo_Damage.c`),
+`973ce744a0e1084377bef6cebdeca6631fb90a0f8a31694621e0c5052b896a8b`
+(`ftCo_DamageFall.c`), and
+`cdff68de39d55855f1ca02b8e4af09ce856a1133cc21b23921a881b23e0dfaf6`
+(`ftCo_EscapeAir.c`).
+
+Production now applies the existing air-dodge transition only when the
+canonical tumble bit is clear. It does not add a damage-only transition,
+content constant, allocation, or rollback state. The focused live pack retains
+68 rows across two physical cases: fresh L enters `AIRDODGE` after ordinary
+non-tumble Damage release, while DamageFly/DamageFall rejects the same edge and
+remains `TUMBLING` for both retained airborne rows. Source semantic SHA-256 is
+`7ce52b784989e56f7539b79dd779eed94ab41e4bcd624b980c263af0b916084b`;
+production canonical SHA-256 is
+`cec3d2b1d9b67ad906bf68b074c8975f6e53bf48cc714650c6498bef7aeba93e`.
+Warm capture times are 0.587707 and 0.897459 seconds; the second complete
+lifecycle takes 4.981875 seconds.
+
+The fast stored theorem keeps only the four discrete action/tumble samples
+needed to protect this callback split. The resulting 29-domain / 170-case gate
+plus replay passes in 1.286 seconds on Windows and 1.188 seconds in WSL under
+manifest SHA-256
+`b4406686d48f9bcc8719d89f558a246dad05d25d5cb8362cde4b64d093aa0be2`.
+Windows serial CTest passes 40/40 in 8.42 seconds and WSL passes 42/42 in 9.82
+seconds. This closes only the represented released-air-dodge distinction;
+uncaptured damage callbacks and interactions remain outside the claim.

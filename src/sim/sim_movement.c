@@ -6543,9 +6543,9 @@ static uint8_t pf_m4_reference_action_special_capabilities(
 {
     if (grounded == UINT8_C(0))
     {
-        /* Fall/Jump IASA routes SpecialAir first. DamageFall uses that same
-         * table once damage lockout has ended; EscapeAir, passive-wall states,
-         * and FallSpecial use narrower callback tables. */
+        /* Fall/Jump IASA routes SpecialAir first. DamageFall also exposes
+         * SpecialAir once damage lockout has ended; EscapeAir, passive-wall
+         * states, and FallSpecial use narrower callback tables. */
         return (action_state == (uint8_t)PF_M4_ACTION_AIRBORNE ||
                 action_state ==
                     (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP ||
@@ -6561,9 +6561,9 @@ static uint8_t pf_m4_reference_action_special_capabilities(
                    : UINT8_C(0);
     }
     /* KneeBend calls only SpecialHi before its grab/up-smash callbacks.
-     * SquatWait and SquatRv call only SpecialLw. Turn calls SpecialS,
-     * SpecialLw, then SpecialHi, deliberately omitting SpecialN. Ottotto and
-     * OttottoWait share the full common dispatcher. Powershield GuardOff
+     * SquatWait and SquatRv call SpecialLw, then SpecialHi. Turn calls
+     * SpecialS, SpecialLw, then SpecialHi, deliberately omitting SpecialN.
+     * Ottotto and OttottoWait share the full common dispatcher. Powershield GuardOff
      * exposes the full table while its x1C cancel window remains live.
      * Ordinary GuardOff, Guard, RunBrake, TurnRun, and recovery states have
      * no special dispatcher. Dash exposes only SpecialS through its imported
@@ -13413,8 +13413,7 @@ pf_status pf_m4_step_player(
                 dense_shield_pressed != 0 &&
                 input_shield_strength >=
                     fighter->digital_trigger_threshold &&
-                (scratch->tumble[player_index] == UINT8_C(0) ||
-                 pf_m4_action_is_damage(action_state)) &&
+                scratch->tumble[player_index] == UINT8_C(0) &&
                 damage_fall_wiggle_this_tick == 0)
             {
                 status = pf_m4_enter_air_dodge(

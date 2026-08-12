@@ -1,0 +1,146 @@
+{
+  "schema": 1,
+  "scope": "falcon-common-damage-iasa",
+  "domain": "falcon-common-damage-iasa",
+  "character": "falcon",
+  "oracle": "SSBM GALE01 NTSC-U revision 2",
+  "checkpoint_pack": {
+    "protocol": "rebased-slippi-state-file-control-v1",
+    "expected_rows": 68,
+    "warm_budget_seconds": 2.0,
+    "capture_plan": {
+      "record_response_only": true,
+      "source_random_seed": 1,
+      "source_random_seed_post_hit_index": 0,
+      "surface_response_cases": [
+        {
+          "id": "hyrule_line36_damage_airdodge",
+          "damage_percent": 0.0,
+          "target_start": [160.0, 10.0],
+          "opponent_start": [170.0, 10.0],
+          "approach_main": 0,
+          "attack_main": [0, 0],
+          "target_facing": 1,
+          "opponent_facing": -1,
+          "settle_ticks": 55,
+          "approach_ticks": 1,
+          "post_hit_ticks": 1,
+          "response_start_position": [0.0, 35.0],
+          "response_zero_velocity": true,
+          "observe_segments": [
+            {
+              "id": "response",
+              "ticks": 30,
+              "conditional_edge": {
+                "action": "DAMAGE_NEUTRAL_2",
+                "frame": 13,
+                "digital_left": true
+              }
+            }
+          ]
+        },
+        {
+          "id": "hyrule_tumble_damage_reject_airdodge",
+          "damage_percent": 50.0,
+          "target_start": [160.0, 10.0],
+          "opponent_start": [175.0, 10.0],
+          "approach_main": 0,
+          "attack_main": [-16000, 0],
+          "target_facing": -1,
+          "opponent_facing": -1,
+          "settle_ticks": 55,
+          "approach_ticks": 1,
+          "post_hit_ticks": 8,
+          "response_start_position": [0.0, 35.0],
+          "response_zero_velocity": true,
+          "observe_segments": [
+            {
+              "id": "release_wait",
+              "ticks": 35
+            },
+            {
+              "id": "reject_edge",
+              "ticks": 1,
+              "digital_left": true
+            },
+            {
+              "id": "tail",
+              "ticks": 2
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "checkpoint_cases": [
+    {
+      "id": "hyrule_line36_damage_airdodge",
+      "start_label": "surface_response_hyrule_line36_damage_airdodge_setup"
+    },
+    {
+      "id": "hyrule_tumble_damage_reject_airdodge",
+      "start_label": "surface_response_hyrule_tumble_damage_reject_airdodge_setup"
+    }
+  ],
+  "selection": {
+    "paths": [
+      "generated/data/m4_ssbm_falcon_damage_iasa_oracle.inc",
+      "include/pf/m4.h",
+      "src/sim/sim_movement.c",
+      "tests/sim/ssbm_stored_oracle.c",
+      "tests/sim/ssbm_stored_oracle.h",
+      "tests/sim/test_m4_combat.c",
+      "tools/capture_ssbm_movement.py",
+      "tools/generate_ssbm_stored_trace_oracle.py",
+      "tools/ssbm_falcon_damage_iasa_coverage.json",
+      "tools/ssbm_live_trace.py",
+      "tools/verify_ssbm_falcon_damage_iasa.py",
+      "tools/verify_ssbm_falcon_damage_iasa.sh"
+    ]
+  },
+  "stored_oracle": {
+    "kind": "numeric-trace-v1",
+    "source_trace_sha256": "7ce52b784989e56f7539b79dd779eed94ab41e4bcd624b980c263af0b916084b",
+    "production_trace_sha256": "cec3d2b1d9b67ad906bf68b074c8975f6e53bf48cc714650c6498bef7aeba93e",
+    "samples_per_case": 2,
+    "serialized_fields": [
+      "action_ticks",
+      "hitstun_ticks",
+      "action_state",
+      "grounded",
+      "tumble"
+    ],
+    "cases": [
+      {
+        "id": "hyrule_line36_damage_airdodge",
+        "initial_state_variant": 0,
+        "initial_facing": 1,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "left_trigger": 65535 }] },
+          { "ticks": 1, "lanes": [{}] }
+        ]
+      },
+      {
+        "id": "hyrule_tumble_damage_reject_airdodge",
+        "initial_state_variant": 1,
+        "initial_facing": -1,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "left_trigger": 65535 }] },
+          { "ticks": 1, "lanes": [{}] }
+        ]
+      }
+    ],
+    "c": {
+      "symbol_prefix": "pf_m4_ssbm_falcon_damage_iasa",
+      "macro_prefix": "PF_M4_SSBM_FALCON_DAMAGE_IASA"
+    },
+    "generator": {
+      "script": "tools/generate_ssbm_stored_trace_oracle.py",
+      "output": "generated/data/m4_ssbm_falcon_damage_iasa_oracle.inc"
+    },
+    "runner": {
+      "executable": "m4_combat_test",
+      "arguments": ["--ssbm-oracle", "falcon-common-damage-iasa"]
+    }
+  }
+}

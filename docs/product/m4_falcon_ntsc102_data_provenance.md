@@ -2006,3 +2006,47 @@ raw SHA-256
 `527980419abfc7afdf7b698e65be21b0ed31e70a94a3443abd0a425da9ab29f4`;
 source and Windows/WSL production share semantic SHA-256
 `3117c2767a723556602b43caf5b34cd9a0376f854adcd3f0f4f49d7c1c11bba6`.
+
+## Released Damage versus DamageFall air-dodge callback
+
+The source authority is pinned decomp revision
+`9509dc04406fb2028bfab01243841ba4787c0fb7`. The callback bodies, rather than
+their names alone, establish two distinct released-airborne routes:
+
+- `melee/ft/chara/ftCommon/ftCo_Damage.c`, SHA-256
+  `a3852f6377a71d03736b70b3869016a437b68c17dd703faead5be2954eb0278a`,
+  delegates released ordinary airborne Damage to the ordinary Fall IASA table;
+- `melee/ft/chara/ftCommon/ftCo_DamageFall.c`, SHA-256
+  `973ce744a0e1084377bef6cebdeca6631fb90a0f8a31694621e0c5052b896a8b`,
+  owns the released DamageFly/DamageFall table and does not call EscapeAir;
+- `melee/ft/chara/ftCommon/ftCo_EscapeAir.c`, SHA-256
+  `cdff68de39d55855f1ca02b8e4af09ce856a1133cc21b23921a881b23e0dfaf6`,
+  owns the fresh-trigger EscapeAir check reached by ordinary Fall IASA.
+
+The production correction removes the previous broad exception that admitted
+every released damage action to the shared air-dodge transition. Eligibility
+now follows the already-canonical tumble bit: ordinary non-tumble Damage can
+enter AirDodge, while DamageFly/DamageFall cannot. This is an allocation-free
+predicate correction; it adds no character constant, duplicate transition,
+content field, action-specific router, canonical state, save field, or snapshot
+byte.
+
+`tools/ssbm_falcon_damage_iasa_coverage.json` owns two physical cases and 68
+retained source rows. The first uses a fresh L edge after ordinary non-tumble
+Damage release and observes `AIRDODGE`. The second submits the same edge after
+DamageFly/DamageFall release and observes `TUMBLING` on both retained airborne
+rows. Their selected source action/tumble payload hashes to
+`7ce52b784989e56f7539b79dd779eed94ab41e4bcd624b980c263af0b916084b`;
+the matching production projection hashes to
+`cec3d2b1d9b67ad906bf68b074c8975f6e53bf48cc714650c6498bef7aeba93e`.
+Capture A takes 0.587707 seconds warm. Capture B takes 0.897459 seconds warm
+and 4.981875 seconds for a complete launch-to-cleanup lifecycle.
+
+The generated `numeric-trace-v1` regression retains only two rows per case,
+four samples total, because the live theorem already owns the physical setup
+and release trajectory. The shared registry now contains 29 domains / 170
+cases plus deterministic replay. It passes in 1.286 seconds on Windows and
+1.188 seconds in WSL under manifest SHA-256
+`b4406686d48f9bcc8719d89f558a246dad05d25d5cb8362cde4b64d093aa0be2`.
+Windows serial CTest passes 40/40 in 8.42 seconds; WSL passes 42/42 in 9.82
+seconds. No web probe participates in this source or regression theorem.
