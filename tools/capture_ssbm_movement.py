@@ -23,12 +23,17 @@ import struct
 import subprocess
 import sys
 import time
+import types
 
 import melee
 from melee import console as melee_console
 
 from ssbm_checkpoint_manifest import projected_manifest
-from ssbm_ucf_oracle import configure_ucf084_oracle, verify_ucf084_oracle
+from ssbm_ucf_oracle import (
+    configure_ucf084_oracle,
+    ucf084_runtime_hook_target,
+    verify_ucf084_oracle,
+)
 
 
 SPECIAL_GEOMETRY_SOURCE_KEYS = {
@@ -5273,15 +5278,87 @@ def read_damage_memory_probe(memory_engine: object) -> dict[str, object]:
     }
 
 
-def read_input_memory_probe(memory_engine: object) -> dict[str, int]:
-    """Read source-owned controller history used by common IASA callbacks."""
+def read_input_memory_probe(
+    memory_engine: object,
+    *,
+    schema: int = 1,
+    ucf_pad_hook_target: int | None = None,
+) -> dict[str, int | float]:
+    """Read source-owned controller history and exact UCF input state."""
 
+    if schema not in {1, 2}:
+        raise ValueError(f"unsupported input-memory probe schema: {schema}")
     fighter = read_fighter_address(memory_engine, 0)
-    return {
-        "tilt_x_age": int(memory_engine.read_byte(fighter + 0x670)),
-        "tilt_y_age": int(memory_engine.read_byte(fighter + 0x671)),
-        "input_timer_counter": int(memory_engine.read_byte(fighter + 0x672)),
+    fighter_input = BigEndianSnapshot.read(
+        memory_engine,
+        fighter + 0x618,
+        0x675 - 0x618,
+    )
+    result: dict[str, int | float] = {
+        "tilt_x_age": fighter_input.u8(fighter + 0x670),
+        "tilt_y_age": fighter_input.u8(fighter + 0x671),
+        "input_timer_counter": fighter_input.u8(fighter + 0x672),
     }
+    if schema == 1:
+        return result
+    if ucf_pad_hook_target is None:
+        raise RuntimeError("input-memory probe schema 2 requires the UCF pad hook")
+
+    port = fighter_input.u8(fighter + 0x618)
+    if not 0 <= port < 4:
+        raise RuntimeError(f"invalid fighter controller port: {port}")
+    game_status_address = 0x804C21CC + port * 0x44
+    game_status = BigEndianSnapshot.read(
+        memory_engine,
+        game_status_address,
+        0x44,
+    )
+    common = int(memory_engine.read_word(0x804D6554))
+    if not 0x80000000 <= common < 0x81800000:
+        raise RuntimeError(f"invalid Fighter common-data pointer: 0x{common:08x}")
+    deadzone_x = float(memory_engine.read_float(common))
+    deadzone_y = float(memory_engine.read_float(common + 4))
+    pad_main_x = game_status.f32(game_status_address + 0x20)
+    pad_main_y = game_status.f32(game_status_address + 0x24)
+    pad_c_x = game_status.f32(game_status_address + 0x28)
+    pad_c_y = game_status.f32(game_status_address + 0x2C)
+
+    def apply_fighter_deadzone(value: float, threshold: float) -> float:
+        return 0.0 if abs(value) <= threshold else value
+
+    result.update(
+        {
+            "ucf_tilt_x_age": fighter_input.u8(fighter + 0x673),
+            "ucf_tilt_y_age": fighter_input.u8(fighter + 0x674),
+            "fighter_processed_main_x": fighter_input.f32(fighter + 0x620),
+            "fighter_processed_main_y": fighter_input.f32(fighter + 0x624),
+            "fighter_previous_main_x": fighter_input.f32(fighter + 0x628),
+            "fighter_previous_main_y": fighter_input.f32(fighter + 0x62C),
+            "fighter_processed_c_x": fighter_input.f32(fighter + 0x638),
+            "fighter_processed_c_y": fighter_input.f32(fighter + 0x63C),
+            "pad_processed_main_x": pad_main_x,
+            "pad_processed_main_y": pad_main_y,
+            "pad_processed_c_x": pad_c_x,
+            "pad_processed_c_y": pad_c_y,
+            "fighter_pre_ucf_main_x": apply_fighter_deadzone(
+                pad_main_x, deadzone_x
+            ),
+            "fighter_pre_ucf_main_y": apply_fighter_deadzone(
+                pad_main_y, deadzone_y
+            ),
+            "fighter_pre_ucf_c_x": apply_fighter_deadzone(pad_c_x, deadzone_x),
+            "fighter_pre_ucf_c_y": apply_fighter_deadzone(pad_c_y, deadzone_y),
+            "fighter_axis_deadzone_x": deadzone_x,
+            "fighter_axis_deadzone_y": deadzone_y,
+            "pad_port": port,
+            "ucf_pad_buffer_count": int(
+                memory_engine.read_byte(
+                    ucf_pad_hook_target + 4 + port * 12 + 9
+                )
+            ),
+        }
+    )
+    return result
 
 
 class BigEndianSnapshot:
@@ -6262,6 +6339,42 @@ def choose_match(
         player_two.release_all()
 
 
+def install_slippi_raw_pad_extension(console: melee.Console) -> None:
+    """Retain raw C-stick bytes that libmelee 0.47.2 otherwise discards."""
+
+    original = console._Console__pre_frame
+    raw_c_stick_by_port: dict[int, tuple[int, int]] = {}
+    console._pf_raw_c_stick_by_port = raw_c_stick_by_port
+
+    def pre_frame_with_raw_pad(
+        self: melee.Console,
+        gamestate: melee.GameState,
+        event_bytes: bytes,
+    ) -> None:
+        original(gamestate, event_bytes)
+        if len(event_bytes) <= 0x42:
+            raise RuntimeError(
+                "exact UCF input capture requires Slippi raw main/C payloads"
+            )
+        controller_port = int(event_bytes[0x05]) + 1
+        if int(event_bytes[0x06]) == 1:
+            return
+
+        def signed_axis(offset: int) -> int:
+            value = int(event_bytes[offset])
+            return value if value < 0x80 else value - 0x100
+
+        raw_c_stick_by_port[controller_port] = (
+            signed_axis(0x41),
+            signed_axis(0x42),
+        )
+
+    console._Console__pre_frame = types.MethodType(
+        pre_frame_with_raw_pad,
+        console,
+    )
+
+
 def choose_stage_at(
     gamestate: melee.GameState,
     controller: melee.Controller,
@@ -6474,6 +6587,24 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
         if checkpoint_coverage_manifest is not None
         else None
     )
+    checkpoint_input_memory_probe_schema = (
+        checkpoint_capture_plan.get("input_memory_probe_schema", 1)
+        if checkpoint_capture_plan is not None
+        else 1
+    )
+    if (
+        not isinstance(checkpoint_input_memory_probe_schema, int)
+        or isinstance(checkpoint_input_memory_probe_schema, bool)
+        or checkpoint_input_memory_probe_schema not in {1, 2}
+    ):
+        raise ValueError(
+            "checkpoint_pack.capture_plan.input_memory_probe_schema "
+            "must be 1 or 2"
+        )
+    if checkpoint_input_memory_probe_schema != 1 and not args.memory_probe_input:
+        raise ValueError(
+            "input_memory_probe_schema 2 requires --memory-probe-input"
+        )
     checkpoint_stage = (
         checkpoint_capture_plan.get("stage")
         if checkpoint_capture_plan is not None
@@ -6543,6 +6674,10 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
         )
     if not isinstance(checkpoint_batch_inputs, bool):
         raise ValueError("checkpoint_pack.capture_plan.batch_exi_inputs must be boolean")
+    if checkpoint_input_memory_probe_schema == 2 and checkpoint_batch_inputs:
+        raise ValueError(
+            "input_memory_probe_schema 2 requires batch_exi_inputs=false"
+        )
     if args.oracle_checkpoint_no_batch_inputs:
         checkpoint_batch_inputs = False
     checkpoint_record_surface_rows = (
@@ -6651,6 +6786,8 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             online_delay=0,
         )
     console = melee.Console(**console_kwargs)
+    if checkpoint_input_memory_probe_schema == 2:
+        install_slippi_raw_pad_extension(console)
     if args.enable_items:
         enable_native_capsule_gecko(console)
     ucf_oracle_policy = (
@@ -6670,6 +6807,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
     menu_ready_at: float | None = None
     hook_ready_at: float | None = None
     memory_engine = None
+    ucf_pad_hook_target: int | None = None
 
     try:
         environment = None
@@ -6806,6 +6944,11 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             if memory_engine is None:
                 raise RuntimeError("UCF oracle policy requires runtime memory proof")
             verify_ucf084_oracle(memory_engine, ucf_oracle_policy)
+            if checkpoint_input_memory_probe_schema == 2:
+                ucf_pad_hook_target = ucf084_runtime_hook_target(
+                    memory_engine,
+                    0x8006B460,
+                )
         hook_ready_at = time.monotonic()
         stage_collision_memory = (
             read_stage_collision_memory_probe(memory_engine)
@@ -7484,6 +7627,21 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             observed_raw_main_y = int(
                 player.controller_state.raw_main_stick[1]
             )
+            raw_c_by_port = getattr(console, "_pf_raw_c_stick_by_port", {})
+            raw_c_stick = raw_c_by_port.get(1)
+            if checkpoint_input_memory_probe_schema == 2 and (
+                not isinstance(raw_c_stick, tuple)
+                or len(raw_c_stick) != 2
+                or any(
+                    not isinstance(value, int)
+                    or isinstance(value, bool)
+                    or not -128 <= value <= 127
+                    for value in raw_c_stick
+                )
+            ):
+                raise RuntimeError("Slippi raw C-stick observation is missing")
+            observed_raw_c_x = int(raw_c_stick[0]) if raw_c_stick else 0
+            observed_raw_c_y = int(raw_c_stick[1]) if raw_c_stick else 0
             observed_c_x = float(player.controller_state.c_stick[0])
             observed_c_y = float(player.controller_state.c_stick[1])
             observed_left_shoulder = float(player.controller_state.l_shoulder)
@@ -7520,16 +7678,39 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             requested_y = float(scheduled["main_y"])
             requested_c_x = float(scheduled["c_x"])
             requested_c_y = float(scheduled["c_y"])
+            input_memory_sample: dict[str, int | float] | None = None
+            alignment_x = observed_x
+            alignment_y = observed_y
+            alignment_c_x = observed_c_x
+            alignment_c_y = observed_c_y
+            if args.memory_probe_input and checkpoint_input_memory_probe_schema == 2:
+                input_memory_sample = read_input_memory_probe(
+                    memory_engine,
+                    schema=checkpoint_input_memory_probe_schema,
+                    ucf_pad_hook_target=ucf_pad_hook_target,
+                )
+                alignment_x = (
+                    float(input_memory_sample["pad_processed_main_x"]) + 1.0
+                ) * 0.5
+                alignment_y = (
+                    float(input_memory_sample["pad_processed_main_y"]) + 1.0
+                ) * 0.5
+                alignment_c_x = (
+                    float(input_memory_sample["pad_processed_c_x"]) + 1.0
+                ) * 0.5
+                alignment_c_y = (
+                    float(input_memory_sample["pad_processed_c_y"]) + 1.0
+                ) * 0.5
             axis_aligned = (
-                (requested_x == 0.5 and abs(observed_x - 0.5) <= 0.02)
-                or (abs(requested_x - 0.5) <= 0.02 and abs(observed_x - 0.5) <= 0.02)
-                or (requested_x < 0.5 and observed_x < 0.5)
-                or (requested_x > 0.5 and observed_x > 0.5)
+                (requested_x == 0.5 and abs(alignment_x - 0.5) <= 0.02)
+                or (abs(requested_x - 0.5) <= 0.02 and abs(alignment_x - 0.5) <= 0.02)
+                or (requested_x < 0.5 and alignment_x < 0.5)
+                or (requested_x > 0.5 and alignment_x > 0.5)
             ) and (
-                (requested_y == 0.5 and abs(observed_y - 0.5) <= 0.02)
-                or (abs(requested_y - 0.5) <= 0.02 and abs(observed_y - 0.5) <= 0.02)
-                or (requested_y < 0.5 and observed_y < 0.5)
-                or (requested_y > 0.5 and observed_y > 0.5)
+                (requested_y == 0.5 and abs(alignment_y - 0.5) <= 0.02)
+                or (abs(requested_y - 0.5) <= 0.02 and abs(alignment_y - 0.5) <= 0.02)
+                or (requested_y < 0.5 and alignment_y < 0.5)
+                or (requested_y > 0.5 and alignment_y > 0.5)
             )
             if args.shield_geometry_sweep_only:
                 # The game's per-axis dead zone intentionally collapses small
@@ -7540,21 +7721,21 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             # that expected collapse so threshold-negative routes can still
             # prove the requested raw input and observed source response.
             c_axis_aligned = (
-                (requested_c_x == 0.5 and abs(observed_c_x - 0.5) <= 0.02)
+                (requested_c_x == 0.5 and abs(alignment_c_x - 0.5) <= 0.02)
                 or (
                     abs(requested_c_x - 0.5) < 0.10
-                    and abs(observed_c_x - 0.5) <= 0.02
+                    and abs(alignment_c_x - 0.5) <= 0.02
                 )
-                or (requested_c_x < 0.5 and observed_c_x < 0.5)
-                or (requested_c_x > 0.5 and observed_c_x > 0.5)
+                or (requested_c_x < 0.5 and alignment_c_x < 0.5)
+                or (requested_c_x > 0.5 and alignment_c_x > 0.5)
             ) and (
-                (requested_c_y == 0.5 and abs(observed_c_y - 0.5) <= 0.02)
+                (requested_c_y == 0.5 and abs(alignment_c_y - 0.5) <= 0.02)
                 or (
                     abs(requested_c_y - 0.5) < 0.10
-                    and abs(observed_c_y - 0.5) <= 0.02
+                    and abs(alignment_c_y - 0.5) <= 0.02
                 )
-                or (requested_c_y < 0.5 and observed_c_y < 0.5)
-                or (requested_c_y > 0.5 and observed_c_y > 0.5)
+                or (requested_c_y < 0.5 and alignment_c_y < 0.5)
+                or (requested_c_y > 0.5 and alignment_c_y > 0.5)
             )
             # The Slippi post-frame payload exposes the aggregate analog
             # shoulder pressure on both ControllerState shoulder fields. The
@@ -7858,6 +8039,14 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 "observed_main_y": observed_y,
                 "observed_raw_main_x": observed_raw_main_x,
                 "observed_raw_main_y": observed_raw_main_y,
+                **(
+                    {
+                        "observed_raw_c_x": observed_raw_c_x,
+                        "observed_raw_c_y": observed_raw_c_y,
+                    }
+                    if checkpoint_input_memory_probe_schema == 2
+                    else {}
+                ),
                 "observed_c_x": observed_c_x,
                 "observed_c_y": observed_c_y,
                 "observed_left_shoulder": observed_left_shoulder,
@@ -7941,7 +8130,11 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 if args.memory_probe_damage:
                     row["damage_memory"] = read_damage_memory_probe(memory_engine)
                 if args.memory_probe_input:
-                    row["input_memory"] = read_input_memory_probe(memory_engine)
+                    row["input_memory"] = (
+                        input_memory_sample
+                        if input_memory_sample is not None
+                        else read_input_memory_probe(memory_engine)
+                    )
                 if args.memory_probe_hitbox:
                     row["hitbox_memory"] = read_hitbox_memory_probe(memory_engine)
                 if args.memory_probe_hurtbox:
@@ -8008,7 +8201,10 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
         )
         return {
             "schema": (
-                13
+                14
+                if args.memory_probe_input
+                and checkpoint_input_memory_probe_schema == 2
+                else 13
                 if args.memory_probe_input
                 else 12
                 if args.memory_probe_hurtbox
@@ -8143,6 +8339,11 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             ),
             "input_memory_probe": (
                 {
+                    **(
+                        {"schema": 2}
+                        if checkpoint_input_memory_probe_schema == 2
+                        else {}
+                    ),
                     "engine_version": importlib.metadata.version(
                         "dolphin-memory-engine"
                     ),
@@ -8151,6 +8352,30 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                         "tilt_x_age": "fighter+0x670",
                         "tilt_y_age": "fighter+0x671",
                         "input_timer_counter": "fighter+0x672",
+                        **(
+                            {
+                                "ucf_tilt_x_age": "fighter+0x673",
+                                "ucf_tilt_y_age": "fighter+0x674",
+                                "fighter_processed_main": "fighter+0x620..0x627",
+                                "fighter_previous_main": "fighter+0x628..0x62f",
+                                "fighter_processed_c": "fighter+0x638..0x63f",
+                                "slippi_raw_main": "pre-frame+0x3b,+0x40",
+                                "slippi_raw_c": "pre-frame+0x41..0x42",
+                                "pad_processed_axes": (
+                                    "HSD_PadGameStatus[port]+0x20..0x2f"
+                                ),
+                                "fighter_pre_ucf_axes": (
+                                    "HSD processed axes after common-data x0/x4"
+                                    " deadzones"
+                                ),
+                                "fighter_axis_deadzones": "p_ftCommonData+0x00..0x07",
+                                "ucf_pad_buffer_count": (
+                                    "UCF@0x8006b460 target+0x04+port*0x0c+0x09"
+                                ),
+                            }
+                            if checkpoint_input_memory_probe_schema == 2
+                            else {}
+                        ),
                     },
                     "decomp_revision": (
                         "9509dc04406fb2028bfab01243841ba4787c0fb7"

@@ -818,6 +818,15 @@ def _branch_target(address: int, instruction: int) -> int:
     return target
 
 
+def ucf084_runtime_hook_target(memory_engine: object, address: int) -> int:
+    """Resolve one proven UCF 0.84 C2 entry to its live MEM1 body."""
+
+    if address not in UCF_084_GAMEPLAY_ADDRESSES:
+        raise ValueError(f"unknown UCF 0.84 gameplay hook: 0x{address:08x}")
+    entry = int.from_bytes(bytes(memory_engine.read_bytes(address, 4)), "big")
+    return _branch_target(address, entry)
+
+
 def verify_ucf084_oracle(memory_engine: object, provenance: dict[str, Any]) -> None:
     """Prove exact UCF semantics and authorized capture machinery are active."""
 

@@ -1,6 +1,7 @@
 #include "pf/m4.h"
 #include "pf/sim.h"
 #include "sim_falcon_frame_data.h"
+#include "sim_internal.h"
 
 #include <inttypes.h>
 #include <stdalign.h>
@@ -331,6 +332,8 @@ int main(int argc, char **argv)
     uint64_t opponent_buttons;
     int raw_main_x;
     int raw_main_y;
+    int raw_c_x;
+    int raw_c_y;
     unsigned int raw_axis_valid_mask;
     char input_line[256];
     unsigned int left_trigger;
@@ -1354,7 +1357,10 @@ int main(int argc, char **argv)
         "opponent_position_x_q16_from_origin,"
         "opponent_position_y_q16_from_origin,"
         "opponent_velocity_x_q16,opponent_velocity_y_q16,"
-        "opponent_shield_recoil_x_q16,opponent_damage_q16");
+        "opponent_shield_recoil_x_q16,opponent_damage_q16,"
+        "tilt_y_age,ucf_tilt_x_age,ucf_tilt_y_age,"
+        "ucf_pad_buffer_count,effective_main_x_q15,effective_main_y_q15,"
+        "effective_c_x_q15,effective_c_y_q15");
     while (fgets(input_line, sizeof(input_line), stdin) != NULL)
     {
         pf_input_frame inputs[PF_SIM_MAX_PLAYERS];
@@ -1367,11 +1373,13 @@ int main(int argc, char **argv)
         opponent_buttons = UINT64_C(0);
         raw_main_x = 0;
         raw_main_y = 0;
+        raw_c_x = 0;
+        raw_c_y = 0;
         raw_axis_valid_mask = 0U;
         parsed_input_count = sscanf(
             input_line,
             "%d,%d,%d,%d,%u,%u,%" SCNu64 ",%d,%" SCNu64
-            ",%d,%d,%u",
+            ",%d,%d,%d,%d,%u",
             &input_x,
             &input_y,
             &input_c_x,
@@ -1383,9 +1391,16 @@ int main(int argc, char **argv)
             &opponent_buttons,
             &raw_main_x,
             &raw_main_y,
+            &raw_c_x,
+            &raw_c_y,
             &raw_axis_valid_mask);
+        if (parsed_input_count == 12)
+        {
+            raw_axis_valid_mask = (unsigned int)raw_c_x;
+            raw_c_x = 0;
+        }
         if (parsed_input_count != 8 && parsed_input_count != 9 &&
-            parsed_input_count != 12)
+            parsed_input_count != 12 && parsed_input_count != 14)
         {
             (void)fprintf(
                 stderr,
@@ -1404,14 +1419,21 @@ int main(int argc, char **argv)
             opponent_input_x > (int)INT16_MAX ||
             left_trigger > (unsigned int)UINT16_MAX ||
             right_trigger > (unsigned int)UINT16_MAX ||
-            (parsed_input_count == 12 &&
+            ((parsed_input_count == 12 || parsed_input_count == 14) &&
              (raw_main_x < (int)INT8_MIN ||
               raw_main_x > (int)INT8_MAX ||
               raw_main_y < (int)INT8_MIN ||
               raw_main_y > (int)INT8_MAX ||
+              raw_c_x < (int)INT8_MIN ||
+              raw_c_x > (int)INT8_MAX ||
+              raw_c_y < (int)INT8_MIN ||
+              raw_c_y > (int)INT8_MAX ||
               raw_axis_valid_mask !=
-                  (unsigned int)(PF_INPUT_RAW_MAIN_X_VALID |
-                                 PF_INPUT_RAW_MAIN_Y_VALID))))
+                  (unsigned int)(
+                      parsed_input_count == 12
+                          ? (PF_INPUT_RAW_MAIN_X_VALID |
+                             PF_INPUT_RAW_MAIN_Y_VALID)
+                          : PF_INPUT_RAW_PAD_ALL_VALID))))
         {
             (void)fprintf(
                 stderr,
@@ -1437,13 +1459,13 @@ int main(int argc, char **argv)
         inputs[0].left_trigger = (uint16_t)left_trigger;
         inputs[0].right_trigger = (uint16_t)right_trigger;
         inputs[0].buttons = buttons;
-        if (parsed_input_count == 12)
+        if (parsed_input_count == 12 || parsed_input_count == 14)
         {
             const pf_input_raw_pad raw_pad = {
                 (int8_t)raw_main_x,
                 (int8_t)raw_main_y,
-                INT8_C(0),
-                INT8_C(0)};
+                (int8_t)raw_c_x,
+                (int8_t)raw_c_y};
 
             pf_input_set_raw_pad(&inputs[0], raw_pad);
             inputs[0].raw_axis_valid_mask =
@@ -1484,7 +1506,8 @@ int main(int argc, char **argv)
             ",%" PRId32
             ",%" PRIu32 ",%u,%u,%u,%" PRId32 ",%" PRId32 ",%" PRId32
             ",%" PRId32 ",%u,%u,%u,%u,%u,%u,%u,%u,%d,%u,%" PRId32 ",%" PRId32
-            ",%" PRId32 ",%" PRId32 ",%" PRId32 ",%" PRIu32 "\n",
+            ",%" PRId32 ",%" PRId32 ",%" PRId32 ",%" PRIu32
+            ",%u,%u,%u,%u,%d,%d,%d,%d\n",
             trace_frame,
             input_x,
             input_y,
@@ -1553,7 +1576,15 @@ int main(int argc, char **argv)
             inspection.players[1].velocity_x_q16,
             inspection.players[1].velocity_y_q16,
             inspection.players[1].shield_recoil_x_q16,
-            inspection.players[1].damage_q16);
+            inspection.players[1].damage_q16,
+            (unsigned int)sim->world.tilt_y_age[0],
+            (unsigned int)sim->world.ucf_tilt_x_age[0],
+            (unsigned int)sim->world.ucf_tilt_y_age[0],
+            (unsigned int)sim->world.ucf_pad_buffer_count[0],
+            (int)sim->world.previous_main_stick_x[0],
+            (int)sim->world.previous_main_stick_y[0],
+            (int)sim->world.previous_secondary_stick_x[0],
+            (int)sim->world.previous_secondary_stick_y[0]);
         ++trace_frame;
     }
     if (ferror(stdin) != 0)

@@ -2206,24 +2206,53 @@ source payload and the production payload are structurally identical at
 SHA-256
 `6b50b9b36d47fb6a4b77bef5a951f03b311898fd88b481ff798909e05749f079`.
 This live evidence directly qualifies the exact raw-history/Dashback boundary
-and delayed-Turn primitives. It does not qualify all eight UCF hooks: direct
-live boundary domains remain outstanding for PAD/cardinal preprocessing,
-DBOOC, SDI, shield SDI, tumble, shield-drop suppression, and the extended pad
-counter.
+and delayed-Turn primitives.
 
-The staged shared registry now declares 31 domains / 189 cases. Its current
-240-tick deterministic replay is 42,555 bytes with corpus/final/event SHA-256
+`tools/ssbm_ucf084_cardinal_input_coverage.json` independently qualifies the
+PAD/cardinal hook with 16 cases / 48 rows. It exercises both main and C sticks,
+all signed cardinal axes, raw dominant-axis 80 with orthogonal magnitude 6,
+and the raw-79 / orthogonal-7 controls. The two independent capture SHA-256
+values are
+`d6d7cb26d0b30785bb38c39a6b400366742998d6f9f2eeb448f4a7cb31db4984`
+and
+`b46ef4c579a26050f6cb8f9eda6c6c5068dd5b62ac65eae4ccdc0d9847075372`;
+their canonical projections are identical.
+Slippi's serialized raw main- and C-stick values are authoritative for the
+current controller sample; DME reads of source-owned fighter input axes prove
+the post-UCF processed result. This distinction avoids treating a delayed PAD
+queue observation, a processed-input fallback, or the browser path as exact
+raw-controller provenance. The canonical live source and production payloads
+are structurally identical at SHA-256
+`4a553ba57522d4347188cb227357157fbb4f1a7246dd638fba68019e9166fd63`.
+
+PAD/cardinal preprocessing is therefore live-qualified. Direct live boundary
+families remain outstanding for DBOOC, SDI, shield SDI, tumble, shield-drop
+suppression, and the extended pad counter.
+
+The staged shared registry now declares 32 domains / 205 cases. The new
+`falcon-common-ucf084-cardinal-input` domain contributes the 16 exact-source
+cases above. The expanded registry passes with replay under manifest SHA-256
+`26b925f08337c64e8cb8db9c5de7e47488d92b2fc3a6dd887894f53cbd095647`.
+Three isolated complete runs take 877.821-1,033.078 ms on Windows and
+908.291-971.404 ms in WSL; direct cardinal verifier-only execution takes
+232.529-251.415 ms on Windows and 453.341-678.188 ms in WSL.
+Its two four-worker captures take 7.349 and 6.883 seconds; parent warm time is
+8.097/7.357 seconds and cold time is 9.728/8.722 seconds, including setup and
+process overhead, within manifest budgets of 12 seconds warm and 20 seconds
+cold. The preceding 31-domain / 189-case registry's 240-tick
+deterministic replay is 42,555 bytes with corpus/final/event SHA-256
 values
 `a1d9c1d97a3f20bdb9c76094c39b856f731a1eb2c0cca64ac05dd28a6e121949`,
 `3bdbbbc5d7faa6c8fd077ebd47aaa061f738a3561aa4c66ae2bfe4f8455cda6a`,
 and
 `a4020969be032543b9b229c8801bde77581b9f7fe26a9fe8aca91527627b13ec`.
-The full Windows/WSL stored registry passes under manifest SHA-256
+That preceding full Windows/WSL stored registry passes under manifest SHA-256
 `34be35b31153031861cbe481cdd1d4e94dd158d079b09efee9561de3389e77aa`.
 The reusable generator checks now run in-process and nested worker pools are
 capped. Three sequential Windows runs take 943.548/903.249/1,068.009 ms and
-three WSL runs take 1,319.901/1,038.275/1,163.897 ms. Earlier 31-domain / 186-case evidence above
-remains a historical checkpoint rather than being relabeled as current.
+three WSL runs take 1,319.901/1,038.275/1,163.897 ms. Those measurements and
+earlier 31-domain / 186-case evidence above remain historical checkpoints;
+they are not relabeled as full-registry evidence for the expanded registry.
 
 The character-independent Slippi differential path has 16 focused unit tests.
 It requires independently proven revision-2 disc identity, pinned UCF 0.84,

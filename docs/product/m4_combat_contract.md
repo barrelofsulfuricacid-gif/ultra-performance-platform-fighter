@@ -1617,6 +1617,22 @@ production exactly at semantic SHA-256
 In particular, a vanilla Turn-frame observation remains insufficient evidence
 for the configured target.
 
+The independent PAD/cardinal contract covers 16 three-row cases across both
+main and C sticks. A raw dominant axis of magnitude 80 with orthogonal
+magnitude 6 produces the pinned cardinal snap; dominant magnitude 79 and
+orthogonal magnitude 7 are the adjacent non-snap controls. The two independent
+48-row capture SHA-256 values are
+`d6d7cb26d0b30785bb38c39a6b400366742998d6f9f2eeb448f4a7cb31db4984`
+and
+`b46ef4c579a26050f6cb8f9eda6c6c5068dd5b62ac65eae4ccdc0d9847075372`;
+their canonical source projections and production are exactly equal at
+semantic SHA-256
+`4a553ba57522d4347188cb227357157fbb4f1a7246dd638fba68019e9166fd63`.
+Slippi's serialized raw main- and C-stick bytes are the current-input
+authority; DME-observed source fighter axes prove the post-UCF processed
+result. Browser and ordinary processed-input fallback paths are not exact raw
+controller evidence.
+
 Native movement checks own age saturation, the shared Dash-entry reset, and
 the ordinary Turn/Dash transitions. The special-acquisition lane requests a
 small input-memory probe for fighter offset `x670`; only cases that declare
@@ -1630,14 +1646,14 @@ Inspection may expose the ordinary age as a diagnostic; that age itself is not
 a new canonical field because it has been serialized since state schema 51.
 
 No technique-only Moonwalk oracle or browser startup probe is required. The
-raw-history Dashback boundary and delayed-Turn primitives are directly
-live-qualified against the GALE01-plus-UCF target. The other seven UCF hook
-boundaries remain source-audited implementation work awaiting their own live
-domains, and a half-moon owner recipe remains the gate that their emergent
-composition is playable while the visible action labels stay ordinary source
-states. Until that owner qualification is recorded, the documentation must not
-replace the missing composition evidence with a special action label or a
-tuned two-tick shortcut.
+raw-history Dashback boundary, delayed-Turn primitives, and PAD/cardinal
+preprocessing are directly live-qualified against the GALE01-plus-UCF target.
+The other six UCF hook families remain source-audited implementation work
+awaiting their own live domains, and a half-moon owner recipe remains the gate
+that their emergent composition is playable while the visible action labels
+stay ordinary source states. Until that owner qualification is recorded, the
+documentation must not replace the missing composition evidence with a special
+action label or a tuned two-tick shortcut.
 
 ## Teeter-cancel contract
 

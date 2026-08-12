@@ -6707,3 +6707,37 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   tracked legacy corpus remains correctly fail-closed: its old pre-frame
   payloads do not contain raw main Y and do not independently prove the exact
   disc/UCF revision, so they remain diagnostic rather than promoted evidence.
+
+## 2026-08-12: pinned UCF 0.84 PAD/cardinal live/stored qualification
+
+- Added a separate 16-case / 48-row physical domain for the modifier's main-
+  and C-stick cardinal preprocessing. It covers each signed cardinal axis,
+  raw dominant-axis 80 with orthogonal magnitude 6, and the discriminating
+  dominant-axis 79 / orthogonal-magnitude 7 controls. The PAD/cardinal hook is
+  now live-qualified; DBOOC, SDI, shield SDI, tumble, shield-drop suppression,
+  and the extended pad counter remain six direct live boundary families.
+- The two independent capture SHA-256 values are
+  `d6d7cb26d0b30785bb38c39a6b400366742998d6f9f2eeb448f4a7cb31db4984`
+  and
+  `b46ef4c579a26050f6cb8f9eda6c6c5068dd5b62ac65eae4ccdc0d9847075372`;
+  their canonical 48-row projections are identical.
+  Slippi's serialized raw main- and C-stick bytes are authoritative for the
+  current physical sample. DME reads the source-owned fighter processed axes
+  to prove the post-UCF result; the browser and ordinary processed-input
+  fallback paths are not promoted as exact raw-controller evidence.
+- The shared live projector and `native-csv-trace-v1` stored runner produce
+  structurally identical source and production payloads at SHA-256
+  `4a553ba57522d4347188cb227357157fbb4f1a7246dd638fba68019e9166fd63`.
+  `falcon-common-ucf084-cardinal-input` adds 16 cases to the generic registry,
+  bringing it to 32 domains / 205 cases. Direct verifier-only execution takes
+  232.529-251.415 ms on Windows and 453.341-678.188 ms in WSL; the preceding
+  31-domain / 189-case full-registry measurements above remain historical
+  evidence for that smaller registry.
+- The two four-worker captures take 7.349 and 6.883 seconds. Parent warm time
+  is 8.097/7.357 seconds and cold time is 9.728/8.722 seconds, including setup
+  and process overhead, so the manifest uses explicit 12-second warm and
+  20-second cold budgets.
+- The expanded 32-domain / 205-case registry passes under manifest SHA-256
+  `26b925f08337c64e8cb8db9c5de7e47488d92b2fc3a6dd887894f53cbd095647`;
+  three isolated complete runs take 877.821-1,033.078 ms on Windows and
+  908.291-971.404 ms in WSL.

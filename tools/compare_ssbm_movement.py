@@ -7,6 +7,7 @@ import argparse
 import csv
 import io
 import json
+import math
 from pathlib import Path
 import subprocess
 import sys
@@ -212,12 +213,25 @@ def controller_trigger(value: float) -> int:
     return round(max(0.0, min(1.0, value)) * 65535.0)
 
 
+def source_axis_q15(value: float, *, invert: bool = False) -> int:
+    """Encode one source-normalized HSD axis without inventing raw history."""
+
+    if not math.isfinite(value) or not -1.0 <= value <= 1.0:
+        raise ValueError(f"source controller axis is out of range: {value!r}")
+    result = round(value * 32767.0)
+    return -result if invert else result
+
+
 def native_input_line(
     row: dict[str, object],
     *,
     include_raw_main: bool = False,
+    include_raw_c: bool = False,
 ) -> str:
     """Normalize one captured GameCube sample for the native CSV runner."""
+
+    if include_raw_c and not include_raw_main:
+        raise ValueError("exact raw C-stick input requires exact raw main input")
 
     observed_analog = float(row.get("observed_analog_shoulder", 0.0))
     # The project action packet has no device-specific Z bit. Its input
@@ -264,11 +278,27 @@ def native_input_line(
     opponent_buttons = (
         2 if bool(row.get("observed_opponent_attack", False)) else 0
     )
+    input_memory = row.get("input_memory")
+    if include_raw_c:
+        if not isinstance(input_memory, dict):
+            raise ValueError("captured row lacks input-memory probe schema 2")
+        main_x = source_axis_q15(float(input_memory["fighter_pre_ucf_main_x"]))
+        main_y = source_axis_q15(
+            float(input_memory["fighter_pre_ucf_main_y"]),
+            invert=True,
+        )
+        c_x = source_axis_q15(float(input_memory["fighter_pre_ucf_c_x"]))
+        c_y = source_axis_q15(
+            float(input_memory["fighter_pre_ucf_c_y"]),
+            invert=True,
+        )
+    else:
+        main_x = controller_axis(float(row["observed_main_x"]))
+        main_y = controller_axis_y(float(row.get("observed_main_y", 0.5)))
+        c_x = controller_axis(float(row.get("observed_c_x", 0.5)))
+        c_y = controller_axis_y(float(row.get("observed_c_y", 0.5)))
     line = (
-        f"{controller_axis(float(row['observed_main_x']))},"
-        f"{controller_axis_y(float(row.get('observed_main_y', 0.5)))},"
-        f"{controller_axis(float(row.get('observed_c_x', 0.5)))},"
-        f"{controller_axis_y(float(row.get('observed_c_y', 0.5)))},"
+        f"{main_x},{main_y},{c_x},{c_y},"
         f"{left_trigger},{right_trigger},{buttons},{opponent_input_x},"
         f"{opponent_buttons}"
     )
@@ -285,7 +315,22 @@ def native_input_line(
         or not -128 <= raw_main_y <= 127
     ):
         raise ValueError("captured row lacks exact signed raw main-stick bytes")
-    return f"{line},{raw_main_x},{raw_main_y},3"
+    if not include_raw_c:
+        return f"{line},{raw_main_x},{raw_main_y},3"
+    raw_c_x = row.get("observed_raw_c_x")
+    raw_c_y = row.get("observed_raw_c_y")
+    exact_axes = (raw_main_x, raw_main_y, raw_c_x, raw_c_y)
+    if any(
+        not isinstance(value, int)
+        or isinstance(value, bool)
+        or not -128 <= value <= 127
+        for value in exact_axes
+    ):
+        raise ValueError("captured row lacks exact signed raw PADStatus bytes")
+    return (
+        f"{line},{raw_main_x},{raw_main_y},"
+        f"{raw_c_x},{raw_c_y},15"
+    )
 
 
 def normalized_shield_strength(

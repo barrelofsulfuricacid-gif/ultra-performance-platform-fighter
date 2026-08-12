@@ -127,6 +127,22 @@ def source_y_to_sim_q16(value: float) -> int:
     return round(-value * MELEE_Y_TO_SIM_Q16)
 
 
+def source_axis_to_sim_q15(value: float, *, invert: bool = False) -> int:
+    """Encode a source fighter axis, retaining UCF's negative endpoint."""
+
+    if not -1.0 <= value <= 1.0:
+        raise ValueError(f"source fighter axis out of range: {value!r}")
+    if invert:
+        value = -value
+    if value <= -1.0:
+        encoded = -32768
+    elif value >= 1.0:
+        encoded = 32767
+    else:
+        encoded = round(value * 32767.0)
+    return encoded
+
+
 def common_movement_source_sample(
     row: dict[str, Any],
     *,
@@ -177,13 +193,32 @@ def common_movement_source_sample(
     }
     input_memory = row.get("input_memory")
     if isinstance(input_memory, dict):
-        tilt_x_age = input_memory.get("tilt_x_age")
-        if (
-            isinstance(tilt_x_age, int)
-            and not isinstance(tilt_x_age, bool)
-            and 0 <= tilt_x_age <= 254
+        for source_name, sample_name, maximum in (
+            ("tilt_x_age", "tilt_x_age", 254),
+            ("tilt_y_age", "tilt_y_age", 254),
+            ("ucf_tilt_x_age", "ucf_tilt_x_age", 254),
+            ("ucf_tilt_y_age", "ucf_tilt_y_age", 254),
+            ("ucf_pad_buffer_count", "ucf_pad_buffer_count", 255),
         ):
-            sample["tilt_x_age"] = tilt_x_age
+            value = input_memory.get(source_name)
+            if (
+                isinstance(value, int)
+                and not isinstance(value, bool)
+                and 0 <= value <= maximum
+            ):
+                sample[sample_name] = value
+        for source_name, sample_name, invert in (
+            ("fighter_processed_main_x", "effective_main_x_q15", False),
+            ("fighter_processed_main_y", "effective_main_y_q15", True),
+            ("fighter_processed_c_x", "effective_c_x_q15", False),
+            ("fighter_processed_c_y", "effective_c_y_q15", True),
+        ):
+            value = input_memory.get(source_name)
+            if isinstance(value, (int, float)) and not isinstance(value, bool):
+                sample[sample_name] = source_axis_to_sim_q15(
+                    float(value),
+                    invert=invert,
+                )
     return sample
 
 

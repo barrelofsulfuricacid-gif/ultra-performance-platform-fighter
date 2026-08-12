@@ -436,11 +436,12 @@ runner result. Domains whose selected fields admit no representation tolerance
 set `require_exact_source_match`. For those domains, the verifier requires the
 production semantic digest to equal the qualified live-source digest before it
 checks the pinned regression digest. This prevents a behavior divergence from
-being hidden by updating a second independent golden. Eight acquisition
+being hidden by updating a second independent golden. Nine acquisition
 domains currently use this strict route: common special acquisition,
 StandingTurn callback-facing acquisition, Run-to-RunBrake acquisition,
 KneeBend up-special acquisition, crouch up-special acquisition, aerial
-neutral-special turnaround, Teeter acquisition, and GuardOff acquisition.
+neutral-special turnaround, Teeter acquisition, GuardOff acquisition, and UCF
+0.84 PAD/cardinal preprocessing.
 Simultaneous semantic
 edge actions and causal pre-edge input phases are declarative manifest data,
 so state-specific callback priority and input-history boundaries need no
@@ -479,26 +480,50 @@ Both canonicalize to the same source payload, which equals the native
 production payload exactly at SHA-256
 `6b50b9b36d47fb6a4b77bef5a951f03b311898fd88b481ff798909e05749f079`.
 This directly live-qualifies the raw-history/Dashback boundary and delayed-Turn
-primitives. All eight UCF hooks are implemented and source-audited, but this is
-not a live theorem for all eight: PAD/cardinal preprocessing, DBOOC, SDI,
-shield SDI, tumble, shield-drop suppression, and extended-pad-counter behavior
-still need seven direct live boundary domains.
+primitives.
 
-The staged registry now declares 31 domains / 189 cases. The current 240-tick
-replay is 42,555 bytes at corpus/final/event SHA-256 values
+The separate UCF PAD/cardinal projection contains 16 cases / 48 rows for both
+main and C sticks. The two independent capture SHA-256 values are
+`d6d7cb26d0b30785bb38c39a6b400366742998d6f9f2eeb448f4a7cb31db4984`
+and
+`b46ef4c579a26050f6cb8f9eda6c6c5068dd5b62ac65eae4ccdc0d9847075372`;
+their canonical source payloads and native production are exactly equal at
+SHA-256
+`4a553ba57522d4347188cb227357157fbb4f1a7246dd638fba68019e9166fd63`.
+The current raw sample comes from Slippi's serialized main- and C-stick bytes;
+DME supplies the source fighter's post-UCF processed axes. This split avoids
+claiming that a delayed PAD queue read, the deterministic processed fallback,
+or a browser adapter proves exact raw input. The two four-worker captures take
+7.349 and 6.883 seconds; parent warm time is 8.097/7.357 seconds and cold time
+is 9.728/8.722 seconds, under the domain's 12-second warm and 20-second cold
+budgets. Direct verifier-only execution takes 232.529-251.415 ms on Windows
+and 453.341-678.188 ms in WSL.
+
+All eight UCF hooks remain implemented and source-audited. PAD/cardinal is now
+live-qualified alongside Dashback/raw-history; DBOOC, SDI, shield SDI, tumble,
+shield-drop suppression, and extended-pad-counter behavior remain six direct
+live boundary families.
+
+The staged registry now declares 32 domains / 205 cases and passes with replay
+under manifest SHA-256
+`26b925f08337c64e8cb8db9c5de7e47488d92b2fc3a6dd887894f53cbd095647`.
+Three isolated complete runs take 877.821-1,033.078 ms on Windows and
+908.291-971.404 ms in WSL. The preceding
+31-domain / 189-case registry's 240-tick replay is 42,555 bytes at
+corpus/final/event SHA-256 values
 `a1d9c1d97a3f20bdb9c76094c39b856f731a1eb2c0cca64ac05dd28a6e121949`,
 `3bdbbbc5d7faa6c8fd077ebd47aaa061f738a3561aa4c66ae2bfe4f8455cda6a`,
 and
 `a4020969be032543b9b229c8801bde77581b9f7fe26a9fe8aca91527627b13ec`.
-The full Windows/WSL registry passes under manifest SHA-256
+That preceding full Windows/WSL registry passes under manifest SHA-256
 `34be35b31153031861cbe481cdd1d4e94dd158d079b09efee9561de3389e77aa`.
 The verifier invokes the two character-independent generator APIs in-process
 and caps its outer and nested worker pools, avoiding 31 redundant Python
 startups without weakening generated-file checks. Three sequential Windows
 runs take 943.548/903.249/1,068.009 ms and three WSL runs take
-1,319.901/1,038.275/1,163.897 ms. The earlier 31-domain / 186-case numbers
-above remain the completed pre-UCF checkpoint; they are not relabeled as
-current evidence.
+1,319.901/1,038.275/1,163.897 ms. Those measurements and the earlier
+31-domain / 186-case numbers above remain completed historical checkpoints;
+they are not relabeled as results for the expanded registry.
 
 ## Geometry-sampling limitation
 

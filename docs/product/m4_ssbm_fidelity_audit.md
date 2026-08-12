@@ -58,32 +58,51 @@ and
 `49d70c676de3d5a4d2071f8c0d9c6abba6c0feb7109fd73df9b3faa10b4c667d`;
 their canonical source projection equals production exactly at SHA-256
 `6b50b9b36d47fb6a4b77bef5a951f03b311898fd88b481ff798909e05749f079`.
-This is not qualification of all eight hooks. Seven direct live boundary
-domains remain outstanding: PAD/cardinal preprocessing, DBOOC, SDI, shield
-SDI, tumble, shield-drop suppression, and extended-pad-counter behavior.
+The separate PAD/cardinal domain adds 16 cases / 48 rows spanning both sticks,
+all signed cardinal axes, raw dominant-axis 80 with orthogonal magnitude 6,
+and dominant-axis 79 / orthogonal-magnitude 7 controls. Its two independent
+capture SHA-256 values are
+`d6d7cb26d0b30785bb38c39a6b400366742998d6f9f2eeb448f4a7cb31db4984`
+and
+`b46ef4c579a26050f6cb8f9eda6c6c5068dd5b62ac65eae4ccdc0d9847075372`;
+their canonical projections are identical.
+Slippi's serialized raw main- and C-stick bytes own the current raw sample;
+DME-observed source fighter axes own the post-UCF processed result. Source and
+production are structurally identical at SHA-256
+`4a553ba57522d4347188cb227357157fbb4f1a7246dd638fba68019e9166fd63`.
+This live-qualifies PAD/cardinal preprocessing, not every UCF hook. Six direct
+live boundary families remain: DBOOC, SDI, shield SDI, tumble, shield-drop
+suppression, and extended-pad-counter behavior.
 
-The staged fast registry contains 31 domains / 189 cases. Its current
-42,555-byte deterministic replay pins corpus/final/event SHA-256 values
+The staged fast registry now contains 32 domains / 205 cases and passes with
+replay under manifest SHA-256
+`26b925f08337c64e8cb8db9c5de7e47488d92b2fc3a6dd887894f53cbd095647`.
+Three isolated complete runs take 877.821-1,033.078 ms on Windows and
+908.291-971.404 ms in WSL; direct cardinal verifier-only execution takes
+232.529-251.415 ms on Windows and 453.341-678.188 ms in WSL. The preceding
+31-domain / 189-case registry's 42,555-byte deterministic replay pins
+corpus/final/event SHA-256 values
 `a1d9c1d97a3f20bdb9c76094c39b856f731a1eb2c0cca64ac05dd28a6e121949`,
 `3bdbbbc5d7faa6c8fd077ebd47aaa061f738a3561aa4c66ae2bfe4f8455cda6a`,
 and
 `a4020969be032543b9b229c8801bde77581b9f7fe26a9fe8aca91527627b13ec`.
-The full registry passes under manifest SHA-256
+That preceding full registry passes under manifest SHA-256
 `34be35b31153031861cbe481cdd1d4e94dd158d079b09efee9561de3389e77aa`.
 The reusable generators now execute in-process and nested worker pools are
 capped. Three sequential Windows runs take 943.548/903.249/1,068.009 ms and
 three WSL runs take 1,319.901/1,038.275/1,163.897 ms. Older
-measurements below remain historical evidence for their named slices.
+measurements below remain historical evidence for their named slices; none is
+relabeled as a full-registry result for the expanded 32-domain registry.
 
 ## Current audit
 
 | System | Status | Evidence and remaining gap |
 |---|---|---|
 | Base standing/Wait animation and collision pose | equivalent for the isolated complete uninterrupted idle lifecycle | A bounded native SquatRv entry and independent surface-memory pair qualify base Wait plus its exact six-update moving-target entry. Two byte-identical 440-row lifecycle captures prove the DAT-owned 70/20/10 Wait/Wait2/Wait3 state transitions, 60/75/70 clocks, zero-blend secondary entry, and six-update return/restart blends. Robust live endpoint seeds isolate unrelated global HSD consumers; an independent decomp/production theorem proves the exact HSD LCG and same-secondary rejection sequence. All 145 direct secondary poses / 1,595 capsules plus ECB agree within one Q16 unit; 32 stored lifecycle poses and a focused 440-tick native oracle protect production. |
-| Stick aging, dead zones, dash/jump recognition | partial for the pinned UCF target | Fresh horizontal/vertical tilt age, reversal reset, 0.80 dash threshold with two-tick dash window, and 0.6625 tap-jump threshold with four-tick window follow the common input/decomp routes. Just-below/above and slow/two-sample tap-jump controls match the executable. Exact signed raw history now reaches the UCF path with per-axis validity and deterministic processed-input fallback. The raw-history/Dashback route is live-qualified; seven other UCF hook boundary domains remain open as listed above. |
+| Stick aging, dead zones, dash/jump recognition | partial for the pinned UCF target | Fresh horizontal/vertical tilt age, reversal reset, 0.80 dash threshold with two-tick dash window, and 0.6625 tap-jump threshold with four-tick window follow the common input/decomp routes. Just-below/above and slow/two-sample tap-jump controls match the executable. Exact signed raw history now reaches the UCF path with per-axis validity and deterministic processed-input fallback. The raw-history/Dashback and PAD/cardinal routes are live-qualified; the latter covers 16 main/C cases and matches source exactly at SHA-256 `4a553ba57522d4347188cb227357157fbb4f1a7246dd638fba68019e9166fd63`. Six other UCF hook boundary families remain open as listed above. |
 | Initial dash and dash physics | equivalent | One-shot Falcon 2.0 impulse with no entry-frame displacement, full A/B dash acceleration from the next frame, held transition after 15 displayed dash frames, and released completion after 28 displayed dash frames match the executable oracle. Every displayed Dash hurt pose is imported; a pinned Falcon Jab 1 route hits at 31.0 Melee units and misses at 31.5, while the old generic body rectangle misses the positive route by 3.503404617 units. |
 | Walk/run acceleration and friction | equivalent | The generated typed view of Falcon's raw NTSC 1.02 common attributes drives the runtime friction-aware target/overshoot formulas; slow stick motion enters walk rather than dash. |
-| Dash dance and backward dash acceleration | equivalent for the live-qualified pinned-UCF Dashback route | A fresh reversal enters one displayed frame of smash `TURNING` with the old facing and damped velocity; a held reversal then enters opposite dash with the measured residual momentum plus Falcon's impulse. The current raw-input pack also qualifies the UCF 0.84 Dashback history boundary and delayed-Turn primitives at exact source/production digest `6b50b9b36d47fb6a4b77bef5a951f03b311898fd88b481ff798909e05749f079`. This row does not imply live qualification of the other seven UCF hooks. |
+| Dash dance and backward dash acceleration | equivalent for the live-qualified pinned-UCF Dashback route | A fresh reversal enters one displayed frame of smash `TURNING` with the old facing and damped velocity; a held reversal then enters opposite dash with the measured residual momentum plus Falcon's impulse. The current raw-input pack also qualifies the UCF 0.84 Dashback history boundary and delayed-Turn primitives at exact source/production digest `6b50b9b36d47fb6a4b77bef5a951f03b311898fd88b481ff798909e05749f079`. PAD/cardinal preprocessing is now independently live-qualified, but this row does not imply live qualification of the other six UCF hook families. |
 | Run braking and common IASA | equivalent for captured routes | A four-case/127-row exact acquisition theorem proves that straight full down from ordinary Run enters `RUN_BRAKE`, radial-gate diagonal down remains `RUNNING` for the edge row, down from RunBrake enters frame-1 `Squat`, and the locked Run phase following TurnRun rejects direct down. Source and production action/tick/facing/grounded payloads are identical at SHA-256 `dfa7be0339110c98c9107a069ef7e9751b14f2c174bd04a7e977c90ae745f6ad`. Neutral from terminal run produces 28 displayed `RUN_BRAKE` frames with Falcon's 0.08 friction before standing. Jump and main-stick down from RunBrake enter frame-1 `KneeBend`/`Squat`; shield-plus-down keeps crouch priority. Opposite stick on displayed brake frame 2 enters displayed TurnRun frame 1 with the old facing, resumed cursor, and 0.16 acceleration. Neutral guard, C-stick roll/spot, taunt, A, Z, and B remain in RunBrake. The executable and simulator agree for the captured IASA matrix. |
 | Standing turn | equivalent for captured routes | Smash turn flips on the following frame and can enter dash; basic turn flips on displayed frame 8 and completes after displayed frame 11. All 11 displayed hurt poses are imported from matching accelerated/control captures. Before basic Turn's physical flip, `ftCo_Turn_IASA` temporarily exposes the target facing only to its side/down/up-special, catch, smash, tilt, and jab prefix; a consuming callback retains that facing, while fallthrough restores the old facing before guard, taunt, and jump. The existing full-stick taunt route is an already-turned smash-Turn case, not evidence that basic Turn skips restoration. A 12-case/72-row exact live/native theorem now protects the attack/grab consumers and a post-restoration jump control. Timing and friction routes match the executable oracle. |
 | Run turnaround | equivalent for captured routes | Full reversal from terminal run retains the old facing, applies full TurnRun acceleration, freezes displayed frame 9 until velocity crosses the common 0.01 threshold, flips facing on the following physics tick, resumes through displayed frame 21, and enters the ten-tick locked run route. All 22 source poses, including frame zero, are imported and source submotion is retained. The live oracle exposes one frame-9 update where gameplay facing has flipped but display bones still use the previous facing. Production derives that collision-facing phase from the existing tick/facing/direction tuple without snapshot state; combat and inspection consume it. Stored phase cases cover old-facing frame 9, the pending-display duplicate, and resumed frame 10. |

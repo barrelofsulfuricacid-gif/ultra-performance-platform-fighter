@@ -238,18 +238,46 @@ def canonical_capture(
             raise NaturalMovementDomainError(
                 f"raw-main-partial case={case_id}"
             )
+        raw_c_presence = [
+            isinstance(sample.get("lanes"), list)
+            and len(sample["lanes"]) == 2
+            and isinstance(sample["lanes"][0], dict)
+            and "raw_c" in sample["lanes"][0]
+            for sample in inputs
+        ]
+        if any(raw_c_presence) and not all(raw_c_presence):
+            raise NaturalMovementDomainError(f"raw-c-partial case={case_id}")
+        if any(raw_c_presence) and not all(raw_main_presence):
+            raise NaturalMovementDomainError(
+                f"raw-c-without-main case={case_id}"
+            )
         include_raw_main = all(raw_main_presence)
+        include_raw_c = all(raw_c_presence)
+        if include_raw_c:
+            input_memory_probe = capture.get("input_memory_probe")
+            if (
+                not isinstance(input_memory_probe, dict)
+                or input_memory_probe.get("schema") != 2
+            ):
+                raise NaturalMovementDomainError(
+                    f"raw-c-probe-schema case={case_id}"
+                )
         stored_input_lines = [
             native_csv_input_line(
                 sample,
                 case_id,
                 sample_index,
                 include_raw_main=include_raw_main,
+                include_raw_c=include_raw_c,
             )
             for sample_index, sample in enumerate(inputs)
         ]
         live_input_lines = [
-            native_input_line(row, include_raw_main=include_raw_main)
+            native_input_line(
+                row,
+                include_raw_main=include_raw_main,
+                include_raw_c=include_raw_c,
+            )
             for row in rows
         ]
         if stored_input_lines != live_input_lines:
