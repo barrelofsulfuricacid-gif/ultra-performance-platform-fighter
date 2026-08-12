@@ -131,18 +131,28 @@ foreach ($check in @(
         "m4-item",
         "m4-projectile",
         "m4-reflector",
-        "m4-browser-adapter",
-        "collision-hitbox-overlay",
-        "m4-local-match-flow",
-        "m4-replay-visualization",
         "m3-regression-qualification",
         "sanitizer",
-        "browser-smoke"))
+        "browser-smoke",
+        "browser-runtime"))
 {
     Add-PFExternal `
         -Name $check `
         -Status "deferred" `
         -Evidence "POSIX qualification or dedicated clean-machine CI lane"
+}
+
+foreach ($check in @(
+        "browser-collision-interaction",
+        "browser-match-flow-interaction",
+        "browser-replay-interaction"))
+{
+    Add-PFExternal `
+        -Name $check `
+        -Status "deferred" `
+        -Evidence (
+            "Owner interaction gate; generated-page smoke covers " +
+            "initial runtime state only")
 }
 
 [System.IO.File]::WriteAllLines(

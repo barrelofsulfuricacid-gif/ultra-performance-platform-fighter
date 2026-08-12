@@ -192,6 +192,14 @@ extern void pf_web_m4_playtest_install(
 extern void pf_web_m4_playtest_render(
     const int32_t *view,
     int view_count);
+#if defined(PF_WEB_M4_TEST)
+extern void pf_web_m4_playtest_observe_inputs(
+    const pf_input_frame *inputs,
+    size_t input_count);
+int pf_web_m4_playtest_test_render_dynamic_player(
+    const pf_m4_player_inspection *player,
+    int player_index);
+#endif
 
 static pf_web_m4_storage pf_web_m4_sim_storage;
 static pf_m4_content pf_web_m4_content;
@@ -369,6 +377,11 @@ static int pf_web_m4_tick_with_dual_triggers(
         player1_buttons,
         player1_left_trigger,
         player1_right_trigger);
+#if defined(PF_WEB_M4_TEST)
+    pf_web_m4_playtest_observe_inputs(
+        inputs,
+        (size_t)pf_web_m4_player_count);
+#endif
     if (pf_sim_tick(
             pf_web_m4_sim,
             inputs,
@@ -431,6 +444,96 @@ static int pf_web_m4_initialize_live_item_lab(void)
     return pf_web_m4_initialize_current_content() &&
            pf_web_m4_reset_internal();
 }
+
+static void pf_web_m4_pack_dynamic_player_view(
+    const pf_m4_player_inspection *player,
+    int base,
+    int hit_sphere_base)
+{
+    uint8_t hit_sphere_index;
+
+    pf_web_m4_view[base + PF_WEB_M4_VIEW_PLAYER_HITBOX_ACTIVE] =
+        (int32_t)player->hitbox_active;
+    pf_web_m4_view[base + PF_WEB_M4_VIEW_PLAYER_HITBOX_LEFT] =
+        player->hitbox_left_q16;
+    pf_web_m4_view[base + PF_WEB_M4_VIEW_PLAYER_HITBOX_RIGHT] =
+        player->hitbox_right_q16;
+    pf_web_m4_view[base + PF_WEB_M4_VIEW_PLAYER_HITBOX_TOP] =
+        player->hitbox_top_q16;
+    pf_web_m4_view[base + PF_WEB_M4_VIEW_PLAYER_HITBOX_BOTTOM] =
+        player->hitbox_bottom_q16;
+    pf_web_m4_view[hit_sphere_base] =
+        (int32_t)player->hit_sphere_count;
+    for (hit_sphere_index = UINT8_C(0);
+         hit_sphere_index < player->hit_sphere_count;
+         ++hit_sphere_index)
+    {
+        const pf_m4_hit_sphere_inspection *sphere =
+            &player->hit_spheres[hit_sphere_index];
+        const int sphere_base =
+            hit_sphere_base + INT32_C(1) +
+            (int)hit_sphere_index * PF_WEB_M4_VIEW_HIT_SPHERE_STRIDE;
+
+        pf_web_m4_view[sphere_base] = sphere->center_x_q16;
+        pf_web_m4_view[sphere_base + 1] = sphere->center_y_q16;
+        pf_web_m4_view[sphere_base + 2] = sphere->radius_q16;
+        pf_web_m4_view[sphere_base + 3] =
+            (int32_t)sphere->effect_index;
+        pf_web_m4_view[sphere_base + 4] =
+            (int32_t)sphere->hitbox_id;
+        pf_web_m4_view[sphere_base + 5] =
+            (int32_t)sphere->group_id;
+    }
+    pf_web_m4_view[base + PF_WEB_M4_VIEW_PLAYER_SHIELD_STRENGTH] =
+        (int32_t)player->shield_strength;
+    pf_web_m4_view[base + PF_WEB_M4_VIEW_PLAYER_SHIELD_ACTIVE] =
+        (int32_t)player->shield_active;
+    pf_web_m4_view[base + PF_WEB_M4_VIEW_PLAYER_SHIELD_LEFT] =
+        player->shield_left_q16;
+    pf_web_m4_view[base + PF_WEB_M4_VIEW_PLAYER_SHIELD_RIGHT] =
+        player->shield_right_q16;
+    pf_web_m4_view[base + PF_WEB_M4_VIEW_PLAYER_SHIELD_TOP] =
+        player->shield_top_q16;
+    pf_web_m4_view[base + PF_WEB_M4_VIEW_PLAYER_SHIELD_BOTTOM] =
+        player->shield_bottom_q16;
+    pf_web_m4_view[base + PF_WEB_M4_VIEW_PLAYER_SHIELD_TILT_X] =
+        (int32_t)player->shield_tilt_x;
+    pf_web_m4_view[base + PF_WEB_M4_VIEW_PLAYER_SHIELD_TILT_Y] =
+        (int32_t)player->shield_tilt_y;
+}
+
+#if defined(PF_WEB_M4_TEST)
+int pf_web_m4_playtest_test_render_dynamic_player(
+    const pf_m4_player_inspection *player,
+    int player_index)
+{
+    int base;
+    int hit_sphere_base;
+
+    if (player == NULL || player_index < 0 ||
+        player_index >= (int)PF_SIM_MAX_PLAYERS ||
+        player->hit_sphere_count >
+            (uint8_t)PF_M4_INSPECTION_HIT_SPHERE_CAPACITY)
+    {
+        return 0;
+    }
+    base =
+        PF_WEB_M4_VIEW_PLAYER0 +
+        player_index * PF_WEB_M4_VIEW_PLAYER_STRIDE;
+    hit_sphere_base =
+        PF_WEB_M4_VIEW_HIT_SPHERE0 +
+        player_index * PF_WEB_M4_VIEW_HIT_SPHERE_PLAYER_STRIDE;
+    (void)memset(pf_web_m4_view, 0, sizeof(pf_web_m4_view));
+    pf_web_m4_pack_dynamic_player_view(
+        player,
+        base,
+        hit_sphere_base);
+    pf_web_m4_playtest_render(
+        pf_web_m4_view,
+        PF_WEB_M4_VIEW_COUNT);
+    return 1;
+}
+#endif
 
 static int pf_web_m4_render(void)
 {
@@ -507,7 +610,6 @@ static int pf_web_m4_render(void)
         const int hit_sphere_base =
             PF_WEB_M4_VIEW_HIT_SPHERE0 +
             (int)player_index * PF_WEB_M4_VIEW_HIT_SPHERE_PLAYER_STRIDE;
-        uint8_t hit_sphere_index;
 
         pf_web_m4_view[base + PF_WEB_M4_VIEW_PLAYER_X] =
             player->position_x_q16;
@@ -537,38 +639,10 @@ static int pf_web_m4_render(void)
             (int32_t)player->hitlag_ticks;
         pf_web_m4_view[base + PF_WEB_M4_VIEW_PLAYER_HITSTUN] =
             (int32_t)player->hitstun_ticks;
-        pf_web_m4_view[base + PF_WEB_M4_VIEW_PLAYER_HITBOX_ACTIVE] =
-            (int32_t)player->hitbox_active;
-        pf_web_m4_view[base + PF_WEB_M4_VIEW_PLAYER_HITBOX_LEFT] =
-            player->hitbox_left_q16;
-        pf_web_m4_view[base + PF_WEB_M4_VIEW_PLAYER_HITBOX_RIGHT] =
-            player->hitbox_right_q16;
-        pf_web_m4_view[base + PF_WEB_M4_VIEW_PLAYER_HITBOX_TOP] =
-            player->hitbox_top_q16;
-        pf_web_m4_view[base + PF_WEB_M4_VIEW_PLAYER_HITBOX_BOTTOM] =
-            player->hitbox_bottom_q16;
-        pf_web_m4_view[hit_sphere_base] =
-            (int32_t)player->hit_sphere_count;
-        for (hit_sphere_index = UINT8_C(0);
-             hit_sphere_index < player->hit_sphere_count;
-             ++hit_sphere_index)
-        {
-            const pf_m4_hit_sphere_inspection *sphere =
-                &player->hit_spheres[hit_sphere_index];
-            const int sphere_base =
-                hit_sphere_base + INT32_C(1) +
-                (int)hit_sphere_index * PF_WEB_M4_VIEW_HIT_SPHERE_STRIDE;
-
-            pf_web_m4_view[sphere_base] = sphere->center_x_q16;
-            pf_web_m4_view[sphere_base + 1] = sphere->center_y_q16;
-            pf_web_m4_view[sphere_base + 2] = sphere->radius_q16;
-            pf_web_m4_view[sphere_base + 3] =
-                (int32_t)sphere->effect_index;
-            pf_web_m4_view[sphere_base + 4] =
-                (int32_t)sphere->hitbox_id;
-            pf_web_m4_view[sphere_base + 5] =
-                (int32_t)sphere->group_id;
-        }
+        pf_web_m4_pack_dynamic_player_view(
+            player,
+            base,
+            hit_sphere_base);
         pf_web_m4_view[
             base + PF_WEB_M4_VIEW_PLAYER_LAST_HIT_SEQUENCE] =
             (int32_t)player->last_hit_sequence;
@@ -631,30 +705,6 @@ static int pf_web_m4_render(void)
         pf_web_m4_view[
             base + PF_WEB_M4_VIEW_PLAYER_SMASH_CHARGE_TICKS] =
             (int32_t)player->smash_charge_ticks;
-        pf_web_m4_view[
-            base + PF_WEB_M4_VIEW_PLAYER_SHIELD_STRENGTH] =
-            (int32_t)player->shield_strength;
-        pf_web_m4_view[
-            base + PF_WEB_M4_VIEW_PLAYER_SHIELD_ACTIVE] =
-            (int32_t)player->shield_active;
-        pf_web_m4_view[
-            base + PF_WEB_M4_VIEW_PLAYER_SHIELD_LEFT] =
-            player->shield_left_q16;
-        pf_web_m4_view[
-            base + PF_WEB_M4_VIEW_PLAYER_SHIELD_RIGHT] =
-            player->shield_right_q16;
-        pf_web_m4_view[
-            base + PF_WEB_M4_VIEW_PLAYER_SHIELD_TOP] =
-            player->shield_top_q16;
-        pf_web_m4_view[
-            base + PF_WEB_M4_VIEW_PLAYER_SHIELD_BOTTOM] =
-            player->shield_bottom_q16;
-        pf_web_m4_view[
-            base + PF_WEB_M4_VIEW_PLAYER_SHIELD_TILT_X] =
-            (int32_t)player->shield_tilt_x;
-        pf_web_m4_view[
-            base + PF_WEB_M4_VIEW_PLAYER_SHIELD_TILT_Y] =
-            (int32_t)player->shield_tilt_y;
     }
     pf_web_m4_view[PF_WEB_M4_VIEW_EVENT_COUNT] =
         (int32_t)pf_web_m4_last_result.event_count;

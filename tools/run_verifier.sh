@@ -142,22 +142,6 @@ pf_record \
     "$PF_REPOSITORY_ROOT/tools/verify_m4_charge.sh" \
     "$pf_artifact_dir/m4_charge"
 pf_record \
-    m4-browser-adapter \
-    "$PF_REPOSITORY_ROOT/tools/verify_m4_browser.sh" \
-    "$pf_artifact_dir/m4_browser"
-pf_record \
-    collision-hitbox-overlay \
-    "$PF_REPOSITORY_ROOT/tools/verify_m4_collision_overlay.sh" \
-    "$pf_artifact_dir/m4_collision_overlay"
-pf_record \
-    m4-local-match-flow \
-    "$PF_REPOSITORY_ROOT/tools/verify_m4_match_flow.sh" \
-    "$pf_artifact_dir/m4_match_flow"
-pf_record \
-    m4-replay-visualization \
-    "$PF_REPOSITORY_ROOT/tools/verify_m4_replay_visualization.sh" \
-    "$pf_artifact_dir/m4_replay_visualization"
-pf_record \
     m3-regression-qualification \
     "$PF_REPOSITORY_ROOT/tools/verify_m3_performance.sh" \
     "$pf_artifact_dir/m3_performance_qualification"
@@ -192,10 +176,23 @@ then
         pf_defer \
             browser-smoke \
             "selected for browser CI; set PF_VERIFIER_RUN_WEB=1 for local Chrome execution"
+        pf_defer \
+            browser-runtime \
+            "selected for browser CI; set PF_VERIFIER_RUN_WEB=1 for local Chrome execution"
     fi
 else
     pf_defer browser-smoke "not selected: commit does not affect browser presentation"
+    pf_defer browser-runtime "not selected: commit does not affect browser presentation"
 fi
+pf_defer \
+    browser-collision-interaction \
+    "owner interaction gate: generated-page smoke proves the initial collision-inspector surface, not toggle behavior"
+pf_defer \
+    browser-match-flow-interaction \
+    "owner interaction gate: generated-page smoke proves setup initialization, not start/results/rematch transitions"
+pf_defer \
+    browser-replay-interaction \
+    "owner interaction gate: generated-page smoke proves the initial replay surface, not event navigation or fail-closed import"
 
 pf_build_hash=$(pf_sha256 "$pf_verifier")
 

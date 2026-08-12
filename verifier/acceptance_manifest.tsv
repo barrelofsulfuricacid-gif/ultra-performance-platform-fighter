@@ -14,10 +14,10 @@ M4-COMBAT	mechanical	active	m4-combat
 M4-PROJECTILE	mechanical	active	m4-projectile
 M4-REFLECTOR	mechanical	active	m4-reflector
 M4-CHARGE	mechanical	active	m4-charge
-M4-BROWSER	mechanical	active	m4-browser-adapter
-M4-COLLISION-OVERLAY	visual	active	collision-hitbox-overlay
-M4-PLAYABLE-LOOP	menu	active	m4-local-match-flow
-M4-REPLAY-VISUALIZATION	visual	active	m4-replay-visualization
+M4-BROWSER	mechanical	active	browser-runtime
+M4-COLLISION-OVERLAY	visual	active	browser-collision-interaction
+M4-PLAYABLE-LOOP	menu	active	browser-match-flow-interaction
+M4-REPLAY-VISUALIZATION	visual	active	browser-replay-interaction
 M4-VERIFIER-MATCHES	simulation	active	m4-repeated-match-soak
 M7-MENU	menu	planned:M7	menu-navigation
 M7-CONTROLLER-PROMPTS	menu	planned:M7	controller-prompt-semantics

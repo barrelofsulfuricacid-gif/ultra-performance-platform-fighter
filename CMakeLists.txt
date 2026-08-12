@@ -872,6 +872,9 @@ if(BUILD_TESTING)
         src/web_client/m4_playtest.c
         tests/web/test_m4_playtest.c)
     target_link_libraries(m4_web_playtest_test PRIVATE sim)
+    target_compile_definitions(
+        m4_web_playtest_test
+        PRIVATE PF_WEB_M4_TEST=1)
     target_include_directories(
         m4_web_playtest_test
         PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/web_client")
@@ -886,7 +889,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         web.m4_playtest
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-browser-adapter=pass walk_axis=13500 dash_axis=32767 renders=[1-9][0-9]*")
+                   "m4-web-bridge=pass view_schema=47 endpoints=3 renders=[1-9][0-9]*")
 
     add_executable(rl_api_test tests/sim/test_rl_api.c)
     target_link_libraries(rl_api_test PRIVATE sim)

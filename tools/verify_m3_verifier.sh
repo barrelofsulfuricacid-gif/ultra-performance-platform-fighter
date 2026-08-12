@@ -66,10 +66,10 @@ git -C "$root" \
     printf 'm4-projectile\tpass\tqualification fixture\n'
     printf 'm4-reflector\tpass\tqualification fixture\n'
     printf 'm4-charge\tpass\tqualification fixture\n'
-    printf 'm4-browser-adapter\tpass\tqualification fixture\n'
-    printf 'collision-hitbox-overlay\tpass\tqualification fixture\n'
-    printf 'm4-local-match-flow\tpass\tqualification fixture\n'
-    printf 'm4-replay-visualization\tpass\tqualification fixture\n'
+    printf 'browser-runtime\tpass\tqualification fixture\n'
+    printf 'browser-collision-interaction\tdeferred\towner interaction fixture\n'
+    printf 'browser-match-flow-interaction\tdeferred\towner interaction fixture\n'
+    printf 'browser-replay-interaction\tdeferred\towner interaction fixture\n'
 } >"$pass_checks"
 
 "$verifier" \

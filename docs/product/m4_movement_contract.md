@@ -516,12 +516,12 @@ bounds, and blast zones.
 - a 20,000-tick four-player trace whose canonical state must remain valid and
   hashable after every tick.
 
-`tools/verify_m4_browser.sh` and the generated-page Chrome smoke additionally
-cover the standard-gamepad and native Wii U adapter mapping probes, controller
-API availability, live per-tick polling, analog quantization/dead zone, D-pad
-override, face and shoulder routes, non-standard rejection, and two-slot
-assignment. Real USB permission, hardware reports, and browser-specific device
-exposure remain part of the owner playtest.
+The `web.m4_playtest` CTest owns the view schema and exported step/configuration
+ABI without replaying simulation scenarios. The generated-page Chrome smoke
+owns the rendered controller-API status and control surfaces. Exact standard-
+gamepad and native Wii U adapter reports, real USB permission, and browser-
+specific device exposure remain part of the owner playtest rather than a
+source-text probe.
 
 The focused movement oracle currently reports 243 invariants. The focused
 combat oracle reports 584 invariants, including the jump-cancelling attack

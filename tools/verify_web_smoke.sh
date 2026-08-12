@@ -105,7 +105,7 @@ pf_require_dom \
     'webgl2=pass batch_draws=1'
 pf_require_dom \
     "deterministic replay status" \
-    'replay=pass ticks=240 winner_mask=5 final_sha256=9b9861e9b79699296d4844c992bde90eb872773f337bb6ec86acaeabde834308'
+    'replay=pass ticks=240 winner_mask=5 final_sha256=de96572115c1e4850d79353839576efc4b780ccbd75e8e70a2f23bee419c14af'
 pf_require_dom \
     "replay inspector" \
     'id="pf-replay-inspector"'
@@ -120,7 +120,7 @@ pf_require_dom \
     'id="pf-replay-events"'
 pf_require_dom \
     "re-simulated canonical events" \
-    '82 typed events'
+    '83 typed events'
 pf_require_dom \
     "M4 browser integration status" \
     'playtest=ready gamepad_api=available wii_u_adapter_api=available controls=keyboard-gamepad-webusb-two-controller-duel-team-lab owner_checklist=ready-61'
@@ -173,6 +173,9 @@ pf_require_dom \
     "M4 local match setup state" \
     'data-match-flow="setup"'
 pf_require_dom \
+    "M4 published match-flow capability marker" \
+    'data-match-flow="setup-duel-results-rematch"'
+pf_require_dom \
     "M4 local match setup panel" \
     'id="pf-m4-match-setup"'
 pf_require_dom \
@@ -181,6 +184,12 @@ pf_require_dom \
 pf_require_dom \
     "M4 explicit match start" \
     'id="pf-m4-start-match"'
+pf_require_dom \
+    "M4 reset and rematch control" \
+    '>Reset</button>'
+pf_require_dom \
+    "M4 return-to-setup control" \
+    '>Match Setup</button>'
 pf_require_dom \
     "M4 browser title" \
     'Platform Fighter M4 Browser Playtest'

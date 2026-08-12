@@ -174,8 +174,11 @@ Run the focused native M4 contracts without a browser:
 ./tools/verify_m4_falcon_punch.sh
 ./tools/verify_m4_combat.sh
 ./tools/verify_m4_match.sh
-./tools/verify_m4_browser.sh
 ```
+
+The `web.m4_playtest` CTest owns the native browser-bridge ABI. After building
+the generated HTML/Wasm with `./tools/workflow.sh web`, run the real browser
+boundary once with `./tools/verify_web_smoke.sh`.
 
 Validate the complete lock, bootstrap, preset, and CI contract with:
 
