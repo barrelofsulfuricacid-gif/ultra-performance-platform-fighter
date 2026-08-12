@@ -436,8 +436,12 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
   collision extents. Invulnerable hurtboxes retain their geometry but use the
   existing dashed-gold rejection semantic.
 - The visible legend and stable DOM attributes make the same semantics readable
-  by a browser verifier. `collision-hitbox-overlay` is now an active acceptance
-  check, while tolerant screenshot comparison remains the separate planned M7
+  at the generated-page boundary. `browser-runtime` proves generated-page
+  initialization and the published inspector surface. The separate
+  `browser-collision-interaction` acceptance remains an explicit owner gate for
+  toggling and visually checking the overlay; a DOM dump does not claim that
+  interaction. The former source-grep overlay check was retired as duplicate
+  churn. Tolerant screenshot comparison remains the separate planned M7
   visual-reference check.
 - This is a presentation/verifier slice over already inspected canonical data.
   At that slice, browser view schema 33 remained 396 values and no simulation, replay, save,
@@ -455,9 +459,11 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
   controls are disabled during setup, then enabled for play; the existing
   terminal result pauses the match and offers both Rematch and Change Setup.
   Time-limit truncation now receives the same Rematch label as a stock result.
-- `m4-local-match-flow` is an active verifier acceptance check over setup,
-  playing, results, rematch, and return-to-setup states. This temporary M4.3
-  surface does not claim the broader M7 menu-navigation system.
+- The generated-page `browser-runtime` acceptance checks initialization and the
+  live setup surface. `browser-match-flow-interaction` remains an explicit owner
+  gate for starting a match, reaching results, rematching, and returning to
+  setup; it is deferred on the non-interactive DOM-dump lane. This temporary
+  M4.3 surface does not claim the broader M7 menu-navigation system.
 
 ## Delivered in the replay-file event-visualization slice
 
@@ -472,9 +478,13 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
   Previous event / Next event navigation alongside positions and SHA-256 state
   hashes. The file-import surface is bounded to 1 MiB and the current canonical
   four-player, 500-tick content/config fixture.
-- `m4-replay-visualization` is an active verifier acceptance row, and the clean
-  browser smoke requires the file control, stable visualization semantics, and
-  three re-simulated canonical events.
+- `browser-runtime` proves the generated replay surface initializes, and the
+  clean browser smoke requires the file control, stable visualization
+  semantics, and re-simulated canonical events. The separate
+  `browser-replay-interaction` acceptance remains an explicit owner gate for
+  Previous/Next-event navigation and fail-closed incompatible-file import; it
+  is deferred on the non-interactive DOM-dump lane. The former source-grep
+  replay check was retired.
 
 ## Delivered in the M4 benchmark-workload slice
 
@@ -6520,3 +6530,95 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   1178.830/1319.197/1471.076 ms, and three isolated WSL passes take
   919.397/986.464/1270.306 ms under manifest SHA-256
   `99b5f633b2f4f6c33173ca285af0634e0ac51d1acc6df8b2a5b3c57f22cb261d`.
+
+## 2026-08-12: native GameCube controls and result presentation
+
+- Pinned SDL 3.4.12 defines GameCube face positions as A/X/B/Y for its
+  south/east/west/north semantic buttons. The native playtest now branches on
+  `SDL_GAMEPAD_TYPE_GAMECUBE`: A attacks, B selects special, X and Y jump, Z
+  enters the existing attack-plus-shield grab chord, Start taunts, and the
+  analog L/R axes remain pressure-sensitive shields. SDL's separate digital
+  trigger-click buttons still saturate their matching shield. The Mayflash
+  `0079:1843` DirectInput/raw-joystick fallback and its known button indices
+  remain unchanged.
+- The button translation is one shared switch used by live polling and a
+  hardware-independent native smoke table. The table covers every corrected
+  GameCube face/control route plus standard-layout strong attack and shoulder
+  controls, preventing the type-specific branch from regressing ordinary
+  gamepads.
+- A terminated match now draws a centered result panel with the winning
+  player/team (or draw); a time-limit truncation displays `TIME LIMIT` without
+  inventing a terminal result. Both change the HUD phase to `RESULT` and give
+  an explicit `R - REMATCH` cue. The existing deterministic reset is the
+  rematch operation; presentation does not mutate simulation result state.
+- Strict Windows MSVC `/W4 /WX` and WSL native targets build. Direct smoke and
+  the focused `native_client.smoke` CTest pass on both platforms against SDL
+  3.4.12. A real GameCube controller/adapter input pass and visual completed-
+  match confirmation remain hands-on gates.
+
+## 2026-08-12: early basic-Turn interrupt-facing fidelity
+
+- Audited pinned decomp revision
+  `9509dc04406fb2028bfab01243841ba4787c0fb7` and repository-current revision
+  `d882af94175e3c880ad51039e2979aa9a50aea09` through the exact
+  `ftCo_Turn_IASA` body. Both revisions have normalized `ftCo_Turn.c` SHA-256
+  `3ad604c90ae3f67dd508cced55ab00ca6e7152a4a15693c5c78d4959434cbcfa`.
+  The source temporarily exposes pending facing to side/down/up special,
+  catch, smash, tilt, and jab callbacks before Turn's physical flip. If none
+  consumes the transition, it restores old facing before guard, taunt, and
+  jump.
+- Production now supplies that source-scoped view through one allocation-free
+  stack-local helper shared by its existing special, grab, and attack routers.
+  Main-stick smashes are enabled on the same reference Turn callback surface,
+  and both light-attack and smash direction selection use the temporary view.
+  No canonical state, content field, parser branch, table, snapshot byte, or
+  duplicated transition was added.
+- Twelve checkpoint-isolated routes retain 72 live rows: jab, grab, all three
+  main-stick smashes, all three tilts, all three C-stick smashes, and jump as
+  the restored-facing negative control. Two captures repeat the same rows at
+  raw SHA-256
+  `294e9eae84ae6bc92f5932e20d666479b4455e49bb9666a54052003ec94b2c59`.
+  The selected action/action-tick/facing/grounded source and Windows/WSL native
+  payloads are exactly equal at SHA-256
+  `0e9858e16140d8a55727255b009aec89e2176286e008b2cf23867bab38c2ac44`.
+- The unchanged generic acquisition capture, comparator, generator, and
+  native-CSV verifier own the fast gate. Its 12 cases / 72 samples generate
+  artifact SHA-256
+  `a0f269dd6683e372629190bfa011f35f79be226fc6a2a150c49eebc55961b8a0`.
+  Focused Windows runs take 304.855/307.646/347.483 ms; WSL takes
+  376.784/415.305/458.985 ms. The complete 31-domain / 186-case registry plus
+  replay passes three isolated Windows runs in 1485.200/1706.950/1922.805 ms
+  and three warm WSL runs in 1096.947/1127.462/1220.305 ms under manifest
+  SHA-256
+  `ffb5f801f55e24ce9c7a94fcbc627e46b1bcf0a42ebb79db37d746a1c9938664`.
+- Deterministic replay was requalified at the first causal divergence, not
+  blindly repinned. Checkpoints through completed tick 217 remain identical.
+  On zero-based input tick 217, Player 3 is in early basic Turn and presses A
+  with forward stick: the stale implementation entered jab facing left, while
+  the corrected callback view enters forward tilt facing right at completed
+  tick 218. Windows and WSL agree on new corpus/final/event SHA-256 values
+  `6727023fb07bcb7a4fcbaf9c0beac0f8220c1c1802b19da891ae2ae2be252240`,
+  `de96572115c1e4850d79353839576efc4b780ccbd75e8e70a2f23bee419c14af`, and
+  `124a94734029321020513ec749b2f4d26cd60b4ed2129e25ce104692739fa9af`.
+
+## 2026-08-12: duplicate web-probe retirement
+
+- Removed four scripts that inspected source strings or repeated mechanics
+  already owned by strict simulation tests: browser adapter, collision overlay,
+  match flow, and replay visualization. Their checks could pass without
+  exercising the compiled page and therefore were not independent fidelity
+  evidence.
+- Retained the non-duplicated bridge boundary in one compact CTest. It now
+  verifies exact nonzero main/C-stick, button, and independent L/R-trigger
+  forwarding; Team Lab's controller-two to simulation-slot-two mapping; and
+  dynamic shield and multi-sphere hitbox packing through the production view
+  packer. Test-only observation seams compile only under `PF_WEB_M4_TEST`; the
+  Emscripten product carries no test hook.
+- `browser-runtime` remains the generated-page/Chrome initialization gate.
+  Collision toggling, setup-to-result/rematch transitions, and replay event
+  navigation/fail-closed import now have separate deferred owner-interaction
+  names. A static DOM dump no longer overstates those behaviors as exercised.
+- Strict Windows and WSL `web.m4_playtest` CTests pass, the production
+  Emscripten page rebuilds, and Chrome smoke passes with the current 83-event
+  replay and final SHA-256
+  `de96572115c1e4850d79353839576efc4b780ccbd75e8e70a2f23bee419c14af`.

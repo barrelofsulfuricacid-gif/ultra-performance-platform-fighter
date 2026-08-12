@@ -436,6 +436,16 @@ selects changed cases from that same manifest. A warm live run requalifies the
 affected domain, while the complete pack periodically requalifies the whole
 manifest. No finite scenario proves the absence of every possible anomaly, so
 coverage is explicit and extensible rather than described as universal.
+In parallel, a continuously running differential-fuzz lane ingests
+provenance-recorded public Slippi replay files for supported NTSC 1.02 Falcon
+setups. It applies each recorded per-frame input stream to the source and
+production simulations, stops at the first semantic desynchronization, and
+minimizes the causal prefix. A confirmed divergence becomes a compact
+source-qualified manifest domain and blocks M4; unsupported fighters, stages,
+items, revisions, or hidden engine state are reported explicitly rather than
+masked. This broad real-match corpus discovers gaps but does not replace the
+focused callback/threshold theorems or imply universal equivalence when it
+passes.
 Source-complete data and action-owned geometry are captured once and verified
 exhaustively by canonical action/frame payload. They must not be re-simulated
 through a long physical route for every row when the same pinned collision
