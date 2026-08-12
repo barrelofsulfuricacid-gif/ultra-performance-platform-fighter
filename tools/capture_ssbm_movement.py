@@ -267,7 +267,12 @@ def input_trace(
                 not isinstance(case_id, str)
                 or not case_id
                 or case_id in case_ids
-                or source_state not in {"squat_wait", "squat_rv", "turn"}
+                or source_state not in {
+                    "squat_wait",
+                    "squat_rv",
+                    "teeter",
+                    "turn",
+                }
                 or not isinstance(edge_main, list)
                 or len(edge_main) != 2
                 or any(
@@ -292,21 +297,46 @@ def input_trace(
                 main_x=(
                     controller_axis(-16384)
                     if source_state == "turn"
-                    else 0.5
+                    else (0.65 if source_state == "teeter" else 0.5)
                 ),
-                main_y=(0.5 if source_state == "turn" else 0.0),
+                main_y=(
+                    0.5 if source_state in {"teeter", "turn"} else 0.0
+                ),
+                fighter_x_override=(
+                    85.0 if source_state == "teeter" else None
+                ),
+                fighter_y_override=(
+                    0.0001 if source_state == "teeter" else None
+                ),
+                fighter_facing_override=(
+                    1.0 if source_state == "teeter" else None
+                ),
+                fighter_position_state_reset=source_state == "teeter",
             )
             trace.append(
                 {
                     **first,
                     "restore_before": True,
                     "checkpoint_slot": checkpoint_slot,
+                    "record": source_state != "teeter",
                 }
             )
             if source_state in {"squat_wait", "squat_rv"}:
                 repeat(f"{prefix}_setup", 19, main_y=0.0)
                 if source_state == "squat_rv":
                     trace.append(command(f"{prefix}_release"))
+            elif source_state == "teeter":
+                for _ in range(2):
+                    trace.append(
+                        {
+                            **command(f"{prefix}_setup", main_x=0.65),
+                            "record": False,
+                        }
+                    )
+                trace.append(
+                    {**command(f"{prefix}_setup"), "record": False}
+                )
+                trace.append(command(f"{prefix}_setup"))
             edge_x = controller_axis(edge_main[0])
             edge_y = controller_axis(-edge_main[1])
             trace.append(

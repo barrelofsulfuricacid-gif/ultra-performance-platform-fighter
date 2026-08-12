@@ -378,3 +378,18 @@ facing, and grounded state under source/production SHA-256
 `f16e1d6a7d390a8d8a6a99a93c4952e8ca848ec3679e037a70dfba8a702fbd1d`.
 This closes those three callback surfaces only; unrepresented common and
 character-state callback lists remain subject to the continuing source audit.
+
+The teeter addendum closes two more source callback surfaces. Pinned and
+current `ftCo_Ottotto_IASA` invoke all four common special dispatchers, while
+`ftCo_OttottoWait_IASA` delegates directly to the same function. Production's
+single TEETER action now owns that full capability mask for both animation
+phases. A four-case/28-row actual-input Dolphin domain enters Ottotto through
+an unrecorded low-stick endpoint approach, then matches neutral/side/up/down B
+on action, action clock, facing, and grounded state. The two raw captures are
+byte-identical at SHA-256
+`a21b615da3f45642278ce4a1b2f6ba8335588e2568e423b2467fd1d55119bcca`;
+source/production semantic SHA-256 values are
+`2065e789ba0285f8b3d878bdc2615bf0a7e983ee02da356f6f46d0b924a6908e` /
+`63ca98b93c32df9a1937f69d47c3f8e6ab75645d48405a7b67f6579c61b5f9ba`.
+The fixture never writes a teeter action directly. Unrepresented callback
+lists remain open.

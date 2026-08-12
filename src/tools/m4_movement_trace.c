@@ -90,6 +90,117 @@ static int run_elevated_special_pre_roll(
     return 0;
 }
 
+static int run_teeter_pre_roll(
+    pf_sim *sim,
+    const pf_m4_content *content,
+    pf_m4_inspection *inspection)
+{
+    uint32_t pre_roll_tick;
+
+    for (pre_roll_tick = UINT32_C(0);
+         pre_roll_tick < UINT32_C(300);
+         ++pre_roll_tick)
+    {
+        pf_input_frame inputs[PF_SIM_MAX_PLAYERS];
+        pf_tick_result result;
+        const int32_t distance_q16 =
+            content->stage.floor_right_q16 -
+            inspection->players[0].position_x_q16;
+        const int32_t velocity_q16 =
+            inspection->players[0].velocity_x_q16;
+        const int32_t release_velocity_q16 =
+            velocity_q16 > content->fighter.traction_q16
+                ? velocity_q16 - content->fighter.traction_q16
+                : INT32_C(0);
+        int16_t selected_axis = INT16_C(0);
+        int32_t selected_velocity_q16 = INT32_C(0);
+        uint32_t axis;
+
+        (void)memset(inputs, 0, sizeof(inputs));
+        inputs[0].tick = inspection->tick;
+        inputs[0].schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
+        inputs[0].player_slot = UINT8_C(0);
+        inputs[1].tick = inspection->tick;
+        inputs[1].schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
+        inputs[1].player_slot = UINT8_C(1);
+
+        if (release_velocity_q16 <= distance_q16)
+        {
+            for (axis =
+                     (uint32_t)content->fighter.axis_dead_zone + UINT32_C(1);
+                 axis < (uint32_t)content->fighter.dash_axis_threshold;
+                 ++axis)
+            {
+                const int32_t target_q16 =
+                    (int32_t)(
+                        (int64_t)(int32_t)axis *
+                        (int64_t)content->fighter.walk_speed_q16 /
+                        INT64_C(32767));
+                int32_t next_velocity_q16 = velocity_q16;
+                const int32_t acceleration_q16 =
+                    content->fighter.ground_acceleration_q16;
+                int32_t next_release_velocity_q16;
+
+                if (next_velocity_q16 < target_q16)
+                {
+                    next_velocity_q16 += acceleration_q16;
+                    if (next_velocity_q16 > target_q16)
+                    {
+                        next_velocity_q16 = target_q16;
+                    }
+                }
+                else if (next_velocity_q16 > target_q16)
+                {
+                    next_velocity_q16 -= acceleration_q16;
+                    if (next_velocity_q16 < target_q16)
+                    {
+                        next_velocity_q16 = target_q16;
+                    }
+                }
+                next_release_velocity_q16 =
+                    next_velocity_q16 > content->fighter.traction_q16
+                        ? next_velocity_q16 -
+                              content->fighter.traction_q16
+                        : INT32_C(0);
+                if (next_velocity_q16 < distance_q16 &&
+                    distance_q16 - next_velocity_q16 <
+                        next_release_velocity_q16)
+                {
+                    selected_axis = (int16_t)axis;
+                    break;
+                }
+                if (next_velocity_q16 < distance_q16 &&
+                    next_velocity_q16 > selected_velocity_q16)
+                {
+                    selected_axis = (int16_t)axis;
+                    selected_velocity_q16 = next_velocity_q16;
+                }
+            }
+            if (selected_axis == INT16_C(0))
+            {
+                return 1;
+            }
+            inputs[0].main_stick_x = selected_axis;
+        }
+
+        if (pf_sim_tick(sim, inputs, (size_t)2, &result) != PF_STATUS_OK ||
+            pf_m4_inspect(sim, inspection) != PF_STATUS_OK)
+        {
+            return 1;
+        }
+        if (inspection->players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_TEETER)
+        {
+            return 0;
+        }
+        if (inspection->players[0].grounded == UINT8_C(0))
+        {
+            return 1;
+        }
+    }
+    return 1;
+}
+
 int main(int argc, char **argv)
 {
     pf_trace_storage storage;
@@ -132,6 +243,7 @@ int main(int argc, char **argv)
     int falcon_kick_ground_edge_mode = 0;
     int falcon_kick_air_mode = 0;
     int falcon_kick_air_land_mode = 0;
+    int teeter_special_mode = 0;
 
     if (argc == 2 && strcmp(argv[1], "--platform") == 0)
     {
@@ -239,6 +351,10 @@ int main(int argc, char **argv)
     {
         falcon_kick_air_land_mode = 1;
     }
+    else if (argc == 2 && strcmp(argv[1], "--teeter-special") == 0)
+    {
+        teeter_special_mode = 1;
+    }
     else if (argc != 1)
     {
         (void)fprintf(
@@ -257,7 +373,7 @@ int main(int argc, char **argv)
             "--falcon-kick-ground|--falcon-kick-ground-edge|"
             "--falcon-kick-ground-hit|--falcon-kick-ground-wall|"
             "--falcon-kick-air|"
-            "--falcon-kick-air-land]\n");
+            "--falcon-kick-air-land|--teeter-special]\n");
         return 1;
     }
 
@@ -293,7 +409,7 @@ int main(int argc, char **argv)
     if (platform_mode == 0)
     {
         if (falcon_punch_air_mode == 0 && falcon_kick_air_mode == 0 &&
-            falcon_dive_air_ledge_mode == 0)
+            falcon_dive_air_ledge_mode == 0 && teeter_special_mode == 0)
         {
             content.stage.floor_left_q16 = -INT32_C(128) * PF_Q16_ONE;
             content.stage.floor_right_q16 = INT32_C(128) * PF_Q16_ONE;
@@ -468,6 +584,18 @@ int main(int argc, char **argv)
             content.fighter.half_width_q16 +
             INT32_C(3) * content.stage.spawn_spacing_q16;
     }
+    else if (teeter_special_mode != 0)
+    {
+        /* Keep both fighters on a tiny, inert floor and approach its right
+         * endpoint through ordinary low-stick walking. The pre-roll below
+         * releases inside Falcon's imported teeter snap distance, so the
+         * first stdin row starts from Ottotto rather than mutating state. */
+        content.stage.spawn_spacing_q16 = PF_Q16_ONE;
+        content.fighter.player_push_half_width_q16 = INT32_C(1);
+        content.stage.revival_platform_half_width_q16 =
+            content.fighter.half_width_q16;
+        content.stage.floor_right_q16 = INT32_C(5) * PF_Q16_ONE;
+    }
     if (raptor_boost_air_miss_mode != 0)
     {
         /* Start both fighters on a legitimate floor, then let the imported
@@ -529,7 +657,17 @@ int main(int argc, char **argv)
     {
         return fail_status("inspect-origin", status);
     }
-    if (platform_mode != 0)
+    if (teeter_special_mode != 0)
+    {
+        if (run_teeter_pre_roll(sim, &content, &inspection) != 0)
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement-trace=fail operation=teeter-special-pre-roll\n");
+            return 1;
+        }
+    }
+    else if (platform_mode != 0)
     {
         pf_m4_reference_stage_line platform_line;
         const uint16_t source_platform_line = UINT16_C(2);

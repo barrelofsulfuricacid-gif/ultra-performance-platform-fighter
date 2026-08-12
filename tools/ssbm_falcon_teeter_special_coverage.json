@@ -1,0 +1,155 @@
+{
+  "schema": 1,
+  "scope": "falcon-common-teeter-special-acquisition",
+  "domain": "falcon-common-teeter-special-acquisition",
+  "character": "falcon",
+  "oracle": "SSBM GALE01 NTSC-U revision 2",
+  "live_source": {
+    "capture_sha256": "a21b615da3f45642278ce4a1b2f6ba8335588e2568e423b2467fd1d55119bcca",
+    "repeat_capture_sha256": "a21b615da3f45642278ce4a1b2f6ba8335588e2568e423b2467fd1d55119bcca",
+    "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
+    "release_artifact_sha256": "87e9ef6d80ed03354a1647d0616016dbc91399aa9e86a69ae5a398edd0a0c2bd",
+    "launcher_sha256": "9eb024aa9347648f020e2a76666e5c5597b77b32ef26752f563c99f0772b1e82",
+    "decomp_revision": "9509dc04406fb2028bfab01243841ba4787c0fb7",
+    "current_decomp_revision": "d882af94175e3c880ad51039e2979aa9a50aea09",
+    "dolphin_version": "3.5.1",
+    "libmelee_version": "0.47.2",
+    "capture_schema": 7,
+    "stage": "FINAL_DESTINATION",
+    "row_count": 28
+  },
+  "checkpoint_pack": {
+    "protocol": "immutable-multislot-slippi-state-file-control-v2",
+    "expected_rows": 28,
+    "warm_budget_seconds": 2.0,
+    "capture_plan": {
+      "batch_exi_inputs": true,
+      "checkpoint_slot_count": 4,
+      "special_acquisition_cases": [
+        {
+          "id": "teeter_neutral",
+          "checkpoint_slot": 0,
+          "source_state": "teeter",
+          "edge_main": [0, 0],
+          "observe_ticks": 5
+        },
+        {
+          "id": "teeter_side",
+          "checkpoint_slot": 1,
+          "source_state": "teeter",
+          "edge_main": [32767, 0],
+          "observe_ticks": 5
+        },
+        {
+          "id": "teeter_up",
+          "checkpoint_slot": 2,
+          "source_state": "teeter",
+          "edge_main": [0, -32767],
+          "observe_ticks": 5
+        },
+        {
+          "id": "teeter_down",
+          "checkpoint_slot": 3,
+          "source_state": "teeter",
+          "edge_main": [0, 32767],
+          "observe_ticks": 5
+        }
+      ]
+    }
+  },
+  "checkpoint_cases": [
+    { "id": "teeter-neutral", "start_label": "special_acquisition_teeter_neutral_setup" },
+    { "id": "teeter-side", "start_label": "special_acquisition_teeter_side_setup" },
+    { "id": "teeter-up", "start_label": "special_acquisition_teeter_up_setup" },
+    { "id": "teeter-down", "start_label": "special_acquisition_teeter_down_setup" }
+  ],
+  "selection": {
+    "paths": [
+      "generated/data/m4_ssbm_falcon_teeter_special_oracle.json",
+      "src/sim/sim_movement.c",
+      "src/tools/m4_movement_trace.c",
+      "tests/sim/test_m4_movement.c",
+      "tools/bootstrap_ssbm_checkpoint_oracle.sh",
+      "tools/capture_ssbm_movement.py",
+      "tools/compare_ssbm_movement.py",
+      "tools/generate_ssbm_stored_trace_oracle.py",
+      "tools/ssbm_exiai_checkpoint.patch",
+      "tools/ssbm_falcon_teeter_special_coverage.json",
+      "tools/ssbm_live_trace.py",
+      "tools/ssbm_natural_movement_domain.py",
+      "tools/verify_ssbm_falcon_teeter_special.py"
+    ]
+  },
+  "stored_oracle": {
+    "kind": "native-csv-trace-v1",
+    "source_trace_sha256": "2065e789ba0285f8b3d878bdc2615bf0a7e983ee02da356f6f46d0b924a6908e",
+    "production_trace_sha256": "63ca98b93c32df9a1937f69d47c3f8e6ab75645d48405a7b67f6579c61b5f9ba",
+    "serialized_fields": [
+      "action_state",
+      "action_ticks",
+      "facing",
+      "grounded"
+    ],
+    "action_mapping": {
+      "EDGE_TEETERING_START": { "action_state": 73, "action_tick_offset": 0 },
+      "NEUTRAL_B_ATTACKING_AIR": { "action_state": 107, "action_tick_offset": 0 },
+      "SWORD_DANCE_1": { "action_state": 109, "action_tick_offset": 0 },
+      "SWORD_DANCE_3_MID": { "action_state": 117, "action_tick_offset": 0 },
+      "SWORD_DANCE_4_LOW": { "action_state": 123, "action_tick_offset": 0 }
+    },
+    "cases": [
+      {
+        "id": "teeter_neutral",
+        "runner_arguments": ["--teeter-special"],
+        "source_label_prefix": "special_acquisition_teeter_neutral_",
+        "sample_count": 7,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{}, {}] },
+          { "ticks": 1, "lanes": [{ "buttons": ["special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "teeter_side",
+        "runner_arguments": ["--teeter-special"],
+        "source_label_prefix": "special_acquisition_teeter_side_",
+        "sample_count": 7,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{}, {}] },
+          { "ticks": 1, "lanes": [{ "main": [32767, 0], "buttons": ["special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "teeter_up",
+        "runner_arguments": ["--teeter-special"],
+        "source_label_prefix": "special_acquisition_teeter_up_",
+        "sample_count": 7,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{}, {}] },
+          { "ticks": 1, "lanes": [{ "main": [0, 32767], "buttons": ["special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "teeter_down",
+        "runner_arguments": ["--teeter-special"],
+        "source_label_prefix": "special_acquisition_teeter_down_",
+        "sample_count": 7,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{}, {}] },
+          { "ticks": 1, "lanes": [{ "main": [0, -32767], "buttons": ["special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      }
+    ],
+    "generator": {
+      "script": "tools/generate_ssbm_stored_trace_oracle.py",
+      "output": "generated/data/m4_ssbm_falcon_teeter_special_oracle.json"
+    },
+    "runner": {
+      "executable": "pf_m4_movement_trace",
+      "arguments": []
+    }
+  }
+}

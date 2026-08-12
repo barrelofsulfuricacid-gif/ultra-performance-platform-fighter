@@ -1855,3 +1855,39 @@ the native production trace hashes to
 The shared natural-movement projector's declarative action aliases keep the
 Falcon-specific names in the manifest while all extraction, input expansion,
 field selection, hashing, replay, and runner execution remain generic.
+
+## Falcon teeter special acquisition
+
+Pinned decomp revision `9509dc04406fb2028bfab01243841ba4787c0fb7` and
+current upstream `d882af94175e3c880ad51039e2979aa9a50aea09` agree that
+`ftCo_Ottotto_IASA` calls neutral, side, down, and up special dispatchers, and
+that `ftCo_OttottoWait_IASA` delegates directly to `ftCo_Ottotto_IASA`.
+Production represents both source phases with `PF_M4_ACTION_TEETER`, so one
+stack-local full capability result is exact for either phase without adding
+state, tables, allocation, or a character-specific special path.
+
+The source fixture places Falcon near Final Destination's right endpoint, but
+does not set his action. An unrecorded low-stick walk and neutral release enter
+actual `EDGE_TEETERING_START`; only then is the source row retained and a B
+edge submitted. The native fixture uses a tiny ordinary floor and an
+allocation-free velocity-aware approach that selects a legal sub-dash axis
+from distance, acceleration, and release velocity. It likewise requires a
+real TEETER inspection result before consuming the stored input sequence.
+
+Four immutable checkpoint slots isolate neutral, side, up, and down B. Each
+seven-row case contains teeter frame 1 and acquired special frames 1-6. The
+libmelee label `NEUTRAL_B_ATTACKING_AIR` aliases Falcon action 347 here;
+Falcon's decomp action table identifies that grounded state as
+`ftCa_MS_SpecialN`. Declarative aliases also map action 349 to Raptor Boost,
+353 to Falcon Dive, and 357 to Falcon Kick without adding mappings to the
+generic projector or runner.
+
+Two fresh 28-row captures are byte-identical at raw SHA-256
+`a21b615da3f45642278ce4a1b2f6ba8335588e2568e423b2467fd1d55119bcca`.
+Their warm durations are 0.268028 and 0.245186 seconds. Selected source fields
+hash to
+`2065e789ba0285f8b3d878bdc2615bf0a7e983ee02da356f6f46d0b924a6908e`;
+the matching production trace hashes to
+`63ca98b93c32df9a1937f69d47c3f8e6ab75645d48405a7b67f6579c61b5f9ba`.
+This extends the generic special-acquisition schema with a reusable natural
+teeter setup, not a web probe or synthetic source state.

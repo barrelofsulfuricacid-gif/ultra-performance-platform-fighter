@@ -239,6 +239,15 @@ divergent action flows can declare up to sixteen one-shot slots. The first
 eight-slot pack captures 134 special-acquisition rows in 0.721-1.048 seconds
 warm inside one connected process.
 
+Natural source-state setup can remain outside the recorded theorem. The
+teeter-special pack uses four immutable slots, then performs an unrecorded
+controller-only low walk and neutral release to enter actual Ottotto before
+each B edge. It captures 28 retained rows in 0.245-0.268 seconds warm and
+repeats byte-identically. Production mirrors the source contract with a
+velocity-aware ordinary-walk pre-roll against a tiny floor, not a direct state
+write or a fixed-tick approximation. This keeps the oracle compact while
+preserving the causal gameplay transition being qualified.
+
 ## Manifest-selected stored regression lane
 
 The ordinary edit loop now has a generic no-Dolphin runner:

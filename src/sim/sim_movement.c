@@ -6560,9 +6560,10 @@ static uint8_t pf_m4_reference_action_special_capabilities(
                    : UINT8_C(0);
     }
     /* SquatWait and SquatRv call only SpecialLw. Turn calls SpecialS,
-     * SpecialLw, then SpecialHi, deliberately omitting SpecialN. Guard,
-     * GuardOff, RunBrake, TurnRun, and recovery states have no special
-     * dispatcher. Every remaining listed state owns the full common table. */
+     * SpecialLw, then SpecialHi, deliberately omitting SpecialN. Ottotto and
+     * OttottoWait share the full common dispatcher. Guard, GuardOff,
+     * RunBrake, TurnRun, and recovery states have no special dispatcher.
+     * Every remaining listed state owns the full common table. */
     if (action_state == (uint8_t)PF_M4_ACTION_CROUCH ||
         action_state == (uint8_t)PF_M4_ACTION_CROUCH_END)
     {
@@ -6580,6 +6581,7 @@ static uint8_t pf_m4_reference_action_special_capabilities(
              action_ticks <= initial_dash_special_end_frame) ||
             action_state == (uint8_t)PF_M4_ACTION_RUN ||
             action_state == (uint8_t)PF_M4_ACTION_CROUCH_START ||
+            action_state == (uint8_t)PF_M4_ACTION_TEETER ||
             pf_m4_action_is_damage(action_state) ||
             (action_state == (uint8_t)PF_M4_ACTION_LANDING &&
              normal_landing_interruptible != 0))

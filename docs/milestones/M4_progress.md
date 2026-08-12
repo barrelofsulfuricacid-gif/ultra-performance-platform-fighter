@@ -6259,3 +6259,28 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   passes in 359.829 ms on Windows and 462.900 ms in WSL; the complete gate
   passes in 1,190.123/987.654 ms. Windows and WSL Release pass 41/41, and
   focused WSL ASan/UBSan movement/combat pass.
+
+## 2026-08-11 teeter special acquisition
+
+- Pinned decomp `9509dc0` and current upstream `d882af9` agree that
+  `ftCo_Ottotto_IASA` owns all four common special callbacks and
+  `ftCo_OttottoWait_IASA` delegates directly to it. Production's single
+  TEETER action now exposes that same full capability mask for both phases.
+- The source pack reaches real `EDGE_TEETERING_START` through an unrecorded
+  low-stick walk and neutral release near Final Destination's endpoint. The
+  native runner reaches TEETER through a velocity-aware ordinary-walk pre-roll
+  on a tiny inert floor. Neither side mutates the fighter into the state under
+  test.
+- Four immutable checkpoint cases qualify neutral, side, up, and down B across
+  28 retained rows. Two fresh headless/null/unlimited captures are
+  byte-identical at raw SHA-256
+  `a21b615da3f45642278ce4a1b2f6ba8335588e2568e423b2467fd1d55119bcca`.
+  Source semantic SHA-256 is
+  `2065e789ba0285f8b3d878bdc2615bf0a7e983ee02da356f6f46d0b924a6908e`;
+  matching production SHA-256 is
+  `63ca98b93c32df9a1937f69d47c3f8e6ab75645d48405a7b67f6579c61b5f9ba`.
+  Warm captures take 0.268028 and 0.245186 seconds.
+- The generic stored registry now covers 24 domains / 133 cases plus replay.
+  The complete gate passes in 1,124.230 ms on Windows and 1,271.197 ms in WSL.
+  Windows Release passes 41/41, the WSL Release configuration passes all 35
+  enabled tests, and focused WSL ASan/UBSan movement/combat pass.
