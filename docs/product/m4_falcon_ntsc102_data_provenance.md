@@ -1820,8 +1820,9 @@ probe, synthetic source truth, duplicate action table, or rollback field.
 
 Pinned decomp revision `9509dc04406fb2028bfab01243841ba4787c0fb7` and
 current upstream `d882af94175e3c880ad51039e2979aa9a50aea09` have identical
-callback lists in `ftCo_SquatWait_IASA`, `ftCo_SquatRv_IASA`, and
-`ftCo_Turn_IASA`. The two crouch states call only `ftCo_800D68C0`
+callback lists in `ftCo_Dash_IASA`, `ftCo_SquatWait_IASA`,
+`ftCo_SquatRv_IASA`, and `ftCo_Turn_IASA`. Dash calls only SpecialS through
+its common-data x4C boundary. The two crouch states call only `ftCo_800D68C0`
 (`SpecialLw`). Turn calls the side, down, and up dispatchers in source order
 and never calls the neutral-special dispatcher.
 
@@ -1837,23 +1838,25 @@ cases submit neutral, side, up, and down B on displayed Turn frame 2. Four
 crouch cases submit straight or normalized diagonal down-B from SquatWait and
 SquatRv. Four priority cases distinguish Walk Catch-before-Special from Wait
 Special-before-Catch/Attack and protect up+A+B from the authored charge
-frontend. The exact source outcomes are Turn retention, Falcon Raptor Boost,
-Falcon Dive, Falcon Kick, Grab, and Falcon Punch.
+frontend. Four Dash cases prove side-B acquisition, neutral/down-B retention,
+and rejected up-B falling through to KneeBend. The exact source outcomes are
+Turn/Dash retention, KneeBend, Falcon Raptor Boost, Falcon Dive, Falcon Kick,
+Grab, and Falcon Punch.
 
 This slice also closes a checkpoint-transport flaw exposed by those divergent
 branches. Protocol `immutable-multislot-slippi-state-file-control-v2` keeps up
 to sixteen fixed snapshot owners and consumes a load on an unrecorded neutral
-EXI frame before the first recorded case input. The manifest saves twelve
+EXI frame before the first recorded case input. The manifest uses all sixteen
 one-shot neutral-Wait slots, avoiding cross-case branch contamination without
 reconnecting the observer or relaunching Dolphin.
 
-Two fresh 160-row captures are byte-identical at raw SHA-256
-`eed4476d41a97641c48114b453985f0306ab55785aeb49c4be8869e1fc51f5e5`.
-Their warm durations are 1.693055 and 1.447210 seconds. The selected
+Two fresh 188-row captures are byte-identical at raw SHA-256
+`f92c89a2108d880746bf66d286d42dfcfcb5ad87eee425dec22cdf933115e4cc`.
+Their warm durations are 2.528882 and 3.092049 seconds. The selected
 action/tick/facing/grounded source trace hashes to
-`92ed40ead35b06ae754f1289a585ca0744fa3864adf5a25ed2d4f06278a09867`;
+`8fbfbcb12c5cdb483891315a4dc4c57a642c28ae2eb8ad886b31fecf9d3cd03d`;
 the native production trace hashes to
-`92ed40ead35b06ae754f1289a585ca0744fa3864adf5a25ed2d4f06278a09867`.
+`8fbfbcb12c5cdb483891315a4dc4c57a642c28ae2eb8ad886b31fecf9d3cd03d`.
 The shared natural-movement projector's declarative action aliases keep the
 Falcon-specific names in the manifest while all extraction, input expansion,
 field selection, hashing, replay, and runner execution remain generic.

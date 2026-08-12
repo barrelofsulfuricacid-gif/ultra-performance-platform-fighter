@@ -371,11 +371,14 @@ now represented directly rather than treating every interruptible common
 state as having all four specials. `SquatWait` and `SquatRv` accept only
 Falcon Kick, including a radial-gate diagonal whose side component has no
 callback. `Turn` accepts Raptor Boost, Falcon Dive, and Falcon Kick while a
-neutral B edge leaves Turn active. A twelve-case/160-row actual-input Dolphin
+neutral B edge leaves Turn active. Dash exposes only SpecialS through its
+x4C boundary; rejected neutral/down B retain Dash, while rejected up-B falls
+through to the running tap-jump callback. A sixteen-case/188-row actual-input
+Dolphin
 domain and the generic native-CSV stored runner match on action, action clock,
 facing, and grounded state under source/production SHA-256
-`92ed40ead35b06ae754f1289a585ca0744fa3864adf5a25ed2d4f06278a09867` /
-`92ed40ead35b06ae754f1289a585ca0744fa3864adf5a25ed2d4f06278a09867`.
+`8fbfbcb12c5cdb483891315a4dc4c57a642c28ae2eb8ad886b31fecf9d3cd03d` /
+`8fbfbcb12c5cdb483891315a4dc4c57a642c28ae2eb8ad886b31fecf9d3cd03d`.
 The added Walk/Wait cases prove opposite Catch/Special ordering and prevent
 generic projectile/charge/reflector frontends from consuming Falcon's B edge.
 The reusable direct comparator also closed Turn-special facing. This closes

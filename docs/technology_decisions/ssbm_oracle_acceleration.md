@@ -235,8 +235,8 @@ controller sample, and acknowledgement complete first; only then are direct
 memory overrides and the case's first input applied. This prevents both the
 controller sample and placement/RNG writes from targeting the pre-restore
 branch. A repeated-load probe protects one-slot reuse, while domains with
-divergent action flows can declare up to sixteen one-shot slots. The first
-twelve-slot pack captures 160 special-acquisition rows in 1.447-1.693 seconds
+divergent action flows can declare up to sixteen one-shot slots. The current
+sixteen-slot pack captures 188 special-acquisition rows in 2.529-3.092 seconds
 warm inside one connected process.
 
 Natural source-state setup can remain outside the recorded theorem. The
@@ -322,7 +322,7 @@ Idle animation phase can vary between otherwise equivalent boots, so the
 verifier pins the ordered action/frame/Q16.16 payload and explicit physical
 discriminator instead of hashing incidental idle rows.
 
-The registry currently contains 25 domains and 154 cases. Independent
+The registry currently contains 25 domains and 158 cases. Independent
 domain generation and execution run concurrently; each native-CSV domain also
 runs its independent cases concurrently, and both levels restore manifest
 order before counting or hashing. The complete stored gate, including

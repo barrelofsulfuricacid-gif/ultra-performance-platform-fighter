@@ -172,6 +172,44 @@ def qualify_capture(
         "wait_up_special_attack_priority",
     )
 
+    dash_side = case_rows(rows, "dash_side")
+    if (
+        len(dash_side) != 7
+        or dash_side[0].get("action") != "DASHING"
+        or round(float(dash_side[0]["action_frame"])) != 1
+    ):
+        fail("dash-source case=dash_side")
+    require_action_frames(
+        dash_side[1:],
+        "SWORD_DANCE_1",
+        list(range(1, 7)),
+        "dash_side",
+    )
+
+    for case_id in ("dash_neutral", "dash_down"):
+        require_action_frames(
+            case_rows(rows, case_id),
+            "DASHING",
+            list(range(1, 8)),
+            case_id,
+        )
+
+    dash_up = case_rows(rows, "dash_up")
+    if len(dash_up) != 7 or dash_up[0].get("action") != "DASHING":
+        fail("dash-source case=dash_up")
+    require_action_frames(
+        dash_up[1:5],
+        "KNEE_BEND",
+        list(range(1, 5)),
+        "dash_up",
+    )
+    require_action_frames(
+        dash_up[5:],
+        "JUMPING_FORWARD",
+        [1, 2],
+        "dash_up",
+    )
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)

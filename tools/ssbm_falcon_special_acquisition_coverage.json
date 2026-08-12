@@ -5,8 +5,8 @@
   "character": "falcon",
   "oracle": "SSBM GALE01 NTSC-U revision 2",
   "live_source": {
-    "capture_sha256": "eed4476d41a97641c48114b453985f0306ab55785aeb49c4be8869e1fc51f5e5",
-    "repeat_capture_sha256": "eed4476d41a97641c48114b453985f0306ab55785aeb49c4be8869e1fc51f5e5",
+    "capture_sha256": "f92c89a2108d880746bf66d286d42dfcfcb5ad87eee425dec22cdf933115e4cc",
+    "repeat_capture_sha256": "f92c89a2108d880746bf66d286d42dfcfcb5ad87eee425dec22cdf933115e4cc",
     "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
     "release_artifact_sha256": "87e9ef6d80ed03354a1647d0616016dbc91399aa9e86a69ae5a398edd0a0c2bd",
     "launcher_sha256": "9eb024aa9347648f020e2a76666e5c5597b77b32ef26752f563c99f0772b1e82",
@@ -16,15 +16,15 @@
     "libmelee_version": "0.47.2",
     "capture_schema": 7,
     "stage": "FINAL_DESTINATION",
-    "row_count": 160
+    "row_count": 188
   },
   "checkpoint_pack": {
     "protocol": "immutable-multislot-slippi-state-file-control-v2",
-    "expected_rows": 160,
-    "warm_budget_seconds": 3.0,
+    "expected_rows": 188,
+    "warm_budget_seconds": 3.5,
     "capture_plan": {
       "batch_exi_inputs": true,
-      "checkpoint_slot_count": 12,
+      "checkpoint_slot_count": 16,
       "special_acquisition_cases": [
         {
           "id": "turn_neutral",
@@ -112,6 +112,34 @@
           "edge_main": [0, -32767],
           "edge_actions": ["attack", "special"],
           "observe_ticks": 5
+        },
+        {
+          "id": "dash_side",
+          "checkpoint_slot": 12,
+          "source_state": "dash",
+          "edge_main": [32767, 0],
+          "observe_ticks": 5
+        },
+        {
+          "id": "dash_neutral",
+          "checkpoint_slot": 13,
+          "source_state": "dash",
+          "edge_main": [0, 0],
+          "observe_ticks": 5
+        },
+        {
+          "id": "dash_up",
+          "checkpoint_slot": 14,
+          "source_state": "dash",
+          "edge_main": [0, -32767],
+          "observe_ticks": 5
+        },
+        {
+          "id": "dash_down",
+          "checkpoint_slot": 15,
+          "source_state": "dash",
+          "edge_main": [0, 32767],
+          "observe_ticks": 5
         }
       ]
     }
@@ -128,7 +156,11 @@
     { "id": "walk_grab_special_priority", "start_label": "special_acquisition_walk_grab_special_priority_setup" },
     { "id": "walk_side_special", "start_label": "special_acquisition_walk_side_special_setup" },
     { "id": "wait_grab_special_priority", "start_label": "special_acquisition_wait_grab_special_priority_setup" },
-    { "id": "wait_up_special_attack_priority", "start_label": "special_acquisition_wait_up_special_attack_priority_setup" }
+    { "id": "wait_up_special_attack_priority", "start_label": "special_acquisition_wait_up_special_attack_priority_setup" },
+    { "id": "dash_side", "start_label": "special_acquisition_dash_side_setup" },
+    { "id": "dash_neutral", "start_label": "special_acquisition_dash_neutral_setup" },
+    { "id": "dash_up", "start_label": "special_acquisition_dash_up_setup" },
+    { "id": "dash_down", "start_label": "special_acquisition_dash_down_setup" }
   ],
   "selection": {
     "paths": [
@@ -149,8 +181,8 @@
   },
   "stored_oracle": {
     "kind": "native-csv-trace-v1",
-    "source_trace_sha256": "92ed40ead35b06ae754f1289a585ca0744fa3864adf5a25ed2d4f06278a09867",
-    "production_trace_sha256": "92ed40ead35b06ae754f1289a585ca0744fa3864adf5a25ed2d4f06278a09867",
+    "source_trace_sha256": "8fbfbcb12c5cdb483891315a4dc4c57a642c28ae2eb8ad886b31fecf9d3cd03d",
+    "production_trace_sha256": "8fbfbcb12c5cdb483891315a4dc4c57a642c28ae2eb8ad886b31fecf9d3cd03d",
     "require_exact_source_match": true,
     "serialized_fields": [
       "action_state",
@@ -166,6 +198,7 @@
       "WALK_SLOW": { "action_state": 1, "action_tick_offset": 0 },
       "WALK_MIDDLE": { "action_state": 1, "action_tick_offset": 0 },
       "WALK_FAST": { "action_state": 1, "action_tick_offset": 0 },
+      "DASHING": { "action_state": 2, "action_tick_offset": 0 },
       "GRAB": { "action_state": 49, "action_tick_offset": 0 }
     },
     "cases": [
@@ -298,6 +331,50 @@
         "sample_count": 6,
         "input_phases": [
           { "ticks": 1, "lanes": [{ "main": [0, 32767], "buttons": ["attack", "special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "dash_side",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_dash_side_",
+        "sample_count": 7,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "main": [32767, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [32767, 0], "buttons": ["special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "dash_neutral",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_dash_neutral_",
+        "sample_count": 7,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "main": [32767, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "buttons": ["special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "dash_up",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_dash_up_",
+        "sample_count": 7,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "main": [32767, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [0, 32767], "buttons": ["special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "dash_down",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_dash_down_",
+        "sample_count": 7,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "main": [32767, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [0, -32767], "buttons": ["special"] }, {}] },
           { "ticks": 5, "lanes": [{}, {}] }
         ]
       }

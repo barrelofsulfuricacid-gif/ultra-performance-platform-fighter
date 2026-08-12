@@ -6349,3 +6349,29 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   movement, combat, projectile, reflector, and charge lanes. The corrected
   match-soak digest `c14457eb6af305b9` repeats identically across three
   Windows and three WSL runs before repinning.
+
+## 2026-08-11: initial-Dash callback fidelity
+
+- Continued the pinned/current decomp callback audit through
+  `ftCo_Dash_IASA`. Unlike Run, Squat, Landing, Walk, and Wait, early Dash
+  exposes only SpecialS through common-data boundary x4C. Production had
+  incorrectly enabled all four Falcon specials there.
+- Filled the remaining four immutable checkpoint slots with natural Dash
+  side/neutral/up/down-B cases. Side-B enters Raptor Boost, neutral/down-B
+  retain Dash, and rejected up-B falls through to the running tap-jump
+  callback, producing KneeBend frames 1-4 and JumpF frames 1-2. This also
+  exposed and removed a production-only early-Dash tap-jump block.
+- Two 188-row captures are byte-identical at raw SHA-256
+  `f92c89a2108d880746bf66d286d42dfcfcb5ad87eee425dec22cdf933115e4cc`.
+  Their complete canonical source/native payloads match on Windows and WSL at
+  SHA-256
+  `8fbfbcb12c5cdb483891315a4dc4c57a642c28ae2eb8ad886b31fecf9d3cd03d`.
+  The final 25-domain / 158-case stored lane passes in 1.214 seconds on Windows
+  and 1.771 seconds in WSL; both full Release suites pass 41/41 and focused
+  WSL ASan/UBSan movement passes. The
+  changed early-Dash route advances the deterministic replay corpus/final/event
+  SHA-256 values to `1b2d49314b692a03114396f7eb662b5b574a1a2e0b045b9fa0a366db12852301`,
+  `d9552577f2a31dcbcf582045cfc5af4033c15b519d4d315271e79e74a177c2af`,
+  and `7930e2a2d90ed4dd9f5234ba47f4d4fc11e2ce4fbc2cd22b9367473a71bb2451`;
+  each repeats identically three times on Windows and three times in WSL
+  before repinning.

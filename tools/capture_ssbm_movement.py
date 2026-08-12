@@ -280,6 +280,7 @@ def input_trace(
                     "squat_wait",
                     "squat_rv",
                     "powershield_release",
+                    "dash",
                     "teeter",
                     "turn",
                     "walk",
@@ -334,12 +335,16 @@ def input_trace(
                     controller_axis(-16384)
                     if source_state == "turn"
                     else (
-                        0.65
-                        if source_state == "teeter"
+                        1.0
+                        if source_state == "dash"
                         else (
-                            controller_axis(12000)
-                            if source_state == "walk"
-                            else 0.5
+                            0.65
+                            if source_state == "teeter"
+                            else (
+                                controller_axis(12000)
+                                if source_state == "walk"
+                                else 0.5
+                            )
                         )
                     )
                 ),
@@ -347,6 +352,7 @@ def input_trace(
                     0.5
                     if source_state in {
                         "powershield_release",
+                        "dash",
                         "teeter",
                         "turn",
                         "walk",

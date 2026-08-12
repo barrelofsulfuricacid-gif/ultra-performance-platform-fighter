@@ -6565,8 +6565,9 @@ static uint8_t pf_m4_reference_action_special_capabilities(
      * OttottoWait share the full common dispatcher. Powershield GuardOff
      * exposes the full table while its x1C cancel window remains live.
      * Ordinary GuardOff, Guard, RunBrake, TurnRun, and recovery states have
-     * no special dispatcher. Every remaining listed state owns the full
-     * common table. */
+     * no special dispatcher. Dash exposes only SpecialS through its imported
+     * x4C frame boundary. Every remaining listed state owns the full common
+     * table. */
     if (action_state == (uint8_t)PF_M4_ACTION_CROUCH ||
         action_state == (uint8_t)PF_M4_ACTION_CROUCH_END)
     {
@@ -6578,10 +6579,14 @@ static uint8_t pf_m4_reference_action_special_capabilities(
                          PF_M4_REFERENCE_SPECIAL_UP |
                          PF_M4_REFERENCE_SPECIAL_DOWN);
     }
+    if (action_state == (uint8_t)PF_M4_ACTION_INITIAL_DASH)
+    {
+        return action_ticks <= initial_dash_special_end_frame
+                   ? (uint8_t)PF_M4_REFERENCE_SPECIAL_SIDE
+                   : UINT8_C(0);
+    }
     return (action_state == (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
             action_state == (uint8_t)PF_M4_ACTION_WALK ||
-            (action_state == (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
-             action_ticks <= initial_dash_special_end_frame) ||
             action_state == (uint8_t)PF_M4_ACTION_RUN ||
             action_state == (uint8_t)PF_M4_ACTION_CROUCH_START ||
             action_state == (uint8_t)PF_M4_ACTION_TEETER ||
@@ -9721,14 +9726,10 @@ pf_status pf_m4_step_player(
         !pf_m4_action_is_ground_attack(action_state) &&
         !pf_m4_action_is_shield(action_state) &&
         !pf_m4_action_locks_ground_control(action_state) &&
-        !(source_ground_input != NULL &&
-          action_state == (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
-          action_ticks <= initial_dash_special_end_frame) &&
         taunt_pressed == 0 &&
         (button_jump_pressed != 0 ||
          damage_released_jump_requested != 0 ||
-         (((action_state == (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
-            action_ticks > initial_dash_special_end_frame) ||
+         ((action_state == (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
            action_state == (uint8_t)PF_M4_ACTION_RUN ||
            action_state == (uint8_t)PF_M4_ACTION_RUN_TURNAROUND ||
            action_state == (uint8_t)PF_M4_ACTION_RUN_BRAKE)
