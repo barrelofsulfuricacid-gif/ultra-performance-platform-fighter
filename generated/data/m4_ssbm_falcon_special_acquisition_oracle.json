@@ -139,7 +139,11 @@
         "action_ticks",
         "facing",
         "tilt_x_age",
-        "grounded"
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
       ]
     },
     {
@@ -170,7 +174,11 @@
         "action_ticks",
         "facing",
         "tilt_x_age",
-        "grounded"
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
       ]
     },
     {
@@ -208,7 +216,11 @@
         "action_ticks",
         "facing",
         "tilt_x_age",
-        "grounded"
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
       ]
     },
     {
@@ -697,11 +709,22 @@
         "action_ticks",
         "facing",
         "tilt_x_age",
-        "grounded"
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
       ]
     },
     {
-      "field_exclusions": {},
+      "field_exclusions": {
+        "position_x_q16_from_origin": [
+          [
+            4,
+            7
+          ]
+        ]
+      },
       "id": "dash_neutral",
       "input_runs": [
         {
@@ -724,11 +747,28 @@
         "action_ticks",
         "facing",
         "tilt_x_age",
-        "grounded"
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
       ]
     },
     {
-      "field_exclusions": {},
+      "field_exclusions": {
+        "position_x_q16_from_origin": [
+          [
+            3,
+            7
+          ]
+        ],
+        "velocity_x_q16": [
+          [
+            4,
+            5
+          ]
+        ]
+      },
       "id": "dash_up",
       "input_runs": [
         {
@@ -751,11 +791,22 @@
         "action_ticks",
         "facing",
         "tilt_x_age",
-        "grounded"
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
       ]
     },
     {
-      "field_exclusions": {},
+      "field_exclusions": {
+        "position_x_q16_from_origin": [
+          [
+            4,
+            7
+          ]
+        ]
+      },
       "id": "dash_down",
       "input_runs": [
         {
@@ -778,7 +829,11 @@
         "action_ticks",
         "facing",
         "tilt_x_age",
-        "grounded"
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
       ]
     },
     {
@@ -891,7 +946,7 @@
   ],
   "domain": "falcon-common-special-acquisition",
   "kind": "native-csv-trace-v1",
-  "production_trace_sha256": "a6b654c96b35d73122adc4d6ad92cf7d4b1c0fe064ebf466012094397b31522b",
+  "production_trace_sha256": "5e9a79db538b171c208737628a7667f97ffffc2915b46d4744876b30c7cfb51a",
   "schema": 1,
-  "source_trace_sha256": "a6b654c96b35d73122adc4d6ad92cf7d4b1c0fe064ebf466012094397b31522b"
+  "source_trace_sha256": "5e9a79db538b171c208737628a7667f97ffffc2915b46d4744876b30c7cfb51a"
 }

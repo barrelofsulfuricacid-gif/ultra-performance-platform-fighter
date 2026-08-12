@@ -2401,11 +2401,15 @@ The final live artifacts hash to
 `750800f604c03baed6c74870b43b624957cb65a89a8570c1f905b608eb1021c3`
 and `fb59fd9809c4f805436cfa0e298e9b4b452b562e6a489fb542147393d112cb15`.
 Their 322 rows and production canonicalize exactly to
-`a6b654c96b35d73122adc4d6ad92cf7d4b1c0fe064ebf466012094397b31522b`
+`5e9a79db538b171c208737628a7667f97ffffc2915b46d4744876b30c7cfb51a`
 after widening the five entry-provenance cases to both velocity channels and
 relative position. The only excluded motion samples are the accumulated
 1-2-Q16 X-position drift in the existing RollForward and DashAttack roots;
 the corresponding velocities remain exact.
+The strengthened projection also includes UCF and delayed vanilla
+Turn-to-Dash, Dash side-special, and rejected neutral/up/down-special
+fallthrough motion. Their only additional allowances are measured one-Q16
+samples, never action, timing, facing, grounding, or broader velocity masks.
 Checkpoint work took 9.065739 and 9.480028 seconds; complete capture
 lifecycles took 13.320399 and 13.347289 seconds. No web probe or new native
 runner was added.

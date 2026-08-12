@@ -6928,3 +6928,19 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   Three independent WSL/GCC runs take 1,183.405-1,546.116 ms. The corrected
   eight-match rollback/replay verifier soak is compiler-identical at digest
   `9796fb602c19ced2`.
+
+## 2026-08-12: complete Dash acquisition motion projection
+
+- The existing 29-case / 322-row live pack now compares relative position and
+  both velocity channels across UCF and delayed vanilla Turn-to-Dash, Dash
+  side-special, and rejected neutral/up/down-special fallthrough, in addition
+  to the five InitialDash provenance cases.
+- Source and production canonicalize exactly at SHA-256
+  `5e9a79db538b171c208737628a7667f97ffffc2915b46d4744876b30c7cfb51a`.
+  Narrow masks remove only measured one-Q16 accumulated X samples and one
+  one-Q16 up-fallthrough velocity sample. Generated oracle SHA-256 is
+  `3fee9dc65808095e2014a1c42c1765176f6cfcc8cadd3f0ce7e2f6868a9a5b0b`.
+- The complete 35-domain / 228-case registry passes three isolated Windows
+  runs in 1,103.784-1,343.801 ms and three WSL runs in
+  1,187.017-1,371.182 ms under manifest SHA-256
+  `d9abddfb6774379efde9081842ed0bd0f10924ea5d03008a841b1b9deab79055`.

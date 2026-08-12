@@ -640,9 +640,12 @@ Two 322-row captures canonicalize identically. The five provenance cases now
 store both velocity channels and relative position, exposing and closing the
 Dash-IASA x54 fallthrough plus target-state friction gap. The strengthened
 29-case source/production digest is
-`a6b654c96b35d73122adc4d6ad92cf7d4b1c0fe064ebf466012094397b31522b`.
+`5e9a79db538b171c208737628a7667f97ffffc2915b46d4744876b30c7cfb51a`.
+UCF/delayed Turn-to-Dash plus side-special and rejected neutral/up/down
+fallthrough cases now use the same motion projection; only isolated one-Q16
+samples are excluded.
 
 The current registry contains 35 domains / 228 cases under manifest SHA-256
-`3723c3ef7d08336bf65208f90cda02e5f49f6a0434e2fa0763bbe1eebce643c1`.
-Three isolated Windows runs take 891.754-1,043.521 ms and three WSL runs take
-1,183.405-1,546.116 ms. Earlier counts and timings above remain historical.
+`d9abddfb6774379efde9081842ed0bd0f10924ea5d03008a841b1b9deab79055`.
+Three isolated Windows runs take 1,103.784-1,343.801 ms and three WSL runs
+take 1,187.017-1,371.182 ms. Earlier counts and timings above remain historical.
