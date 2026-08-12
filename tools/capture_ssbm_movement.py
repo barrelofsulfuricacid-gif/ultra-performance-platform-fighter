@@ -28,6 +28,7 @@ import melee
 from melee import console as melee_console
 
 from ssbm_checkpoint_manifest import projected_manifest
+from ssbm_ucf_oracle import configure_ucf084_oracle, verify_ucf084_oracle
 
 
 SPECIAL_GEOMETRY_SOURCE_KEYS = {
@@ -5207,6 +5208,17 @@ def read_damage_memory_probe(memory_engine: object) -> dict[str, object]:
     }
 
 
+def read_input_memory_probe(memory_engine: object) -> dict[str, int]:
+    """Read source-owned controller history used by common IASA callbacks."""
+
+    fighter = read_fighter_address(memory_engine, 0)
+    return {
+        "tilt_x_age": int(memory_engine.read_byte(fighter + 0x670)),
+        "tilt_y_age": int(memory_engine.read_byte(fighter + 0x671)),
+        "input_timer_counter": int(memory_engine.read_byte(fighter + 0x672)),
+    }
+
+
 class BigEndianSnapshot:
     """One contiguous PowerPC memory observation with typed zero-I/O reads."""
 
@@ -6576,6 +6588,16 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
     console = melee.Console(**console_kwargs)
     if args.enable_items:
         enable_native_capsule_gecko(console)
+    ucf_oracle_policy = (
+        configure_ucf084_oracle(
+            console,
+            executable,
+            iso,
+            allow_native_capsule_spawning=args.enable_items,
+        )
+        if args.oracle_exiai
+        else None
+    )
     player_one = melee.Controller(console, 1, melee.ControllerType.STANDARD)
     player_two = melee.Controller(console, 2, melee.ControllerType.STANDARD)
     started_at = time.monotonic()
@@ -6696,11 +6718,13 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
         if (
             args.memory_probe_shield
             or args.memory_probe_damage
+            or args.memory_probe_input
             or args.memory_probe_hitbox
             or args.memory_probe_hurtbox
             or args.memory_probe_collision
             or args.memory_probe_surface
             or args.oracle_checkpoint_pack
+            or ucf_oracle_policy is not None
         ):
             if memory_engine is None:
                 memory_engine = wait_for_memory_engine_hook(executable)
@@ -6713,6 +6737,10 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     memory_engine,
                     console._process.pid,
                 )
+        if ucf_oracle_policy is not None:
+            if memory_engine is None:
+                raise RuntimeError("UCF oracle policy requires runtime memory proof")
+            verify_ucf084_oracle(memory_engine, ucf_oracle_policy)
         hook_ready_at = time.monotonic()
         stage_collision_memory = (
             read_stage_collision_memory_probe(memory_engine)
@@ -7839,6 +7867,8 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     row["shield_memory"] = read_shield_memory_probe(memory_engine)
                 if args.memory_probe_damage:
                     row["damage_memory"] = read_damage_memory_probe(memory_engine)
+                if args.memory_probe_input:
+                    row["input_memory"] = read_input_memory_probe(memory_engine)
                 if args.memory_probe_hitbox:
                     row["hitbox_memory"] = read_hitbox_memory_probe(memory_engine)
                 if args.memory_probe_hurtbox:
@@ -7905,7 +7935,9 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
         )
         return {
             "schema": (
-                12
+                13
+                if args.memory_probe_input
+                else 12
                 if args.memory_probe_hurtbox
                 else 11
                 if args.memory_probe_surface
@@ -7915,7 +7947,13 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 if args.memory_probe_hitbox
                 else 8 if args.memory_probe_shield or args.memory_probe_damage else 7
             ),
-            "oracle": "SSBM GALE01 NTSC-U revision 2 via Dolphin/Slippi",
+            "oracle": (
+                "SSBM GALE01 NTSC-U revision 2 with UCF 0.84 "
+                "via Dolphin/Slippi"
+                if ucf_oracle_policy is not None
+                else "SSBM GALE01 NTSC-U revision 2 via Dolphin/Slippi"
+            ),
+            "oracle_gameplay_policy": ucf_oracle_policy,
             "dolphin_version": console.version,
             "oracle_execution": (
                 {
@@ -8028,6 +8066,24 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     "decomp_revision": ("9509dc04406fb2028bfab01243841ba4787c0fb7"),
                 }
                 if args.memory_probe_damage
+                else None
+            ),
+            "input_memory_probe": (
+                {
+                    "engine_version": importlib.metadata.version(
+                        "dolphin-memory-engine"
+                    ),
+                    "player_slot_address": "0x80453080",
+                    "fields": {
+                        "tilt_x_age": "fighter+0x670",
+                        "tilt_y_age": "fighter+0x671",
+                        "input_timer_counter": "fighter+0x672",
+                    },
+                    "decomp_revision": (
+                        "9509dc04406fb2028bfab01243841ba4787c0fb7"
+                    ),
+                }
+                if args.memory_probe_input
                 else None
             ),
             "surface_collision_memory_probe": (
@@ -8252,6 +8308,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--falcon-frame-data", type=Path)
     parser.add_argument("--memory-probe-shield", action="store_true")
     parser.add_argument("--memory-probe-damage", action="store_true")
+    parser.add_argument("--memory-probe-input", action="store_true")
     parser.add_argument("--memory-probe-hitbox", action="store_true")
     parser.add_argument("--memory-probe-hurtbox", action="store_true")
     parser.add_argument("--memory-probe-collision", action="store_true")
@@ -8370,6 +8427,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             (
                 args.memory_probe_shield,
                 args.memory_probe_damage,
+                args.memory_probe_input,
                 args.memory_probe_hitbox,
                 args.memory_probe_hurtbox,
                 args.memory_probe_collision,
