@@ -551,7 +551,14 @@
       ]
     },
     {
-      "field_exclusions": {},
+      "field_exclusions": {
+        "position_x_q16_from_origin": [
+          [
+            0,
+            7
+          ]
+        ]
+      },
       "id": "walk_side_special",
       "input_runs": [
         {
@@ -575,7 +582,134 @@
         "action_state",
         "action_ticks",
         "facing",
-        "grounded"
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
+      ]
+    },
+    {
+      "field_exclusions": {
+        "position_x_q16_from_origin": [
+          [
+            0,
+            7
+          ]
+        ],
+        "velocity_x_q16": [
+          [
+            1,
+            7
+          ]
+        ]
+      },
+      "id": "walk_up_special",
+      "input_runs": [
+        {
+          "input": "11878,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,-32767,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [
+        "--walk-acquisition"
+      ],
+      "sample_count": 7,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
+      ]
+    },
+    {
+      "field_exclusions": {
+        "position_x_q16_from_origin": [
+          [
+            0,
+            7
+          ]
+        ]
+      },
+      "id": "walk_neutral_special",
+      "input_runs": [
+        {
+          "input": "11878,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [
+        "--walk-acquisition"
+      ],
+      "sample_count": 7,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
+      ]
+    },
+    {
+      "field_exclusions": {
+        "position_x_q16_from_origin": [
+          [
+            0,
+            7
+          ]
+        ]
+      },
+      "id": "walk_down_special",
+      "input_runs": [
+        {
+          "input": "11878,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,32767,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [
+        "--walk-acquisition"
+      ],
+      "sample_count": 7,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
       ]
     },
     {
@@ -840,6 +974,184 @@
       "field_exclusions": {
         "action_ticks": [
           [
+            15,
+            25
+          ]
+        ],
+        "position_x_q16_from_origin": [
+          [
+            4,
+            31
+          ]
+        ]
+      },
+      "id": "run_side_special",
+      "input_runs": [
+        {
+          "input": "32767,0,0,0,0,0,0,0,0",
+          "ticks": 25
+        },
+        {
+          "input": "32767,0,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 31,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
+      ]
+    },
+    {
+      "field_exclusions": {
+        "action_ticks": [
+          [
+            15,
+            25
+          ]
+        ],
+        "position_x_q16_from_origin": [
+          [
+            4,
+            31
+          ]
+        ],
+        "velocity_x_q16": [
+          [
+            25,
+            31
+          ]
+        ]
+      },
+      "id": "run_up_special",
+      "input_runs": [
+        {
+          "input": "32767,0,0,0,0,0,0,0,0",
+          "ticks": 25
+        },
+        {
+          "input": "0,-32767,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 31,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
+      ]
+    },
+    {
+      "field_exclusions": {
+        "action_ticks": [
+          [
+            15,
+            25
+          ]
+        ],
+        "position_x_q16_from_origin": [
+          [
+            4,
+            31
+          ]
+        ]
+      },
+      "id": "run_neutral_special",
+      "input_runs": [
+        {
+          "input": "32767,0,0,0,0,0,0,0,0",
+          "ticks": 25
+        },
+        {
+          "input": "0,0,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 31,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
+      ]
+    },
+    {
+      "field_exclusions": {
+        "action_ticks": [
+          [
+            15,
+            25
+          ]
+        ],
+        "position_x_q16_from_origin": [
+          [
+            4,
+            31
+          ]
+        ]
+      },
+      "id": "run_down_special",
+      "input_runs": [
+        {
+          "input": "32767,0,0,0,0,0,0,0,0",
+          "ticks": 25
+        },
+        {
+          "input": "0,32767,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 31,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
+      ]
+    },
+    {
+      "field_exclusions": {
+        "action_ticks": [
+          [
             0,
             26
           ]
@@ -946,7 +1258,7 @@
   ],
   "domain": "falcon-common-special-acquisition",
   "kind": "native-csv-trace-v1",
-  "production_trace_sha256": "5e9a79db538b171c208737628a7667f97ffffc2915b46d4744876b30c7cfb51a",
+  "production_trace_sha256": "9546194d57f47eb320102b70be475111cead96c975e74af486201f3bf6d67cbb",
   "schema": 1,
-  "source_trace_sha256": "5e9a79db538b171c208737628a7667f97ffffc2915b46d4744876b30c7cfb51a"
+  "source_trace_sha256": "9546194d57f47eb320102b70be475111cead96c975e74af486201f3bf6d67cbb"
 }

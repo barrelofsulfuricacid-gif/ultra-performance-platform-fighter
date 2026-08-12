@@ -338,19 +338,30 @@ def qualify_capture(
         "walk_grab_special_priority",
     )
 
-    walk_special = case_rows(rows, "walk_side_special")
-    if (
-        len(walk_special) != 7
-        or walk_special[0].get("action")
-        not in {"WALK_SLOW", "WALK_MIDDLE", "WALK_FAST"}
-    ):
-        fail("walk-source case=walk_side_special")
-    require_action_frames(
-        walk_special[1:],
-        "NEUTRAL_B_ATTACKING_AIR",
-        list(range(1, 7)),
-        "walk_side_special",
-    )
+    walk_specials = {
+        "walk_side_special": "NEUTRAL_B_ATTACKING_AIR",
+        "walk_up_special": "SWORD_DANCE_3_MID",
+        "walk_neutral_special": "NEUTRAL_B_ATTACKING_AIR",
+        "walk_down_special": "SWORD_DANCE_4_LOW",
+    }
+    for case_id, acquired_action in walk_specials.items():
+        current = case_rows(rows, case_id)
+        if (
+            len(current) != 7
+            or current[0].get("action")
+            not in {"WALK_SLOW", "WALK_MIDDLE", "WALK_FAST"}
+            or round(float(current[0]["action_frame"])) != 2
+        ):
+            fail(f"walk-source case={case_id}")
+        require_ordered_actions(
+            current[1:],
+            [(acquired_action, frame) for frame in range(1, 7)],
+            case_id,
+        )
+        if [row.get("facing") for row in current] != [1.0] * 7:
+            fail(f"walk-facing case={case_id}")
+        if any(row.get("grounded") is not True for row in current):
+            fail(f"grounded context={case_id}")
 
     walk_reverse_tilt = case_rows(rows, "walk_reverse_tilt_wait")
     if (
@@ -451,6 +462,29 @@ def qualify_capture(
         [1, 2],
         "dash_up",
     )
+
+    run_setup = (
+        [("DASHING", frame) for frame in range(1, 16)]
+        + [("RUNNING", frame) for frame in [1, 2, 2, 3, 4, 5, 6, 7, 8, 9]]
+    )
+    run_specials = {
+        "run_side_special": "SWORD_DANCE_1",
+        "run_up_special": "SWORD_DANCE_3_MID",
+        "run_neutral_special": "NEUTRAL_B_ATTACKING_AIR",
+        "run_down_special": "SWORD_DANCE_4_LOW",
+    }
+    for case_id, acquired_action in run_specials.items():
+        current = case_rows(rows, case_id)
+        require_ordered_actions(
+            current,
+            run_setup
+            + [(acquired_action, frame) for frame in range(1, 7)],
+            case_id,
+        )
+        if [row.get("facing") for row in current] != [1.0] * 31:
+            fail(f"run-facing case={case_id}")
+        if any(row.get("grounded") is not True for row in current):
+            fail(f"grounded context={case_id}")
 
     run_guard_hit = case_rows(rows, "run_guard_dash_grab_hit")
     if len(run_guard_hit) != 28:

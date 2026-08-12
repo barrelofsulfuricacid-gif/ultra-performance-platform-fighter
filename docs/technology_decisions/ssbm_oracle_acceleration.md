@@ -649,3 +649,25 @@ The current registry contains 35 domains / 228 cases under manifest SHA-256
 `d9abddfb6774379efde9081842ed0bd0f10924ea5d03008a841b1b9deab79055`.
 Three isolated Windows runs take 1,103.784-1,343.801 ms and three WSL runs
 take 1,187.017-1,371.182 ms. Earlier counts and timings above remain historical.
+
+## Balance expanded checkpoint packs by retained rows
+
+The common special-acquisition domain grew from 29 cases / 322 rows to 36
+cases / 467 rows when Walk and Run gained their complete four-direction
+special matrix. The first two-way 227/240-row partition produced valid output
+but missed the 16-second warm wall gate at 17.010/17.035 seconds. A three-way
+156/155/156-row partition reduced the critical worker without changing case
+contents, labels, checkpoint slots, or canonical ordering.
+
+Two accepted full captures take 12.410/14.011 seconds warm and
+12.827/15.579 seconds cold. Their different raw artifact hashes canonicalize
+to the same source/production SHA-256
+`9546194d57f47eb320102b70be475111cead96c975e74af486201f3bf6d67cbb`.
+No persistent Dolphin process, new runner, protocol, or web probe was needed;
+the optimization is only a manifest-declared balanced partition of independent
+immutable checkpoint cases.
+
+The current registry contains 35 domains / 235 cases under manifest SHA-256
+`f8637c42927fe1df228d4225607cbadd9211eae7a60a075e11c60f92e869b938`.
+Three isolated Windows runs take 919.758-1,031.223 ms and three WSL runs take
+1,394.273-1,589.864 ms. Earlier counts and timings above remain historical.

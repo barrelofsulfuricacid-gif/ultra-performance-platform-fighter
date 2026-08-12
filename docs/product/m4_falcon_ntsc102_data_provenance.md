@@ -2420,3 +2420,29 @@ The imported field changes deterministic content identity, not behavior: the
 while final/event hashes remain
 `5a7db4a5e899b1af31909f7997dcb1a08226aec79f4f09fab7422fe9602f246f`
 and `787d63c5edf270cdc72d93dbe857c487bdc1ab7bdde59a1975299f1973fa7256`.
+
+### Walk/Run special callback acquisition
+
+Pinned decomp revision `9509dc04406fb2028bfab01243841ba4787c0fb7`
+owns this callback matrix. Normalized source SHA-256 values are
+`d516033baa4231fc8817415ccb905c75b519f2075a39a7e0883340dd53cce41b`
+for `ftCo_Walk.c`,
+`72a9ce8c19948d468f6aea484b72db3b1f0c280846adc4d5677e4c6a20b810fe`
+for `ftCo_Run.c`,
+`f6b93360e78e0628b7ee489f6c66a25d50b67bcf0b3f6cb84496e5365a9bea70`
+for the misleadingly named `ftCo_Attack100.c` helpers that dispatch SpecialHi,
+SpecialN, and SpecialLw, and
+`a22c19a5a2abcc89ab4c2dab9ee55f7cc182d5a24c8ba5e1d8c7b58064a12e4d`
+for `ftCo_SpecialS.c`.
+
+The final live artifacts hash to
+`34f721aea3df67edaea7435a256cc70e27d54767a2ae9b61fe4f6e22bc749ceb`
+and `d9af7fbc86479d1e3a8f823ae77e3bf5f8510d98db0c27ddeaa774436897033f`.
+Their 36 cases / 467 rows canonicalize identically to production at
+`9546194d57f47eb320102b70be475111cead96c975e74af486201f3bf6d67cbb`.
+The generated stored artifact hashes to
+`23e7a23d300585b93ffe7d877ac4273ab1e00ece4bf160b57ba660c7b5df618e`.
+Three balanced checkpoint workers retain 156/155/156 rows and finish the two
+accepted captures in 12.410/14.011 seconds warm and 12.827/15.579 seconds
+cold. This reuses the existing checkpoint protocol, input probe, native CSV
+runner, and action mapping; no new runtime state or web probe exists.

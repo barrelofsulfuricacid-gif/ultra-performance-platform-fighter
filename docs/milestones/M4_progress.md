@@ -6944,3 +6944,29 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   runs in 1,103.784-1,343.801 ms and three WSL runs in
   1,187.017-1,371.182 ms under manifest SHA-256
   `d9abddfb6774379efde9081842ed0bd0f10924ea5d03008a841b1b9deab79055`.
+
+## 2026-08-12: Walk/Run four-direction special acquisition
+
+- Audited the pinned callback bodies instead of relying on decomp names.
+  `ftCo_Walk_IASA` checks Catch before Side/Up/Neutral/Down Special;
+  `ftCo_Run_IASA` checks all four specials before CatchDash. Production's
+  existing zero-cost capability masks and shared directional resolver already
+  match those bodies, so this slice requires no gameplay change.
+- Added three missing Walk cases and all four Run cases to the existing common
+  special-acquisition pack. Each natural Run route retains 25 Dash/Run setup
+  rows before its B edge; each Walk route retains its acquired Walk row. Exact
+  assertions cover the complete ordered action/frame sequence, facing, and
+  grounding rather than filtering for only the expected successor action.
+- Two independent 467-row captures hash to
+  `34f721aea3df67edaea7435a256cc70e27d54767a2ae9b61fe4f6e22bc749ceb`
+  and `d9af7fbc86479d1e3a8f823ae77e3bf5f8510d98db0c27ddeaa774436897033f`.
+  Their semantic trace and Windows/WSL production are byte-exact at
+  `9546194d57f47eb320102b70be475111cead96c975e74af486201f3bf6d67cbb`;
+  generated-oracle SHA-256 is
+  `23e7a23d300585b93ffe7d877ac4273ab1e00ece4bf160b57ba660c7b5df618e`.
+- Rebalanced the manifest into three 156/155/156-row workers after a valid
+  two-way run exceeded the warm budget. Accepted runs take 12.410-14.011
+  seconds warm and 12.827-15.579 seconds cold. The full 35-domain / 235-case
+  registry passes three Windows runs in 919.758-1,031.223 ms and three WSL
+  runs in 1,394.273-1,589.864 ms under manifest SHA-256
+  `f8637c42927fe1df228d4225607cbadd9211eae7a60a075e11c60f92e869b938`.

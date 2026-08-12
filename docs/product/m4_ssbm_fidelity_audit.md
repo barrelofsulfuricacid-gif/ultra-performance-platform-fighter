@@ -768,3 +768,23 @@ fallthrough. Narrow exclusions cover only measured one-Q16 accumulated X
 position samples and one one-Q16 up-fallthrough velocity sample.
 This closes the represented entry-provenance split, not every uncaptured
 simultaneous-input combination or later Dash callback.
+
+### Walk and Run special callback matrix
+
+The common special-acquisition pack now covers all four special directions
+from both Walk and Run. Pinned `ftCo_Walk_IASA` owns Catch before SpecialS,
+SpecialHi, SpecialN, and SpecialLw; pinned `ftCo_Run_IASA` owns those four
+special callbacks before CatchDash. This body-level audit is necessary because
+the decomp helper names do not reliably identify the dispatched direction.
+
+Seven new natural cases retain Walk or progress Dash into Run, then apply the
+directional B edge and observe six successor frames. Two independent 467-row
+captures canonicalize identically, and source equals Windows/WSL production at
+SHA-256
+`9546194d57f47eb320102b70be475111cead96c975e74af486201f3bf6d67cbb`.
+Action, displayed frame, facing, grounding, vertical motion, and applicable
+horizontal velocity are strict. Position masks cover only the Walk fixture's
+one-tick origin offset and accumulated 1-9-Q16 Run conversion differences;
+grounded Falcon Dive's stale source ground-velocity field is excluded while
+its position and vertical velocity remain compared. This closes the eight
+represented directional callbacks, not every simultaneous Walk/Run input.
