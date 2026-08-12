@@ -1,0 +1,168 @@
+{
+  "schema": 1,
+  "scope": "falcon-kneebend-up-special",
+  "domain": "falcon-kneebend-up-special",
+  "character": "falcon",
+  "oracle": "SSBM GALE01 NTSC-U revision 2",
+  "live_source": {
+    "capture_sha256": "7523884c819b8ad371139b020cff562a0a0d4786cef1fde4a4dff2d499d42d51",
+    "repeat_capture_sha256": "7523884c819b8ad371139b020cff562a0a0d4786cef1fde4a4dff2d499d42d51",
+    "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
+    "release_artifact_sha256": "87e9ef6d80ed03354a1647d0616016dbc91399aa9e86a69ae5a398edd0a0c2bd",
+    "launcher_sha256": "9eb024aa9347648f020e2a76666e5c5597b77b32ef26752f563c99f0772b1e82",
+    "decomp_revision": "9509dc04406fb2028bfab01243841ba4787c0fb7",
+    "current_decomp_revision": "d882af94175e3c880ad51039e2979aa9a50aea09",
+    "dolphin_version": "3.5.1",
+    "libmelee_version": "0.47.2",
+    "capture_schema": 7,
+    "stage": "FINAL_DESTINATION",
+    "row_count": 18
+  },
+  "checkpoint_pack": {
+    "protocol": "immutable-multislot-slippi-state-file-control-v2",
+    "expected_rows": 18,
+    "warm_budget_seconds": 2.0,
+    "capture_plan": {
+      "batch_exi_inputs": true,
+      "checkpoint_slot_count": 3,
+      "special_acquisition_cases": [
+        {
+          "id": "up_only",
+          "checkpoint_slot": 0,
+          "source_state": "wait",
+          "pre_edge_phases": [
+            { "ticks": 1, "actions": ["jump"] }
+          ],
+          "edge_main": [0, -32767],
+          "observe_ticks": 5
+        },
+        {
+          "id": "first_frame_up_grab_priority",
+          "checkpoint_slot": 1,
+          "source_state": "wait",
+          "pre_edge_phases": [
+            { "ticks": 1, "actions": ["jump"] }
+          ],
+          "edge_main": [0, -32767],
+          "edge_actions": ["special", "grab"],
+          "observe_ticks": 5
+        },
+        {
+          "id": "side_rejected",
+          "checkpoint_slot": 2,
+          "source_state": "wait",
+          "pre_edge_phases": [
+            { "ticks": 1, "actions": ["jump"] }
+          ],
+          "edge_main": [32767, 0],
+          "observe_ticks": 2
+        }
+      ]
+    }
+  },
+  "checkpoint_cases": [
+    { "id": "up-only", "start_label": "special_acquisition_up_only_setup" },
+    { "id": "first-frame-up-grab-priority", "start_label": "special_acquisition_first_frame_up_grab_priority_setup" },
+    { "id": "side-rejected", "start_label": "special_acquisition_side_rejected_setup" }
+  ],
+  "live_expectations": {
+    "up_only": {
+      "pre_edge_action": "KNEE_BEND",
+      "pre_edge_action_frame": 1,
+      "pre_edge_grounded": true,
+      "edge_action": "SWORD_DANCE_3_MID",
+      "edge_action_frames": [1, 2, 3, 4, 5, 6],
+      "edge_facing": 1
+    },
+    "first_frame_up_grab_priority": {
+      "pre_edge_action": "KNEE_BEND",
+      "pre_edge_action_frame": 1,
+      "pre_edge_grounded": true,
+      "edge_action": "SWORD_DANCE_3_MID",
+      "edge_action_frames": [1, 2, 3, 4, 5, 6],
+      "edge_facing": 1
+    },
+    "side_rejected": {
+      "pre_edge_action": "KNEE_BEND",
+      "pre_edge_action_frame": 1,
+      "pre_edge_grounded": true,
+      "edge_rows": [
+        { "action": "KNEE_BEND", "action_frame": 2, "facing": 1, "grounded": true },
+        { "action": "KNEE_BEND", "action_frame": 3, "facing": 1, "grounded": true },
+        { "action": "KNEE_BEND", "action_frame": 4, "facing": 1, "grounded": true }
+      ]
+    }
+  },
+  "selection": {
+    "paths": [
+      "generated/data/m4_ssbm_falcon_kneebend_up_special_oracle.json",
+      "src/sim/sim_movement.c",
+      "src/tools/m4_movement_trace.c",
+      "tools/capture_ssbm_movement.py",
+      "tools/compare_ssbm_movement.py",
+      "tools/generate_ssbm_stored_trace_oracle.py",
+      "tools/ssbm_falcon_kneebend_up_special_coverage.json",
+      "tools/ssbm_live_trace.py",
+      "tools/ssbm_natural_movement_domain.py",
+      "tools/verify_ssbm_special_acquisition_domain.py"
+    ]
+  },
+  "stored_oracle": {
+    "kind": "native-csv-trace-v1",
+    "source_trace_sha256": "0695488cb8bff660bfabe69298f366ed7bbbfed4348330636b04f87bff43aa17",
+    "production_trace_sha256": "0695488cb8bff660bfabe69298f366ed7bbbfed4348330636b04f87bff43aa17",
+    "require_exact_source_match": true,
+    "serialized_fields": [
+      "action_state",
+      "action_ticks",
+      "facing",
+      "grounded"
+    ],
+    "action_mapping": {
+      "SWORD_DANCE_3_MID": { "action_state": 117, "action_tick_offset": 0 }
+    },
+    "cases": [
+      {
+        "id": "up_only",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_up_only_",
+        "sample_count": 7,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "buttons": ["jump"] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [0, 32767], "buttons": ["special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "first_frame_up_grab_priority",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_first_frame_up_grab_priority_",
+        "sample_count": 7,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "buttons": ["jump"] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [0, 32767], "left_trigger": 65535, "buttons": ["attack", "special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "side_rejected",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_side_rejected_",
+        "sample_count": 4,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "buttons": ["jump"] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [32767, 0], "buttons": ["special"] }, {}] },
+          { "ticks": 2, "lanes": [{}, {}] }
+        ]
+      }
+    ],
+    "generator": {
+      "script": "tools/generate_ssbm_stored_trace_oracle.py",
+      "output": "generated/data/m4_ssbm_falcon_kneebend_up_special_oracle.json"
+    },
+    "runner": {
+      "executable": "pf_m4_movement_trace",
+      "arguments": []
+    }
+  }
+}

@@ -322,12 +322,12 @@ Idle animation phase can vary between otherwise equivalent boots, so the
 verifier pins the ordered action/frame/Q16.16 payload and explicit physical
 discriminator instead of hashing incidental idle rows.
 
-The registry currently contains 26 domains and 161 cases. Independent
+The registry currently contains 27 domains and 164 cases. Independent
 domain generation and execution run concurrently; each native-CSV domain also
 runs its independent cases concurrently, and both levels restore manifest
 order before counting or hashing. The complete stored gate, including
-deterministic replay, most recently measured 1.191 seconds on native Windows
-and 1.065 seconds in WSL.
+deterministic replay, most recently measured 1.614 seconds on native Windows
+and 1.385 seconds in WSL.
 Numeric C cases may narrow a domain's inherited serialized-field mask when a
 physical setup intentionally isolates only part of the response; the generated
 C always writes an explicit zero for inherited masks so GCC and MSVC apply the
@@ -352,11 +352,19 @@ set `require_exact_source_match`. For those domains, the verifier requires the
 production semantic digest to equal the qualified live-source digest before it
 checks the pinned regression digest. This prevents a behavior divergence from
 being hidden by updating a second independent golden. Common special
-acquisition, aerial neutral-special turnaround, Teeter acquisition, and
-GuardOff acquisition currently use this strict route. Simultaneous semantic
+acquisition, KneeBend up-special acquisition, aerial neutral-special
+turnaround, Teeter acquisition, and GuardOff acquisition currently use this
+strict route. Simultaneous semantic
 edge actions and causal pre-edge input phases are declarative manifest data,
 so state-specific callback priority and input-history boundaries need no
 character-specific capture loop or native pre-roll.
+
+The shared acquisition verifier also accepts an exact declarative edge-row
+sequence plus an optional pre-edge action/frame. This keeps negative callback
+cases strict when they remain in, or later leave, their source action instead
+of forcing every case into one repeated acquired action. Character-overloaded
+libmelee action names are resolved only by the domain manifest; they are not
+added to the generic action map.
 
 ## Geometry-sampling limitation
 

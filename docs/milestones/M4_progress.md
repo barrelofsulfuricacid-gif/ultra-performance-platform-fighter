@@ -6402,3 +6402,28 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   1.191 seconds on Windows and 1.065 seconds in WSL. Direct live/native
   comparison passes on both platforms, both full Release suites pass 41/41,
   and focused WSL ASan/UBSan movement passes.
+
+## 2026-08-12: KneeBend up-special callback fidelity
+
+- Audited pinned decomp `9509dc0` and current upstream `d882af9` through
+  `ftCo_KneeBend_IASA`. The symbol `ftCo_Attack100_CheckInput` is misleading:
+  its body dispatches `ftData_SpecialHi` when `x686 == 0`. KneeBend therefore
+  checks up special before Catch and UpSmash, then evaluates short hop.
+- Added `PF_M4_REFERENCE_SPECIAL_UP` to KneeBend's existing allocation-free
+  callback capability table. No action-specific router, canonical field,
+  snapshot byte, allocation, or duplicated special transition was added.
+- Captured three naturally entered KneeBend cases: up-B, simultaneous up-B+Z,
+  and rejected side-B. The two positive cases enter grounded Falcon Dive
+  frames 1-6; the rejection remains KneeBend frames 2-4. Two 18-row captures
+  are byte-identical at raw SHA-256
+  `7523884c819b8ad371139b020cff562a0a0d4786cef1fde4a4dff2d499d42d51`.
+  Source and Windows/WSL production traces are structurally identical at
+  canonical SHA-256
+  `0695488cb8bff660bfabe69298f366ed7bbbfed4348330636b04f87bff43aa17`.
+- Generalized the shared acquisition verifier with declarative exact edge-row
+  sequences and optional pre-edge action/frame checks. This represents
+  rejected and mixed action trajectories without a Falcon-only verifier.
+- The complete 27-domain / 164-case stored registry plus replay passes in
+  1.614 seconds on Windows and 1.385 seconds in WSL. Direct live/native
+  comparison passes on both platforms, both full Release suites pass 41/41,
+  and focused WSL ASan/UBSan movement passes.

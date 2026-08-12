@@ -6560,7 +6560,8 @@ static uint8_t pf_m4_reference_action_special_capabilities(
                    ? (uint8_t)PF_M4_REFERENCE_SPECIAL_ALL
                    : UINT8_C(0);
     }
-    /* SquatWait and SquatRv call only SpecialLw. Turn calls SpecialS,
+    /* KneeBend calls only SpecialHi before its grab/up-smash callbacks.
+     * SquatWait and SquatRv call only SpecialLw. Turn calls SpecialS,
      * SpecialLw, then SpecialHi, deliberately omitting SpecialN. Ottotto and
      * OttottoWait share the full common dispatcher. Powershield GuardOff
      * exposes the full table while its x1C cancel window remains live.
@@ -6572,6 +6573,10 @@ static uint8_t pf_m4_reference_action_special_capabilities(
         action_state == (uint8_t)PF_M4_ACTION_CROUCH_END)
     {
         return (uint8_t)PF_M4_REFERENCE_SPECIAL_DOWN;
+    }
+    if (action_state == (uint8_t)PF_M4_ACTION_JUMP_SQUAT)
+    {
+        return (uint8_t)PF_M4_REFERENCE_SPECIAL_UP;
     }
     if (action_state == (uint8_t)PF_M4_ACTION_STANDING_TURN)
     {

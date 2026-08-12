@@ -437,4 +437,21 @@ The setup resets both fighters' collision-position history, begins shield on
 the attack edge, and reaffirms it at the opponent's observed Jab frame. Six
 concurrent shards keep each divergent worker at three cases or fewer; it is
 neither a web probe nor a synthetic source-state write. Other unrepresented
-callback lists remain open.
+  callback lists remain open.
+
+## KneeBend common-callback acquisition
+
+`ftCo_KneeBend_IASA` calls the misleadingly named
+`ftCo_Attack100_CheckInput` first. Its implementation is not rapid-jab input:
+it invokes Falcon's `ftData_SpecialHi` callback when the common up-special
+lockout is clear. Catch and `ftCo_AttackHi4_CheckInputNoD0` follow, so up-B
+wins over a simultaneous Z input; no other special direction is exposed from
+KneeBend.
+
+Production now expresses this as the up bit in the existing stack-local
+special capability mask for `PF_M4_ACTION_JUMP_SQUAT`. The ordinary shared
+special transition remains authoritative. A three-case live theorem reaches
+KneeBend through a real jump edge and proves up-B, up-B+Z priority, and side-B
+rejection. All 18 action/tick/facing/grounded samples match production exactly
+at semantic SHA-256
+`0695488cb8bff660bfabe69298f366ed7bbbfed4348330636b04f87bff43aa17`.

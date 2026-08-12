@@ -1967,4 +1967,34 @@ durations are 9.102883 and 7.937196 seconds. Selected source fields hash to
 the matching production trace hashes to
 `851a0c05e393bd644344bf8a49d70fceea179727903ff68feacebb1c12a27c0d`.
 This is an actual two-controller collision theorem, not a web probe or a
-direct write of action or Guard work state.
+  direct write of action or Guard work state.
+
+## KneeBend up-special acquisition
+
+Pinned/current decomp sources:
+
+- `melee/ft/chara/ftCommon/ftCo_KneeBend.c` for IASA order;
+- `melee/ft/chara/ftCommon/ftCo_Attack100.c` for the function body that
+  dispatches `ftData_SpecialHi` despite its historical symbol name;
+- `melee/ft/ftmotionstates.c` for KneeBend callback ownership.
+
+The live source pack is
+`tools/ssbm_falcon_kneebend_up_special_coverage.json`. It enters KneeBend with
+a recorded jump input, then submits up-B, up-B+Z, or side-B without writing an
+action or work variable. Two captures contain 18 rows each and are
+byte-identical at raw SHA-256
+`7523884c819b8ad371139b020cff562a0a0d4786cef1fde4a4dff2d499d42d51`.
+Warm checkpoint work took 0.087505 and 0.083378 seconds; complete emulator
+lifecycles took 3.480268 and 3.405218 seconds. The exact source/production
+semantic digest is
+`0695488cb8bff660bfabe69298f366ed7bbbfed4348330636b04f87bff43aa17`.
+
+libmelee reports Falcon action 353 as `SWORD_DANCE_3_MID`, an enum alias for
+this character's grounded Falcon Dive start. The manifest owns the explicit
+character-domain mapping to production action 117; the generic action mapper
+is intentionally unchanged.
+
+The domain is registered in the shared 27-domain / 164-case stored lane. Its
+direct comparator passes with Windows MSVC and WSL GCC, the complete stored
+gate passes in 1.614/1.385 seconds respectively, both full Release suites pass
+41/41, and focused WSL ASan/UBSan movement passes.

@@ -1,0 +1,87 @@
+{
+  "cases": [
+    {
+      "field_exclusions": {},
+      "id": "up_only",
+      "input_runs": [
+        {
+          "input": "0,0,0,0,0,0,1,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,-32767,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 7,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "first_frame_up_grab_priority",
+      "input_runs": [
+        {
+          "input": "0,0,0,0,0,0,1,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,-32767,0,0,65535,0,10,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 7,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "side_rejected",
+      "input_runs": [
+        {
+          "input": "0,0,0,0,0,0,1,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "32767,0,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 2
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 4,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
+    }
+  ],
+  "domain": "falcon-kneebend-up-special",
+  "kind": "native-csv-trace-v1",
+  "production_trace_sha256": "0695488cb8bff660bfabe69298f366ed7bbbfed4348330636b04f87bff43aa17",
+  "schema": 1,
+  "source_trace_sha256": "0695488cb8bff660bfabe69298f366ed7bbbfed4348330636b04f87bff43aa17"
+}

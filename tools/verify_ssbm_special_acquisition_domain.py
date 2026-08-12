@@ -82,11 +82,85 @@ def qualify_capture(
         )
         edge_frames = expected.get("edge_action_frames")
         edge_action = expected.get("edge_action")
+        expected_edge_rows = expected.get("edge_rows")
         edge_facing = expected.get("edge_facing")
         pre_edge_grounded = expected.get("pre_edge_grounded")
         if (
             edge_index <= 0
-            or not isinstance(edge_action, str)
+            or not isinstance(pre_edge_grounded, bool)
+        ):
+            fail(f"expectation-schema case={case_id}")
+        pre_edge_action = expected.get("pre_edge_action")
+        pre_edge_action_frame = expected.get("pre_edge_action_frame")
+        if (
+            (
+                pre_edge_action is not None
+                and (
+                    not isinstance(pre_edge_action, str)
+                    or not pre_edge_action
+                )
+            )
+            or (
+                pre_edge_action_frame is not None
+                and (
+                    not isinstance(pre_edge_action_frame, int)
+                    or isinstance(pre_edge_action_frame, bool)
+                )
+            )
+            or (pre_edge_action is None) != (pre_edge_action_frame is None)
+        ):
+            fail(f"expectation-schema case={case_id}")
+        pre_edge = current[edge_index - 1]
+        if (
+            bool(pre_edge.get("grounded")) != pre_edge_grounded
+            or (
+                pre_edge_action is not None
+                and (
+                    pre_edge.get("action") != pre_edge_action
+                    or round(float(pre_edge["action_frame"])) !=
+                        pre_edge_action_frame
+                )
+            )
+        ):
+            fail(f"pre-edge-outcome case={case_id}")
+        edge_rows = current[edge_index:]
+        if expected_edge_rows is not None:
+            if (
+                not isinstance(expected_edge_rows, list)
+                or not expected_edge_rows
+                or len(edge_rows) != len(expected_edge_rows)
+            ):
+                fail(f"expectation-schema case={case_id}")
+            for row_index, (actual, declared) in enumerate(
+                zip(edge_rows, expected_edge_rows, strict=True)
+            ):
+                if (
+                    not isinstance(declared, dict)
+                    or set(declared) !=
+                        {"action", "action_frame", "facing", "grounded"}
+                    or not isinstance(declared.get("action"), str)
+                    or not declared["action"]
+                    or not isinstance(
+                        declared.get("action_frame"), int
+                    )
+                    or isinstance(declared["action_frame"], bool)
+                    or declared.get("facing") not in {-1, 1}
+                    or not isinstance(declared.get("grounded"), bool)
+                ):
+                    fail(f"expectation-schema case={case_id}")
+                if (
+                    actual.get("action") != declared["action"]
+                    or round(float(actual["action_frame"])) !=
+                        declared["action_frame"]
+                    or actual.get("facing") != float(declared["facing"])
+                    or bool(actual.get("grounded")) != declared["grounded"]
+                ):
+                    fail(
+                        f"edge-outcome case={case_id} row={row_index}"
+                    )
+            continue
+        if (
+            not isinstance(edge_action, str)
             or not edge_action
             or not isinstance(edge_frames, list)
             or not edge_frames
@@ -95,10 +169,8 @@ def qualify_capture(
                 for frame in edge_frames
             )
             or edge_facing not in {-1, 1}
-            or not isinstance(pre_edge_grounded, bool)
         ):
             fail(f"expectation-schema case={case_id}")
-        edge_rows = current[edge_index:]
         actual_frames = [
             round(float(row["action_frame"]))
             for row in edge_rows
@@ -109,8 +181,6 @@ def qualify_capture(
             or actual_frames != edge_frames
             or any(row.get("action") != edge_action for row in edge_rows)
             or any(row.get("facing") != float(edge_facing) for row in edge_rows)
-            or bool(current[edge_index - 1].get("grounded"))
-            != pre_edge_grounded
         ):
             fail(f"edge-outcome case={case_id}")
 
