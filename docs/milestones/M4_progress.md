@@ -6741,3 +6741,32 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   `26b925f08337c64e8cb8db9c5de7e47488d92b2fc3a6dd887894f53cbd095647`;
   three isolated complete runs take 877.821-1,033.078 ms on Windows and
   908.291-971.404 ms in WSL.
+
+## 2026-08-12: common animation-before-IASA callback ownership
+
+- Pinned `doldecomp/melee` revision
+  `9509dc04406fb2028bfab01243841ba4787c0fb7` establishes the process order:
+  animation runs before IASA, and terminal `Fighter_ChangeMotionState` calls
+  replace the input callback for that same update. The audited common families
+  are Squat/SquatRv, Landing and LandingAir, RunBrake/Turn/TurnRun/Dash,
+  Appeal, GuardSetOff/GuardOff, EscapeF/B/N, ordinary attacks, and
+  AttackAir-to-Fall.
+- Production now derives one stack-local effective callback owner before every
+  input router. The abstraction adds no allocation, canonical state, snapshot
+  byte, replay field, or duplicated action table. A single entry-effects block
+  retires source dash, attack, rapid-jab, and shield-stun bookkeeping.
+- Focused movement coverage presses input on the terminal update itself and
+  proves SquatWait Dash/Pass ownership, Wait's direct EscapeN and action table,
+  TurnRun's Run/Wait split, GuardSetOff's immediate Guard callback, Down-Tilt's
+  SquatWait target, and AttackAir's immediate Fall callbacks. Combat coverage
+  proves terminal GuardSetOff roll/spot/jump buffering and powershield cleanup.
+- The replay repin is causal: checkpoints 0 through 62 match the pre-projection
+  build. Processing zero-based input tick 62 finds P1 on terminal Forward-Air
+  Landing frame 18 with the fixture's explicit full-right segment held; Wait
+  therefore enters Walk immediately instead of emitting the old artificial
+  Idle row. Windows and WSL agree on the 42,555-byte corpus/final/event hashes
+  `649b9ab2540b5e8d38b972756925b3349e82209235ed1aa8c58c8f51485ce1be`,
+  `e4834ffac8b7be8ce77cf604710ca307caea512cca5eb00fae8487ca0fdc75b4`,
+  and `787d63c5edf270cdc72d93dbe857c487bdc1ab7bdde59a1975299f1973fa7256`.
+  The real Emscripten/Chrome smoke passes with 82 typed events; the removed two
+  events were artificial intermediate transitions.

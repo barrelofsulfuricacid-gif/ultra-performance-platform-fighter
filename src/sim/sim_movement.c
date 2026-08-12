@@ -6529,6 +6529,157 @@ static int pf_m4_action_can_start_vector_ascent(uint8_t action_state)
            pf_m4_action_is_damage(action_state);
 }
 
+typedef struct pf_m4_reference_callback_owner
+{
+    uint8_t action_state;
+    uint16_t action_ticks;
+    uint8_t entered_this_tick;
+} pf_m4_reference_callback_owner;
+
+static pf_m4_reference_callback_owner
+pf_m4_reference_project_callback_owner(
+    const pf_m4_fighter_data *fighter,
+    uint8_t action_state,
+    uint16_t action_ticks,
+    uint16_t hitlag_ticks,
+    uint16_t hitstun_ticks,
+    uint16_t shield_stun_ticks,
+    int shield_held,
+    int16_t main_stick_x,
+    int8_t run_target_direction)
+{
+    pf_m4_reference_callback_owner owner = {
+        action_state,
+        action_ticks,
+        UINT8_C(0),
+    };
+    pf_m4_falcon_move_index move_index;
+    const pf_m4_reference_move *move;
+
+    if (fighter->reference_frame_data_enabled == UINT8_C(0) ||
+        hitlag_ticks != UINT16_C(0) || hitstun_ticks != UINT16_C(0))
+    {
+        return owner;
+    }
+
+    /* Fighter animation callbacks run before IASA. When Squat or SquatRv
+     * reaches its terminal frame, ChangeMotionState installs SquatWait or
+     * Wait immediately, so that successor owns the input callback later in
+     * the same fighter update. Keep this projection stack-local: it changes
+     * callback ownership without adding rollback state or another timer. */
+    if (action_state == (uint8_t)PF_M4_ACTION_CROUCH_START &&
+        action_ticks >= fighter->crouch_start_ticks)
+    {
+        owner.action_state = (uint8_t)PF_M4_ACTION_CROUCH;
+        owner.action_ticks = UINT16_C(0);
+        owner.entered_this_tick = UINT8_C(1);
+    }
+    else if (action_state == (uint8_t)PF_M4_ACTION_CROUCH_END &&
+             action_ticks >= fighter->crouch_end_ticks)
+    {
+        owner.action_state = (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+        owner.action_ticks = UINT16_C(0);
+        owner.entered_this_tick = UINT8_C(1);
+    }
+    else if ((action_state == (uint8_t)PF_M4_ACTION_LANDING &&
+              (uint32_t)action_ticks + UINT32_C(1) >=
+                  (uint32_t)fighter->landing_ticks) ||
+             (pf_m4_action_is_aerial_landing(action_state) &&
+              (uint32_t)action_ticks + UINT32_C(1) >=
+                  (uint32_t)pf_m4_aerial_landing_ticks(
+                      fighter,
+                      action_state)) ||
+             (action_state == (uint8_t)PF_M4_ACTION_SPECIAL_LANDING &&
+              (uint32_t)action_ticks + UINT32_C(1) >=
+                  (uint32_t)fighter->special_landing_ticks) ||
+             (action_state == (uint8_t)PF_M4_ACTION_RUN_BRAKE &&
+              (uint32_t)action_ticks + UINT32_C(1) >=
+                  (uint32_t)fighter->run_brake_ticks) ||
+             (action_state == (uint8_t)PF_M4_ACTION_STANDING_TURN &&
+              (uint32_t)action_ticks + UINT32_C(1) >=
+                  (uint32_t)fighter->standing_turn_ticks) ||
+             (action_state == (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
+              (uint32_t)action_ticks + UINT32_C(1) >=
+                  (uint32_t)fighter->initial_dash_ticks) ||
+             (action_state == (uint8_t)PF_M4_ACTION_TAUNT &&
+              (uint32_t)action_ticks + UINT32_C(1) >=
+                  (uint32_t)fighter->taunt_ticks) ||
+             (action_state == (uint8_t)PF_M4_ACTION_SHIELD_RELEASE &&
+              (uint32_t)action_ticks + UINT32_C(1) >=
+                  (uint32_t)fighter->shield_release_ticks) ||
+             (action_state == (uint8_t)PF_M4_ACTION_ROLL_FORWARD &&
+              action_ticks >= fighter->forward_roll_ticks) ||
+             (action_state == (uint8_t)PF_M4_ACTION_ROLL_BACKWARD &&
+              action_ticks >= fighter->backward_roll_ticks) ||
+             (action_state == (uint8_t)PF_M4_ACTION_SPOT_DODGE &&
+              action_ticks >= fighter->spot_dodge_ticks))
+    {
+        owner.action_state = (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+        owner.action_ticks = UINT16_C(0);
+        owner.entered_this_tick = UINT8_C(1);
+    }
+    else if (pf_m4_action_is_light_aerial(action_state) &&
+             (uint32_t)action_ticks + UINT32_C(1) >=
+                 pf_m4_light_aerial_ticks(fighter, action_state))
+    {
+        owner.action_state = (uint8_t)PF_M4_ACTION_AIRBORNE;
+        owner.action_ticks = UINT16_C(0);
+        owner.entered_this_tick = UINT8_C(1);
+    }
+    else if (pf_m4_action_is_ground_attack(action_state) &&
+             !pf_m4_action_is_smash_charge(action_state) &&
+             action_state != (uint8_t)PF_M4_ACTION_RAPID_JAB_START &&
+             action_state != (uint8_t)PF_M4_ACTION_RAPID_JAB_LOOP &&
+             pf_m4_falcon_reference_move_for_action(
+                 action_state,
+                 &move_index) &&
+             (move = pf_m4_falcon_reference_move(move_index)) != NULL &&
+             action_ticks >= move->total_frames)
+    {
+        /* AttackLw3_Anim enters SquatWait; the other represented Falcon
+         * ground attacks enter Wait. The newly installed callback owns this
+         * update, exactly like the common locomotion transitions above. */
+        owner.action_state =
+            action_state == (uint8_t)PF_M4_ACTION_DOWN_ATTACK
+                ? (uint8_t)PF_M4_ACTION_CROUCH
+                : (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+        owner.action_ticks = UINT16_C(0);
+        owner.entered_this_tick = UINT8_C(1);
+    }
+    else if (action_state == (uint8_t)PF_M4_ACTION_SHIELD_STUN &&
+             shield_stun_ticks <= UINT16_C(1))
+    {
+        owner.action_state =
+            shield_held != 0
+                ? (uint8_t)PF_M4_ACTION_SHIELD
+                : (uint8_t)PF_M4_ACTION_SHIELD_RELEASE;
+        owner.action_ticks =
+            shield_held != 0
+                ? fighter->shield_minimum_hold_ticks
+                : UINT16_C(0);
+        owner.entered_this_tick = UINT8_C(1);
+    }
+    else if (action_state == (uint8_t)PF_M4_ACTION_RUN_TURNAROUND &&
+             action_ticks >= fighter->run_turnaround_ticks)
+    {
+        const int target_held =
+            pf_m4_axis_direction(
+                main_stick_x,
+                fighter->axis_dead_zone) == run_target_direction &&
+            pf_m4_axis_magnitude(main_stick_x) >=
+                fighter->run_continue_axis_threshold;
+
+        owner.action_state =
+            target_held != 0
+                ? (uint8_t)PF_M4_ACTION_RUN
+                : (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+        owner.action_ticks = UINT16_C(0);
+        owner.entered_this_tick = UINT8_C(1);
+    }
+
+    return owner;
+}
+
 enum
 {
     PF_M4_REFERENCE_SPECIAL_SIDE = 1U << 0U,
@@ -6801,6 +6952,18 @@ pf_status pf_m4_step_player(
         fighter->reference_frame_data_enabled != UINT8_C(0)
             ? pf_m4_falcon_reference_common_attributes()
             : NULL;
+    const pf_m4_reference_callback_owner callback_owner =
+        pf_m4_reference_project_callback_owner(
+            fighter,
+            world->action_state[player_index],
+            world->action_ticks[player_index],
+            world->hitlag_ticks[player_index],
+            world->hitstun_ticks[player_index],
+            world->shield_stun_ticks[player_index],
+            (pf_m4_input_trigger_state(fighter, input) &
+             PF_M4_TRIGGER_STATE_HELD_MASK) != UINT8_C(0),
+            input->main_stick_x,
+            world->dash_direction[player_index]);
     const uint8_t previous_action_state =
         world->action_state[player_index];
     const uint8_t previous_hitlag_resume_action =
@@ -6912,37 +7075,37 @@ pf_status pf_m4_step_player(
     const int grab_pressed =
         shield_held != 0 && light_attack_pressed != 0;
     const int powershield_release_cancel_ready =
-        world->action_state[player_index] ==
+        callback_owner.action_state ==
             (uint8_t)PF_M4_ACTION_SHIELD_RELEASE &&
         scratch->powershield[player_index] != UINT8_C(0) &&
         fighter->powershield_cancel_enabled != UINT8_C(0) &&
-        world->action_ticks[player_index] >=
+        callback_owner.action_ticks >=
             fighter->powershield_cancel_delay_ticks;
     const int grab_blocks_attack =
         grab_pressed != 0 &&
         (pf_m4_action_can_start_grab(
-             world->action_state[player_index]) ||
+             callback_owner.action_state) ||
          powershield_release_cancel_ready != 0);
     const int grab_fallback_attack_pressed =
         grab_pressed != 0 && grab_blocks_attack == 0;
     const int boost_grab_pressed =
         world->grounded[player_index] != UINT8_C(0) &&
-        world->action_state[player_index] ==
+        callback_owner.action_state ==
             (uint8_t)PF_M4_ACTION_DASH_ATTACK &&
-        world->action_ticks[player_index] >=
+        callback_owner.action_ticks >=
             fighter->boost_grab_cancel_begin_tick &&
-        world->action_ticks[player_index] <=
+        callback_owner.action_ticks <=
             fighter->boost_grab_cancel_end_tick &&
         shield_held != 0 &&
         (light_attack_pressed != 0 ||
          (light_attack_held != 0 && shield_pressed != 0));
     const int jab_combo_window = source_character == NULL &&
         world->grounded[player_index] != UINT8_C(0) &&
-        world->action_state[player_index] ==
+        callback_owner.action_state ==
             (uint8_t)PF_M4_ACTION_GROUND_ATTACK &&
-        world->action_ticks[player_index] >=
+        callback_owner.action_ticks >=
             fighter->jab_combo_input_begin_tick &&
-        world->action_ticks[player_index] <=
+        callback_owner.action_ticks <=
             fighter->jab_combo_input_end_tick;
     const int jab_cancel_pressed =
         jab_combo_window != 0 && shield_pressed != 0;
@@ -6950,10 +7113,11 @@ pf_status pf_m4_step_player(
         jab_combo_window != 0 && shield_held == 0 &&
         light_attack_pressed != 0;
     const int was_shielding =
-        world->action_state[player_index] ==
-            (uint8_t)PF_M4_ACTION_SHIELD ||
-        world->action_state[player_index] ==
-            (uint8_t)PF_M4_ACTION_SHIELD_STUN;
+        callback_owner.entered_this_tick == UINT8_C(0) &&
+        (callback_owner.action_state ==
+             (uint8_t)PF_M4_ACTION_SHIELD ||
+         callback_owner.action_state ==
+             (uint8_t)PF_M4_ACTION_SHIELD_STUN);
     const uint16_t horizontal_magnitude =
         pf_m4_axis_magnitude(input->main_stick_x);
     const uint16_t vertical_magnitude =
@@ -6999,7 +7163,7 @@ pf_status pf_m4_step_player(
      * Keep that clock conversion explicit so the imported x44/x4C branch
      * boundaries retain their source meaning. */
     const uint32_t reference_current_anim_frame =
-        (uint32_t)world->action_ticks[player_index] + UINT32_C(1);
+        (uint32_t)callback_owner.action_ticks + UINT32_C(1);
     const int secondary_stick_active =
         secondary_horizontal_magnitude >= fighter->axis_dead_zone ||
         secondary_vertical_magnitude >= fighter->axis_dead_zone;
@@ -7030,32 +7194,32 @@ pf_status pf_m4_step_player(
     const int8_t reference_turn_callback_facing =
         pf_m4_reference_turn_callback_facing(
             source_ground_input,
-            world->action_state[player_index],
+            callback_owner.action_state,
             world->facing[player_index],
             world->dash_direction[player_index]);
     const int reference_turn_attack_callbacks =
         source_ground_input != NULL &&
-        world->action_state[player_index] ==
+        callback_owner.action_state ==
             (uint8_t)PF_M4_ACTION_STANDING_TURN;
     const int forward_smash_pressed =
         grab_blocks_attack == 0 && light_attack_pressed != 0 &&
         world->grounded[player_index] != UINT8_C(0) &&
         forward_smash_direction != INT8_C(0) &&
-        (((world->action_state[player_index] ==
+        (((callback_owner.action_state ==
                    (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
-           world->action_state[player_index] ==
+           callback_owner.action_state ==
                    (uint8_t)PF_M4_ACTION_WALK ||
            reference_turn_attack_callbacks != 0) &&
           input_tilt_x_age < forward_smash_window_ticks) ||
-         (world->action_state[player_index] ==
+         (callback_owner.action_state ==
               (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
           forward_smash_direction == world->facing[player_index]));
     const int vertical_smash_pressed =
         grab_blocks_attack == 0 && light_attack_pressed != 0 &&
         world->grounded[player_index] != UINT8_C(0) &&
-        (world->action_state[player_index] ==
+        (callback_owner.action_state ==
              (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
-         world->action_state[player_index] ==
+         callback_owner.action_state ==
              (uint8_t)PF_M4_ACTION_WALK ||
          reference_turn_attack_callbacks != 0) &&
         vertical_magnitude >=
@@ -7102,11 +7266,11 @@ pf_status pf_m4_step_player(
         ground_smash_charge_pressed == 0 &&
         pf_m4_action_can_start_dash_attack(
             fighter,
-            world->action_state[player_index],
-            world->action_ticks[player_index]);
+            callback_owner.action_state,
+            callback_owner.action_ticks);
     const int reference_initial_dash_forward_smash =
         source_ground_input != NULL &&
-        world->action_state[player_index] ==
+        callback_owner.action_state ==
             (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
         reference_current_anim_frame <=
             initial_dash_early_end_frame &&
@@ -7115,7 +7279,7 @@ pf_status pf_m4_step_player(
              (uint8_t)PF_M4_ACTION_FORWARD_STRONG_ATTACK);
     const int reference_initial_dash_dash_attack =
         source_ground_input != NULL &&
-        world->action_state[player_index] ==
+        callback_owner.action_state ==
             (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
         reference_current_anim_frame >
             initial_dash_early_end_frame &&
@@ -7124,7 +7288,7 @@ pf_status pf_m4_step_player(
         grab_blocks_attack == 0 && light_attack_pressed != 0;
     const int reference_initial_dash_attack_allowed =
         source_ground_input == NULL ||
-        world->action_state[player_index] !=
+        callback_owner.action_state !=
             (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
         reference_initial_dash_forward_smash != 0 ||
         reference_initial_dash_dash_attack != 0;
@@ -7133,7 +7297,7 @@ pf_status pf_m4_step_player(
         (light_attack_pressed != 0 || strong_attack_pressed != 0);
     const int jump_cancel_attack_pressed =
         world->grounded[player_index] != UINT8_C(0) &&
-        world->action_state[player_index] ==
+        callback_owner.action_state ==
             (uint8_t)PF_M4_ACTION_JUMP_SQUAT &&
         attack_pressed != 0 &&
         input->main_stick_y <=
@@ -7169,7 +7333,7 @@ pf_status pf_m4_step_player(
     const int secondary_stick_spot_dodge_buffered =
         shield_held != 0 &&
         input->secondary_stick_y >= (int16_t)escape_axis_threshold &&
-        world->action_state[player_index] ==
+        callback_owner.action_state ==
             (uint8_t)PF_M4_ACTION_SHIELD;
     const int spot_dodge_pressed =
         main_stick_spot_dodge_pressed != 0 ||
@@ -7181,7 +7345,7 @@ pf_status pf_m4_step_player(
     const int secondary_stick_roll_buffered =
         shield_held != 0 &&
         secondary_horizontal_magnitude >= escape_axis_threshold &&
-        world->action_state[player_index] ==
+        callback_owner.action_state ==
             (uint8_t)PF_M4_ACTION_SHIELD;
     const int roll_pressed =
         main_stick_roll_pressed != 0 ||
@@ -7198,10 +7362,10 @@ pf_status pf_m4_step_player(
         jump_pressed != 0 ||
         (shield_held != 0 &&
          secondary_jump_up_buffered != 0 &&
-         world->action_state[player_index] ==
+         callback_owner.action_state ==
              (uint8_t)PF_M4_ACTION_SHIELD);
     const int shield_release_spot_dodge_pressed =
-        world->action_state[player_index] ==
+        callback_owner.action_state ==
             (uint8_t)PF_M4_ACTION_SHIELD_RELEASE &&
         ((input->main_stick_y >= (int16_t)escape_axis_threshold &&
           input_tilt_y_age < escape_tilt_window_ticks) ||
@@ -7209,7 +7373,7 @@ pf_status pf_m4_step_player(
              (int16_t)escape_axis_threshold) &&
         ucf_shield_drop_spot_dodge_suppressed == 0;
     const int shield_release_jump_pressed =
-        world->action_state[player_index] ==
+        callback_owner.action_state ==
             (uint8_t)PF_M4_ACTION_SHIELD_RELEASE &&
         (jump_pressed != 0 || secondary_jump_up_buffered != 0);
     const int shield_platform_drop_requested =
@@ -7218,7 +7382,7 @@ pf_status pf_m4_step_player(
         pf_m4_surface_is_pass_through(
             content,
             world->support[player_index]) != 0 &&
-        world->action_state[player_index] ==
+        callback_owner.action_state ==
             (uint8_t)PF_M4_ACTION_SHIELD &&
         (source_ground_input != NULL
              ? (input_tilt_y_age <
@@ -7234,21 +7398,21 @@ pf_status pf_m4_step_player(
     const pf_m4_reference_move *ground_reference_attack =
         world->grounded[player_index] != UINT8_C(0) &&
         pf_m4_action_is_ground_attack(
-            world->action_state[player_index])
+            callback_owner.action_state)
             ? pf_m4_falcon_ground_reference_attack(
                   fighter,
-                  world->action_state[player_index])
+                  callback_owner.action_state)
             : NULL;
     const pf_m4_reference_iasa_policy ground_iasa_policy =
         ground_reference_attack != NULL
             ? pf_m4_falcon_reference_iasa_policy_for_action(
-                  world->action_state[player_index])
+                  callback_owner.action_state)
             : PF_M4_REFERENCE_IASA_NONE;
     const int ground_attack_iasa =
         ground_reference_attack != NULL &&
         pf_m4_falcon_reference_iasa_active(
-            world->action_state[player_index],
-            (uint32_t)world->action_ticks[player_index] + UINT32_C(1));
+            callback_owner.action_state,
+            (uint32_t)callback_owner.action_ticks + UINT32_C(1));
     const uint8_t ground_iasa_capabilities =
         ground_attack_iasa != 0
             ? pf_m4_falcon_ground_iasa_capabilities(
@@ -7266,19 +7430,19 @@ pf_status pf_m4_step_player(
     const int reference_jab_chain_ready =
         source_character != NULL &&
         world->jab_chain_buffered[player_index] != UINT8_C(0) &&
-        ((world->action_state[player_index] ==
+        ((callback_owner.action_state ==
               (uint8_t)PF_M4_ACTION_GROUND_ATTACK &&
-          (uint32_t)world->action_ticks[player_index] + UINT32_C(1) >=
+          (uint32_t)callback_owner.action_ticks + UINT32_C(1) >=
               source_character->jab_1_combo_enable_frame) ||
-         (world->action_state[player_index] ==
+         (callback_owner.action_state ==
               (uint8_t)PF_M4_ACTION_JAB_FINAL &&
-          (uint32_t)world->action_ticks[player_index] + UINT32_C(1) >=
+          (uint32_t)callback_owner.action_ticks + UINT32_C(1) >=
               source_character->jab_2_combo_enable_frame));
     const int reference_rapid_jab_ready =
         source_character != NULL &&
-        world->action_state[player_index] ==
+        callback_owner.action_state ==
             (uint8_t)PF_M4_ACTION_JAB_THIRD &&
-        (uint32_t)world->action_ticks[player_index] + UINT32_C(1) >=
+        (uint32_t)callback_owner.action_ticks + UINT32_C(1) >=
             source_character->jab_3_rapid_enable_frame &&
         (uint16_t)world->rapid_jab_input_count[player_index] +
                 (uint16_t)(light_attack_pressed != 0 ||
@@ -7288,7 +7452,7 @@ pf_status pf_m4_step_player(
     int32_t position_y = world->position_y_q16[player_index];
     int32_t velocity_x = world->velocity_x_q16[player_index];
     int32_t velocity_y = world->velocity_y_q16[player_index];
-    uint16_t action_ticks = world->action_ticks[player_index];
+    uint16_t action_ticks = callback_owner.action_ticks;
     uint16_t source_submotion =
         world->source_submotion[player_index];
     int32_t source_animation_frame_q16 =
@@ -7318,7 +7482,7 @@ pf_status pf_m4_step_player(
         ecb_locked_bottom_y_q16;
     uint16_t respawn_count = world->respawn_count[player_index];
     uint8_t grounded = world->grounded[player_index];
-    uint8_t action_state = world->action_state[player_index];
+    uint8_t action_state = callback_owner.action_state;
     const int running_tap_jump_pressed =
         source_ground_input != NULL &&
         input->main_stick_y <=
@@ -7348,8 +7512,7 @@ pf_status pf_m4_step_player(
         reference_ledge_response != NULL &&
         (int32_t)facing * (int32_t)input->secondary_stick_x >=
             (int32_t)reference_ledge_response->c_roll_axis_threshold;
-    int8_t dash_direction =
-        world->dash_direction[player_index];
+    int8_t dash_direction = world->dash_direction[player_index];
     int8_t previous_strong_direction =
         world->previous_strong_direction[player_index];
     uint8_t directional_input_flags =
@@ -7432,6 +7595,52 @@ pf_status pf_m4_step_player(
     }
 
     pf_m4_copy_combat_scratch(world, scratch, player_index);
+    if (callback_owner.entered_this_tick != UINT8_C(0))
+    {
+        if (previous_action_state ==
+                (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
+            previous_action_state ==
+                (uint8_t)PF_M4_ACTION_STANDING_TURN ||
+            previous_action_state ==
+                (uint8_t)PF_M4_ACTION_RUN_TURNAROUND ||
+            previous_action_state ==
+                (uint8_t)PF_M4_ACTION_ROLL_FORWARD ||
+            previous_action_state ==
+                (uint8_t)PF_M4_ACTION_ROLL_BACKWARD)
+        {
+            dash_direction = INT8_C(0);
+        }
+        if (pf_m4_action_is_ground_attack(previous_action_state) ||
+            pf_m4_action_is_light_aerial(previous_action_state))
+        {
+            scratch->attack_hit_mask[player_index] = UINT8_C(0);
+            scratch->attack_stale_registered[player_index] = UINT8_C(0);
+            scratch->smash_charge_ticks[player_index] = UINT16_C(0);
+        }
+        if (previous_action_state ==
+            (uint8_t)PF_M4_ACTION_RAPID_JAB_END)
+        {
+            scratch->rapid_jab_input_count[player_index] = UINT8_C(0);
+            scratch->rapid_jab_continue[player_index] = UINT8_C(0);
+        }
+        if (previous_action_state ==
+            (uint8_t)PF_M4_ACTION_SHIELD_STUN)
+        {
+            scratch->shield_stun_ticks[player_index] = UINT16_C(0);
+            if (callback_owner.action_state ==
+                (uint8_t)PF_M4_ACTION_SHIELD)
+            {
+                scratch->powershield[player_index] = UINT8_C(0);
+                scratch->shield_strength[player_index] =
+                    input_shield_strength;
+            }
+        }
+        if (previous_action_state ==
+            (uint8_t)PF_M4_ACTION_SHIELD_RELEASE)
+        {
+            scratch->powershield[player_index] = UINT8_C(0);
+        }
+    }
     scratch->horizontal_input_age[player_index] =
         world->horizontal_input_age[player_index] < UINT8_C(254)
             ? (uint8_t)(world->horizontal_input_age[player_index] +
@@ -9466,9 +9675,9 @@ pf_status pf_m4_step_player(
         facing = reference_turn_callback_facing;
         action_state =
             boost_grab_pressed != 0 ||
-                    world->action_state[player_index] ==
+                    callback_owner.action_state ==
                         (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
-                    world->action_state[player_index] ==
+                    callback_owner.action_state ==
                         (uint8_t)PF_M4_ACTION_RUN
                 ? (uint8_t)PF_M4_ACTION_DASH_GRAB
                 : (uint8_t)PF_M4_ACTION_GRAB;
@@ -9697,7 +9906,7 @@ pf_status pf_m4_step_player(
             source_ground_input != NULL &&
             main_stick_spot_dodge_pressed != 0 &&
             pf_m4_reference_calls_direct_escape_n(
-                world->action_state[player_index],
+                callback_owner.action_state,
                 ground_iasa_capabilities);
 
         if (reference_escape_allowed != 0)
@@ -10072,7 +10281,9 @@ pf_status pf_m4_step_player(
                     : UINT8_C(0);
             scratch->powershield[player_index] = UINT8_C(0);
         }
-        else
+        else if (!(callback_owner.entered_this_tick != UINT8_C(0) &&
+                   previous_action_state ==
+                       (uint8_t)PF_M4_ACTION_SHIELD_STUN))
         {
             ++action_ticks;
             if (action_ticks >= fighter->shield_release_ticks)

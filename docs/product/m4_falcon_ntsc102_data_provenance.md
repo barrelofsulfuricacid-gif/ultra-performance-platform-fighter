@@ -2260,3 +2260,23 @@ the observed controller-fix family, and both raw main-stick axes before it
 executes a candidate as exact-reference evidence. The five tracked legacy
 Slippi files omit raw main Y and exact UCF-revision proof, so they correctly
 remain diagnostic and fail closed instead of being promoted to provenance.
+
+### Common terminal callback-owner source boundary
+
+The terminal callback-order slice is derived from pinned decomp revision
+`9509dc04406fb2028bfab01243841ba4787c0fb7`. The process ordering is owned by
+`melee/ft/fighter.c`; the successor transitions and callback tables are owned by
+the relevant `ftCo_Squat*`, `ftCo_Landing*`, `ftCo_Run*`, `ftCo_Turn*`,
+`ftCo_Dash`, `ftCo_AppealS`, `ftCo_Guard`, `ftCo_Escape`, `ftCo_Attack*`, and
+`ftCo_Fall` sources. Production does not import a new timer or infer a route
+from replay output: it evaluates the already-imported terminal clocks, projects
+the source-declared successor callback on the stack, then runs the existing
+target router.
+
+The 240-input replay array is unchanged. Its first state divergence from the
+superseded callback-order build is the source-justified LandingAir-to-Wait
+boundary at completed checkpoint 63; all checkpoints through 62 match. The
+current 42,555-byte corpus/final/event identities are
+`649b9ab2540b5e8d38b972756925b3349e82209235ed1aa8c58c8f51485ce1be`,
+`e4834ffac8b7be8ce77cf604710ca307caea512cca5eb00fae8487ca0fdc75b4`,
+and `787d63c5edf270cdc72d93dbe857c487bdc1ab7bdde59a1975299f1973fa7256`.

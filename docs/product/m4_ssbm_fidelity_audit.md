@@ -658,3 +658,24 @@ passes by itself in 263.089 ms on Windows and 403.007 ms in WSL. The 30-domain /
 1178.830/1319.197/1471.076 ms on Windows and
 919.397/986.464/1270.306 ms in WSL under manifest SHA-256
 `99b5f633b2f4f6c33173ca285af0634e0ac51d1acc6df8b2a5b3c57f22cb261d`.
+
+### Common terminal callback-owner ordering
+
+The represented common action families now model Melee's animation-before-IASA
+order. A terminal animation transition installs Wait, SquatWait, Run, Guard,
+GuardOff, or Fall before the same update's input callback; production projects
+that successor locally and reuses the ordinary target callback routers. This
+closes the prior artificial idle/intermediate-action row for Squat/SquatRv,
+landings, RunBrake/Turn/TurnRun/Dash, Appeal, GuardSetOff/GuardOff, escapes,
+ordinary attacks, and aerial-attack completion. Focused native tests cover the
+terminal input boundary and cleanup. This is source-backed behavioral coverage,
+not a claim that every callback family or every simultaneous-input combination
+outside the represented tests is complete.
+
+The deterministic replay's first changed boundary is checkpoint 63 after
+zero-based input tick 62: terminal Forward-Air Landing delegates to Wait, and
+the fixture's held full-right input enters Walk immediately. Windows and WSL
+produce identical corpus/final/event SHA-256 values
+`649b9ab2540b5e8d38b972756925b3349e82209235ed1aa8c58c8f51485ce1be`,
+`e4834ffac8b7be8ce77cf604710ca307caea512cca5eb00fae8487ca0fdc75b4`,
+and `787d63c5edf270cdc72d93dbe857c487bdc1ab7bdde59a1975299f1973fa7256`.

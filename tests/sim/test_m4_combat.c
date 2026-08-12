@@ -12853,31 +12853,18 @@ static int run_shield_block_test(
             return fail("shield-stun-step");
         }
         if (normal_inspection.players[1].action_state ==
-            (uint8_t)PF_M4_ACTION_SHIELD)
+            (uint8_t)PF_M4_ACTION_ROLL_FORWARD)
         {
             break;
         }
     }
     if (normal_inspection.players[1].action_state !=
-            (uint8_t)PF_M4_ACTION_SHIELD ||
-        normal_inspection.players[1].shield_stun_ticks !=
-            UINT16_C(0))
-    {
-        return fail("shield-stun-duration");
-    }
-    if (!step_player1_secondary_shield(
-            normal,
-            normal_facing == INT8_C(1)
-                ? INT16_MAX
-                : INT16_MIN,
-            INT16_C(0),
-            &normal_inspection) ||
-        normal_inspection.players[1].action_state !=
             (uint8_t)PF_M4_ACTION_ROLL_FORWARD ||
-        normal_inspection.players[1].facing !=
-            normal_facing)
+        normal_inspection.players[1].shield_stun_ticks !=
+            UINT16_C(0) ||
+        normal_inspection.players[1].facing != normal_facing)
     {
-        return fail("c-stick-roll-buffer-through-shield-stun");
+        return fail("c-stick-roll-on-guardsetoff-terminal");
     }
 
     if (!start_normal_shield_block(spot, &spot_inspection) ||
@@ -12919,29 +12906,19 @@ static int run_shield_block_test(
             return fail("c-stick-vertical-buffer-shield-stun-step");
         }
         if (spot_inspection.players[1].action_state ==
-                (uint8_t)PF_M4_ACTION_SHIELD &&
+                (uint8_t)PF_M4_ACTION_SPOT_DODGE &&
             jump_inspection.players[1].action_state ==
-                (uint8_t)PF_M4_ACTION_SHIELD)
+                (uint8_t)PF_M4_ACTION_JUMP_SQUAT)
         {
             break;
         }
     }
-    if (!step_player1_secondary_shield(
-            spot,
-            INT16_C(0),
-            INT16_MAX,
-            &spot_inspection) ||
-        spot_inspection.players[1].action_state !=
+    if (spot_inspection.players[1].action_state !=
             (uint8_t)PF_M4_ACTION_SPOT_DODGE ||
-        !step_player1_secondary_shield(
-            jump,
-            INT16_C(0),
-            INT16_MIN,
-            &jump_inspection) ||
         jump_inspection.players[1].action_state !=
             (uint8_t)PF_M4_ACTION_JUMP_SQUAT)
     {
-        return fail("c-stick-vertical-buffer-through-shield-stun");
+        return fail("c-stick-vertical-on-guardsetoff-terminal");
     }
 
     if (!start_powershield_block(power, &power_inspection) ||

@@ -91,7 +91,7 @@ compile_sim_test \
 
 "$output_dir/replay_corpus" >"$output_dir/replay_corpus.txt"
 grep -Fqx \
-    'sim-replay=pass ticks=240 players=4 bytes=42555 corpus_sha256=a1d9c1d97a3f20bdb9c76094c39b856f731a1eb2c0cca64ac05dd28a6e121949 final_sha256=3bdbbbc5d7faa6c8fd077ebd47aaa061f738a3561aa4c66ae2bfe4f8455cda6a events_sha256=a4020969be032543b9b229c8801bde77581b9f7fe26a9fe8aca91527627b13ec' \
+    'sim-replay=pass ticks=240 players=4 bytes=42555 corpus_sha256=649b9ab2540b5e8d38b972756925b3349e82209235ed1aa8c58c8f51485ce1be final_sha256=e4834ffac8b7be8ce77cf604710ca307caea512cca5eb00fae8487ca0fdc75b4 events_sha256=787d63c5edf270cdc72d93dbe857c487bdc1ab7bdde59a1975299f1973fa7256' \
     "$output_dir/replay_corpus.txt"
 
 compile_sim_object()

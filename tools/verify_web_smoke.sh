@@ -105,7 +105,7 @@ pf_require_dom \
     'webgl2=pass batch_draws=1'
 pf_require_dom \
     "deterministic replay status" \
-    'replay=pass ticks=240 winner_mask=5 final_sha256=3bdbbbc5d7faa6c8fd077ebd47aaa061f738a3561aa4c66ae2bfe4f8455cda6a'
+    'replay=pass ticks=240 winner_mask=5 final_sha256=e4834ffac8b7be8ce77cf604710ca307caea512cca5eb00fae8487ca0fdc75b4'
 pf_require_dom \
     "replay inspector" \
     'id="pf-replay-inspector"'
@@ -120,7 +120,7 @@ pf_require_dom \
     'id="pf-replay-events"'
 pf_require_dom \
     "re-simulated canonical events" \
-    '84 typed events'
+    '82 typed events'
 pf_require_dom \
     "M4 browser integration status" \
     'playtest=ready gamepad_api=available wii_u_adapter_api=available controls=keyboard-gamepad-webusb-two-controller-duel-team-lab owner_checklist=ready-61'

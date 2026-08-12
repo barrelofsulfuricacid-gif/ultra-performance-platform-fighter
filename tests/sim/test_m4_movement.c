@@ -1046,7 +1046,8 @@ static int run_air_dodge_test(
             UINT16_C(0),
             &inspection) ||
         inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
+            (uint8_t)PF_M4_ACTION_STANDING_TURN ||
+        inspection.players[0].action_ticks != UINT16_C(1) ||
         inspection.players[0].position_x_q16 - previous_landing_x !=
             inspection.players[0].velocity_x_q16 ||
         inspection.players[0].position_x_q16 <= landing_x ||
@@ -1054,7 +1055,7 @@ static int run_air_dodge_test(
     {
         (void)fprintf(
             stderr,
-            "m4-movement=fail operation=special-landing-exact-end"
+            "m4-movement=fail operation=special-landing-terminal-wait"
             " or-slide action=%u ticks=%u x=%" PRId32
             " landing_x=%" PRId32 " vx=%" PRId32
             " landing_vx=%" PRId32 "\n",
@@ -6283,8 +6284,8 @@ static int run_taunt_cancel_test(
         }
     }
     if (source_inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
-        source_inspection.players[0].action_ticks != UINT16_C(0) ||
+            (uint8_t)PF_M4_ACTION_STANDING_TURN ||
+        source_inspection.players[0].action_ticks != UINT16_C(1) ||
         !step_duel(
             source,
             INT16_C(0),
@@ -6292,11 +6293,14 @@ static int run_taunt_cancel_test(
             PF_INPUT_BUTTON_TAUNT,
             &source_inspection) ||
         source_inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+            (uint8_t)PF_M4_ACTION_STANDING_TURN)
     {
         (void)fprintf(
             stderr,
-            "m4-movement=fail operation=taunt-exact-end-or-held-repeat\n");
+            "m4-movement=fail operation=taunt-terminal-wait-callback"
+            " action=%u ticks=%u\n",
+            (unsigned int)source_inspection.players[0].action_state,
+            (unsigned int)source_inspection.players[0].action_ticks);
         return 0;
     }
 
@@ -15829,6 +15833,483 @@ static int run_ucf084_input_contract_test(
     return 1;
 }
 
+static int run_reference_callback_owner_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    typedef struct callback_owner_wait_case
+    {
+        uint8_t action_state;
+        uint16_t action_ticks;
+        uint16_t source_submotion;
+    } callback_owner_wait_case;
+    test_sim_storage storage;
+    pf_sim *sim = NULL;
+    pf_m4_inspection inspection;
+    const pf_m4_reference_move *jab =
+        pf_m4_falcon_reference_move(PF_M4_FALCON_JAB1);
+    const pf_m4_reference_move *down_tilt =
+        pf_m4_falcon_reference_move(PF_M4_FALCON_DOWN_TILT);
+    const callback_owner_wait_case wait_cases[] = {
+        {
+            (uint8_t)PF_M4_ACTION_RUN_BRAKE,
+            content->fighter.run_brake_ticks - UINT16_C(1),
+            (uint16_t)PF_M4_FALCON_SUBMOTION_RUN_BRAKE,
+        },
+        {
+            (uint8_t)PF_M4_ACTION_RUN_TURNAROUND,
+            content->fighter.run_turnaround_ticks,
+            (uint16_t)PF_M4_FALCON_SUBMOTION_TURN_RUN,
+        },
+        {
+            (uint8_t)PF_M4_ACTION_STANDING_TURN,
+            content->fighter.standing_turn_ticks - UINT16_C(1),
+            (uint16_t)PF_M4_FALCON_SUBMOTION_TURN,
+        },
+        {
+            (uint8_t)PF_M4_ACTION_INITIAL_DASH,
+            content->fighter.initial_dash_ticks - UINT16_C(1),
+            (uint16_t)PF_M4_FALCON_SUBMOTION_DASH,
+        },
+        {
+            (uint8_t)PF_M4_ACTION_TAUNT,
+            content->fighter.taunt_ticks - UINT16_C(1),
+            (uint16_t)PF_M4_FALCON_SUBMOTION_APPEAL_RIGHT,
+        },
+        {
+            (uint8_t)PF_M4_ACTION_SHIELD_RELEASE,
+            content->fighter.shield_release_ticks - UINT16_C(1),
+            (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD_OFF,
+        },
+        {
+            (uint8_t)PF_M4_ACTION_ROLL_FORWARD,
+            content->fighter.forward_roll_ticks,
+            (uint16_t)PF_M4_FALCON_SUBMOTION_ROLL_FORWARD,
+        },
+        {
+            (uint8_t)PF_M4_ACTION_SPOT_DODGE,
+            content->fighter.spot_dodge_ticks,
+            (uint16_t)PF_M4_FALCON_SUBMOTION_SPOT_DODGE,
+        },
+        {
+            (uint8_t)PF_M4_ACTION_LANDING,
+            content->fighter.landing_ticks - UINT16_C(1),
+            (uint16_t)PF_M4_FALCON_SUBMOTION_LANDING,
+        },
+        {
+            (uint8_t)PF_M4_ACTION_SPECIAL_LANDING,
+            content->fighter.special_landing_ticks - UINT16_C(1),
+            (uint16_t)PF_M4_FALCON_SUBMOTION_LANDING_FALL_SPECIAL,
+        },
+    };
+    uint32_t case_index;
+    const uint32_t neutral_aerial_ticks =
+        (uint32_t)content->fighter.aerial_startup_ticks +
+        (uint32_t)content->fighter.aerial_active_ticks +
+        (uint32_t)content->fighter.aerial_recovery_ticks;
+
+    if (jab == NULL || down_tilt == NULL ||
+        !initialize_sim(
+            &storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &sim) ||
+        !expect_status(
+            pf_sim_reset(sim, UINT64_C(0xca110001)),
+            PF_STATUS_OK,
+            "callback-owner-squat-control-reset"))
+    {
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0xca110005)),
+            PF_STATUS_OK,
+            "callback-owner-down-tilt-reset"))
+    {
+        return 0;
+    }
+    sim->world.action_state[0] = (uint8_t)PF_M4_ACTION_DOWN_ATTACK;
+    sim->world.action_ticks[0] = down_tilt->total_frames;
+    sim->world.attack_hit_mask[0] = UINT8_C(1);
+    sim->world.attack_stale_registered[0] = UINT8_C(1);
+    sim->world.previous_tilt_x_direction[0] = INT8_C(0);
+    sim->world.tilt_x_age[0] = UINT8_C(254);
+    if (!step_duel(
+            sim,
+            INT16_MAX,
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
+        inspection.players[0].action_ticks != UINT16_C(1) ||
+        inspection.players[0].attack_hit_mask != UINT8_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=callback-owner-down-tilt"
+            " action=%u ticks=%u mask=%u\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks,
+            (unsigned int)inspection.players[0].attack_hit_mask);
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0xca110006)),
+            PF_STATUS_OK,
+            "callback-owner-ground-attack-reset"))
+    {
+        return 0;
+    }
+    sim->world.action_state[0] = (uint8_t)PF_M4_ACTION_GROUND_ATTACK;
+    sim->world.action_ticks[0] = jab->total_frames;
+    sim->world.attack_hit_mask[0] = UINT8_C(1);
+    sim->world.previous_tilt_y_direction[0] = INT8_C(0);
+    sim->world.tilt_y_age[0] = UINT8_C(254);
+    if (!step_duel_trigger(
+            sim,
+            INT16_C(0),
+            INT16_MAX,
+            UINT64_C(0),
+            UINT16_MAX,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SPOT_DODGE ||
+        inspection.players[0].attack_hit_mask != UINT8_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=callback-owner-ground-attack"
+            " action=%u ticks=%u mask=%u\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks,
+            (unsigned int)inspection.players[0].attack_hit_mask);
+        return 0;
+    }
+    sim->world.action_state[0] = (uint8_t)PF_M4_ACTION_CROUCH_START;
+    sim->world.action_ticks[0] =
+        content->fighter.crouch_start_ticks - UINT16_C(1);
+    sim->world.source_submotion[0] =
+        (uint16_t)PF_M4_FALCON_SUBMOTION_SQUAT;
+    sim->world.previous_tilt_x_direction[0] = INT8_C(0);
+    sim->world.tilt_x_age[0] = UINT8_C(254);
+    if (!step_duel(
+            sim,
+            INT16_MAX,
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_CROUCH_START)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=callback-owner-squat-control"
+            " action=%u ticks=%u\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks);
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0xca110002)),
+            PF_STATUS_OK,
+            "callback-owner-squatwait-reset"))
+    {
+        return 0;
+    }
+    sim->world.action_state[0] = (uint8_t)PF_M4_ACTION_CROUCH_START;
+    sim->world.action_ticks[0] = content->fighter.crouch_start_ticks;
+    sim->world.source_submotion[0] =
+        (uint16_t)PF_M4_FALCON_SUBMOTION_SQUAT;
+    sim->world.previous_tilt_x_direction[0] = INT8_C(0);
+    sim->world.tilt_x_age[0] = UINT8_C(254);
+    if (!step_duel(
+            sim,
+            INT16_MAX,
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
+        inspection.players[0].action_ticks != UINT16_C(1))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=callback-owner-squatwait"
+            " action=%u ticks=%u\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks);
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0xca110003)),
+            PF_STATUS_OK,
+            "callback-owner-squatrv-control-reset"))
+    {
+        return 0;
+    }
+    sim->world.action_state[0] = (uint8_t)PF_M4_ACTION_CROUCH_END;
+    sim->world.action_ticks[0] =
+        content->fighter.crouch_end_ticks - UINT16_C(1);
+    sim->world.source_submotion[0] =
+        (uint16_t)PF_M4_FALCON_SUBMOTION_SQUAT_REVERSE;
+    sim->world.previous_tilt_y_direction[0] = INT8_C(0);
+    sim->world.tilt_y_age[0] = UINT8_C(254);
+    if (!step_duel_trigger(
+            sim,
+            INT16_C(0),
+            INT16_MAX,
+            UINT64_C(0),
+            UINT16_MAX,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=callback-owner-squatrv-control"
+            " action=%u ticks=%u\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks);
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0xca110004)),
+            PF_STATUS_OK,
+            "callback-owner-wait-reset"))
+    {
+        return 0;
+    }
+    sim->world.action_state[0] = (uint8_t)PF_M4_ACTION_CROUCH_END;
+    sim->world.action_ticks[0] = content->fighter.crouch_end_ticks;
+    sim->world.source_submotion[0] =
+        (uint16_t)PF_M4_FALCON_SUBMOTION_SQUAT_REVERSE;
+    sim->world.previous_tilt_y_direction[0] = INT8_C(0);
+    sim->world.tilt_y_age[0] = UINT8_C(254);
+    if (!step_duel_trigger(
+            sim,
+            INT16_C(0),
+            INT16_MAX,
+            UINT64_C(0),
+            UINT16_MAX,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SPOT_DODGE ||
+        sim->world.shield_stun_ticks[0] != UINT16_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=callback-owner-wait"
+            " action=%u ticks=%u\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks);
+        return 0;
+    }
+
+    for (case_index = UINT32_C(0);
+         case_index <
+             (uint32_t)(sizeof(wait_cases) / sizeof(wait_cases[0]));
+         ++case_index)
+    {
+        if (!expect_status(
+                pf_sim_reset(
+                    sim,
+                    UINT64_C(0xca120000) + (uint64_t)case_index),
+                PF_STATUS_OK,
+                "callback-owner-wait-table-reset"))
+        {
+            return 0;
+        }
+        sim->world.action_state[0] = wait_cases[case_index].action_state;
+        sim->world.action_ticks[0] = wait_cases[case_index].action_ticks;
+        sim->world.source_submotion[0] =
+            wait_cases[case_index].source_submotion;
+        sim->world.previous_tilt_y_direction[0] = INT8_C(0);
+        sim->world.tilt_y_age[0] = UINT8_C(254);
+        sim->world.shield_held[0] = UINT8_C(0);
+        if (!step_duel_trigger(
+                sim,
+                INT16_C(0),
+                INT16_MAX,
+                UINT64_C(0),
+                UINT16_MAX,
+                &inspection) ||
+            inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_SPOT_DODGE)
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=callback-owner-wait-table"
+                " case=%" PRIu32 " source_action=%u action=%u ticks=%u\n",
+                case_index,
+                (unsigned int)wait_cases[case_index].action_state,
+                (unsigned int)inspection.players[0].action_state,
+                (unsigned int)inspection.players[0].action_ticks);
+            return 0;
+        }
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0xca120100)),
+            PF_STATUS_OK,
+            "callback-owner-guard-reset"))
+    {
+        return 0;
+    }
+    sim->world.action_state[0] = (uint8_t)PF_M4_ACTION_SHIELD_STUN;
+    sim->world.action_ticks[0] = UINT16_C(1);
+    sim->world.source_submotion[0] =
+        (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD_SET_OFF;
+    sim->world.source_animation_frame_q16[0] = PF_Q16_ONE;
+    sim->world.source_animation_rate_q16[0] = PF_Q16_ONE;
+    sim->world.shield_stun_ticks[0] = UINT16_C(1);
+    sim->world.previous_tilt_y_direction[0] = INT8_C(0);
+    sim->world.tilt_y_age[0] = UINT8_C(254);
+    if (!step_duel_trigger(
+            sim,
+            INT16_C(0),
+            INT16_MAX,
+            UINT64_C(0),
+            UINT16_MAX,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SPOT_DODGE)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=callback-owner-guard"
+            " action=%u ticks=%u stun=%u\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks,
+            (unsigned int)sim->world.shield_stun_ticks[0]);
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0xca130000)),
+            PF_STATUS_OK,
+            "callback-owner-fall-cleanup-reset"))
+    {
+        return 0;
+    }
+    sim->world.grounded[0] = UINT8_C(0);
+    sim->world.support[0] = (uint8_t)PF_M4_SURFACE_NONE;
+    sim->world.position_y_q16[0] = INT32_C(50) * PF_Q16_ONE;
+    sim->world.action_state[0] = (uint8_t)PF_M4_ACTION_AERIAL_ATTACK;
+    sim->world.action_ticks[0] = (uint16_t)(neutral_aerial_ticks - UINT32_C(1));
+    sim->world.attack_hit_mask[0] = UINT8_C(1);
+    sim->world.attack_stale_registered[0] = UINT8_C(1);
+    if (!step_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AIRBORNE ||
+        inspection.players[0].attack_hit_mask != UINT8_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=callback-owner-fall-cleanup"
+            " action=%u ticks=%u mask=%u\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks,
+            (unsigned int)inspection.players[0].attack_hit_mask);
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0xca120101)),
+            PF_STATUS_OK,
+            "callback-owner-run-reset"))
+    {
+        return 0;
+    }
+    sim->world.action_state[0] =
+        (uint8_t)PF_M4_ACTION_RUN_TURNAROUND;
+    sim->world.action_ticks[0] = content->fighter.run_turnaround_ticks;
+    sim->world.source_submotion[0] =
+        (uint16_t)PF_M4_FALCON_SUBMOTION_TURN_RUN;
+    sim->world.facing[0] = INT8_C(-1);
+    sim->world.dash_direction[0] = INT8_C(-1);
+    if (!step_duel(
+            sim,
+            INT16_MIN,
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_RUN ||
+        inspection.players[0].action_ticks != UINT16_C(1) ||
+        inspection.players[0].dash_direction != INT8_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=callback-owner-run"
+            " action=%u ticks=%u dash=%d\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks,
+            (int)inspection.players[0].dash_direction);
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0xca130001)),
+            PF_STATUS_OK,
+            "callback-owner-fall-reset") ||
+        !start_aerial_attack(sim, 0, &inspection))
+    {
+        return 0;
+    }
+    while ((uint32_t)inspection.players[0].action_ticks + UINT32_C(1) <
+           neutral_aerial_ticks)
+    {
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection) ||
+            inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_AERIAL_ATTACK)
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=callback-owner-fall-setup"
+                " action=%u ticks=%u\n",
+                (unsigned int)inspection.players[0].action_state,
+                (unsigned int)inspection.players[0].action_ticks);
+            return 0;
+        }
+    }
+    if (!step_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_SPECIAL,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_FALCON_PUNCH_AIR)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=callback-owner-fall"
+            " action=%u ticks=%u\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks);
+        return 0;
+    }
+
+    return 1;
+}
+
 #define RUN_MOVEMENT_TEST(call)                                         \
     ((call) ? 1                                                        \
             : ((void)fprintf(                                         \
@@ -15860,6 +16341,7 @@ int main(void)
         !RUN_MOVEMENT_TEST(run_falcon_dive_source_data_test(&content)) ||
         !RUN_MOVEMENT_TEST(run_falcon_dive_behind_ledge_test(&content)) ||
         !RUN_MOVEMENT_TEST(run_ucf084_input_contract_test(&content, &view)) ||
+        !RUN_MOVEMENT_TEST(run_reference_callback_owner_test(&content, &view)) ||
         !RUN_MOVEMENT_TEST(run_run_brake_iasa_test(&content, &view)) ||
         !RUN_MOVEMENT_TEST(run_crouch_common_iasa_test(&content)) ||
         !RUN_MOVEMENT_TEST(run_ground_control_test(&content, &view)) ||

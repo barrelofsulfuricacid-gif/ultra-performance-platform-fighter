@@ -547,3 +547,21 @@ Process-local fighter addresses are also excluded. No other tolerance or field
 exclusion is allowed. Geometry import routes must use an active, non-hitlag
 sample; collision routes may use hitlag rows only for the already-completed
 collision outcome and response state.
+
+## Callback-owner replay repins require a causal boundary
+
+Changing common animation-before-IASA ordering may legitimately alter a wide
+replay tail, but equal Windows/WSL hashes alone are insufficient authorization
+to repin. The callback-owner slice compared a pre-projection binary with the
+new build and localized the first change: checkpoints 0 through 62 match, then
+zero-based fixture input tick 62 processes terminal Forward-Air Landing while
+full right is held. The new Wait callback enters Walk in that update; the old
+model inserted Idle. Only after that source-backed boundary was established
+were the active replay, verifier, registry, and browser derivatives updated.
+
+The resulting 42,555-byte corpus/final/event identities are
+`649b9ab2540b5e8d38b972756925b3349e82209235ed1aa8c58c8f51485ce1be`,
+`e4834ffac8b7be8ce77cf604710ca307caea512cca5eb00fae8487ca0fdc75b4`,
+and `787d63c5edf270cdc72d93dbe857c487bdc1ab7bdde59a1975299f1973fa7256`.
+The browser re-simulation contains 82 typed events; the two-event reduction is
+the removal of artificial intermediate action transitions, not lost evidence.
