@@ -6670,6 +6670,21 @@ pf_m4_reference_project_callback_owner(
         owner.action_ticks = UINT16_C(0);
         owner.entered_this_tick = UINT8_C(1);
     }
+    else if (action_state ==
+                 (uint8_t)PF_M4_ACTION_STRONG_AERIAL_ATTACK &&
+             (uint32_t)action_ticks + UINT32_C(1) >=
+                 (uint32_t)fighter->strong_startup_ticks +
+                     (uint32_t)fighter->strong_active_ticks +
+                     (uint32_t)fighter->strong_recovery_ticks)
+    {
+        /* AttackAir_Anim installs Fall before AttackAir IASA on the
+         * terminal frame. Strong aerials use the shared AttackAir callback
+         * in Melee, so they must expose Fall's EscapeAir/SpecialAir table on
+         * this update just like the imported light-aerial motions above. */
+        owner.action_state = (uint8_t)PF_M4_ACTION_AIRBORNE;
+        owner.action_ticks = UINT16_C(0);
+        owner.entered_this_tick = UINT8_C(1);
+    }
     else if (pf_m4_action_is_ground_attack(action_state) &&
              !pf_m4_action_is_smash_charge(action_state) &&
              action_state != (uint8_t)PF_M4_ACTION_RAPID_JAB_START &&

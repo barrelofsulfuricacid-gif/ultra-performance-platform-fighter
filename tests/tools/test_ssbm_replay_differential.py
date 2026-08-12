@@ -15,6 +15,7 @@ from ssbm_replay_differential import (  # noqa: E402
     ConfigurationError,
     classify_source_modifier,
     detect_ucf_dashback,
+    diagnostic_execution_reference,
     first_semantic_difference,
     native_input,
     qualify_segment,
@@ -276,6 +277,30 @@ class ReferenceQualificationTests(unittest.TestCase):
                 "ucf-revision-unproven",
                 "raw-main-y-unavailable",
             ],
+        )
+
+    def test_diagnostic_execution_allows_only_unknown_reference_provenance(self) -> None:
+        unknown = {
+            "status": "unsupported-reference-configuration",
+            "failures": ["disc-identity-unproven", "ucf-revision-unproven"],
+        }
+        execution = diagnostic_execution_reference(unknown, True)
+        self.assertIsNotNone(execution)
+        assert execution is not None
+        self.assertEqual(execution["status"], "exact")
+        self.assertEqual(
+            execution["execution_authority"],
+            "diagnostic-unverified-reference",
+        )
+        self.assertIsNone(diagnostic_execution_reference(unknown, False))
+        self.assertIsNone(
+            diagnostic_execution_reference(
+                {
+                    **unknown,
+                    "failures": ["disc-identity-mismatch"],
+                },
+                True,
+            )
         )
 
 

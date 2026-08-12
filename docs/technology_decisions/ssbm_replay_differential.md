@@ -130,6 +130,21 @@ reasons: disc identity unproven, UCF revision unproven, and raw main Y absent.
 No prior diagnostic candidate was silently promoted or reclassified as a
 production gap.
 
+The worker also has a deliberately separate discovery path for newer public
+replays. `--allow-unverified-reference` may execute a replay only when the
+recording says `UCF` and the extractor proves the complete serialized raw
+main pair; unknown disc/UCF provenance is retained in every segment as
+`reference_authority=diagnostic-unverified-reference`. Explicit provenance
+mismatches, malformed framing, and missing raw axes remain rejected. A current
+ranked-replay sample from the MIT-licensed
+`erickfm/melee-ranked-replays` dataset (dataset revision
+`11142d4b86d423716fdd2e9ca565de9bafc9d37e`) had a 64-byte pre-frame payload;
+one Battlefield Falcon anchor executed 47 frames and passed with zero
+candidates, but it is not an equivalence result because the source disc and
+exact UCF revision are not encoded by that replay. The ignored manifest and
+profile used for that run live under `build/` and are not part of the
+qualification registry.
+
 The exact contract is independently exercised by the raw UCF boundary
 `(processed X, raw X) = (0,0), (-0.5,-40), (-0.95,-76), (0,0)`: the production
 CSV runner reports `Standing -> Turn(frame 1) -> Dash(frame 1) -> Dash(frame 2)`
@@ -163,7 +178,19 @@ classifier/minimizer unit test; it should not download replays or launch
 Dolphin.
 
 A continuously running local worker can process new pinned manifest entries
-without Dolphin. Confirmed candidates then enter the existing fast checkpoint
-live-oracle lane after its active gameplay codes are provenance-checked. This
-division makes broad discovery inexpensive while keeping the pinned disc, code
+without Dolphin. The tracked implementation now exposes `watch`, which reruns
+only when the hash-pinned manifest changes, so a long-lived discovery process
+does not repeatedly launch the native runner while the corpus is unchanged:
+
+```powershell
+python tools/ssbm_replay_differential.py watch `
+  --runner build/windows-msvc-release/pf_m4_movement_trace.exe `
+  --interval-seconds 30
+```
+
+For discovery-only corpora, add `--allow-unverified-reference`; the report and
+exit status still distinguish those runs from exact-reference candidates.
+Confirmed candidates then enter the existing fast checkpoint live-oracle lane
+after its active gameplay codes are provenance-checked. This division makes
+broad discovery inexpensive while keeping the pinned disc, code
 configuration, decomp, and identical-input live capture as the authority.

@@ -8267,6 +8267,87 @@ static int run_falcon_aerial_iasa_test(const pf_content_view *view)
     return 1;
 }
 
+static int start_strong_aerial_attack(
+    pf_sim *sim,
+    int short_hop,
+    pf_m4_inspection *out_inspection);
+
+static int run_strong_aerial_terminal_iasa_test(
+    const pf_content_view *view)
+{
+    const pf_m4_content *content = (const pf_m4_content *)view->bytes;
+    uint32_t attack_ticks;
+    test_sim_storage storage;
+    pf_sim *sim = NULL;
+    pf_m4_inspection inspection;
+    uint32_t tick;
+
+    if (content == NULL)
+    {
+        return 0;
+    }
+    attack_ticks =
+        (uint32_t)content->fighter.strong_startup_ticks +
+        (uint32_t)content->fighter.strong_active_ticks +
+        (uint32_t)content->fighter.strong_recovery_ticks;
+    if (attack_ticks < UINT32_C(2) ||
+        !initialize_sim(
+            &storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &sim) ||
+        !expect_status(
+            pf_sim_reset(sim, UINT64_C(0xa31a5b)),
+            PF_STATUS_OK,
+            "strong-aerial-terminal-iasa-reset") ||
+        !start_strong_aerial_attack(sim, 0, &inspection))
+    {
+        return 0;
+    }
+
+    /* Leave the strong AttackAir on its last displayed frame. The next
+     * update is where Melee's animation callback installs Fall before IASA. */
+    for (tick = UINT32_C(0); tick + UINT32_C(1) < attack_ticks; ++tick)
+    {
+        if (!step_duel_trigger(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_STRONG_AERIAL_ATTACK ||
+        inspection.players[0].action_ticks !=
+            (uint16_t)(attack_ticks - UINT32_C(1)) ||
+        inspection.players[0].grounded != UINT8_C(0) ||
+        !step_duel_trigger(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AIR_DODGE ||
+        inspection.players[0].action_ticks != UINT16_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=strong-aerial-terminal-iasa"
+            " action=%u ticks=%u\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks);
+        return 0;
+    }
+    return 1;
+}
+
 static int run_air_facing_lock_test(const pf_content_view *view)
 {
     test_sim_storage storage;
@@ -16917,6 +16998,8 @@ int main(void)
             run_instant_double_jump_test(&content, &view)) ||
         (0 && !run_double_jump_cancel_test(&content, &view)) ||
         !RUN_MOVEMENT_TEST(run_falcon_aerial_iasa_test(&view)) ||
+        !RUN_MOVEMENT_TEST(
+            run_strong_aerial_terminal_iasa_test(&view)) ||
         !RUN_MOVEMENT_TEST(run_air_facing_lock_test(&view)) ||
         !RUN_MOVEMENT_TEST(run_air_dodge_test(&content, &view)) ||
         (0 && !run_ledge_cancel_test(&content)) ||

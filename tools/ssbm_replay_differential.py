@@ -52,6 +52,16 @@ SSBM_DASH = 20
 UCF_RAW_DELTA_THRESHOLD = 75
 PF_RAW_MAIN_AXIS_VALID_MASK = 0x03
 
+# A replay may have a complete, physically serialized raw input pair and the
+# recorded UCF family while still lacking an independently pinned disc/modifier
+# declaration.  Such a file is useful for divergence discovery, but it must
+# never silently become an equivalence result.  The diagnostic execution path
+# below permits only these two *unknown* provenance failures; explicit
+# mismatches, malformed framing, and missing raw axes remain fail-closed.
+DIAGNOSTIC_REFERENCE_FAILURES = frozenset(
+    {"disc-identity-unproven", "ucf-revision-unproven"}
+)
+
 
 class ConfigurationError(RuntimeError):
     """Raised when a manifest, profile, dependency, or runner is invalid."""
@@ -433,6 +443,34 @@ def reference_qualification(
         "observed_controller_fixes": observed_fixes,
         "input_provenance": input_provenance,
         "failures": failures,
+    }
+
+
+def diagnostic_execution_reference(
+    reference: dict[str, Any], allow_unverified: bool
+) -> dict[str, Any] | None:
+    """Return an execution-only reference view for bounded discovery.
+
+    Exact runs use the original reference result.  Diagnostic runs may
+    execute only when the replay has no explicit provenance mismatch and all
+    raw-input/layout checks passed; the returned copy marks the runner-side
+    view as exact solely so the existing 12-field raw-input contract is
+    required.  The caller retains the original qualification in its report.
+    """
+
+    if reference.get("status") == "exact":
+        return reference
+    if not allow_unverified:
+        return None
+    failures = reference.get("failures")
+    if not isinstance(failures, list):
+        return None
+    if set(str(value) for value in failures) - DIAGNOSTIC_REFERENCE_FAILURES:
+        return None
+    return {
+        **reference,
+        "status": "exact",
+        "execution_authority": "diagnostic-unverified-reference",
     }
 
 
@@ -1323,6 +1361,7 @@ def run_corpus(
     runner: Path,
     report_path: Path,
     maximum_anchors: int,
+    allow_unverified_reference: bool = False,
 ) -> int:
     started = time.perf_counter()
     manifest = load_json(manifest_path)
@@ -1351,12 +1390,18 @@ def run_corpus(
         "qualified_passes": 0,
         "unsupported_source_modifiers": 0,
         "semantic_differential_candidates": 0,
+        "diagnostic_unverified_references": 0,
     }
     report: dict[str, Any] = {
         "schema": "ssbm-replay-production-differential-v1",
         "scope": (
             "exact-reference-gated naturally anchored isolated prefixes; "
             "not arbitrary replay resumption or whole-game equivalence"
+            + (
+                "; diagnostic-unverified execution explicitly enabled"
+                if allow_unverified_reference
+                else ""
+            )
         ),
         "parser": manifest["parser"],
         "profile": {
@@ -1439,15 +1484,38 @@ def run_corpus(
             replay_report["anchors_found"] = len(anchors)
             summary["anchors_found"] += len(anchors)
             if reference["status"] != "exact":
-                # Keep parsing/anchor/provenance results, but never execute a
-                # source trace whose disc, UCF revision, or raw pair is
-                # unproven.
-                summary["unsupported_reference_configurations"] += 1
-                anchors = []
+                execution_reference = diagnostic_execution_reference(
+                    reference, allow_unverified_reference
+                )
+                if execution_reference is None:
+                    # Keep parsing/anchor/provenance results, but never execute
+                    # a source trace whose raw contract is incomplete or whose
+                    # declared disc/modifier explicitly disagrees.
+                    summary["unsupported_reference_configurations"] += 1
+                    anchors = []
+                else:
+                    summary["diagnostic_unverified_references"] += 1
+            else:
+                execution_reference = reference
+            if anchors:
+                if execution_reference is None:
+                    raise ConfigurationError(
+                        "internal reference execution state is missing"
+                    )
             for anchor in anchors[:maximum_anchors]:
                 segment = compare_segment(
-                    replay_path, replay, runner, *anchor, profile, reference
+                    replay_path,
+                    replay,
+                    runner,
+                    *anchor,
+                    profile,
+                    execution_reference,
                 )
+                if reference["status"] != "exact":
+                    segment["reference_authority"] = (
+                        "diagnostic-unverified-reference"
+                    )
+                    segment["reference_failures"] = reference["failures"]
                 replay_report["segments"].append(segment)
                 summary["anchors_executed"] += 1
                 summary["semantic_frames_checked"] += int(
@@ -1483,6 +1551,7 @@ def run_corpus(
         f"anchors-executed={summary['anchors_executed']} "
         f"frames={summary['semantic_frames_checked']} "
         f"unsupported-reference={summary['unsupported_reference_configurations']} "
+        f"diagnostic-unverified={summary['diagnostic_unverified_references']} "
         f"ucf-dashbacks={summary['ucf_dashback_boundaries_exercised']} "
         f"passes={summary['qualified_passes']} "
         f"unsupported-modifiers={summary['unsupported_source_modifiers']} "
@@ -1491,6 +1560,62 @@ def run_corpus(
         f"report={report_path}"
     )
     return 1 if summary["semantic_differential_candidates"] else 0
+
+
+def watch_corpus(
+    manifest_path: Path,
+    profile_path: Path,
+    work_dir: Path,
+    runner: Path,
+    report_path: Path,
+    maximum_anchors: int,
+    interval_seconds: float,
+    allow_unverified_reference: bool,
+) -> int:
+    """Keep a local replay lane hot as the pinned manifest grows.
+
+    The watcher is intentionally manifest-driven: a new or replaced replay
+    must be hash-pinned in the manifest before it is considered.  Unchanged
+    manifests are not rerun, so a long-lived process does not duplicate native
+    runner churn while a replay corpus is idle.  Ctrl+C stops the watcher and
+    preserves a non-zero result if any iteration found a candidate.
+    """
+
+    if interval_seconds <= 0:
+        raise ConfigurationError("watch interval must be positive")
+    previous_manifest_sha: str | None = None
+    last_result = 0
+    print(
+        "ssbm-replay-watch=started "
+        f"manifest={manifest_path} interval={interval_seconds:g}s"
+    )
+    try:
+        while True:
+            current_manifest_sha = sha256(manifest_path)
+            if current_manifest_sha != previous_manifest_sha:
+                print(
+                    "ssbm-replay-watch=run "
+                    f"manifest-sha256={current_manifest_sha}"
+                )
+                last_result = max(
+                    last_result,
+                    run_corpus(
+                        manifest_path,
+                        profile_path,
+                        work_dir,
+                        runner,
+                        report_path,
+                        maximum_anchors,
+                        allow_unverified_reference,
+                    ),
+                )
+                previous_manifest_sha = current_manifest_sha
+            else:
+                print("ssbm-replay-watch=idle")
+            time.sleep(interval_seconds)
+    except KeyboardInterrupt:
+        print("ssbm-replay-watch=stopped")
+    return last_result
 
 
 def parse_arguments(argv: list[str]) -> argparse.Namespace:
@@ -1534,6 +1659,54 @@ def parse_arguments(argv: list[str]) -> argparse.Namespace:
         default=ROOT / "build" / "ssbm-replay-differential" / "report.json",
     )
     run_parser.add_argument("--maximum-anchors-per-replay", type=int, default=16)
+    run_parser.add_argument(
+        "--allow-unverified-reference",
+        action="store_true",
+        help=(
+            "execute only raw-complete/UCF-labeled replays lacking external "
+            "disc/modifier proof; results are diagnostic, never equivalence"
+        ),
+    )
+    watch_parser = subparsers.add_parser(
+        "watch",
+        help=(
+            "keep a manifest-driven differential lane hot; rerun only when "
+            "the pinned manifest changes"
+        ),
+    )
+    watch_parser.add_argument(
+        "--manifest",
+        type=Path,
+        default=ROOT / "tools" / "ssbm_falcon_replay_corpus.json",
+    )
+    watch_parser.add_argument(
+        "--profile",
+        type=Path,
+        default=ROOT / "tools" / "ssbm_falcon_replay_profile.json",
+    )
+    watch_parser.add_argument(
+        "--work-dir",
+        type=Path,
+        default=ROOT / "build" / "ssbm-replay-differential",
+    )
+    watch_parser.add_argument("--runner", type=Path, required=True)
+    watch_parser.add_argument(
+        "--report",
+        type=Path,
+        default=ROOT / "build" / "ssbm-replay-differential" / "report.json",
+    )
+    watch_parser.add_argument("--maximum-anchors-per-replay", type=int, default=16)
+    watch_parser.add_argument(
+        "--interval-seconds", type=float, default=30.0
+    )
+    watch_parser.add_argument(
+        "--allow-unverified-reference",
+        action="store_true",
+        help=(
+            "execute only raw-complete/UCF-labeled replays lacking external "
+            "disc/modifier proof; results are diagnostic, never equivalence"
+        ),
+    )
     return parser.parse_args(argv)
 
 
@@ -1542,6 +1715,17 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.command == "bootstrap":
             return bootstrap(args.manifest.resolve(), args.work_dir.resolve())
+        if args.command == "watch":
+            return watch_corpus(
+                args.manifest.resolve(),
+                args.profile.resolve(),
+                args.work_dir.resolve(),
+                args.runner.resolve(),
+                args.report.resolve(),
+                args.maximum_anchors_per_replay,
+                args.interval_seconds,
+                args.allow_unverified_reference,
+            )
         return run_corpus(
             args.manifest.resolve(),
             args.profile.resolve(),
@@ -1549,6 +1733,7 @@ def main(argv: list[str] | None = None) -> int:
             args.runner.resolve(),
             args.report.resolve(),
             args.maximum_anchors_per_replay,
+            args.allow_unverified_reference,
         )
     except (ConfigurationError, json.JSONDecodeError) as error:
         print(f"ssbm-replay-differential=error detail={error}", file=sys.stderr)
