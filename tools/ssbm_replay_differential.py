@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+from concurrent.futures import Future, ThreadPoolExecutor
 import hashlib
 import io
 import json
@@ -330,6 +331,14 @@ def extract_replay(path: Path, parser_prefix: Path) -> dict[str, Any]:
     if not isinstance(extracted, dict):
         raise ConfigurationError(f"Slippi extractor root is not an object: {path.name}")
     return extracted
+
+
+def extract_replay_timed(
+    path: Path, parser_prefix: Path
+) -> tuple[dict[str, Any], float]:
+    started = time.perf_counter()
+    replay = extract_replay(path, parser_prefix)
+    return replay, time.perf_counter() - started
 
 
 def frame_map(replay: dict[str, Any]) -> dict[int, dict[str, Any]]:
@@ -1362,6 +1371,7 @@ def run_corpus(
     report_path: Path,
     maximum_anchors: int,
     allow_unverified_reference: bool = False,
+    extract_workers: int = 8,
 ) -> int:
     started = time.perf_counter()
     manifest = load_json(manifest_path)
@@ -1378,6 +1388,8 @@ def run_corpus(
         raise ConfigurationError(f"native runner not found: {runner}")
     if maximum_anchors <= 0:
         raise ConfigurationError("maximum anchors must be positive")
+    if extract_workers <= 0 or extract_workers > 32:
+        raise ConfigurationError("extract workers must be between 1 and 32")
 
     summary = {
         "replays": 0,
@@ -1421,6 +1433,7 @@ def run_corpus(
             "sha256": sha256(Path(__file__).resolve()),
             "extractor_path": str(EXTRACTOR),
             "extractor_sha256": sha256(EXTRACTOR),
+            "extract_workers": extract_workers,
         },
         "runner": {
             "path": str(runner),
@@ -1431,7 +1444,16 @@ def run_corpus(
         "summary": summary,
     }
     corpus_dir = work_dir / "corpus"
-    for entry in manifest["entries"]:
+    entries = iter(manifest["entries"])
+    pending: list[
+        tuple[dict[str, Any], Path, float, Future[tuple[dict[str, Any], float]]]
+    ] = []
+
+    def submit_next(executor: ThreadPoolExecutor) -> bool:
+        try:
+            entry = next(entries)
+        except StopIteration:
+            return False
         replay_started = time.perf_counter()
         replay_path = corpus_dir / str(entry["local_name"])
         valid, evidence = verify_replay(replay_path, entry)
@@ -1439,108 +1461,118 @@ def run_corpus(
             raise ConfigurationError(
                 f"replay provenance mismatch {replay_path.name}: {evidence}"
             )
-        parse_started = time.perf_counter()
-        replay = extract_replay(replay_path, work_dir)
-        parse_seconds = time.perf_counter() - parse_started
-        unsupported, limitations = validate_setup(replay, profile)
-        reference = reference_qualification(replay, entry, profile)
-        settings = replay.get("settings", {})
-        replay_report: dict[str, Any] = {
-            "file": replay_path.name,
-            "size": replay_path.stat().st_size,
-            "sha256": entry["sha256"],
-            "provenance": {
-                key: entry.get(key)
-                for key in ("source", "revision", "license", "path", "url")
-            },
-            "settings": {
-                "slp_version": settings.get("slpVersion"),
-                "stage_id": settings.get("stageId"),
-                "is_pal": settings.get("isPAL"),
-                "ports": [
-                    value.get("port") for value in settings.get("players", [])
-                ],
-                "characters": [
-                    value.get("characterId")
-                    for value in settings.get("players", [])
-                ],
-                "controller_fixes": [
-                    value.get("controllerFix")
-                    for value in settings.get("players", [])
-                ],
-            },
-            "unsupported_setup": unsupported,
-            "reference_qualification": reference,
-            "limitations": limitations,
-            "anchors_found": 0,
-            "segments": [],
-            "timing_seconds": {"parse": parse_seconds},
-        }
-        summary["replays"] += 1
-        if unsupported:
-            summary["unsupported_setups"] += 1
-        else:
-            anchors = find_anchors(replay, profile)
-            replay_report["anchors_found"] = len(anchors)
-            summary["anchors_found"] += len(anchors)
-            if reference["status"] != "exact":
-                execution_reference = diagnostic_execution_reference(
-                    reference, allow_unverified_reference
-                )
-                if execution_reference is None:
-                    # Keep parsing/anchor/provenance results, but never execute
-                    # a source trace whose raw contract is incomplete or whose
-                    # declared disc/modifier explicitly disagrees.
-                    summary["unsupported_reference_configurations"] += 1
-                    anchors = []
-                else:
-                    summary["diagnostic_unverified_references"] += 1
+        future = executor.submit(extract_replay_timed, replay_path, work_dir)
+        pending.append((entry, replay_path, replay_started, future))
+        return True
+
+    with ThreadPoolExecutor(
+        max_workers=extract_workers, thread_name_prefix="slp-extract"
+    ) as executor:
+        for _ in range(min(extract_workers, len(manifest["entries"]))):
+            submit_next(executor)
+        while pending:
+            entry, replay_path, replay_started, future = pending.pop(0)
+            replay, parse_seconds = future.result()
+            submit_next(executor)
+            unsupported, limitations = validate_setup(replay, profile)
+            reference = reference_qualification(replay, entry, profile)
+            settings = replay.get("settings", {})
+            replay_report: dict[str, Any] = {
+                "file": replay_path.name,
+                "size": replay_path.stat().st_size,
+                "sha256": entry["sha256"],
+                "provenance": {
+                    key: entry.get(key)
+                    for key in ("source", "revision", "license", "path", "url")
+                },
+                "settings": {
+                    "slp_version": settings.get("slpVersion"),
+                    "stage_id": settings.get("stageId"),
+                    "is_pal": settings.get("isPAL"),
+                    "ports": [
+                        value.get("port") for value in settings.get("players", [])
+                    ],
+                    "characters": [
+                        value.get("characterId")
+                        for value in settings.get("players", [])
+                    ],
+                    "controller_fixes": [
+                        value.get("controllerFix")
+                        for value in settings.get("players", [])
+                    ],
+                },
+                "unsupported_setup": unsupported,
+                "reference_qualification": reference,
+                "limitations": limitations,
+                "anchors_found": 0,
+                "segments": [],
+                "timing_seconds": {"parse": parse_seconds},
+            }
+            summary["replays"] += 1
+            if unsupported:
+                summary["unsupported_setups"] += 1
             else:
-                execution_reference = reference
-            if anchors:
-                if execution_reference is None:
-                    raise ConfigurationError(
-                        "internal reference execution state is missing"
-                    )
-            for anchor in anchors[:maximum_anchors]:
-                segment = compare_segment(
-                    replay_path,
-                    replay,
-                    runner,
-                    *anchor,
-                    profile,
-                    execution_reference,
-                )
+                anchors = find_anchors(replay, profile)
+                replay_report["anchors_found"] = len(anchors)
+                summary["anchors_found"] += len(anchors)
                 if reference["status"] != "exact":
-                    segment["reference_authority"] = (
-                        "diagnostic-unverified-reference"
+                    execution_reference = diagnostic_execution_reference(
+                        reference, allow_unverified_reference
                     )
-                    segment["reference_failures"] = reference["failures"]
-                replay_report["segments"].append(segment)
-                summary["anchors_executed"] += 1
-                summary["semantic_frames_checked"] += int(
-                    segment["semantic_frames_checked"]
-                )
-                summary["ucf_dashback_boundaries_exercised"] += len(
-                    segment["ucf_dashback_boundaries_exercised"]
-                )
-                status = segment["status"]
-                if status == "qualified-pass":
-                    summary["qualified_passes"] += 1
-                elif status == "unsupported-source-modifier":
-                    summary["unsupported_source_modifiers"] += 1
-                elif status == "semantic-differential-candidate":
-                    summary["semantic_differential_candidates"] += 1
-                print(
-                    "ssbm-replay-segment "
-                    f"file={replay_path.name} anchor={anchor[0]} "
-                    f"player={anchor[1]} status={status} "
-                    f"checked={segment['semantic_frames_checked']}"
-                )
-        replay_report["timing_seconds"]["total"] = (
-            time.perf_counter() - replay_started
-        )
-        report["replays"].append(replay_report)
+                    if execution_reference is None:
+                        # Keep parsing/anchor/provenance results, but never execute
+                        # a source trace whose raw contract is incomplete or whose
+                        # declared disc/modifier explicitly disagrees.
+                        summary["unsupported_reference_configurations"] += 1
+                        anchors = []
+                    else:
+                        summary["diagnostic_unverified_references"] += 1
+                else:
+                    execution_reference = reference
+                if anchors:
+                    if execution_reference is None:
+                        raise ConfigurationError(
+                            "internal reference execution state is missing"
+                        )
+                for anchor in anchors[:maximum_anchors]:
+                    segment = compare_segment(
+                        replay_path,
+                        replay,
+                        runner,
+                        *anchor,
+                        profile,
+                        execution_reference,
+                    )
+                    if reference["status"] != "exact":
+                        segment["reference_authority"] = (
+                            "diagnostic-unverified-reference"
+                        )
+                        segment["reference_failures"] = reference["failures"]
+                    replay_report["segments"].append(segment)
+                    summary["anchors_executed"] += 1
+                    summary["semantic_frames_checked"] += int(
+                        segment["semantic_frames_checked"]
+                    )
+                    summary["ucf_dashback_boundaries_exercised"] += len(
+                        segment["ucf_dashback_boundaries_exercised"]
+                    )
+                    status = segment["status"]
+                    if status == "qualified-pass":
+                        summary["qualified_passes"] += 1
+                    elif status == "unsupported-source-modifier":
+                        summary["unsupported_source_modifiers"] += 1
+                    elif status == "semantic-differential-candidate":
+                        summary["semantic_differential_candidates"] += 1
+                    print(
+                        "ssbm-replay-segment "
+                        f"file={replay_path.name} anchor={anchor[0]} "
+                        f"player={anchor[1]} status={status} "
+                        f"checked={segment['semantic_frames_checked']}"
+                    )
+            replay_report["timing_seconds"]["total"] = (
+                time.perf_counter() - replay_started
+            )
+            report["replays"].append(replay_report)
     report["timing_seconds"] = {"total": time.perf_counter() - started}
     report_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
@@ -1571,6 +1603,7 @@ def watch_corpus(
     maximum_anchors: int,
     interval_seconds: float,
     allow_unverified_reference: bool,
+    extract_workers: int = 8,
 ) -> int:
     """Keep a local replay lane hot as the pinned manifest grows.
 
@@ -1607,6 +1640,7 @@ def watch_corpus(
                         report_path,
                         maximum_anchors,
                         allow_unverified_reference,
+                        extract_workers,
                     ),
                 )
                 previous_manifest_sha = current_manifest_sha
@@ -1660,6 +1694,12 @@ def parse_arguments(argv: list[str]) -> argparse.Namespace:
     )
     run_parser.add_argument("--maximum-anchors-per-replay", type=int, default=16)
     run_parser.add_argument(
+        "--extract-workers",
+        type=int,
+        default=8,
+        help="number of bounded parallel Slippi parser workers (1-32)",
+    )
+    run_parser.add_argument(
         "--allow-unverified-reference",
         action="store_true",
         help=(
@@ -1697,6 +1737,12 @@ def parse_arguments(argv: list[str]) -> argparse.Namespace:
     )
     watch_parser.add_argument("--maximum-anchors-per-replay", type=int, default=16)
     watch_parser.add_argument(
+        "--extract-workers",
+        type=int,
+        default=8,
+        help="number of bounded parallel Slippi parser workers (1-32)",
+    )
+    watch_parser.add_argument(
         "--interval-seconds", type=float, default=30.0
     )
     watch_parser.add_argument(
@@ -1725,6 +1771,7 @@ def main(argv: list[str] | None = None) -> int:
                 args.maximum_anchors_per_replay,
                 args.interval_seconds,
                 args.allow_unverified_reference,
+                args.extract_workers,
             )
         return run_corpus(
             args.manifest.resolve(),
@@ -1734,6 +1781,7 @@ def main(argv: list[str] | None = None) -> int:
             args.report.resolve(),
             args.maximum_anchors_per_replay,
             args.allow_unverified_reference,
+            args.extract_workers,
         )
     except (ConfigurationError, json.JSONDecodeError) as error:
         print(f"ssbm-replay-differential=error detail={error}", file=sys.stderr)

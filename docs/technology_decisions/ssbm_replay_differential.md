@@ -145,6 +145,20 @@ exact UCF revision are not encoded by that replay. The ignored manifest and
 profile used for that run live under `build/` and are not part of the
 qualification registry.
 
+The larger discovery sweep uses the pinned MIT-licensed
+[melee-ranked-replays dataset](https://huggingface.co/datasets/erickfm/melee-ranked-replays)
+revision `11142d4b86d423716fdd2e9ca565de9bafc9d37e`. Its Falcon archive has
+782 files; the first 300 were hash-pinned and run through the worker. The
+bounded eight-worker parser completed in 224.764 seconds with 300 parsed
+replays, 259 anchors found, 53 diagnostic comparisons, and 1,303 checked
+semantic frames. It recorded 21 diagnostic passes, 3 UCF dashback-boundary
+observations, and 32 deterministic diagnostic candidates. Since the corpus
+does not prove the exact disc image or UCF revision, every one of those
+comparisons remains `diagnostic-unverified-reference`; this pass is useful for
+finding candidate prefixes, not for claiming exact SSBM equivalence. The
+ignored report is `build/slippi-differential/ranked-300-report.json` and the
+300-entry manifest is `build/slippi-differential/ranked-300-manifest.json`.
+
 The exact contract is independently exercised by the raw UCF boundary
 `(processed X, raw X) = (0,0), (-0.5,-40), (-0.95,-76), (0,0)`: the production
 CSV runner reports `Standing -> Turn(frame 1) -> Dash(frame 1) -> Dash(frame 2)`
@@ -185,7 +199,8 @@ does not repeatedly launch the native runner while the corpus is unchanged:
 ```powershell
 python tools/ssbm_replay_differential.py watch `
   --runner build/windows-msvc-release/pf_m4_movement_trace.exe `
-  --interval-seconds 30
+  --interval-seconds 30 `
+  --extract-workers 8
 ```
 
 For discovery-only corpora, add `--allow-unverified-reference`; the report and
