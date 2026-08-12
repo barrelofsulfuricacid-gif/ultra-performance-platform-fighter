@@ -13,10 +13,12 @@ sys.path.insert(0, str(ROOT / "tools"))
 
 from ssbm_replay_differential import (  # noqa: E402
     ConfigurationError,
+    PHYSICAL_L,
     classify_source_modifier,
     detect_ucf_dashback,
     diagnostic_execution_reference,
     first_semantic_difference,
+    input_trigger,
     native_input,
     qualify_segment,
     reference_qualification,
@@ -188,6 +190,16 @@ def complete_pre(raw_x: int | None = -76, raw_y: int | None = 4) -> dict:
 
 
 class NativeInputContractTests(unittest.TestCase):
+    def test_analog_endpoint_preserves_digital_trigger_click(self) -> None:
+        self.assertEqual(input_trigger(1.0), 65534)
+        pre = complete_pre()
+        pre["physicalLTrigger"] = 1.0
+        analog_fields = native_input(pre, 1, True).split(",")
+        self.assertEqual(analog_fields[4], "65534")
+        pre["physicalButtons"] = PHYSICAL_L
+        digital_fields = native_input(pre, 1, True).split(",")
+        self.assertEqual(digital_fields[4], "65535")
+
     def test_exact_raw_pair_uses_production_mask_three(self) -> None:
         fields = native_input(complete_pre(), 1, True).split(",")
         self.assertEqual(len(fields), 12)

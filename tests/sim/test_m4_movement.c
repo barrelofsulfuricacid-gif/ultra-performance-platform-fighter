@@ -15844,6 +15844,112 @@ static int run_ucf084_input_contract_test(
     }
 
     if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0x0cf08406)),
+            PF_STATUS_OK,
+            "source-wavedash-early-reset"))
+    {
+        return 0;
+    }
+    sim->world.action_state[0] = (uint8_t)PF_M4_ACTION_JUMP_SQUAT;
+    sim->world.action_ticks[0] =
+        content->fighter.jump_squat_ticks - UINT16_C(2);
+    if (!step_duel_trigger(
+            sim,
+            -INT16_C(24575),
+            INT16_C(21299),
+            UINT64_C(0),
+            UINT16_MAX,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_JUMP_SQUAT ||
+        inspection.players[0].grounded == UINT8_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=source-wavedash-early "
+            "action=%u ticks=%u grounded=%u\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks,
+            (unsigned int)inspection.players[0].grounded);
+        return 0;
+    }
+    if (!step_duel_trigger(
+            sim,
+            -INT16_C(24575),
+            INT16_C(21299),
+            UINT64_C(0),
+            UINT16_MAX,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AIRBORNE ||
+        inspection.players[0].grounded != UINT8_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=source-wavedash-early-held "
+            "action=%u ticks=%u grounded=%u\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks,
+            (unsigned int)inspection.players[0].grounded);
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0x0cf08407)),
+            PF_STATUS_OK,
+            "source-wavedash-terminal-reset"))
+    {
+        return 0;
+    }
+    sim->world.action_state[0] = (uint8_t)PF_M4_ACTION_JUMP_SQUAT;
+    sim->world.action_ticks[0] =
+        content->fighter.jump_squat_ticks - UINT16_C(2);
+    if (!step_duel_trigger(
+            sim,
+            -INT16_C(24575),
+            INT16_C(21299),
+            UINT64_C(0),
+            UINT16_C(65534),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_JUMP_SQUAT ||
+        inspection.players[0].grounded == UINT8_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=source-wavedash-analog-stage "
+            "action=%u ticks=%u grounded=%u\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks,
+            (unsigned int)inspection.players[0].grounded);
+        return 0;
+    }
+    if (!step_duel_trigger(
+            sim,
+            -INT16_C(24575),
+            INT16_C(21299),
+            UINT64_C(0),
+            UINT16_MAX,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SPECIAL_LANDING ||
+        inspection.players[0].action_ticks != UINT16_C(0) ||
+        inspection.players[0].grounded == UINT8_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=source-wavedash-terminal "
+            "action=%u ticks=%u grounded=%u vx=%" PRId32
+            " vy=%" PRId32 "\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks,
+            (unsigned int)inspection.players[0].grounded,
+            inspection.players[0].velocity_x_q16,
+            inspection.players[0].velocity_y_q16);
+        return 0;
+    }
+
+    if (!expect_status(
             pf_sim_reset(sim, UINT64_C(0x0cf08404)),
             PF_STATUS_OK,
             "source-jump-aerial-age-reset"))

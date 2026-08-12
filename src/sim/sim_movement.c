@@ -6528,6 +6528,64 @@ static void pf_m4_enter_double_jump(
         pf_m4_falcon_jump_submotion(input, facing, 1);
 }
 
+static void pf_m4_enter_ground_jump(
+    const pf_m4_fighter_data *fighter,
+    const pf_input_frame *input,
+    uint8_t short_hop_latched,
+    int8_t facing,
+    int32_t *velocity_x,
+    int32_t *velocity_y,
+    uint16_t *action_ticks,
+    uint16_t *source_submotion,
+    uint8_t *grounded,
+    uint8_t *action_state,
+    uint8_t *support,
+    uint8_t *short_hop_latched_out,
+    uint8_t *fast_fall,
+    uint8_t *tilt_y_age)
+{
+    const int32_t carried_velocity_x = pf_m4_multiply_q16(
+        *velocity_x,
+        fighter->jump_horizontal_momentum_multiplier_q16);
+    const int32_t input_velocity_x = pf_m4_scale_axis_q16(
+        input->main_stick_x,
+        fighter->jump_horizontal_input_speed_q16);
+    const int64_t requested_velocity_x =
+        (int64_t)carried_velocity_x + (int64_t)input_velocity_x;
+
+    if (requested_velocity_x <
+        -(int64_t)fighter->jump_horizontal_max_speed_q16)
+    {
+        *velocity_x = -fighter->jump_horizontal_max_speed_q16;
+    }
+    else if (requested_velocity_x >
+             (int64_t)fighter->jump_horizontal_max_speed_q16)
+    {
+        *velocity_x = fighter->jump_horizontal_max_speed_q16;
+    }
+    else
+    {
+        *velocity_x = (int32_t)requested_velocity_x;
+    }
+    *velocity_y =
+        -(short_hop_latched == UINT8_C(1)
+              ? fighter->short_hop_speed_q16
+              : fighter->full_hop_speed_q16);
+    *grounded = UINT8_C(0);
+    *support = (uint8_t)PF_M4_SURFACE_NONE;
+    *action_state = (uint8_t)PF_M4_ACTION_AIRBORNE;
+    *action_ticks = UINT16_C(0);
+    *source_submotion =
+        pf_m4_falcon_jump_submotion(input, facing, 0);
+    *short_hop_latched_out = UINT8_C(0);
+    *fast_fall = UINT8_C(0);
+    if (fighter->reference_frame_data_enabled != UINT8_C(0))
+    {
+        /* ftCo_Jump_Enter resets x671 but not UCF's x674 timer. */
+        *tilt_y_age = UINT8_C(254);
+    }
+}
+
 static void pf_m4_enter_platform_pass(
     const pf_m4_fighter_data *fighter,
     int32_t *position_y,
@@ -6615,6 +6673,17 @@ pf_m4_reference_project_callback_owner(
         action_ticks >= fighter->crouch_start_ticks)
     {
         owner.action_state = (uint8_t)PF_M4_ACTION_CROUCH;
+        owner.action_ticks = UINT16_C(0);
+        owner.entered_this_tick = UINT8_C(1);
+    }
+    else if (action_state == (uint8_t)PF_M4_ACTION_JUMP_SQUAT &&
+             (uint32_t)action_ticks + UINT32_C(1) >=
+                 (uint32_t)fighter->jump_squat_ticks)
+    {
+        /* KneeBend_Anim installs JumpF/B before IASA. Jump's aerial option
+         * table therefore owns the takeoff update, including EscapeAir for
+         * a frame-perfect wavedash. */
+        owner.action_state = (uint8_t)PF_M4_ACTION_AIRBORNE;
         owner.action_ticks = UINT16_C(0);
         owner.entered_this_tick = UINT8_C(1);
     }
@@ -7722,6 +7791,30 @@ pf_status pf_m4_step_player(
         {
             scratch->powershield[player_index] = UINT8_C(0);
         }
+    }
+    if (callback_owner.entered_this_tick != UINT8_C(0) &&
+        previous_action_state == (uint8_t)PF_M4_ACTION_JUMP_SQUAT &&
+        callback_owner.action_state == (uint8_t)PF_M4_ACTION_AIRBORNE)
+    {
+        /* Anim changed KneeBend to Jump before this update's IASA. Apply the
+         * Jump entry state now so SpecialAir/EscapeAir/AttackAir observe the
+         * same takeoff velocity and airborne collision owner. */
+        pf_m4_enter_ground_jump(
+            fighter,
+            input,
+            short_hop_latched,
+            facing,
+            &velocity_x,
+            &velocity_y,
+            &action_ticks,
+            &source_submotion,
+            &grounded,
+            &action_state,
+            &support,
+            &short_hop_latched,
+            &fast_fall,
+            &tilt_y_age);
+        launched_this_tick = 1;
     }
     scratch->horizontal_input_age[player_index] =
         world->horizontal_input_age[player_index] < UINT8_C(254)
@@ -11792,48 +11885,21 @@ pf_status pf_m4_step_player(
         }
         if (action_ticks >= fighter->jump_squat_ticks)
         {
-            const int32_t carried_velocity_x = pf_m4_multiply_q16(
-                velocity_x,
-                fighter->jump_horizontal_momentum_multiplier_q16);
-            const int32_t input_velocity_x = pf_m4_scale_axis_q16(
-                input->main_stick_x,
-                fighter->jump_horizontal_input_speed_q16);
-            const int64_t requested_velocity_x =
-                (int64_t)carried_velocity_x +
-                (int64_t)input_velocity_x;
-
-            if (requested_velocity_x <
-                -(int64_t)fighter->jump_horizontal_max_speed_q16)
-            {
-                velocity_x =
-                    -fighter->jump_horizontal_max_speed_q16;
-            }
-            else if (requested_velocity_x >
-                     (int64_t)fighter->jump_horizontal_max_speed_q16)
-            {
-                velocity_x =
-                    fighter->jump_horizontal_max_speed_q16;
-            }
-            else
-            {
-                velocity_x = (int32_t)requested_velocity_x;
-            }
-            velocity_y =
-                -(short_hop_latched == UINT8_C(1)
-                      ? fighter->short_hop_speed_q16
-                      : fighter->full_hop_speed_q16);
-            grounded = UINT8_C(0);
-            support = (uint8_t)PF_M4_SURFACE_NONE;
-            action_state = (uint8_t)PF_M4_ACTION_AIRBORNE;
-            action_ticks = UINT16_C(0);
-            short_hop_latched = UINT8_C(0);
-            fast_fall = UINT8_C(0);
-            if (fighter->reference_frame_data_enabled != UINT8_C(0))
-            {
-                /* ftCo_Jump_Enter resets x671 without resetting UCF's
-                 * separate x674 continuity timer. */
-                tilt_y_age = UINT8_C(254);
-            }
+            pf_m4_enter_ground_jump(
+                fighter,
+                input,
+                short_hop_latched,
+                facing,
+                &velocity_x,
+                &velocity_y,
+                &action_ticks,
+                &source_submotion,
+                &grounded,
+                &action_state,
+                &support,
+                &short_hop_latched,
+                &fast_fall,
+                &tilt_y_age);
             launched_this_tick = 1;
         }
     }

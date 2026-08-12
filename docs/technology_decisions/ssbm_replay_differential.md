@@ -148,7 +148,7 @@ qualification registry.
 The larger discovery sweep uses the pinned MIT-licensed
 [melee-ranked-replays dataset](https://huggingface.co/datasets/erickfm/melee-ranked-replays)
 revision `11142d4b86d423716fdd2e9ca565de9bafc9d37e`. Its Falcon archive has
-782 files; the first 300 were hash-pinned and run through the worker. The
+782 files. An initial 300 were hash-pinned and run through the worker. The
 bounded eight-worker parser completed in 224.764 seconds with 300 parsed
 replays, 259 anchors found, 53 diagnostic comparisons, and 1,303 checked
 semantic frames. It recorded 21 diagnostic passes, 3 UCF dashback-boundary
@@ -159,10 +159,35 @@ finding candidate prefixes, not for claiming exact SSBM equivalence. The
 ignored report is `build/slippi-differential/ranked-300-report.json` and the
 300-entry manifest is `build/slippi-differential/ranked-300-manifest.json`.
 
+The complete follow-up hash-pins and executes all 782 downloaded Falcon files.
+Its manifest SHA-256 is
+`f42d437ee166b07502a7af8316aa2ee0b473ea487802b1327ae673171493b477`.
+Eight parser workers completed in 777.694 seconds: 328 natural anchors were
+found, 111 diagnostic comparisons executed, 2,475 semantic frames were
+checked, 39 prefixes passed, 7 UCF dashback boundaries were exercised, and 72
+deterministic candidates remained. The ignored report is
+`build/slippi-differential/ranked-782-report.json`, SHA-256
+`154ae335f86fa91aa6bbc5fe0bb0a6908d594efd44f0d220bcdba27e238a6e8f`.
+All results retain `diagnostic-unverified-reference`; archive size does not
+replace exact disc and modifier provenance.
+
+Two independent ranked replays exposed one shared input/callback boundary.
+Pinned `ftCo_KneeBend_Anim` changes to Jump before that update's IASA, so a
+terminal KneeBend update can consume EscapeAir and collide into
+LandingFallSpecial immediately. Slippi pre-frame input also showed analog L at
+its endpoint on the preceding frame and the physical L bit rising only on the
+terminal update. The compact production input convention reserves
+`UINT16_MAX` for the digital click; the replay adapter now caps an unclicked
+analog endpoint at `65534` and emits `65535` only for the physical L/R bit.
+Production factors one ground-jump entry and projects terminal JumpSquat to its
+new airborne callback owner before IASA. The minimized replay advances through
+the wavedash after this correction; its next mismatch is a later 96-Q16 aerial
+horizontal-velocity residual, which remains a separate candidate.
+
 The exact contract is independently exercised by the raw UCF boundary
 `(processed X, raw X) = (0,0), (-0.5,-40), (-0.95,-76), (0,0)`: the production
 CSV runner reports `Standing -> Turn(frame 1) -> Dash(frame 1) -> Dash(frame 2)`
-with the UCF-facing flip. Fifteen focused Python tests cover exact/unknown
+with the UCF-facing flip. Eighteen focused Python tests cover exact/unknown
 reference classification, missing raw Y, the strict 75/76 delta edge, mirrored
 raw X, mask `3`, and deterministic prefix minimization.
 

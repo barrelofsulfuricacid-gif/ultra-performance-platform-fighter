@@ -6970,3 +6970,28 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   registry passes three Windows runs in 919.758-1,031.223 ms and three WSL
   runs in 1,394.273-1,589.864 ms under manifest SHA-256
   `f8637c42927fe1df228d4225607cbadd9211eae7a60a075e11c60f92e869b938`.
+
+## 2026-08-12: complete 782-replay Falcon diagnostic sweep and wavedash boundary
+
+- Downloaded and SHA-256-manifested all 782 Falcon `.slp` files in the pinned
+  MIT-ranked archive at dataset revision
+  `11142d4b86d423716fdd2e9ca565de9bafc9d37e`. The ignored full manifest hashes
+  to `f42d437ee166b07502a7af8316aa2ee0b473ea487802b1327ae673171493b477`.
+- The eight-worker run completed in 777.694 seconds: 782 parsed replays, 328
+  natural anchors, 111 executable diagnostics, 2,475 checked semantic frames,
+  39 passes, 7 UCF dashback boundaries, and 72 deterministic candidates. The
+  ignored report hashes to
+  `154ae335f86fa91aa6bbc5fe0bb0a6908d594efd44f0d220bcdba27e238a6e8f`.
+  Every result remains diagnostic because the public files do not independently
+  prove the exact disc image and UCF revision.
+- Two independent replay prefixes exposed terminal KneeBend callback ownership
+  and two-stage L input. Pinned Melee source installs Jump before IASA on the
+  takeoff update; the source analog trigger endpoint can precede the physical
+  L click by one frame. Production now shares one ground-jump entry and routes
+  the terminal update through the new airborne callback owner. The replay
+  adapter caps unclicked analog at `65534` and reserves `65535` for the physical
+  click, preserving the fresh EscapeAir edge.
+- The minimized replay now matches through LandingFallSpecial and proceeds to
+  a separate later 96-Q16 aerial horizontal-velocity residual. Eighteen focused
+  Python tests and focused Windows/WSL movement tests cover the analog-to-click
+  positive sequence plus the early-click-held negative control.

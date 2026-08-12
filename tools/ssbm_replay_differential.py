@@ -642,7 +642,11 @@ def input_axis(value: float) -> int:
 
 
 def input_trigger(value: float) -> int:
-    return max(0, min(65535, round(value * 65535.0)))
+    # Melee exposes the analog trigger travel and the final digital L/R click
+    # independently. The production input contract reserves UINT16_MAX for
+    # that click, so a physically unclicked analog endpoint must not consume
+    # the digital edge one frame early.
+    return max(0, min(65534, round(value * 65535.0)))
 
 
 def native_input(
