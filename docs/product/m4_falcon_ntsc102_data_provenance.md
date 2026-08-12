@@ -1998,3 +1998,11 @@ The domain is registered in the shared 27-domain / 164-case stored lane. Its
 direct comparator passes with Windows MSVC and WSL GCC, the complete stored
 gate passes in 1.614/1.385 seconds respectively, both full Release suites pass
 41/41, and focused WSL ASan/UBSan movement passes.
+
+The companion `tools/ssbm_falcon_crouch_up_special_coverage.json` applies the
+same verified callback-body interpretation to SquatWait and SquatRv. Axial and
+diagonal up-B from both phases produce two byte-identical 106-row captures at
+raw SHA-256
+`527980419abfc7afdf7b698e65be21b0ed31e70a94a3443abd0a425da9ab29f4`;
+source and Windows/WSL production share semantic SHA-256
+`3117c2767a723556602b43caf5b34cd9a0376f854adcd3f0f4f49d7c1c11bba6`.

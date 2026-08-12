@@ -455,3 +455,8 @@ KneeBend through a real jump edge and proves up-B, up-B+Z priority, and side-B
 rejection. All 18 action/tick/facing/grounded samples match production exactly
 at semantic SHA-256
 `0695488cb8bff660bfabe69298f366ed7bbbfed4348330636b04f87bff43aa17`.
+
+The same body audit closes SquatWait and SquatRv: each calls down special and
+then up special, while omitting side and neutral. Production expresses this as
+the up+down capability mask for Crouch/CrouchEnd. Four natural axial/diagonal
+routes match source for all 106 action/tick/facing/grounded observations.

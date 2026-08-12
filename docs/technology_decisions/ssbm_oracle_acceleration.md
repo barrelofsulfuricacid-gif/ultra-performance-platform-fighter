@@ -322,12 +322,12 @@ Idle animation phase can vary between otherwise equivalent boots, so the
 verifier pins the ordered action/frame/Q16.16 payload and explicit physical
 discriminator instead of hashing incidental idle rows.
 
-The registry currently contains 27 domains and 164 cases. Independent
+The registry currently contains 28 domains and 168 cases. Independent
 domain generation and execution run concurrently; each native-CSV domain also
 runs its independent cases concurrently, and both levels restore manifest
 order before counting or hashing. The complete stored gate, including
-deterministic replay, most recently measured 1.614 seconds on native Windows
-and 1.385 seconds in WSL.
+deterministic replay, most recently measured 1.293 seconds on native Windows
+and 0.979 seconds in WSL.
 Numeric C cases may narrow a domain's inherited serialized-field mask when a
 physical setup intentionally isolates only part of the response; the generated
 C always writes an explicit zero for inherited masks so GCC and MSVC apply the

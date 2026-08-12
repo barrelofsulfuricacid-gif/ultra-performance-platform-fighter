@@ -6572,7 +6572,8 @@ static uint8_t pf_m4_reference_action_special_capabilities(
     if (action_state == (uint8_t)PF_M4_ACTION_CROUCH ||
         action_state == (uint8_t)PF_M4_ACTION_CROUCH_END)
     {
-        return (uint8_t)PF_M4_REFERENCE_SPECIAL_DOWN;
+        return (uint8_t)(PF_M4_REFERENCE_SPECIAL_UP |
+                         PF_M4_REFERENCE_SPECIAL_DOWN);
     }
     if (action_state == (uint8_t)PF_M4_ACTION_JUMP_SQUAT)
     {

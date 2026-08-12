@@ -6427,3 +6427,15 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   1.614 seconds on Windows and 1.385 seconds in WSL. Direct live/native
   comparison passes on both platforms, both full Release suites pass 41/41,
   and focused WSL ASan/UBSan movement passes.
+## 2026-08-12: crouch up-special callback fidelity
+
+- `ftCo_SquatWait_IASA` and `ftCo_SquatRv_IASA` call down special, then the
+  misleadingly named up-special dispatcher. Production now returns the
+  existing up+down capability bits for Crouch/CrouchEnd instead of down only.
+- Four natural axial/diagonal cases prove grounded Falcon Dive from both
+  source phases. Two 106-row captures repeat byte-identically at raw SHA-256
+  `527980419abfc7afdf7b698e65be21b0ed31e70a94a3443abd0a425da9ab29f4`;
+  Windows and WSL production match source exactly at canonical SHA-256
+  `3117c2767a723556602b43caf5b34cd9a0376f854adcd3f0f4f49d7c1c11bba6`.
+- The complete 28-domain / 168-case registry plus replay passes in 1.293
+  seconds on Windows and 0.979 seconds in WSL.

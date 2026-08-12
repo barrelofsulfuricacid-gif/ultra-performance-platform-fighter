@@ -46,6 +46,7 @@
     "tools/ssbm_falcon_aerial_attack_landing_coverage.json",
     "tools/ssbm_falcon_special_acquisition_coverage.json",
     "tools/ssbm_falcon_kneebend_up_special_coverage.json",
+    "tools/ssbm_falcon_crouch_up_special_coverage.json",
     "tools/ssbm_falcon_air_neutral_turn_coverage.json",
     "tools/ssbm_falcon_teeter_special_coverage.json",
     "tools/ssbm_falcon_guardoff_acquisition_coverage.json",
