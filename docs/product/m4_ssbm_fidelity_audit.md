@@ -756,6 +756,11 @@ so this correction adds no canonical state or public action.
 Two independent 322-row captures prove all five discriminators and
 canonicalize identically. The complete 29-case source and production trace is
 byte-exact at
-`0ca93dea87caf0f2911a16806e7402bbff054a0278ad2029a925d23f742f2fe1`.
+`a6b654c96b35d73122adc4d6ad92cf7d4b1c0fe064ebf466012094397b31522b`.
+The contract now includes both velocity channels and relative position for
+all five entry-provenance cases. It imports PlCo x54=0.75 and reproduces
+Dash-IASA fallthrough before Guard/Appeal stationary-ground friction. Only
+the accumulated 1-2-Q16 roll/DashAttack X-position rows are narrowly excluded;
+their velocities and every other field remain exact.
 This closes the represented entry-provenance split, not every uncaptured
 simultaneous-input combination or later Dash callback.

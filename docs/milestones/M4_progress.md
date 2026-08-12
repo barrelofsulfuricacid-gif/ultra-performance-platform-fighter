@@ -6905,3 +6905,26 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   `fb0f4e7251e70f7660801222b5b5a2627e9c45e1b56b7d5763035947cb553d1c`;
   final/event hashes remain `5a7db4a5e899b1af31909f7997dcb1a08226aec79f4f09fab7422fe9602f246f`
   and `787d63c5edf270cdc72d93dbe857c487bdc1ab7bdde59a1975299f1973fa7256`.
+
+## 2026-08-12: InitialDash acquired-state motion hardening
+
+- Widening the same two live captures from action/facing/grounding to velocity
+  and relative position exposed two non-Q16 gaps: early Dash -> Appeal and
+  Turn-origin Dash -> Guard retained excessive Dash speed despite selecting the
+  correct action.
+- Pinned `ftCo_Dash_IASA` falls through after both successful callbacks and
+  applies PlCo x54 before Appeal/Guard physics. The importer now owns x54=0.75;
+  production uses one shared reference stationary-ground-friction primitive
+  for Guard, GuardOn/Off/SetOff, and Appeal while preserving authored content.
+- The widened 29-case / 322-row source and production traces are byte-exact at
+  `a6b654c96b35d73122adc4d6ad92cf7d4b1c0fe064ebf466012094397b31522b`.
+  Only accumulated 1-2-Q16 RollForward/DashAttack X-position rows are excluded;
+  their velocities and all other stored motion fields remain exact. Generated
+  oracle SHA-256 is
+  `ebcf57082b682c7d9e982d7c2e2d3bec1dd99cbde8428d58b55c1bb696635630`.
+- The full 35-domain / 228-case Windows registry passes three isolated runs in
+  891.754-1,043.521 ms under manifest SHA-256
+  `3723c3ef7d08336bf65208f90cda02e5f49f6a0434e2fa0763bbe1eebce643c1`.
+  Three independent WSL/GCC runs take 1,183.405-1,546.116 ms. The corrected
+  eight-match rollback/replay verifier soak is compiler-identical at digest
+  `9796fb602c19ced2`.

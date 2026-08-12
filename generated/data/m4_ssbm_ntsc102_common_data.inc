@@ -240,6 +240,7 @@ pf_m4_ssbm_ground_input_attribute_data = {
     INT32_C(11556),
     INT32_C(20036),
     INT32_C(11556),
+    INT32_C(49152),
 };
 
 static const pf_m4_ssbm_rebirth_attributes

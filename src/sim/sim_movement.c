@@ -2125,6 +2125,46 @@ static int32_t pf_m4_falcon_source_ground_friction(
                : common->friction_q16;
 }
 
+static int32_t pf_m4_stationary_ground_friction(
+    const pf_m4_fighter_data *fighter,
+    int32_t velocity_x_q16)
+{
+    const int32_t speed_q16 = velocity_x_q16 < INT32_C(0)
+                                  ? -velocity_x_q16
+                                  : velocity_x_q16;
+
+    if (fighter->reference_frame_data_enabled != UINT8_C(0))
+    {
+        const pf_m4_falcon_common_special_attributes *common_special =
+            pf_m4_falcon_reference_common_special_attributes();
+
+        if (common_special != NULL)
+        {
+            /* ft_80084F3C/ft_80084FA8 share this exact stationary-ground
+             * primitive for Guard, GuardOn/Off/SetOff and Appeal. */
+            return speed_q16 > fighter->walk_speed_q16
+                       ? pf_m4_multiply_q16(
+                             fighter->traction_q16,
+                             common_special
+                                 ->fast_ground_friction_multiplier_q16)
+                       : fighter->traction_q16;
+        }
+    }
+    return speed_q16 > fighter->walk_speed_q16
+               ? fighter->turn_acceleration_q16
+               : fighter->traction_q16;
+}
+
+static int32_t pf_m4_apply_initial_dash_iasa_tail(
+    const pf_m4_ssbm_ground_input_attributes *ground_input,
+    int32_t velocity_x_q16)
+{
+    return pf_m4_multiply_q16(
+        velocity_x_q16,
+        (int32_t)PF_Q16_ONE -
+            ground_input->initial_dash_iasa_velocity_decay_q16);
+}
+
 static int32_t pf_m4_falcon_kick_parallel_velocity(
     int32_t unscaled_velocity_q16,
     int32_t applied_friction_q16,
@@ -9970,6 +10010,16 @@ pf_status pf_m4_step_player(
             action_state = (uint8_t)PF_M4_ACTION_SHIELD;
             dash_direction = INT8_C(0);
             if (source_ground_input != NULL &&
+                callback_owner.action_state ==
+                    (uint8_t)PF_M4_ACTION_INITIAL_DASH)
+            {
+                /* Successful Guard acquisition falls through ftCo_Dash_IASA
+                 * and applies x54 before the newly installed Guard physics. */
+                velocity_x = pf_m4_apply_initial_dash_iasa_tail(
+                    source_ground_input,
+                    velocity_x);
+            }
+            if (source_ground_input != NULL &&
                 ((callback_owner.action_state ==
                          (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
                      reference_current_anim_frame >
@@ -10112,6 +10162,16 @@ pf_status pf_m4_step_player(
     {
         action_state = (uint8_t)PF_M4_ACTION_TAUNT;
         action_ticks = UINT16_C(0);
+        if (source_ground_input != NULL &&
+            callback_owner.action_state ==
+                (uint8_t)PF_M4_ACTION_INITIAL_DASH)
+        {
+            /* Appeal succeeds without returning from ftCo_Dash_IASA, so x54
+             * is applied before Appeal's first physics callback. */
+            velocity_x = pf_m4_apply_initial_dash_iasa_tail(
+                source_ground_input,
+                velocity_x);
+        }
         short_hop_latched = UINT8_C(0);
         dash_direction = INT8_C(0);
         scratch->powershield[player_index] = UINT8_C(0);
@@ -10151,10 +10211,7 @@ pf_status pf_m4_step_player(
         velocity_x = pf_m4_approach(
             velocity_x,
             INT32_C(0),
-            velocity_x > fighter->walk_speed_q16 ||
-                    velocity_x < -fighter->walk_speed_q16
-                ? fighter->turn_acceleration_q16
-                : fighter->traction_q16);
+            pf_m4_stationary_ground_friction(fighter, velocity_x));
         if (was_shielding)
         {
             scratch->shield_health_q16[player_index] =
@@ -10253,10 +10310,7 @@ pf_status pf_m4_step_player(
         velocity_x = pf_m4_approach(
             velocity_x,
             INT32_C(0),
-            velocity_x > fighter->walk_speed_q16 ||
-                    velocity_x < -fighter->walk_speed_q16
-                ? fighter->turn_acceleration_q16
-                : fighter->traction_q16);
+            pf_m4_stationary_ground_friction(fighter, velocity_x));
         if (resumed_hitlag_motion_this_tick == 0 &&
             scratch->shield_stun_ticks[player_index] >
             UINT16_C(0))
@@ -10290,10 +10344,7 @@ pf_status pf_m4_step_player(
         velocity_x = pf_m4_approach(
             velocity_x,
             INT32_C(0),
-            velocity_x > fighter->walk_speed_q16 ||
-                    velocity_x < -fighter->walk_speed_q16
-                ? fighter->turn_acceleration_q16
-                : fighter->traction_q16);
+            pf_m4_stationary_ground_friction(fighter, velocity_x));
         if (scratch->powershield[player_index] != UINT8_C(0) &&
             fighter->powershield_cancel_enabled != UINT8_C(0) &&
             action_ticks >=
@@ -11157,7 +11208,7 @@ pf_status pf_m4_step_player(
         velocity_x = pf_m4_approach(
             velocity_x,
             INT32_C(0),
-            fighter->traction_q16);
+            pf_m4_stationary_ground_friction(fighter, velocity_x));
         ++action_ticks;
         if (action_ticks >= fighter->taunt_ticks)
         {

@@ -144,6 +144,7 @@ typedef struct pf_m4_ssbm_ground_input_attributes
     int32_t forward_tilt_inner_angle_tan_q16;
     int32_t forward_smash_outer_angle_tan_q16;
     int32_t forward_smash_inner_angle_tan_q16;
+    int32_t initial_dash_iasa_velocity_decay_q16;
 } pf_m4_ssbm_ground_input_attributes;
 
 typedef struct pf_m4_ssbm_rebirth_attributes

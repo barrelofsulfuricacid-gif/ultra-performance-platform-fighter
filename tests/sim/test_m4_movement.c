@@ -15973,6 +15973,10 @@ static int run_initial_dash_origin_callback_test(
 {
     const pf_m4_ssbm_ground_input_attributes *ground_input =
         pf_m4_ssbm_common_reference_ground_input();
+    const pf_m4_falcon_common_attributes *common =
+        pf_m4_falcon_reference_common_attributes();
+    const pf_m4_falcon_common_special_attributes *common_special =
+        pf_m4_falcon_reference_common_special_attributes();
     test_sim_storage storage;
     test_sim_storage loaded_storage;
     pf_sim *sim = NULL;
@@ -15981,11 +15985,17 @@ static int run_initial_dash_origin_callback_test(
     uint8_t save_bytes[2048];
     pf_mut_bytes destination;
     pf_bytes source;
+    int32_t entry_velocity_x;
+    int32_t expected_velocity_x;
 
-    if (ground_input == NULL ||
+    if (ground_input == NULL || common == NULL || common_special == NULL ||
+        common_special->fast_ground_friction_multiplier_q16 !=
+            INT32_C(131072) ||
         ground_input->initial_dash_early_end_frame != UINT16_C(4) ||
         ground_input->initial_dash_forward_roll_end_frame != UINT16_C(3) ||
         ground_input->initial_dash_special_end_frame != UINT16_C(20) ||
+        ground_input->initial_dash_iasa_velocity_decay_q16 !=
+            INT32_C(49152) ||
         !initialize_sim(
             &storage,
             view,
@@ -16094,6 +16104,12 @@ static int run_initial_dash_origin_callback_test(
     {
         return 0;
     }
+    entry_velocity_x = inspection.players[0].velocity_x_q16;
+    expected_velocity_x = pf_m4_multiply_q16(
+        entry_velocity_x,
+        (int32_t)PF_Q16_ONE -
+            ground_input->initial_dash_iasa_velocity_decay_q16);
+    expected_velocity_x += common->friction_q16;
     destination.bytes = save_bytes;
     destination.capacity = sizeof(save_bytes);
     destination.size = (size_t)0;
@@ -16121,16 +16137,19 @@ static int run_initial_dash_origin_callback_test(
             &inspection) ||
         inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_SHIELD ||
+        inspection.players[0].velocity_x_q16 !=
+            expected_velocity_x ||
         loaded->world.guard_dash_grab_window_ticks[0] != UINT8_C(0))
     {
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=initial-dash-turn-shield"
-            " action=%u phase=%d window=%u\n",
+            " action=%u phase=%d window=%u velocity_x=%" PRId32 "\n",
             (unsigned int)inspection.players[0].action_state,
             (int)loaded->world.dash_direction[0],
             (unsigned int)
-                loaded->world.guard_dash_grab_window_ticks[0]);
+                loaded->world.guard_dash_grab_window_ticks[0],
+            inspection.players[0].velocity_x_q16);
         return 0;
     }
 
@@ -16143,8 +16162,17 @@ static int run_initial_dash_origin_callback_test(
             INT16_MAX,
             INT16_C(0),
             UINT64_C(0),
-            &inspection) ||
-        !step_duel(
+            &inspection))
+    {
+        return 0;
+    }
+    entry_velocity_x = inspection.players[0].velocity_x_q16;
+    expected_velocity_x = pf_m4_multiply_q16(
+        entry_velocity_x,
+        (int32_t)PF_Q16_ONE -
+            ground_input->initial_dash_iasa_velocity_decay_q16);
+    expected_velocity_x -= common->friction_q16;
+    if (!step_duel(
             sim,
             INT16_MAX,
             INT16_C(0),
@@ -16152,14 +16180,17 @@ static int run_initial_dash_origin_callback_test(
             &inspection) ||
         inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_TAUNT ||
-        inspection.players[0].action_ticks != UINT16_C(1))
+        inspection.players[0].action_ticks != UINT16_C(1) ||
+        inspection.players[0].velocity_x_q16 !=
+            expected_velocity_x)
     {
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=initial-dash-taunt"
-            " action=%u ticks=%u\n",
+            " action=%u ticks=%u velocity_x=%" PRId32 "\n",
             (unsigned int)inspection.players[0].action_state,
-            (unsigned int)inspection.players[0].action_ticks);
+            (unsigned int)inspection.players[0].action_ticks,
+            inspection.players[0].velocity_x_q16);
         return 0;
     }
     return 1;

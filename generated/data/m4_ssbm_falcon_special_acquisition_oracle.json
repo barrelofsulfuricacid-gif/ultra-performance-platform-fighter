@@ -234,11 +234,22 @@
         "action_state",
         "action_ticks",
         "facing",
-        "grounded"
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
       ]
     },
     {
-      "field_exclusions": {},
+      "field_exclusions": {
+        "position_x_q16_from_origin": [
+          [
+            9,
+            13
+          ]
+        ]
+      },
       "id": "dash_turn_origin_early_attack",
       "input_runs": [
         {
@@ -268,11 +279,22 @@
         "action_state",
         "action_ticks",
         "facing",
-        "grounded"
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
       ]
     },
     {
-      "field_exclusions": {},
+      "field_exclusions": {
+        "position_x_q16_from_origin": [
+          [
+            2,
+            6
+          ]
+        ]
+      },
       "id": "dash_ordinary_early_shield",
       "input_runs": [
         {
@@ -294,7 +316,11 @@
         "action_state",
         "action_ticks",
         "facing",
-        "grounded"
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
       ]
     },
     {
@@ -335,7 +361,11 @@
         "action_state",
         "action_ticks",
         "facing",
-        "grounded"
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
       ]
     },
     {
@@ -361,7 +391,11 @@
         "action_state",
         "action_ticks",
         "facing",
-        "grounded"
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
       ]
     },
     {
@@ -857,7 +891,7 @@
   ],
   "domain": "falcon-common-special-acquisition",
   "kind": "native-csv-trace-v1",
-  "production_trace_sha256": "0ca93dea87caf0f2911a16806e7402bbff054a0278ad2029a925d23f742f2fe1",
+  "production_trace_sha256": "a6b654c96b35d73122adc4d6ad92cf7d4b1c0fe064ebf466012094397b31522b",
   "schema": 1,
-  "source_trace_sha256": "0ca93dea87caf0f2911a16806e7402bbff054a0278ad2029a925d23f742f2fe1"
+  "source_trace_sha256": "a6b654c96b35d73122adc4d6ad92cf7d4b1c0fe064ebf466012094397b31522b"
 }

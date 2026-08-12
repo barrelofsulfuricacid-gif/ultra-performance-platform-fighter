@@ -11367,7 +11367,7 @@ static int run_shield_state_test(
             UINT16_C(0),
             &inspection) ||
         inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
+            (uint8_t)PF_M4_ACTION_ROLL_FORWARD ||
         inspection.players[0].shield_health_q16 !=
             content->fighter.shield_health_q16 ||
         !expect_status(
@@ -11375,7 +11375,7 @@ static int run_shield_state_test(
             PF_STATUS_OK,
             "shield-state-reset"))
     {
-        return fail("initial-dash-cannot-shield");
+        return fail("initial-dash-early-shield-roll");
     }
     for (tick = UINT32_C(0);
          tick <

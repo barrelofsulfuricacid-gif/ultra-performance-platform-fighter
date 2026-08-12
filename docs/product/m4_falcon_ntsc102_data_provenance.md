@@ -2392,15 +2392,20 @@ F-smash/EscapeF block or DashAttack/Guard block before joining the Appeal tail.
 The owner-supplied PlCo DAT remains SHA-256
 `63841336337eb5a7366b06ccc60ea4bd37c3604ab56e19939d78b9aa9cdd234c`.
 The importer now reads x48 as integer float 3 and validates
-`0 < x48 <= x44 < x4C` before emitting its typed field. Production stores x4
-provenance in the magnitude of the existing signed InitialDash phase byte; no
-new save or replay field is introduced.
+`0 < x48 <= x44 < x4C` before emitting its typed field. It also imports x54 as
+Q16 49152 (0.75), the velocity fraction removed by the successful Dash-IASA
+tail. Production stores x4 provenance in the magnitude of the existing signed
+InitialDash phase byte; no new save or replay field is introduced.
 
 The final live artifacts hash to
 `750800f604c03baed6c74870b43b624957cb65a89a8570c1f905b608eb1021c3`
 and `fb59fd9809c4f805436cfa0e298e9b4b452b562e6a489fb542147393d112cb15`.
-Their 322 rows and Windows/WSL production canonicalize exactly to
-`0ca93dea87caf0f2911a16806e7402bbff054a0278ad2029a925d23f742f2fe1`.
+Their 322 rows and production canonicalize exactly to
+`a6b654c96b35d73122adc4d6ad92cf7d4b1c0fe064ebf466012094397b31522b`
+after widening the five entry-provenance cases to both velocity channels and
+relative position. The only excluded motion samples are the accumulated
+1-2-Q16 X-position drift in the existing RollForward and DashAttack roots;
+the corresponding velocities remain exact.
 Checkpoint work took 9.065739 and 9.480028 seconds; complete capture
 lifecycles took 13.320399 and 13.347289 seconds. No web probe or new native
 runner was added.

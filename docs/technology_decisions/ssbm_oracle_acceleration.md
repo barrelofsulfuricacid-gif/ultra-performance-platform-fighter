@@ -636,11 +636,13 @@ snapshot-stable, and avoids duplicate actions.
 The existing special-acquisition protocol absorbed five cases: ordinary/Turn
 early A, ordinary/Turn early shield, and ordinary early taunt. Its generic
 input grammar gained Appeal, but no new protocol, probe, or runner was created.
-Two 322-row captures canonicalize identically; the 29-case source/production
-digest is
-`0ca93dea87caf0f2911a16806e7402bbff054a0278ad2029a925d23f742f2fe1`.
+Two 322-row captures canonicalize identically. The five provenance cases now
+store both velocity channels and relative position, exposing and closing the
+Dash-IASA x54 fallthrough plus target-state friction gap. The strengthened
+29-case source/production digest is
+`a6b654c96b35d73122adc4d6ad92cf7d4b1c0fe064ebf466012094397b31522b`.
 
 The current registry contains 35 domains / 228 cases under manifest SHA-256
-`53b22294f20946ec42cc32eb89d72d2b32b3c19d050996f3fd1585d43dffc39f`.
-Three isolated Windows runs take 888.277-1,118.575 ms and three WSL runs take
-1,068.334-1,205.796 ms. Earlier counts and timings above remain historical.
+`3723c3ef7d08336bf65208f90cda02e5f49f6a0434e2fa0763bbe1eebce643c1`.
+Three isolated Windows runs take 891.754-1,043.521 ms and three WSL runs take
+1,183.405-1,546.116 ms. Earlier counts and timings above remain historical.

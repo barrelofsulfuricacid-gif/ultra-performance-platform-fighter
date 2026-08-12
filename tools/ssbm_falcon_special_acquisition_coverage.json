@@ -365,8 +365,8 @@
   },
   "stored_oracle": {
     "kind": "native-csv-trace-v1",
-    "source_trace_sha256": "0ca93dea87caf0f2911a16806e7402bbff054a0278ad2029a925d23f742f2fe1",
-    "production_trace_sha256": "0ca93dea87caf0f2911a16806e7402bbff054a0278ad2029a925d23f742f2fe1",
+    "source_trace_sha256": "a6b654c96b35d73122adc4d6ad92cf7d4b1c0fe064ebf466012094397b31522b",
+    "production_trace_sha256": "a6b654c96b35d73122adc4d6ad92cf7d4b1c0fe064ebf466012094397b31522b",
     "require_exact_source_match": true,
     "serialized_fields": [
       "action_state",
@@ -505,6 +505,11 @@
         "runner_arguments": [],
         "source_label_prefix": "special_acquisition_dash_ordinary_early_attack_",
         "sample_count": 6,
+        "serialized_fields": [
+          "action_state", "action_ticks", "facing", "grounded",
+          "position_x_q16_from_origin", "position_y_q16_from_origin",
+          "velocity_x_q16", "velocity_y_q16"
+        ],
         "action_mapping": {
           "FSMASH_MID": { "action_state": 91, "action_tick_offset": 0 }
         },
@@ -519,6 +524,14 @@
         "runner_arguments": [],
         "source_label_prefix": "special_acquisition_dash_turn_origin_early_attack_",
         "sample_count": 13,
+        "serialized_fields": [
+          "action_state", "action_ticks", "facing", "grounded",
+          "position_x_q16_from_origin", "position_y_q16_from_origin",
+          "velocity_x_q16", "velocity_y_q16"
+        ],
+        "field_exclusions": {
+          "position_x_q16_from_origin": [[9, 13]]
+        },
         "input_phases": [
           { "ticks": 1, "lanes": [{ "main": [-16384, 0] }, {}] },
           { "ticks": 1, "lanes": [{}, {}] },
@@ -532,6 +545,14 @@
         "runner_arguments": [],
         "source_label_prefix": "special_acquisition_dash_ordinary_early_shield_",
         "sample_count": 6,
+        "serialized_fields": [
+          "action_state", "action_ticks", "facing", "grounded",
+          "position_x_q16_from_origin", "position_y_q16_from_origin",
+          "velocity_x_q16", "velocity_y_q16"
+        ],
+        "field_exclusions": {
+          "position_x_q16_from_origin": [[2, 6]]
+        },
         "input_phases": [
           { "ticks": 1, "lanes": [{ "main": [32767, 0] }, {}] },
           { "ticks": 1, "lanes": [{ "main": [32767, 0], "left_trigger": 65535 }, {}] },
@@ -543,6 +564,11 @@
         "runner_arguments": [],
         "source_label_prefix": "special_acquisition_dash_turn_origin_early_shield_",
         "sample_count": 13,
+        "serialized_fields": [
+          "action_state", "action_ticks", "facing", "grounded",
+          "position_x_q16_from_origin", "position_y_q16_from_origin",
+          "velocity_x_q16", "velocity_y_q16"
+        ],
         "field_exclusions": {
           "action_ticks": [[8, 13]]
         },
@@ -559,6 +585,11 @@
         "runner_arguments": [],
         "source_label_prefix": "special_acquisition_dash_ordinary_early_taunt_",
         "sample_count": 6,
+        "serialized_fields": [
+          "action_state", "action_ticks", "facing", "grounded",
+          "position_x_q16_from_origin", "position_y_q16_from_origin",
+          "velocity_x_q16", "velocity_y_q16"
+        ],
         "input_phases": [
           { "ticks": 1, "lanes": [{ "main": [32767, 0] }, {}] },
           { "ticks": 1, "lanes": [{ "main": [32767, 0], "buttons": ["taunt"] }, {}] },

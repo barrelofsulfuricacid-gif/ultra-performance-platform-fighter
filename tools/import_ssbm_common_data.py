@@ -119,6 +119,7 @@ def generate(raw: bytes) -> str:
     initial_dash_early_end_frame = f32(0x044)
     initial_dash_forward_roll_end_frame = f32(0x048)
     initial_dash_special_end_frame = f32(0x04C)
+    initial_dash_iasa_velocity_decay = f32(0x054)
     throw_animation_weight_scale = f32(0x37C)
     grab_release_air_speed_x = f32(0x374)
     grab_release_air_speed_y = f32(0x378)
@@ -240,6 +241,7 @@ def generate(raw: bytes) -> str:
         or not initial_dash_early_end_frame
         < initial_dash_special_end_frame
         <= 0xFFFF
+        or not 0.0 < initial_dash_iasa_velocity_decay < 1.0
         or not 0.0 < throw_animation_weight_scale <= 1.0
         or not 0.0 < grab_release_air_speed_x <= 16.0
         or not 0.0 < grab_release_air_speed_y <= 16.0
@@ -512,6 +514,9 @@ def generate(raw: bytes) -> str:
         "initial_dash_special_end_frame": int(
             initial_dash_special_end_frame
         ),
+        "initial_dash_iasa_velocity_decay_q16": q16(
+            initial_dash_iasa_velocity_decay
+        ),
         "running_jump_axis_threshold": round(
             running_jump_axis_threshold * 32767.0
         ),
@@ -743,6 +748,7 @@ def generate(raw: bytes) -> str:
             f"    INT32_C({ground_input_attributes['forward_tilt_inner_angle_tan_q16']}),",
             f"    INT32_C({ground_input_attributes['forward_smash_outer_angle_tan_q16']}),",
             f"    INT32_C({ground_input_attributes['forward_smash_inner_angle_tan_q16']}),",
+            f"    INT32_C({ground_input_attributes['initial_dash_iasa_velocity_decay_q16']}),",
             "};",
             "",
             "static const pf_m4_ssbm_rebirth_attributes",
