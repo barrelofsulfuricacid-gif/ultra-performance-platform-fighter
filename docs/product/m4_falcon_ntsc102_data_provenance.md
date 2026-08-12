@@ -2358,3 +2358,24 @@ replay repins to 42,559 bytes with corpus/final/event SHA-256
 `116fb683a6aa5ff1f63ccec3b082fdce351eb985a1ef02214631ff7e80f36394`,
 `5a7db4a5e899b1af31909f7997dcb1a08226aec79f4f09fab7422fe9602f246f`,
 and `787d63c5edf270cdc72d93dbe857c487bdc1ab7bdde59a1975299f1973fa7256`.
+
+### Walk reversal callback tail
+
+Pinned decomp revision `9509dc04406fb2028bfab01243841ba4787c0fb7`
+owns this source boundary. Normalized SHA-256 values are
+`d516033baa4231fc8817415ccb905c75b519f2075a39a7e0883340dd53cce41b`
+for `ftCo_Walk.c`,
+`9be77a62c71de895e8638d123e022f7e7909d33e63e24188f1b38f32d6bc3c4c`
+for `ft_08A1.c`, and
+`23fd2ad0af701c320fb24f6b5e7406971d7c31060b87916a20b242c076d10f7c`
+for `ftCo_Dash.c`. Together they establish Dash-before-Wait ordering and the
+opposite-facing predicate; no authored movement constant or guessed frame
+window is introduced.
+
+Both final live artifacts hash to
+`e4193dce5d782716f41d35b7495e94a345142412c0dbc4813aa430907a998a3a`.
+Their 278 rows and the Windows production trace canonicalize exactly to
+`5a22a6f401df8a8557bd2ac16b5c3dd34211cf825f302a9f81db2f4e2897253f`.
+The parallel captures report 9.559/9.639-second lifecycles and
+10.466/10.540-second parent warm totals. No new protocol, runner, public
+state, snapshot byte, or web probe was added.

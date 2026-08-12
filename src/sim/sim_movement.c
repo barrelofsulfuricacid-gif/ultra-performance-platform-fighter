@@ -12635,6 +12635,27 @@ pf_status pf_m4_step_player(
                     dash_direction = INT8_C(0);
                 }
             }
+            else if (source_ground_input != NULL &&
+                     action_state ==
+                         (uint8_t)PF_M4_ACTION_WALK &&
+                     ground_horizontal_direction == -facing)
+            {
+                /* Walk checks Dash before its generic Wait transition.  A
+                 * fresh full reversal was consumed above; every remaining
+                 * opposite-facing walk input reaches ft_8008A244 and enters
+                 * Wait instead of starting a basic Turn. */
+                action_state =
+                    (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+                action_ticks = UINT16_C(0);
+                dash_direction = INT8_C(0);
+                velocity_x = pf_m4_approach(
+                    velocity_x,
+                    INT32_C(0),
+                    velocity_x > fighter->walk_speed_q16 ||
+                            velocity_x < -fighter->walk_speed_q16
+                        ? fighter->turn_acceleration_q16
+                        : fighter->traction_q16);
+            }
             else if ((action_state ==
                           (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
                       action_state ==

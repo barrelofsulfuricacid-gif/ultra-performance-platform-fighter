@@ -315,6 +315,46 @@ def qualify_capture(
         "walk_side_special",
     )
 
+    walk_reverse_tilt = case_rows(rows, "walk_reverse_tilt_wait")
+    if (
+        len(walk_reverse_tilt) != 3
+        or walk_reverse_tilt[0].get("action")
+        not in {"WALK_SLOW", "WALK_MIDDLE", "WALK_FAST"}
+    ):
+        fail("walk-source case=walk_reverse_tilt_wait")
+    require_ordered_actions(
+        walk_reverse_tilt[1:],
+        [("STANDING", 1), ("STANDING", 2)],
+        "walk_reverse_tilt_wait",
+    )
+    require_tilt_x_ages(
+        walk_reverse_tilt,
+        [1, 0, 254],
+        "walk_reverse_tilt_wait",
+    )
+    if [row.get("facing") for row in walk_reverse_tilt] != [1.0] * 3:
+        fail("walk-facing case=walk_reverse_tilt_wait")
+
+    walk_reverse_dash = case_rows(rows, "walk_fresh_reverse_turn")
+    if (
+        len(walk_reverse_dash) != 3
+        or walk_reverse_dash[0].get("action")
+        not in {"WALK_SLOW", "WALK_MIDDLE", "WALK_FAST"}
+    ):
+        fail("walk-source case=walk_fresh_reverse_turn")
+    require_ordered_actions(
+        walk_reverse_dash[1:],
+        [("TURNING", 1), ("TURNING", 2)],
+        "walk_fresh_reverse_turn",
+    )
+    require_tilt_x_ages(
+        walk_reverse_dash,
+        [1, 0, 254],
+        "walk_fresh_reverse_turn",
+    )
+    if [row.get("facing") for row in walk_reverse_dash] != [1.0, 1.0, -1.0]:
+        fail("walk-facing case=walk_fresh_reverse_turn")
+
     wait_priority = case_rows(rows, "wait_grab_special_priority")
     require_action_frames(
         wait_priority,

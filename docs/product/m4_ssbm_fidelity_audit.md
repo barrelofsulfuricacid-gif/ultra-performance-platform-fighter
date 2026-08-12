@@ -726,3 +726,19 @@ byte-exact at
 `087c81e3dbdc2794bc5bef1bbd8af32e68e3ee2fb36dc606b8ee266d5c1f2e4a`.
 This closes the captured provenance/expiry split; uncaptured simultaneous
 inputs and other Guard callbacks remain governed by their own audit rows.
+
+### Walk opposite-input fallthrough
+
+`ftCo_Walk_IASA` checks Dash before Squat and the generic `ft_8008A244`
+Wait transition. Production now preserves that ordering: a fresh full reverse
+input enters smash Turn, while an opposite tilt below the Dash threshold
+enters Wait on the same update. The behavior is reference-gated, so authored
+fighters retain their existing movement policy.
+
+Two independent 278-row captures are byte-identical at raw SHA-256
+`e4193dce5d782716f41d35b7495e94a345142412c0dbc4813aa430907a998a3a`.
+The complete 24-case common-acquisition trace is byte-exact between source and
+production at
+`5a22a6f401df8a8557bd2ac16b5c3dd34211cf825f302a9f81db2f4e2897253f`.
+This closes the represented Walk reversal split, not every uncaptured Walk
+callback or simultaneous-input combination.

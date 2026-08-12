@@ -3762,6 +3762,72 @@ static int run_ground_control_test(
         return 0;
     }
 
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(2)),
+            PF_STATUS_OK,
+            "walk-opposite-tilt-reset") ||
+        !step_duel(
+            sim,
+            INT16_C(12000),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_WALK ||
+        !step_duel(
+            sim,
+            INT16_C(-12000),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
+        inspection.players[0].action_ticks != UINT16_C(0) ||
+        inspection.players[0].facing != INT8_C(1))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=walk-opposite-tilt-wait"
+            " action=%u ticks=%u facing=%d\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks,
+            (int)inspection.players[0].facing);
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(2)),
+            PF_STATUS_OK,
+            "walk-fresh-reversal-reset") ||
+        !step_duel(
+            sim,
+            INT16_C(12000),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_WALK ||
+        !step_duel(
+            sim,
+            INT16_MIN,
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_STANDING_TURN ||
+        inspection.players[0].action_ticks != UINT16_C(1) ||
+        inspection.players[0].facing != INT8_C(1))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=walk-fresh-reversal-turn"
+            " action=%u ticks=%u facing=%d\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks,
+            (int)inspection.players[0].facing);
+        return 0;
+    }
+
     ramp_low = (int16_t)(content->fighter.axis_dead_zone + UINT16_C(1));
     ramp_middle = (int16_t)(
         ((uint32_t)content->fighter.axis_dead_zone +

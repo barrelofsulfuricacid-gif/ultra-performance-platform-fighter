@@ -6850,3 +6850,22 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   sequential runs measure 774.267-843.944 ms on Windows and
   1,117.820-1,984.600 ms in WSL under manifest SHA-256
   `9ef8f2ea5f5a21a0f8856dcc42fb8b5aa313de1f38cac31d8ab6f2a744180670`.
+
+## 2026-08-12: Walk reversal callback fallthrough
+
+- Corrected the reference Walk movement tail without changing authored
+  fighters. After the ordered Dash callback rejects an opposite tilt below
+  the full-Dash threshold, `ft_8008A244` now enters Wait instead of the
+  simulation inventing a basic StandingTurn. A fresh full reversal remains a
+  smash Turn, preserving dash-dance input.
+- Added two natural cases to the existing common special-acquisition pack.
+  They retain Walk setup, edge, and one result row with exact source action,
+  facing, grounding, and ordinary X-input age. Two independent 278-row
+  captures both hash to
+  `e4193dce5d782716f41d35b7495e94a345142412c0dbc4813aa430907a998a3a`.
+- The expanded 24-case source and Windows production traces are byte-exact at
+  `5a22a6f401df8a8557bd2ac16b5c3dd34211cf825f302a9f81db2f4e2897253f`.
+  The focused stored gate passes in 250.781 ms under manifest SHA-256
+  `ab99092abaf6231497ffc901499a11c0b6c29678bc70c7e60536fe1653a1b7c1`.
+  Three complete runs take 887.531-946.419 ms on Windows and
+  1,075.190-1,131.290 ms in WSL; strict CTest passes 47/47 and 41/41.
