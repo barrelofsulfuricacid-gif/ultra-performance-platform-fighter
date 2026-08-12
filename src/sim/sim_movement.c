@@ -8232,8 +8232,7 @@ pf_status pf_m4_step_player(
         action_state == (uint8_t)PF_M4_ACTION_AIRBORNE &&
         grounded == UINT8_C(0) &&
         scratch->tumble[player_index] != UINT8_C(0) &&
-        special_pressed == 0 && light_attack_pressed == 0 &&
-        strong_attack_pressed == 0 &&
+        special_pressed == 0 &&
         !((jump_pressed != 0 ||
            damage_released_jump_requested != 0) &&
           air_jumps_remaining > UINT8_C(0)))
@@ -13414,6 +13413,8 @@ pf_status pf_m4_step_player(
                 scratch->tumble[player_index] = UINT8_C(0);
             }
             else if (released_ledge_this_tick == 0 &&
+                     scratch->tumble[player_index] == UINT8_C(0) &&
+                     damage_fall_wiggle_this_tick == 0 &&
                      (strong_attack_pressed != 0 ||
                       light_attack_pressed != 0))
             {

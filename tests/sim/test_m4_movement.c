@@ -172,10 +172,11 @@ static int step_duel(
         out_inspection);
 }
 
-static int step_duel_raw_main_x(
+static int step_duel_raw_main_x_buttons(
     pf_sim *sim,
     int16_t main_stick_x,
     int8_t raw_main_stick_x,
+    uint64_t buttons,
     pf_m4_inspection *out_inspection)
 {
     pf_m4_inspection before;
@@ -196,6 +197,7 @@ static int step_duel_raw_main_x(
     }
     make_inputs(inputs, UINT8_C(2), before.tick);
     inputs[0].main_stick_x = main_stick_x;
+    inputs[0].buttons = buttons;
     pf_input_set_raw_pad(&inputs[0], raw_pad);
     return expect_status(
                pf_sim_tick(sim, inputs, (size_t)2, &result),
@@ -205,6 +207,20 @@ static int step_duel_raw_main_x(
                pf_m4_inspect(sim, out_inspection),
                PF_STATUS_OK,
                "inspect-after-raw-main-step");
+}
+
+static int step_duel_raw_main_x(
+    pf_sim *sim,
+    int16_t main_stick_x,
+    int8_t raw_main_stick_x,
+    pf_m4_inspection *out_inspection)
+{
+    return step_duel_raw_main_x_buttons(
+        sim,
+        main_stick_x,
+        raw_main_stick_x,
+        UINT64_C(0),
+        out_inspection);
 }
 
 static int step_duel_sticks(
@@ -15379,6 +15395,36 @@ static int run_falcon_dive_behind_ledge_test(
     return 1;
 }
 
+static void set_player0_damage_fall_state(pf_sim *sim)
+{
+    sim->world.active[0] = UINT8_C(1);
+    sim->world.respawn_ticks[0] = UINT16_C(0);
+    sim->world.grounded[0] = UINT8_C(0);
+    sim->world.support[0] = (uint8_t)PF_M4_SURFACE_NONE;
+    sim->world.position_y_q16[0] = INT32_C(20) * PF_Q16_ONE;
+    sim->world.velocity_x_q16[0] = INT32_C(0);
+    sim->world.velocity_y_q16[0] = INT32_C(0);
+    sim->world.action_state[0] = (uint8_t)PF_M4_ACTION_AIRBORNE;
+    sim->world.action_ticks[0] = UINT16_C(0);
+    sim->world.source_submotion[0] =
+        (uint16_t)PF_M4_FALCON_SUBMOTION_FALL;
+    sim->world.source_animation_frame_q16[0] = INT32_C(0);
+    sim->world.tumble[0] = UINT8_C(1);
+    sim->world.hitstun_ticks[0] = UINT16_C(0);
+    sim->world.fast_fall[0] = UINT8_C(0);
+    sim->world.previous_buttons[0] = UINT64_C(0);
+    sim->world.previous_main_stick_x[0] = INT16_C(0);
+    sim->world.previous_main_stick_y[0] = INT16_C(0);
+    sim->world.previous_tilt_x_direction[0] = INT8_C(0);
+    sim->world.previous_tilt_y_direction[0] = INT8_C(0);
+    sim->world.tilt_x_age[0] = UINT8_C(254);
+    sim->world.tilt_y_age[0] = UINT8_C(254);
+    sim->world.ucf_tilt_x_age[0] = UINT8_C(254);
+    sim->world.ucf_tilt_y_age[0] = UINT8_C(254);
+    sim->world.raw_main_t2_x[0] = INT8_C(0);
+    sim->world.raw_main_t2_y[0] = INT8_C(0);
+}
+
 static int run_ucf084_input_contract_test(
     const pf_m4_content *content,
     const pf_content_view *view)
@@ -15631,6 +15677,99 @@ static int run_ucf084_input_contract_test(
             (unsigned int)sim->world.air_jumps_remaining[0],
             (unsigned int)sim->world.tilt_y_age[0],
             (unsigned int)sim->world.ucf_tilt_y_age[0]);
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0x0cf08405)),
+            PF_STATUS_OK,
+            "damage-fall-attack-envelope-reset"))
+    {
+        return 0;
+    }
+    set_player0_damage_fall_state(sim);
+    if (!step_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AIRBORNE ||
+        inspection.players[0].tumble == UINT8_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=damage-fall-ignore-a "
+            "action=%u tumble=%u\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].tumble);
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0x0cf08406)),
+            PF_STATUS_OK,
+            "damage-fall-c-stick-envelope-reset"))
+    {
+        return 0;
+    }
+    set_player0_damage_fall_state(sim);
+    if (!step_duel_sticks(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            INT16_MAX,
+            INT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AIRBORNE ||
+        inspection.players[0].tumble == UINT8_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=damage-fall-ignore-c-stick "
+            "action=%u tumble=%u\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].tumble);
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0x0cf08407)),
+            PF_STATUS_OK,
+            "damage-fall-wiggle-attack-reset"))
+    {
+        return 0;
+    }
+    set_player0_damage_fall_state(sim);
+    sim->world.previous_main_stick_x[0] = -INT16_C(16384);
+    sim->world.previous_tilt_x_direction[0] = INT8_C(-1);
+    sim->world.tilt_x_age[0] = UINT8_C(0);
+    sim->world.previous_buttons[0] =
+        pf_input_raw_axis_bits(
+            -INT8_C(40),
+            PF_INPUT_RAW_MAIN_X_SHIFT);
+    if (!step_duel_raw_main_x_buttons(
+            sim,
+            -INT16_C(31129),
+            -INT8_C(76),
+            PF_INPUT_BUTTON_ATTACK,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AIRBORNE ||
+        inspection.players[0].source_submotion !=
+            (uint16_t)PF_M4_FALCON_SUBMOTION_FALL ||
+        inspection.players[0].tumble != UINT8_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=damage-fall-wiggle-with-a "
+            "action=%u submotion=%u tumble=%u age=%u\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].source_submotion,
+            (unsigned int)inspection.players[0].tumble,
+            (unsigned int)inspection.players[0].tilt_x_age);
         return 0;
     }
     return 1;
