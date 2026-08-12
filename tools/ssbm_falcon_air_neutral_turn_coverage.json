@@ -1,0 +1,171 @@
+{
+  "schema": 1,
+  "scope": "falcon-air-neutral-special-turn",
+  "domain": "falcon-air-neutral-special-turn",
+  "character": "falcon",
+  "oracle": "SSBM GALE01 NTSC-U revision 2",
+  "live_source": {
+    "capture_sha256": "3d4bb6c4a7cde8d2879e846eecf7e2fc3ca0d5151eb466fc7760678c83f58ad9",
+    "repeat_capture_sha256": "3d4bb6c4a7cde8d2879e846eecf7e2fc3ca0d5151eb466fc7760678c83f58ad9",
+    "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
+    "release_artifact_sha256": "87e9ef6d80ed03354a1647d0616016dbc91399aa9e86a69ae5a398edd0a0c2bd",
+    "launcher_sha256": "9eb024aa9347648f020e2a76666e5c5597b77b32ef26752f563c99f0772b1e82",
+    "decomp_revision": "9509dc04406fb2028bfab01243841ba4787c0fb7",
+    "current_decomp_revision": "d882af94175e3c880ad51039e2979aa9a50aea09",
+    "dolphin_version": "3.5.1",
+    "libmelee_version": "0.47.2",
+    "capture_schema": 7,
+    "stage": "FINAL_DESTINATION",
+    "row_count": 91
+  },
+  "checkpoint_pack": {
+    "protocol": "immutable-multislot-slippi-state-file-control-v2",
+    "expected_rows": 91,
+    "warm_budget_seconds": 2.0,
+    "capture_plan": {
+      "batch_exi_inputs": true,
+      "checkpoint_slot_count": 3,
+      "special_acquisition_cases": [
+        {
+          "id": "recent_opposite_boundary",
+          "checkpoint_slot": 0,
+          "source_state": "wait",
+          "pre_edge_phases": [
+            { "ticks": 5, "actions": ["jump"] },
+            { "ticks": 1, "main": [-16384, 0] },
+            { "ticks": 18 }
+          ],
+          "edge_main": [0, 0],
+          "observe_ticks": 5
+        },
+        {
+          "id": "stale_opposite_boundary",
+          "checkpoint_slot": 1,
+          "source_state": "wait",
+          "pre_edge_phases": [
+            { "ticks": 5, "actions": ["jump"] },
+            { "ticks": 1, "main": [-16384, 0] },
+            { "ticks": 19 }
+          ],
+          "edge_main": [0, 0],
+          "observe_ticks": 5
+        },
+        {
+          "id": "recent_same_boundary",
+          "checkpoint_slot": 2,
+          "source_state": "wait",
+          "pre_edge_phases": [
+            { "ticks": 5, "actions": ["jump"] },
+            { "ticks": 1, "main": [16384, 0] },
+            { "ticks": 18 }
+          ],
+          "edge_main": [0, 0],
+          "observe_ticks": 5
+        }
+      ]
+    }
+  },
+  "checkpoint_cases": [
+    { "id": "recent-opposite-boundary", "start_label": "special_acquisition_recent_opposite_boundary_setup" },
+    { "id": "stale-opposite-boundary", "start_label": "special_acquisition_stale_opposite_boundary_setup" },
+    { "id": "recent-same-boundary", "start_label": "special_acquisition_recent_same_boundary_setup" }
+  ],
+  "live_expectations": {
+    "recent_opposite_boundary": {
+      "pre_edge_grounded": false,
+      "edge_action": "NEUTRAL_B_FULL_CHARGE_AIR",
+      "edge_action_frames": [1, 2, 3, 4, 5, 6],
+      "edge_facing": -1
+    },
+    "stale_opposite_boundary": {
+      "pre_edge_grounded": false,
+      "edge_action": "NEUTRAL_B_FULL_CHARGE_AIR",
+      "edge_action_frames": [1, 2, 3, 4, 5, 6],
+      "edge_facing": 1
+    },
+    "recent_same_boundary": {
+      "pre_edge_grounded": false,
+      "edge_action": "NEUTRAL_B_FULL_CHARGE_AIR",
+      "edge_action_frames": [1, 2, 3, 4, 5, 6],
+      "edge_facing": 1
+    }
+  },
+  "selection": {
+    "paths": [
+      "generated/data/m4_ssbm_falcon_air_neutral_turn_oracle.json",
+      "src/sim/sim_movement.c",
+      "src/tools/m4_movement_trace.c",
+      "tools/capture_ssbm_movement.py",
+      "tools/compare_ssbm_movement.py",
+      "tools/generate_ssbm_stored_trace_oracle.py",
+      "tools/ssbm_falcon_air_neutral_turn_coverage.json",
+      "tools/ssbm_live_trace.py",
+      "tools/ssbm_natural_movement_domain.py",
+      "tools/verify_ssbm_special_acquisition_domain.py"
+    ]
+  },
+  "stored_oracle": {
+    "kind": "native-csv-trace-v1",
+    "source_trace_sha256": "027fad335436a97393260b553019fe6247661b3ae1c03d981b4b1db4cc4d5fcb",
+    "production_trace_sha256": "027fad335436a97393260b553019fe6247661b3ae1c03d981b4b1db4cc4d5fcb",
+    "require_exact_source_match": true,
+    "serialized_fields": [
+      "action_state",
+      "action_ticks",
+      "facing",
+      "grounded"
+    ],
+    "action_mapping": {
+      "NEUTRAL_B_FULL_CHARGE_AIR": { "action_state": 108, "action_tick_offset": 0 }
+    },
+    "cases": [
+      {
+        "id": "recent_opposite_boundary",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_recent_opposite_boundary_",
+        "sample_count": 30,
+        "input_phases": [
+          { "ticks": 5, "lanes": [{ "buttons": ["jump"] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [-16384, 0] }, {}] },
+          { "ticks": 18, "lanes": [{}, {}] },
+          { "ticks": 1, "lanes": [{ "buttons": ["special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "stale_opposite_boundary",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_stale_opposite_boundary_",
+        "sample_count": 31,
+        "input_phases": [
+          { "ticks": 5, "lanes": [{ "buttons": ["jump"] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [-16384, 0] }, {}] },
+          { "ticks": 19, "lanes": [{}, {}] },
+          { "ticks": 1, "lanes": [{ "buttons": ["special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "recent_same_boundary",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_recent_same_boundary_",
+        "sample_count": 30,
+        "input_phases": [
+          { "ticks": 5, "lanes": [{ "buttons": ["jump"] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [16384, 0] }, {}] },
+          { "ticks": 18, "lanes": [{}, {}] },
+          { "ticks": 1, "lanes": [{ "buttons": ["special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      }
+    ],
+    "generator": {
+      "script": "tools/generate_ssbm_stored_trace_oracle.py",
+      "output": "generated/data/m4_ssbm_falcon_air_neutral_turn_oracle.json"
+    },
+    "runner": {
+      "executable": "pf_m4_movement_trace",
+      "arguments": []
+    }
+  }
+}

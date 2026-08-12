@@ -1866,6 +1866,34 @@ domain, Teeter, and GuardOff set `require_exact_source_match`; the stored gate
 therefore rejects a divergent production digest instead of accepting two
 independently pinned regressions.
 
+## Falcon aerial neutral-special turnaround
+
+Pinned decomp `ftCo_SpecialAir_CheckInput` checks the global horizontal input
+history immediately before `ftData_SpecialAirN`: the last threshold direction
+must oppose facing and `Fighter.x676_x` must be strictly less than
+`ftCommonData.x224`. The global fighter input update sets the direction bit and
+age zero on a new signed threshold crossing, increments the age saturating at
+254, and retains direction while the stick returns to neutral. The existing
+hash-pinned `PlCo.dat` importer reads x224 as integer 20 and generates
+`neutral_special_turn_window_ticks`; production consumes that field with its
+canonical rollback-safe saturating age/direction pair.
+
+The acquisition capture schema now admits ordered `pre_edge_phases`. Three
+cases therefore record the complete natural jump, one-tick horizontal flick,
+18 or 19 neutral samples, neutral B edge, and five observations. This gives
+the exact source comparisons `19 < 20`, `20 < 20`, and a same-direction age-19
+control without writing an action, facing, or input-history field. The generic
+native CSV expansion consumes those identical rows.
+
+Two fresh 91-row captures are byte-identical at raw SHA-256
+`3d4bb6c4a7cde8d2879e846eecf7e2fc3ca0d5151eb466fc7760678c83f58ad9`.
+Warm checkpoint times are 0.177852 and 0.192949 seconds; complete launch-to-
+cleanup lifecycles are 3.370682 and 3.479022 seconds. Source and production
+action/tick/facing/grounded payloads are structurally identical at SHA-256
+`027fad335436a97393260b553019fe6247661b3ae1c03d981b4b1db4cc4d5fcb`.
+The domain sets `require_exact_source_match` and is registered in the shared
+stored-equivalence lane.
+
 ## Falcon teeter special acquisition
 
 Pinned decomp revision `9509dc04406fb2028bfab01243841ba4787c0fb7` and

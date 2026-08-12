@@ -385,6 +385,21 @@ The reusable direct comparator also closed Turn-special facing. This closes
 those callback surfaces only; unrepresented common and
 character-state callback lists remain subject to the continuing source audit.
 
+The aerial neutral-special input-history addendum closes the common
+`SpecialAirN` turnaround predicate. Pinned/current decomp checks the retained
+horizontal direction and strict `x676_x < x224` age before entering the
+character neutral special. The generated common-data import owns `x224 == 20`;
+production retains the direction and saturating age in canonical rollback
+state. Three natural jump/flick/neutral/B cases compare the last accepted age
+19, first rejected age 20, and a fresh same-direction negative control. Two
+byte-identical 91-row captures have raw SHA-256
+`3d4bb6c4a7cde8d2879e846eecf7e2fc3ca0d5151eb466fc7760678c83f58ad9`;
+source and production match exactly on action, clock, facing, and grounded
+state at canonical SHA-256
+`027fad335436a97393260b553019fe6247661b3ae1c03d981b4b1db4cc4d5fcb`.
+The causal input history is recorded and replayed through generic manifest
+pre-edge phases rather than hidden in a source-only setup.
+
 The teeter addendum closes two more source callback surfaces. Pinned and
 current `ftCo_Ottotto_IASA` invoke all four common special dispatchers, while
 `ftCo_OttottoWait_IASA` delegates directly to the same function. Production's

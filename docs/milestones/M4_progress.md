@@ -6375,3 +6375,30 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   and `7930e2a2d90ed4dd9f5234ba47f4d4fc11e2ce4fbc2cd22b9367473a71bb2451`;
   each repeats identically three times on Windows and three times in WSL
   before repinning.
+
+## 2026-08-12: aerial neutral-special turnaround qualification
+
+- Audited pinned decomp `9509dc0` and current upstream `d882af9` through
+  `ftCo_SpecialAir_CheckInput` and the global input-history update. Neutral
+  aerial B reverses only when the remembered horizontal threshold crossing is
+  opposite facing and its age is strictly below imported common-data `x224`
+  (`20`). Production already used the imported field and rollback-safe
+  direction/age state; the missing gap was executable qualification.
+- Generalized the special-acquisition capture plan with compressed recorded
+  pre-edge phases. The same natural jump, horizontal flick, neutral aging, and
+  B edge now feed Dolphin and the generic native CSV runner; no action or input
+  history is written directly and no character-specific native pre-roll was
+  added.
+- Three checkpoint-isolated controls prove opposite reversal at age 19, no
+  reversal at age 20, and no reversal for a fresh same-direction age-19 flick.
+  Two 91-row captures are byte-identical at raw SHA-256
+  `3d4bb6c4a7cde8d2879e846eecf7e2fc3ca0d5151eb466fc7760678c83f58ad9`.
+  Warm captures take 0.177852 and 0.192949 seconds; complete lifecycles take
+  3.370682 and 3.479022 seconds.
+- The reusable live verifier and direct comparator agree with production on
+  every action, tick, facing, and grounded sample at canonical SHA-256
+  `027fad335436a97393260b553019fe6247661b3ae1c03d981b4b1db4cc4d5fcb`.
+  The complete 26-domain / 161-case stored registry plus replay passes in
+  1.191 seconds on Windows and 1.065 seconds in WSL. Direct live/native
+  comparison passes on both platforms, both full Release suites pass 41/41,
+  and focused WSL ASan/UBSan movement passes.

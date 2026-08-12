@@ -264,6 +264,7 @@ def input_trace(
             source_state = raw_case.get("source_state")
             edge_main = raw_case.get("edge_main")
             edge_c = raw_case.get("edge_c", [0, 0])
+            raw_pre_edge_phases = raw_case.get("pre_edge_phases", [])
             raw_edge_actions = raw_case.get("edge_actions")
             edge_actions = (
                 [raw_case.get("edge_action", "special")]
@@ -302,6 +303,7 @@ def input_trace(
                     or not -32767 <= value <= 32767
                     for value in edge_c
                 )
+                or not isinstance(raw_pre_edge_phases, list)
                 or not isinstance(edge_actions, list)
                 or not edge_actions
                 or any(
@@ -327,6 +329,57 @@ def input_trace(
             ):
                 raise ValueError(
                     f"invalid special acquisition case {case_id!r}"
+                )
+            pre_edge_phases: list[
+                tuple[int, list[int], list[int], list[str]]
+            ] = []
+            for phase_index, raw_phase in enumerate(raw_pre_edge_phases):
+                if not isinstance(raw_phase, dict):
+                    raise ValueError(
+                        "invalid special acquisition pre-edge phase "
+                        f"case={case_id!r} phase={phase_index}"
+                    )
+                phase_ticks = raw_phase.get("ticks")
+                phase_main = raw_phase.get("main", [0, 0])
+                phase_c = raw_phase.get("c_stick", [0, 0])
+                phase_actions = raw_phase.get("actions", [])
+                if (
+                    set(raw_phase)
+                    - {"ticks", "main", "c_stick", "actions"}
+                    or not isinstance(phase_ticks, int)
+                    or isinstance(phase_ticks, bool)
+                    or not 1 <= phase_ticks <= 254
+                    or not isinstance(phase_main, list)
+                    or len(phase_main) != 2
+                    or any(
+                        not isinstance(value, int)
+                        or isinstance(value, bool)
+                        or not -32767 <= value <= 32767
+                        for value in phase_main
+                    )
+                    or not isinstance(phase_c, list)
+                    or len(phase_c) != 2
+                    or any(
+                        not isinstance(value, int)
+                        or isinstance(value, bool)
+                        or not -32767 <= value <= 32767
+                        for value in phase_c
+                    )
+                    or not isinstance(phase_actions, list)
+                    or any(
+                        not isinstance(action, str)
+                        or action
+                        not in {"attack", "grab", "jump", "special"}
+                        for action in phase_actions
+                    )
+                    or len(set(phase_actions)) != len(phase_actions)
+                ):
+                    raise ValueError(
+                        "invalid special acquisition pre-edge phase "
+                        f"case={case_id!r} phase={phase_index}"
+                    )
+                pre_edge_phases.append(
+                    (phase_ticks, phase_main, phase_c, phase_actions)
                 )
             prefix = f"special_acquisition_{case_id}"
             first = command(
@@ -502,6 +555,21 @@ def input_trace(
                         {**command(f"{prefix}_setup"), "record": False}
                     )
                 trace.append(command(f"{prefix}_setup"))
+            for phase_ticks, phase_main, phase_c, phase_actions in (
+                pre_edge_phases
+            ):
+                repeat(
+                    f"{prefix}_setup",
+                    phase_ticks,
+                    main_x=controller_axis(phase_main[0]),
+                    main_y=controller_axis(-phase_main[1]),
+                    c_x=controller_axis(phase_c[0]),
+                    c_y=controller_axis(-phase_c[1]),
+                    attack="attack" in phase_actions,
+                    grab="grab" in phase_actions,
+                    jump="jump" in phase_actions,
+                    special="special" in phase_actions,
+                )
             edge_x = controller_axis(edge_main[0])
             edge_y = controller_axis(-edge_main[1])
             edge_c_x = controller_axis(edge_c[0])

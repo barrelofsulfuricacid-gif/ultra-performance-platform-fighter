@@ -322,12 +322,12 @@ Idle animation phase can vary between otherwise equivalent boots, so the
 verifier pins the ordered action/frame/Q16.16 payload and explicit physical
 discriminator instead of hashing incidental idle rows.
 
-The registry currently contains 25 domains and 158 cases. Independent
+The registry currently contains 26 domains and 161 cases. Independent
 domain generation and execution run concurrently; each native-CSV domain also
 runs its independent cases concurrently, and both levels restore manifest
 order before counting or hashing. The complete stored gate, including
-deterministic replay, most recently measured 1.141 seconds on native Windows
-and 1.308 seconds in WSL.
+deterministic replay, most recently measured 1.191 seconds on native Windows
+and 1.065 seconds in WSL.
 Numeric C cases may narrow a domain's inherited serialized-field mask when a
 physical setup intentionally isolates only part of the response; the generated
 C always writes an explicit zero for inherited masks so GCC and MSVC apply the
@@ -352,9 +352,11 @@ set `require_exact_source_match`. For those domains, the verifier requires the
 production semantic digest to equal the qualified live-source digest before it
 checks the pinned regression digest. This prevents a behavior divergence from
 being hidden by updating a second independent golden. Common special
-acquisition, Teeter acquisition, and GuardOff acquisition currently use this
-strict route. Simultaneous semantic edge actions are declarative manifest data,
-so state-specific callback priority needs no character-specific capture loop.
+acquisition, aerial neutral-special turnaround, Teeter acquisition, and
+GuardOff acquisition currently use this strict route. Simultaneous semantic
+edge actions and causal pre-edge input phases are declarative manifest data,
+so state-specific callback priority and input-history boundaries need no
+character-specific capture loop or native pre-roll.
 
 ## Geometry-sampling limitation
 
