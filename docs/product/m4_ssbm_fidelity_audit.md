@@ -51,7 +51,7 @@ controls. Remaining common-state poses stay explicitly incomplete.
 | Walk/run acceleration and friction | equivalent | The generated typed view of Falcon's raw NTSC 1.02 common attributes drives the runtime friction-aware target/overshoot formulas; slow stick motion enters walk rather than dash. |
 | Dash dance and backward dash acceleration | equivalent | A fresh reversal enters one displayed frame of smash `TURNING` with the old facing and damped velocity; a held reversal then enters opposite dash with the measured residual momentum plus Falcon's impulse. |
 | Run braking and common IASA | equivalent for captured routes | A four-case/127-row exact acquisition theorem proves that straight full down from ordinary Run enters `RUN_BRAKE`, radial-gate diagonal down remains `RUNNING` for the edge row, down from RunBrake enters frame-1 `Squat`, and the locked Run phase following TurnRun rejects direct down. Source and production action/tick/facing/grounded payloads are identical at SHA-256 `dfa7be0339110c98c9107a069ef7e9751b14f2c174bd04a7e977c90ae745f6ad`. Neutral from terminal run produces 28 displayed `RUN_BRAKE` frames with Falcon's 0.08 friction before standing. Jump and main-stick down from RunBrake enter frame-1 `KneeBend`/`Squat`; shield-plus-down keeps crouch priority. Opposite stick on displayed brake frame 2 enters displayed TurnRun frame 1 with the old facing, resumed cursor, and 0.16 acceleration. Neutral guard, C-stick roll/spot, taunt, A, Z, and B remain in RunBrake. The executable and simulator agree for the captured IASA matrix. |
-| Standing turn | equivalent for captured routes | Smash turn flips on the following frame and can enter dash; basic turn flips on displayed frame 8 and completes after displayed frame 11. All 11 displayed hurt poses are imported from matching accelerated/control captures. A fresh second-frame taunt applies the turn's facing flip first and then enters Falcon's 60-frame taunt. Timing and friction routes match the executable oracle. |
+| Standing turn | equivalent for captured routes | Smash turn flips on the following frame and can enter dash; basic turn flips on displayed frame 8 and completes after displayed frame 11. All 11 displayed hurt poses are imported from matching accelerated/control captures. Before basic Turn's physical flip, `ftCo_Turn_IASA` temporarily exposes the target facing only to its side/down/up-special, catch, smash, tilt, and jab prefix; a consuming callback retains that facing, while fallthrough restores the old facing before guard, taunt, and jump. The existing full-stick taunt route is an already-turned smash-Turn case, not evidence that basic Turn skips restoration. A 12-case/72-row exact live/native theorem now protects the attack/grab consumers and a post-restoration jump control. Timing and friction routes match the executable oracle. |
 | Run turnaround | equivalent for captured routes | Full reversal from terminal run retains the old facing, applies full TurnRun acceleration, freezes displayed frame 9 until velocity crosses the common 0.01 threshold, flips facing on the following physics tick, resumes through displayed frame 21, and enters the ten-tick locked run route. All 22 source poses, including frame zero, are imported and source submotion is retained. The live oracle exposes one frame-9 update where gameplay facing has flipped but display bones still use the previous facing. Production derives that collision-facing phase from the existing tick/facing/direction tuple without snapshot state; combat and inspection consume it. Stored phase cases cover old-facing frame 9, the pending-display duplicate, and resumed frame 10. |
 | Jump squat and takeoff momentum | equivalent | Falcon startup 4, 0.75 retained momentum, 0.95 stick contribution, and 2.1 cap are mapped. X/Y and main-stick tap jump match from idle, Landing, shield, and air. |
 | Short/full hop | equivalent | Falcon 1.9 and 3.1 vertical velocities are converted to stage units. |
@@ -385,6 +385,69 @@ generic projectile/charge/reflector frontends from consuming Falcon's B edge.
 The reusable direct comparator also closed Turn-special facing. This closes
 those callback surfaces only; unrepresented common and
 character-state callback lists remain subject to the continuing source audit.
+
+## StandingTurn callback-facing acquisition
+
+Pinned decomp revision `9509dc04406fb2028bfab01243841ba4787c0fb7` and
+repository-current `d882af94175e3c880ad51039e2979aa9a50aea09` contain
+byte-identical `ftCo_Turn.c` after newline normalization, at SHA-256
+`3ad604c90ae3f67dd508cced55ab00ca6e7152a4a15693c5c78d4959434cbcfa`.
+`ftCo_Turn_IASA` first replays its action-local A/B bits when `just_turned` is
+set. While `has_turned` is false it then temporarily negates `facing_dir` and,
+in order, checks SpecialS, SpecialLw, SpecialHi, Catch, S4, Hi4, Lw4, S3, Hi3,
+Lw3, and Attack1. Any successful callback returns with that target facing.
+Only if none consumes the update does Turn negate `facing_dir` again before
+Guard, Appeal, and Jump. Later dash and A/B-buffer code is source-visible but
+is outside this qualified callback-facing theorem; no behavioral claim is
+made from that source text alone.
+
+Production derives one immutable callback-facing value from existing Turn
+action state, facing, and turn direction. The stack-local helper is shared by
+the special, grab, and attack routes, and Turn reuses the ordinary main-stick
+smash eligibility and directional attack selectors. Guard, taunt, and jump
+continue to consume the ordinary restored-facing path. This adds no allocation,
+content or lookup table, parser field, canonical state, save field, snapshot
+byte, or duplicated move frontend.
+
+The focused Final Destination pack records 12 immutable cases / 72 rows: jab,
+grab, three main-stick smashes, three tilts, three C-stick smashes, and jump as
+the post-restoration control. Both raw captures are byte-identical at SHA-256
+`294e9eae84ae6bc92f5932e20d666479b4455e49bb9666a54052003ec94b2c59`.
+The generic `native-csv-trace-v1` runner compares action state, exact action
+tick, facing, and grounded state with no exclusions; source and production are
+structurally identical at semantic SHA-256
+`0e9858e16140d8a55727255b009aec89e2176286e008b2cf23867bab38c2ac44`.
+The generated oracle artifact hashes to
+`a0f269dd6683e372629190bfa011f35f79be226fc6a2a150c49eebc55961b8a0`.
+Three focused stored-lane runs take 304.855/347.483/307.646 ms on Windows and
+415.305/458.985/376.784 ms in WSL. The complete 31-domain / 186-case registry
+plus replay takes 1706.950/1922.805/1485.200 ms in three isolated Windows runs.
+After one 5.8-second cold WSL run, three isolated warm runs take
+1127.462/1220.305/1096.947 ms. Eight acquisition domains require exact live-
+source equality, under current registry-manifest SHA-256
+`ffb5f801f55e24ce9c7a94fcbc627e46b1bcf0a42ebb79db37d746a1c9938664`.
+
+The deterministic replay independently localizes the integration effect. The
+stale and rebuilt binaries consume an identical 30,720-byte input array at
+SHA-256
+`9f071030a71819ca234ee22a729d4fc0a371d61e941630d045fc35ed9a3d73a7`, and
+their canonical state hashes agree at checkpoints 0 through 217. Processing
+zero-based input tick 217 is the first divergent step: slot 2 (human P3) is in
+`STANDING_TURN` tick 2, facing -1 with turn direction +1, when fresh A and
+main-stick X +20480 arrive. The stale build enters Jab (`GROUND_ATTACK`, 12)
+facing -1; the corrected build enters forward tilt (`FORWARD_ATTACK`, 87)
+facing +1. The first different state is therefore completed-tick checkpoint
+218, and the packed action-transition journal first differs on that same
+update, changing only slot 2's next action from 12 to 87 at the causal edge.
+The rebuilt 240-tick / 42,519-byte replay retains 83 total events and repeats
+identically on Windows and WSL at corpus/final/event SHA-256 values
+`6727023fb07bcb7a4fcbaf9c0beac0f8220c1c1802b19da891ae2ae2be252240`,
+`de96572115c1e4850d79353839576efc4b780ccbd75e8e70a2f23bee419c14af`, and
+`124a94734029321020513ec749b2f4d26cd60b4ed2129e25ce104692739fa9af`.
+Because no earlier state or event differs and the fixture inputs, size, result,
+and winner are unchanged, repinning the central replay fixture and its active
+manifest, shell, and browser-smoke derivatives is a causal update, not a
+golden-washing acceptance of an unexplained final hash.
 
 The aerial neutral-special input-history addendum closes the common
 `SpecialAirN` turnaround predicate. Pinned/current decomp checks the retained

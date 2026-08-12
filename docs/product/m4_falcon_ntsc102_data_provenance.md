@@ -2103,3 +2103,76 @@ three isolated WSL passes take 919.397/986.464/1270.306 ms under manifest
 SHA-256
 `99b5f633b2f4f6c33173ca285af0634e0ac51d1acc6df8b2a5b3c57f22cb261d`.
 No web probe participates in the source or regression theorem.
+
+## Falcon StandingTurn callback-facing acquisition
+
+The source authority is
+`melee/ft/chara/ftCommon/ftCo_Turn.c` at pinned decomp revision
+`9509dc04406fb2028bfab01243841ba4787c0fb7`. Repository-current revision
+`d882af94175e3c880ad51039e2979aa9a50aea09` contains the same normalized
+source bytes; both revisions hash to
+`3ad604c90ae3f67dd508cced55ab00ca6e7152a4a15693c5c78d4959434cbcfa`.
+On each IASA update, Turn first ORs its retained A/B bits into the current input
+when `just_turned` is set. If the physical turn has not happened, it temporarily
+negates `facing_dir`, then checks SpecialS, SpecialLw, SpecialHi, Catch, S4,
+Hi4, Lw4, S3, Hi3, Lw3, and Attack1 in that exact early-return order. A
+consumer retains the target facing. Fallthrough restores the old facing before
+Guard, Appeal, and Jump; dash and action-local A/B accumulation follow. The
+12-case theorem below qualifies the callback-facing view, not the separate
+later A/B replay behavior.
+
+Production computes the target-facing view once with the stack-local
+`pf_m4_reference_turn_callback_facing` helper and passes it through existing
+special, grab, and attack selection. Turn joins the existing main-stick smash
+eligibility; the same directional selectors handle its tilts and C-stick
+smashes. Post-restoration callbacks remain on ordinary facing. This is a
+constant-time, allocation-free reuse of existing action state and turn
+direction: no character table, parser field, canonical or save state, snapshot
+byte, dynamic lookup, or character-specific runner was added.
+
+`tools/ssbm_falcon_turn_interrupt_coverage.json` owns 12 Final Destination
+checkpoint cases / 72 rows: neutral A, Z, main-stick forward/up/down smash,
+forward/up/down tilt, C-stick forward/up/down smash, and jump. The eleven
+attack/grab cases retain the temporary target facing; jump is the natural
+post-restoration old-facing control. Both independent captures have raw SHA-256
+`294e9eae84ae6bc92f5932e20d666479b4455e49bb9666a54052003ec94b2c59`.
+The stored projection serializes action state, action tick, facing, and grounded
+state without exclusions and requires exact structural equality at semantic
+SHA-256
+`0e9858e16140d8a55727255b009aec89e2176286e008b2cf23867bab38c2ac44`.
+Its generated native-CSV oracle artifact hashes to
+`a0f269dd6683e372629190bfa011f35f79be226fc6a2a150c49eebc55961b8a0`.
+
+The same generic acquisition capture, source projector, input-run generator,
+native CSV executor, and exact-source comparator serve this domain; no bespoke
+verifier or native pre-roll exists. Direct live/native comparison passes on
+Windows and WSL. Three focused stored-domain runs take
+304.855/347.483/307.646 ms on Windows and 415.305/458.985/376.784 ms in WSL.
+The complete 31-domain / 186-case registry plus replay takes
+1706.950/1922.805/1485.200 ms across three isolated Windows runs. After one
+5.8-second cold WSL run, three isolated warm runs take
+1127.462/1220.305/1096.947 ms. Eight acquisition domains require exact source
+equality, and the current registry manifest hashes to
+`ffb5f801f55e24ce9c7a94fcbc627e46b1bcf0a42ebb79db37d746a1c9938664`.
+No web probe participates in this source or regression theorem.
+
+The deterministic replay repin is separately causally qualified. Old and
+rebuilt binaries generate the same 30,720 input bytes at SHA-256
+`9f071030a71819ca234ee22a729d4fc0a371d61e941630d045fc35ed9a3d73a7` and
+the same canonical state through checkpoint 217. On zero-based input tick 217,
+slot 2 (human P3) is grounded in `STANDING_TURN` tick 2, facing -1 with target
+turn direction +1, and receives fresh A with main-stick X +20480. The old path
+selects Jab (`GROUND_ATTACK`, 12) and retains -1 facing; the imported callback
+view selects forward tilt (`FORWARD_ATTACK`, 87) and retains +1 facing. Thus
+completed-tick checkpoint 218 and its packed action-transition event are the
+first state and journal divergences; there is no earlier unrelated change.
+The resulting 240-tick / 42,519-byte, 83-event replay repeats on Windows and WSL
+at corpus SHA-256
+`6727023fb07bcb7a4fcbaf9c0beac0f8220c1c1802b19da891ae2ae2be252240`,
+final-state SHA-256
+`de96572115c1e4850d79353839576efc4b780ccbd75e8e70a2f23bee419c14af`,
+and event SHA-256
+`124a94734029321020513ec749b2f4d26cd60b4ed2129e25ce104692739fa9af`.
+The unchanged input payload, replay shape, terminal result, and winner justify
+repinning the central replay constants and every active manifest, shell, and
+browser-smoke expectation derived from them.

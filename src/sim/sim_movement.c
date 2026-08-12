@@ -4080,6 +4080,28 @@ static uint8_t pf_m4_select_ground_light_attack_action(
     return (uint8_t)PF_M4_ACTION_GROUND_ATTACK;
 }
 
+static int8_t pf_m4_reference_turn_callback_facing(
+    const pf_m4_ssbm_ground_input_attributes *source_ground_input,
+    uint8_t action_state,
+    int8_t facing,
+    int8_t turn_direction)
+{
+    if (source_ground_input != NULL &&
+        action_state == (uint8_t)PF_M4_ACTION_STANDING_TURN &&
+        turn_direction != INT8_C(0))
+    {
+        const int8_t target_facing =
+            turn_direction < INT8_C(0) ? INT8_C(-1) : INT8_C(1);
+
+        /* ftCo_Turn_IASA temporarily exposes facing_after to the ordered
+         * special/grab/attack callbacks until the basic turn's physical
+         * facing flip. Consumers retain it; Guard/Taunt/Jump run only after
+         * the source restores the old facing. */
+        return target_facing;
+    }
+    return facing;
+}
+
 static uint8_t pf_m4_select_ground_strong_attack_action(
     const pf_m4_fighter_data *fighter,
     const pf_m4_ssbm_ground_input_attributes *source_ground_input,
@@ -7015,6 +7037,16 @@ pf_status pf_m4_step_player(
         pf_m4_strong_direction(
             input->main_stick_x,
             forward_smash_axis_threshold);
+    const int8_t reference_turn_callback_facing =
+        pf_m4_reference_turn_callback_facing(
+            source_ground_input,
+            world->action_state[player_index],
+            world->facing[player_index],
+            world->dash_direction[player_index]);
+    const int reference_turn_attack_callbacks =
+        source_ground_input != NULL &&
+        world->action_state[player_index] ==
+            (uint8_t)PF_M4_ACTION_STANDING_TURN;
     const int forward_smash_pressed =
         grab_blocks_attack == 0 && light_attack_pressed != 0 &&
         world->grounded[player_index] != UINT8_C(0) &&
@@ -7022,7 +7054,8 @@ pf_status pf_m4_step_player(
         (((world->action_state[player_index] ==
                    (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
            world->action_state[player_index] ==
-                   (uint8_t)PF_M4_ACTION_WALK) &&
+                   (uint8_t)PF_M4_ACTION_WALK ||
+           reference_turn_attack_callbacks != 0) &&
           input_tilt_x_age < forward_smash_window_ticks) ||
          (world->action_state[player_index] ==
               (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
@@ -7033,7 +7066,8 @@ pf_status pf_m4_step_player(
         (world->action_state[player_index] ==
              (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
          world->action_state[player_index] ==
-             (uint8_t)PF_M4_ACTION_WALK) &&
+             (uint8_t)PF_M4_ACTION_WALK ||
+         reference_turn_attack_callbacks != 0) &&
         vertical_magnitude >=
             (source_ground_input != NULL
                  ? source_ground_input->vertical_smash_axis_threshold
@@ -7063,7 +7097,7 @@ pf_status pf_m4_step_player(
         pf_m4_select_ground_light_attack_action(
             fighter,
             source_ground_input,
-            world->facing[player_index],
+            reference_turn_callback_facing,
             input->main_stick_x,
             input->main_stick_y);
     const uint8_t ground_strong_attack_action =
@@ -9123,13 +9157,9 @@ pf_status pf_m4_step_player(
             falcon_side_special_requested == 0 &&
             falcon_neutral_special_requested == 0;
 
-        if (reference_special_input_blocked == 0 &&
-            fighter->reference_frame_data_enabled != UINT8_C(0) &&
-            action_state == (uint8_t)PF_M4_ACTION_STANDING_TURN)
+        if (reference_special_input_blocked == 0)
         {
-            /* Turn's facing update precedes its SpecialS/Lw/Hi callbacks on
-             * the source frame, even though the turn animation is canceled. */
-            facing = (int8_t)-facing;
+            facing = reference_turn_callback_facing;
         }
 
         if (vector_ascent_requested != 0)
@@ -9390,6 +9420,7 @@ pf_status pf_m4_step_player(
         scratch->grab_target_slot[player_index] == UINT8_C(0) &&
         scratch->grab_owner_slot[player_index] == UINT8_C(0))
     {
+        facing = reference_turn_callback_facing;
         action_state =
             boost_grab_pressed != 0 ||
                     world->action_state[player_index] ==
@@ -9669,6 +9700,8 @@ pf_status pf_m4_step_player(
         attack_pressed)
     {
         uint8_t next_attack_action;
+
+        facing = reference_turn_callback_facing;
 
         if (reference_initial_dash_dash_attack != 0 ||
             dash_attack_pressed != 0)

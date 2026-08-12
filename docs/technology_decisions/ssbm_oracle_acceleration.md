@@ -322,15 +322,19 @@ Idle animation phase can vary between otherwise equivalent boots, so the
 verifier pins the ordered action/frame/Q16.16 payload and explicit physical
 discriminator instead of hashing incidental idle rows.
 
-The registry currently contains 30 domains and 174 cases. Independent domain
+The registry currently contains 31 domains and 186 cases. Independent domain
 generation and execution run concurrently; each native-CSV domain also runs
 its independent cases concurrently, and both levels restore manifest order
-before counting or hashing. Three isolated complete runs per platform pass the
-two-second guard: 1178.830/1319.197/1471.076 ms on native Windows and
-919.397/986.464/1270.306 ms in WSL. The new focused Run-to-RunBrake domain
-passes in 263.089 ms and 403.007 ms respectively. The current registry manifest
-SHA-256 is
-`99b5f633b2f4f6c33173ca285af0634e0ac51d1acc6df8b2a5b3c57f22cb261d`.
+before counting or hashing. The preceding 30-domain / 174-case snapshot passed
+the two-second guard in 1178.830/1319.197/1471.076 ms on native Windows and
+919.397/986.464/1270.306 ms in WSL. Its focused Run-to-RunBrake domain passed
+in 263.089 ms and 403.007 ms respectively. The added 12-case Turn-interrupt
+domain's three focused current runs take 304.855/347.483/307.646 ms on Windows
+and 415.305/458.985/376.784 ms in WSL. The complete current registry plus replay
+takes 1706.950/1922.805/1485.200 ms in three isolated Windows runs. One cold
+WSL run takes 5.8 seconds; the following three isolated warm runs take
+1127.462/1220.305/1096.947 ms. The current registry manifest SHA-256 is
+`ffb5f801f55e24ce9c7a94fcbc627e46b1bcf0a42ebb79db37d746a1c9938664`.
 Numeric C cases may narrow a domain's inherited serialized-field mask when a
 physical setup intentionally isolates only part of the response; the generated
 C always writes an explicit zero for inherited masks so GCC and MSVC apply the
@@ -370,6 +374,48 @@ same 127 inputs in the production trace runner, and exact source/production
 action-tick-facing-grounded equality is required at SHA-256
 `dfa7be0339110c98c9107a069ef7e9751b14f2c174bd04a7e977c90ae745f6ad`.
 
+The StandingTurn domain applies the same reusable route to a callback-scoped
+state view. Pinned `9509dc04406fb2028bfab01243841ba4787c0fb7` and
+repository-current `d882af94175e3c880ad51039e2979aa9a50aea09` have
+byte-identical normalized `ftCo_Turn.c` at SHA-256
+`3ad604c90ae3f67dd508cced55ab00ca6e7152a4a15693c5c78d4959434cbcfa`.
+Before Turn's physical flip, its IASA temporarily exposes target facing to the
+ordered special/catch/attack prefix and restores old facing before
+guard/appeal/jump only when no earlier callback consumes. The manifest records
+12 natural cases / 72 rows: jab, grab, three main-stick smashes, three tilts,
+three C-stick smashes, and a post-restoration jump control. Both raw captures
+hash to
+`294e9eae84ae6bc92f5932e20d666479b4455e49bb9666a54052003ec94b2c59`;
+source and production action-state/action-tick/facing/grounded payloads are
+exactly equal at SHA-256
+`0e9858e16140d8a55727255b009aec89e2176286e008b2cf23867bab38c2ac44`.
+The generated immutable execution artifact hashes to
+`a0f269dd6683e372629190bfa011f35f79be226fc6a2a150c49eebc55961b8a0`.
+Production derives one stack-local effective facing and reuses the existing
+special, grab, attack, and main-stick-smash routes; no persistent state,
+allocation, table, parser field, duplicated frontend, or bespoke runner is
+introduced.
+
+This slice also demonstrates the required deterministic-replay repin audit.
+The stale and rebuilt executables generate an identical 30,720-byte input
+payload at SHA-256
+`9f071030a71819ca234ee22a729d4fc0a371d61e941630d045fc35ed9a3d73a7`.
+Canonical state checkpoints 0 through 217 and every earlier event are equal.
+Zero-based input tick 217 then supplies slot 2 (human P3), already in
+`STANDING_TURN` tick 2 facing -1 with turn direction +1, a fresh A edge and
+main-stick X +20480. The stale executable enters Jab (`GROUND_ATTACK`, 12)
+facing -1; the corrected executable enters forward tilt (`FORWARD_ATTACK`, 87)
+facing +1. Completed-tick checkpoint 218 and its packed action-transition event
+are the first divergences. The 240-tick / 42,519-byte result still terminates
+with the same winner and 83 events, and its rebuilt corpus/final/event hashes
+repeat on Windows and WSL as
+`6727023fb07bcb7a4fcbaf9c0beac0f8220c1c1802b19da891ae2ae2be252240`,
+`de96572115c1e4850d79353839576efc4b780ccbd75e8e70a2f23bee419c14af`, and
+`124a94734029321020513ec749b2f4d26cd60b4ed2129e25ce104692739fa9af`.
+Only after that first-divergence proof is it valid to repin the central fixture
+and all active manifest, shell, and browser-smoke derivatives; matching final
+digests alone would not authorize a golden update.
+
 The reusable `native-csv-trace-v1` kind admits an already-qualified production
 trace executable without adding another character-specific C adapter. Its
 manifest owns runner arguments, compressed input phases, exact integer fields,
@@ -378,7 +424,8 @@ generator emits only immutable JSON execution metadata; the root verifier
 expands inputs, runs independent cases concurrently, parses declared CSV
 columns, restores manifest order, and hashes one canonical payload. Raptor
 Boost uses this route for five cases / 502 samples, Falcon Kick for six cases /
-399 samples, and Run-to-RunBrake acquisition for four cases / 127 samples.
+399 samples, Run-to-RunBrake acquisition for four cases / 127 samples, and
+StandingTurn callback-facing acquisition for 12 cases / 72 samples.
 Raptor Boost's separate native Capsule
 search remains live-only because the project-specific Relay Rod is not source-
 equivalent item content.
@@ -389,10 +436,12 @@ runner result. Domains whose selected fields admit no representation tolerance
 set `require_exact_source_match`. For those domains, the verifier requires the
 production semantic digest to equal the qualified live-source digest before it
 checks the pinned regression digest. This prevents a behavior divergence from
-being hidden by updating a second independent golden. Common special
-acquisition, KneeBend up-special acquisition, aerial neutral-special
-turnaround, Teeter acquisition, GuardOff acquisition, and Run-to-RunBrake
-acquisition currently use this strict route. Simultaneous semantic
+being hidden by updating a second independent golden. Eight acquisition
+domains currently use this strict route: common special acquisition,
+StandingTurn callback-facing acquisition, Run-to-RunBrake acquisition,
+KneeBend up-special acquisition, crouch up-special acquisition, aerial
+neutral-special turnaround, Teeter acquisition, and GuardOff acquisition.
+Simultaneous semantic
 edge actions and causal pre-edge input phases are declarative manifest data,
 so state-specific callback priority and input-history boundaries need no
 character-specific capture loop or native pre-roll.
