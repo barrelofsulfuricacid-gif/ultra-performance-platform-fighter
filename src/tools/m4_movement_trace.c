@@ -94,7 +94,8 @@ static int run_elevated_special_pre_roll(
 static int run_teeter_pre_roll(
     pf_sim *sim,
     const pf_m4_content *content,
-    pf_m4_inspection *inspection)
+    pf_m4_inspection *inspection,
+    int direction)
 {
     uint32_t pre_roll_tick;
 
@@ -105,10 +106,13 @@ static int run_teeter_pre_roll(
         pf_input_frame inputs[PF_SIM_MAX_PLAYERS];
         pf_tick_result result;
         const int32_t distance_q16 =
-            content->stage.floor_right_q16 -
-            inspection->players[0].position_x_q16;
+            direction > 0
+                ? content->stage.floor_right_q16 -
+                      inspection->players[0].position_x_q16
+                : inspection->players[0].position_x_q16 -
+                      content->stage.floor_left_q16;
         const int32_t velocity_q16 =
-            inspection->players[0].velocity_x_q16;
+            direction * inspection->players[0].velocity_x_q16;
         const int32_t release_velocity_q16 =
             velocity_q16 > content->fighter.traction_q16
                 ? velocity_q16 - content->fighter.traction_q16
@@ -181,7 +185,8 @@ static int run_teeter_pre_roll(
             {
                 return 1;
             }
-            inputs[0].main_stick_x = selected_axis;
+            inputs[0].main_stick_x =
+                (int16_t)(direction * (int)selected_axis);
         }
 
         if (pf_sim_tick(sim, inputs, (size_t)2, &result) != PF_STATUS_OK ||
@@ -202,10 +207,15 @@ static int run_teeter_pre_roll(
     return 1;
 }
 
-static int run_guardoff_acquisition_pre_roll_tick(
+static int run_duel_pre_roll_tick(
     pf_sim *sim,
     pf_m4_inspection *inspection,
+    int16_t defender_main_x,
+    int16_t defender_main_y,
     uint16_t defender_left_trigger,
+    uint64_t defender_buttons,
+    int16_t attacker_main_x,
+    int16_t attacker_main_y,
     uint64_t attacker_buttons)
 {
     pf_input_frame inputs[PF_SIM_MAX_PLAYERS];
@@ -215,10 +225,15 @@ static int run_guardoff_acquisition_pre_roll_tick(
     inputs[0].tick = inspection->tick;
     inputs[0].schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
     inputs[0].player_slot = UINT8_C(0);
+    inputs[0].main_stick_x = defender_main_x;
+    inputs[0].main_stick_y = defender_main_y;
     inputs[0].left_trigger = defender_left_trigger;
+    inputs[0].buttons = defender_buttons;
     inputs[1].tick = inspection->tick;
     inputs[1].schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
     inputs[1].player_slot = UINT8_C(1);
+    inputs[1].main_stick_x = attacker_main_x;
+    inputs[1].main_stick_y = attacker_main_y;
     inputs[1].buttons = attacker_buttons;
     if (pf_sim_tick(sim, inputs, (size_t)2, &result) != PF_STATUS_OK ||
         pf_m4_inspect(sim, inspection) != PF_STATUS_OK)
@@ -226,6 +241,312 @@ static int run_guardoff_acquisition_pre_roll_tick(
         return 1;
     }
     return 0;
+}
+
+static int run_guardoff_acquisition_pre_roll_tick(
+    pf_sim *sim,
+    pf_m4_inspection *inspection,
+    uint16_t defender_left_trigger,
+    uint64_t attacker_buttons)
+{
+    return run_duel_pre_roll_tick(
+        sim,
+        inspection,
+        INT16_C(0),
+        INT16_C(0),
+        defender_left_trigger,
+        UINT64_C(0),
+        INT16_C(0),
+        INT16_C(0),
+        attacker_buttons);
+}
+
+static int run_ucf_hitlag_input_pre_roll(
+    pf_sim *sim,
+    const pf_m4_content *content,
+    pf_m4_inspection *inspection,
+    int shield)
+{
+    const uint16_t defender_trigger =
+        shield != 0 ? UINT16_MAX : UINT16_C(0);
+    uint32_t tick;
+
+    if (content->fighter.jab_startup_ticks < UINT16_C(2))
+    {
+        return 1;
+    }
+    for (tick = UINT32_C(0);
+         tick < (shield != 0 ? UINT32_C(12) : UINT32_C(0));
+         ++tick)
+    {
+        if (run_duel_pre_roll_tick(
+                sim,
+                inspection,
+                INT16_C(0),
+                INT16_C(0),
+                defender_trigger,
+                UINT64_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0)) != 0)
+        {
+            return 1;
+        }
+    }
+    if (run_duel_pre_roll_tick(
+            sim,
+            inspection,
+            INT16_C(0),
+            INT16_C(0),
+            defender_trigger,
+            UINT64_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK) != 0)
+    {
+        return 1;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(120); ++tick)
+    {
+        if (inspection->players[1].action_state ==
+                (uint8_t)PF_M4_ACTION_GROUND_ATTACK &&
+            inspection->players[1].action_ticks + UINT16_C(1) ==
+                content->fighter.jab_startup_ticks &&
+            inspection->players[0].hitlag_ticks == UINT16_C(0))
+        {
+            return shield == 0 ||
+                           inspection->players[0].action_state ==
+                               (uint8_t)PF_M4_ACTION_SHIELD
+                       ? 0
+                       : 1;
+        }
+        if (run_duel_pre_roll_tick(
+                sim,
+                inspection,
+                INT16_C(0),
+                INT16_C(0),
+                defender_trigger,
+                UINT64_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0)) != 0)
+        {
+            return 1;
+        }
+    }
+    return 1;
+}
+
+static int run_attacker_approach_and_settle(
+    pf_sim *sim,
+    pf_m4_inspection *inspection,
+    uint32_t approach_limit)
+{
+    uint32_t tick;
+
+    for (tick = UINT32_C(0); tick < approach_limit; ++tick)
+    {
+        if (inspection->players[1].position_x_q16 -
+                inspection->players[0].position_x_q16 <=
+            (INT32_C(8) * PF_Q16_ONE) / INT32_C(5))
+        {
+            break;
+        }
+        if (run_duel_pre_roll_tick(
+                sim,
+                inspection,
+                INT16_C(0),
+                INT16_C(0),
+                UINT16_C(0),
+                UINT64_C(0),
+                -INT16_C(12000),
+                INT16_C(0),
+                UINT64_C(0)) != 0)
+        {
+            return 1;
+        }
+    }
+    if (tick == approach_limit)
+    {
+        return 1;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(120); ++tick)
+    {
+        if (inspection->players[1].action_state ==
+                (uint8_t)PF_M4_ACTION_GROUND_IDLE &&
+            inspection->players[1].facing == INT8_C(-1) &&
+            inspection->players[1].velocity_x_q16 == INT32_C(0))
+        {
+            return 0;
+        }
+        if (run_duel_pre_roll_tick(
+                sim,
+                inspection,
+                INT16_C(0),
+                INT16_C(0),
+                UINT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0)) != 0)
+        {
+            return 1;
+        }
+    }
+    return 1;
+}
+
+static int run_ucf_tumble_input_pre_roll(
+    pf_sim *sim,
+    pf_m4_inspection *inspection)
+{
+    uint32_t tick;
+    uint32_t hit;
+
+    /* Build a small, entirely physical percent baseline. This keeps the
+     * native theorem in DamageFall without writing fighter state directly. */
+    for (hit = UINT32_C(0); hit < UINT32_C(5); ++hit)
+    {
+        uint32_t damage_before = inspection->players[0].damage_q16;
+
+        if (run_duel_pre_roll_tick(
+                sim,
+                inspection,
+                INT16_C(0),
+                INT16_C(0),
+                UINT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                PF_INPUT_BUTTON_ATTACK) != 0)
+        {
+            return 1;
+        }
+        for (tick = UINT32_C(0); tick < UINT32_C(600); ++tick)
+        {
+            if (inspection->players[0].damage_q16 > damage_before &&
+                inspection->players[0].action_state ==
+                    (uint8_t)PF_M4_ACTION_GROUND_IDLE &&
+                inspection->players[0].grounded != UINT8_C(0) &&
+                inspection->players[1].action_state ==
+                    (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+            {
+                break;
+            }
+            if (run_duel_pre_roll_tick(
+                    sim,
+                    inspection,
+                    INT16_C(0),
+                    INT16_C(0),
+                    UINT16_C(0),
+                    UINT64_C(0),
+                    INT16_C(0),
+                    INT16_C(0),
+                    UINT64_C(0)) != 0)
+            {
+                return 1;
+            }
+        }
+        if (tick == UINT32_C(600))
+        {
+            return 1;
+        }
+        if (run_attacker_approach_and_settle(
+                sim, inspection, UINT32_C(300)) != 0)
+        {
+            return 1;
+        }
+    }
+
+    /* Reach a real floor endpoint first so the horizontal launch cannot land
+     * before the strict raw-input boundary. Then bring Falcon into the same
+     * close-range spacing using ordinary movement. */
+    if (run_teeter_pre_roll(sim, &sim->content, inspection, -1) != 0)
+    {
+        return 1;
+    }
+    if (run_duel_pre_roll_tick(
+            sim,
+            inspection,
+            INT16_C(9000),
+            INT16_C(0),
+            UINT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0)) != 0)
+    {
+        return 1;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(120); ++tick)
+    {
+        if (inspection->players[0].action_state ==
+                (uint8_t)PF_M4_ACTION_GROUND_IDLE &&
+            inspection->players[0].grounded != UINT8_C(0))
+        {
+            break;
+        }
+        if (run_duel_pre_roll_tick(
+                sim,
+                inspection,
+                INT16_C(0),
+                INT16_C(0),
+                UINT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0)) != 0)
+        {
+            return 1;
+        }
+    }
+    if (tick == UINT32_C(120))
+    {
+        return 1;
+    }
+    if (run_attacker_approach_and_settle(
+            sim, inspection, UINT32_C(2400)) != 0)
+    {
+        return 1;
+    }
+
+    if (run_duel_pre_roll_tick(
+            sim,
+            inspection,
+            INT16_C(0),
+            INT16_C(0),
+            UINT16_C(0),
+            UINT64_C(0),
+            INT16_MIN,
+            INT16_C(0),
+            PF_INPUT_BUTTON_STRONG_ATTACK) != 0)
+    {
+        return 1;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(600); ++tick)
+    {
+        if (inspection->players[0].tumble != UINT8_C(0) &&
+            inspection->players[0].grounded == UINT8_C(0) &&
+            inspection->players[0].hitlag_ticks == UINT16_C(0) &&
+            inspection->players[0].hitstun_ticks == UINT16_C(1))
+        {
+            return 0;
+        }
+        if (run_duel_pre_roll_tick(
+                sim,
+                inspection,
+                INT16_C(0),
+                INT16_C(0),
+                UINT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0)) != 0)
+        {
+            return 1;
+        }
+    }
+    return 1;
 }
 
 static int run_guardoff_acquisition_pre_roll(
@@ -362,6 +683,9 @@ int main(int argc, char **argv)
     int walk_acquisition_mode = 0;
     int guardoff_acquisition_mode = 0;
     int powershield_guardoff_mode = 0;
+    int ucf_sdi_hitlag_mode = 0;
+    int ucf_shield_sdi_hitlag_mode = 0;
+    int ucf_tumble_mode = 0;
 
     if (argc == 2 && strcmp(argv[1], "--platform") == 0)
     {
@@ -490,6 +814,19 @@ int main(int argc, char **argv)
         shield_hit_place_mode = 1;
         guardoff_acquisition_mode = 1;
     }
+    else if (argc == 2 && strcmp(argv[1], "--ucf-sdi-hitlag") == 0)
+    {
+        ucf_sdi_hitlag_mode = 1;
+    }
+    else if (
+        argc == 2 && strcmp(argv[1], "--ucf-shield-sdi-hitlag") == 0)
+    {
+        ucf_shield_sdi_hitlag_mode = 1;
+    }
+    else if (argc == 2 && strcmp(argv[1], "--ucf-tumble") == 0)
+    {
+        ucf_tumble_mode = 1;
+    }
     else if (argc != 1)
     {
         (void)fprintf(
@@ -509,7 +846,8 @@ int main(int argc, char **argv)
             "--falcon-kick-ground-hit|--falcon-kick-ground-wall|"
             "--falcon-kick-air|"
             "--falcon-kick-air-land|--teeter-special|--walk-acquisition|"
-            "--powershield-guardoff|--ordinary-guardoff]\n");
+            "--powershield-guardoff|--ordinary-guardoff|"
+            "--ucf-sdi-hitlag|--ucf-shield-sdi-hitlag|--ucf-tumble]\n");
         return 1;
     }
 
@@ -564,7 +902,29 @@ int main(int argc, char **argv)
             -INT32_C(25) * PF_Q16_ONE;
         content.stage.upper_platform_half_width_q16 = PF_Q16_ONE;
     }
-    if (push_mode != 0 ||
+    if (ucf_sdi_hitlag_mode != 0 || ucf_shield_sdi_hitlag_mode != 0)
+    {
+        /* The source fixture places the victim 12 Melee units from Falcon. */
+        content.stage.spawn_spacing_q16 =
+            (int32_t)(
+                (INT64_C(6) * INT64_C(12) * PF_Q16_ONE) /
+                INT64_C(115));
+    }
+    else if (ucf_tumble_mode != 0)
+    {
+        /* Keep the victim barely supported at the left edge. The ordinary
+         * forward-smash launch then creates a natural airborne DamageFall. */
+        content.stage.spawn_spacing_q16 =
+            (INT32_C(4) * PF_Q16_ONE) / INT32_C(5);
+        content.stage.floor_left_q16 = -INT32_C(5) * PF_Q16_ONE;
+        content.stage.platform_center_x_q16 = INT32_C(28) * PF_Q16_ONE;
+        content.stage.solid_left_q16 = INT32_C(21) * PF_Q16_ONE;
+        content.stage.solid_right_q16 = INT32_C(22) * PF_Q16_ONE;
+        content.stage.upper_platform_center_x_q16 =
+            INT32_C(25) * PF_Q16_ONE;
+        content.stage.blast_bottom_q16 = INT32_C(2048) * PF_Q16_ONE;
+    }
+    else if (push_mode != 0 ||
         (shield_hit_mode != 0 && shield_hit_place_mode == 0))
     {
         /* Final Destination starts ports one and two at -60/+60. */
@@ -766,7 +1126,7 @@ int main(int argc, char **argv)
          falcon_dive_air_miss_mode != 0 ||
          falcon_dive_air_ledge_mode != 0 ||
          raptor_boost_air_miss_mode != 0 ||
-         raptor_boost_air_hit_mode != 0
+         raptor_boost_air_hit_mode != 0 || ucf_tumble_mode != 0
              ? INT32_C(4096)
              : INT32_C(256)) *
         PF_Q16_ONE;
@@ -793,7 +1153,39 @@ int main(int argc, char **argv)
     {
         return fail_status("inspect-origin", status);
     }
-    if (guardoff_acquisition_mode != 0)
+    if (ucf_sdi_hitlag_mode != 0 || ucf_shield_sdi_hitlag_mode != 0)
+    {
+        if (run_ucf_hitlag_input_pre_roll(
+                sim,
+                &content,
+                &inspection,
+                ucf_shield_sdi_hitlag_mode) != 0)
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement-trace=fail operation=ucf-hitlag-pre-roll\n");
+            return 1;
+        }
+    }
+    else if (ucf_tumble_mode != 0)
+    {
+        if (run_ucf_tumble_input_pre_roll(sim, &inspection) != 0)
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement-trace=fail operation=ucf-tumble-pre-roll "
+                "action=%u grounded=%u tumble=%u hitlag=%u hitstun=%u "
+                "damage=%" PRIu32 "\n",
+                (unsigned int)inspection.players[0].action_state,
+                (unsigned int)inspection.players[0].grounded,
+                (unsigned int)inspection.players[0].tumble,
+                (unsigned int)inspection.players[0].hitlag_ticks,
+                (unsigned int)inspection.players[0].hitstun_ticks,
+                inspection.players[0].damage_q16);
+            return 1;
+        }
+    }
+    else if (guardoff_acquisition_mode != 0)
     {
         if (run_guardoff_acquisition_pre_roll(
                 sim,
@@ -818,7 +1210,7 @@ int main(int argc, char **argv)
     }
     else if (teeter_special_mode != 0)
     {
-        if (run_teeter_pre_roll(sim, &content, &inspection) != 0)
+        if (run_teeter_pre_roll(sim, &content, &inspection, 1) != 0)
         {
             (void)fprintf(
                 stderr,
@@ -1349,7 +1741,7 @@ int main(int argc, char **argv)
         "shield_health_q16,shield_strength,shield_angle_turn,"
         "shield_magnitude,shield_center_offset_x_q16,"
         "shield_center_offset_y_q16,shield_radius_x_q16,shield_radius_y_q16,"
-        "powershield,hitlag_ticks,shield_stun_ticks,"
+        "powershield,hitlag_ticks,tumble,shield_stun_ticks,"
         "invulnerable,"
         "opponent_action_state,opponent_action_ticks,opponent_hitlag_ticks,"
         "opponent_hitstun_ticks,"
@@ -1505,7 +1897,7 @@ int main(int argc, char **argv)
             ",%u,%u,%u,%" PRId32 ",%" PRId32 ",%" PRId32 ",%u,%" PRId32 ",%d,%u,%u,%" PRId32 ",%" PRId32 ",%d,%d,%u,%" PRId32 ",%" PRId32 ",%" PRId32 ",%" PRId32
             ",%" PRId32
             ",%" PRIu32 ",%u,%u,%u,%" PRId32 ",%" PRId32 ",%" PRId32
-            ",%" PRId32 ",%u,%u,%u,%u,%u,%u,%u,%u,%d,%u,%" PRId32 ",%" PRId32
+            ",%" PRId32 ",%u,%u,%u,%u,%u,%u,%u,%u,%u,%d,%u,%" PRId32 ",%" PRId32
             ",%" PRId32 ",%" PRId32 ",%" PRId32 ",%" PRIu32
             ",%u,%u,%u,%u,%d,%d,%d,%d\n",
             trace_frame,
@@ -1561,6 +1953,7 @@ int main(int argc, char **argv)
                 INT32_C(2),
             (unsigned int)inspection.players[0].powershield,
             (unsigned int)inspection.players[0].hitlag_ticks,
+            (unsigned int)inspection.players[0].tumble,
             (unsigned int)inspection.players[0].shield_stun_ticks,
             (unsigned int)inspection.players[0].invulnerable,
             (unsigned int)inspection.players[1].action_state,

@@ -2225,11 +2225,11 @@ raw-controller provenance. The canonical live source and production payloads
 are structurally identical at SHA-256
 `4a553ba57522d4347188cb227357157fbb4f1a7246dd638fba68019e9166fd63`.
 
-PAD/cardinal preprocessing is therefore live-qualified. Direct live boundary
-families remain outstanding for DBOOC, SDI, shield SDI, tumble, shield-drop
-suppression, and the extended pad counter.
+PAD/cardinal preprocessing was therefore live-qualified at this checkpoint.
+The six then-outstanding direct boundary families were closed by the later
+DBOOC/shield and damage-input provenance sections below.
 
-The staged shared registry now declares 32 domains / 205 cases. The new
+The staged shared registry at this checkpoint declared 32 domains / 205 cases. The new
 `falcon-common-ucf084-cardinal-input` domain contributes the 16 exact-source
 cases above. The expanded registry passes with replay under manifest SHA-256
 `26b925f08337c64e8cb8db9c5de7e47488d92b2fc3a6dd887894f53cbd095647`.
@@ -2297,3 +2297,37 @@ to `73198f0ee5ab242d72598c4fa149d6f13e60112d69ddeb1d1f83e0218683c009`.
 The natural Battlefield setup is deliberately outside retained theorem rows.
 Each guard case then independently proves floor line 2 before the input edge;
 Guard action state alone is never treated as platform provenance.
+
+### UCF damage-input provenance
+
+The SDI, shield-SDI, and tumble domains use the same runtime-verified policy
+`ssbm-ntsc102-ucf084-oracle-v2`, official tag
+`ucf0.84_2024-06-27`, and release revision
+`01122231ea97683cf7adea43d732ce0a4784c849`. Their source authority is the
+active UCF hook payloads at `0x8008E54C` (SDI), `0x80093294` (shield SDI), and
+`0x800908F4` (tumble), combined with pinned NTSC 1.02 Damage, Guard, and
+DamageFall callback code. Capture rows retain exact consumed raw main-stick
+samples and the fighter's ordinary and UCF continuous input ages; production
+does not reconstruct exact source raw input from processed axes.
+
+The four-case hitlag capture pair hashes to
+`fb636ab13fd6ecdcb8f10f11af3640b8fbf6759a18f7e5ce01e9a7904f581b6e`
+and `612a9eb7e72adb7b4119246242ff511613be40eb4d12a83b112e8aa0a7a0b38b`.
+Its source and production projections hash to
+`9f30698ba7ec1aafc5dd1bbb15e1a6f8bc1f503d04a4e86a318e74a5be3a87e4`
+and `7754c6342a567433d4fb4989405c9e309429782aa52dc34e49f76133b0f01303`;
+the verifier permits only a one-Q16 displacement difference. The two-case
+tumble capture pair hashes to
+`3737ce0d2006f6d64d44e498499877844c3d0a938d0be42c53818f355b287bd0`
+and `473881a96ad47339e2e22f74eefdf1b63930ea2f98cf45d6f7901e312131d84f`,
+with byte-exact source/production digest
+`da5473c7bfd0883a405eef293d11eca8f7618f78999e42f73097aff99760ff00`.
+
+The generated stored artifacts hash to
+`9e263394e5f1c4ceeb57681f311f45471a06f5c064bc489f5dc7d48eb807adb4`
+and `3299aa6901e2f864f9bab2d17789cccc5182723d39bb8f09ea06f8c865db58c1`.
+They are sparse causal traces: two history rows establish the source timer and
+t-minus-two raw sample, followed by the boundary and one result row for
+hitlag, or a three-row release/precursor/boundary trace for tumble. Unrecorded
+physical acquisition is deliberately excluded from stored payloads but never
+replaced by direct canonical-state mutation.

@@ -499,12 +499,12 @@ is 9.728/8.722 seconds, under the domain's 12-second warm and 20-second cold
 budgets. Direct verifier-only execution takes 232.529-251.415 ms on Windows
 and 453.341-678.188 ms in WSL.
 
-All eight UCF hooks remain implemented and source-audited. PAD/cardinal is now
-live-qualified alongside Dashback/raw-history; DBOOC, SDI, shield SDI, tumble,
-shield-drop suppression, and extended-pad-counter behavior remain six direct
-live boundary families.
+All eight UCF hooks were implemented and source-audited at this checkpoint.
+PAD/cardinal was live-qualified alongside Dashback/raw-history; the six
+then-open boundary families were closed by the later DBOOC/shield and sparse
+damage-input decisions below.
 
-The staged registry now declares 32 domains / 205 cases and passes with replay
+The staged registry at this checkpoint declared 32 domains / 205 cases and passed with replay
 under manifest SHA-256
 `26b925f08337c64e8cb8db9c5de7e47488d92b2fc3a6dd887894f53cbd095647`.
 Three isolated complete runs take 877.821-1,033.078 ms on Windows and
@@ -582,3 +582,25 @@ domain for DBOOC, shield-drop suppression, and extended pad count instead of a
 surface-response fork or three duplicated runners. Its exact source/production
 SHA-256 is
 `73198f0ee5ab242d72598c4fa149d6f13e60112d69ddeb1d1f83e0218683c009`.
+
+## Keep raw-history damage boundaries sparse and physical
+
+UCF SDI, shield SDI, and tumble need two-frame controller history, but they do
+not need a new oracle protocol. The live side reuses physical damage/shield
+acquisition plus the schema-2 input-memory probe. The native side uses three
+bounded physical pre-roll modes and then consumes the ordinary exact-raw CSV
+rows. No runner writes damage, hitlag, tumble, ages, or history directly.
+
+The retained theorem is intentionally small: four hitlag cases keep four rows
+each, and two tumble cases keep three rows each. This is enough to prove strict
+raw delta 62/63 and 75/76 behavior while excluding attack startup and long
+DamageFall waiting from every routine stored-registry run. The dedicated live
+verifier still validates the omitted physical acquisition, UCF runtime policy,
+capture repeat, labels, raw samples, processed axes, ages, action, and result.
+
+The resulting registry contains 35 domains / 218 cases under manifest SHA-256
+`256cc0d55e882b5bff3a0dc52dc521db0d2e64ebb08ea9a479ee22ba81130946`.
+Three full Windows runs take 619.867/679.644/788.424 ms; three WSL runs take
+965.814/947.881/954.270 ms. The 2,000-ms gate still includes all 35
+generated-file checks and deterministic replay. Earlier registry counts and
+timings in this decision record remain historical snapshots.

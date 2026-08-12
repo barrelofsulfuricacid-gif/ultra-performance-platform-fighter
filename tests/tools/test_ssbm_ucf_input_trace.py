@@ -24,7 +24,11 @@ except ModuleNotFoundError:
     melee_console = types.ModuleType("melee.console")
     melee_console.get_dolphin_version = lambda _path: "test-only"  # type: ignore[attr-defined]
     melee_module.console = melee_console  # type: ignore[attr-defined]
-    melee_module.Action = type("Action", (), {"__members__": {}})  # type: ignore[attr-defined]
+    melee_module.Action = type(  # type: ignore[attr-defined]
+        "Action",
+        (),
+        {"__members__": {"TUMBLING": object(), "FALLING": object()}},
+    )
     melee_module.Character = type("Character", (), {"FOX": object()})  # type: ignore[attr-defined]
     sys.modules["melee"] = melee_module
     sys.modules["melee.console"] = melee_console
@@ -233,6 +237,81 @@ class UcfCheckpointCaptureTests(unittest.TestCase):
             len(recorded),
             coverage["checkpoint_pack"]["expected_rows"],
         )
+
+    def test_hitlag_input_manifest_records_two_frame_history_and_boundary(
+        self,
+    ) -> None:
+        coverage = json.loads(
+            (ROOT / "tools" / "ssbm_ucf084_hitlag_input_coverage.json")
+            .read_text(encoding="utf-8")
+        )
+        trace = input_trace(
+            damage_hit_only=True,
+            checkpoint_isolated=True,
+            checkpoint_capture_plan=coverage["checkpoint_pack"]["capture_plan"],
+        )
+        recorded = [row for row in trace if row.get("record", True)]
+        self.assertEqual(
+            len(recorded),
+            coverage["checkpoint_pack"]["expected_rows"],
+        )
+        for case_index in range(4):
+            rows = recorded[case_index * 4 : case_index * 4 + 4]
+            prefix = coverage["checkpoint_pack"]["capture_plan"][
+                "damage_response_cases"
+            ][case_index]["id"]
+            self.assertEqual(
+                [row["label"] for row in rows],
+                [
+                    f"damage_response_{prefix}_pre_hit_1",
+                    f"damage_response_{prefix}_pre_hit_2",
+                    f"damage_response_{prefix}_hitlag_1",
+                    f"damage_response_{prefix}_hitlag_2",
+                ],
+            )
+            shield = prefix.startswith("shield_")
+            self.assertTrue(
+                all(row["digital_left"] is shield for row in rows)
+            )
+            self.assertTrue(
+                all(row["left_shoulder"] == (1.0 if shield else 0.0)
+                    for row in rows)
+            )
+
+    def test_tumble_input_manifest_keeps_only_the_causal_three_row_tail(
+        self,
+    ) -> None:
+        coverage = json.loads(
+            (ROOT / "tools" / "ssbm_ucf084_tumble_input_coverage.json")
+            .read_text(encoding="utf-8")
+        )
+        trace = input_trace(
+            damage_hit_only=True,
+            checkpoint_isolated=True,
+            checkpoint_capture_plan=coverage["checkpoint_pack"]["capture_plan"],
+        )
+        cases = coverage["checkpoint_pack"]["capture_plan"][
+            "surface_response_cases"
+        ]
+        for case in cases:
+            prefix = f"surface_response_{case['id']}_observe_"
+            retained = [
+                row for row in trace if str(row["label"]).startswith(prefix)
+            ]
+            causal = [
+                row
+                for row in retained
+                if row["label"].endswith(("_t2", "_precursor", "_edge"))
+            ]
+            self.assertEqual(len(causal), 3)
+            self.assertEqual(
+                [row["label"].removeprefix(prefix) for row in causal],
+                ["t2", "precursor", "edge"],
+            )
+            self.assertTrue(
+                all(row["record_actions"] == ("TUMBLING", "FALLING")
+                    for row in causal)
+            )
 
 
 class SourceAxisTests(unittest.TestCase):

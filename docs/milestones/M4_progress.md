@@ -6713,9 +6713,9 @@ M5 content scaling remains blocked until M4 combat feel is approved.
 - Added a separate 16-case / 48-row physical domain for the modifier's main-
   and C-stick cardinal preprocessing. It covers each signed cardinal axis,
   raw dominant-axis 80 with orthogonal magnitude 6, and the discriminating
-  dominant-axis 79 / orthogonal-magnitude 7 controls. The PAD/cardinal hook is
-  now live-qualified; DBOOC, SDI, shield SDI, tumble, shield-drop suppression,
-  and the extended pad counter remain six direct live boundary families.
+  dominant-axis 79 / orthogonal-magnitude 7 controls. The PAD/cardinal hook was
+  live-qualified at this checkpoint; the six then-open boundary families are
+  closed by the later DBOOC/shield and damage-input entries.
 - The two independent capture SHA-256 values are
   `d6d7cb26d0b30785bb38c39a6b400366742998d6f9f2eeb448f4a7cb31db4984`
   and
@@ -6793,3 +6793,38 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   manifest SHA-256
   `d983e7855a31f696e87d00da97ea6e8ae28eefa0c4b353de61c4b68ad2aee788`
   in 588.997-719.748 ms on Windows and 779.541-1,095.532 ms in WSL.
+
+## 2026-08-12: UCF 0.84 SDI, shield-SDI, and tumble boundary domains
+
+- Added two compact, reusable damage-input domains rather than a new capture
+  protocol. `falcon-common-ucf084-hitlag-input` has four cases / 16 rows for
+  ordinary SDI and shield SDI; `falcon-common-ucf084-tumble-input` has two
+  cases / six rows for DamageFall. Both reuse checkpoint v2, schema-2 input
+  memory, exact raw-main native CSV rows, the generic trace generator, and the
+  existing surface/damage capture routes.
+- The live theorem proves the UCF strict boundaries themselves: raw delta 62
+  rejects and 63 accepts SDI and shield SDI, while raw X delta 75 rejects and
+  76 accepts the tumble wiggle. Ordinary/UCF ages, current and previous
+  processed input, raw t-versus-t-2 history, hitlag/tumble, action, and
+  grounding are retained. The hitlag comparator allows exactly one Q16 unit
+  of measured source/native displacement rounding and no state/timing slack.
+- Independent hitlag capture SHA-256 values are
+  `fb636ab13fd6ecdcb8f10f11af3640b8fbf6759a18f7e5ce01e9a7904f581b6e`
+  and `612a9eb7e72adb7b4119246242ff511613be40eb4d12a83b112e8aa0a7a0b38b`;
+  source/production semantic hashes are
+  `9f30698ba7ec1aafc5dd1bbb15e1a6f8bc1f503d04a4e86a318e74a5be3a87e4`
+  and `7754c6342a567433d4fb4989405c9e309429782aa52dc34e49f76133b0f01303`.
+  Independent tumble captures hash to
+  `3737ce0d2006f6d64d44e498499877844c3d0a938d0be42c53818f355b287bd0`
+  and `473881a96ad47339e2e22f74eefdf1b63930ea2f98cf45d6f7901e312131d84f`;
+  source and production are byte-exact at
+  `da5473c7bfd0883a405eef293d11eca8f7618f78999e42f73097aff99760ff00`.
+- Primary hitlag/tumble captures report 7.046/4.459-second warm and
+  14.411/15.298-second cold totals. Eleven focused input-trace tests and both
+  stored CTests pass on MSVC and GCC. The expanded 35-domain / 218-case
+  registry passes under manifest SHA-256
+  `256cc0d55e882b5bff3a0dc52dc521db0d2e64ebb08ea9a479ee22ba81130946`
+  in 619.867-788.424 ms on Windows and 947.881-965.814 ms in WSL.
+- These domains complete direct live boundary qualification for all eight
+  Falcon-relevant pinned-UCF hooks. The Zelda grounded-Up-B cardinal exception
+  remains an explicit future character-import boundary, not Falcon evidence.

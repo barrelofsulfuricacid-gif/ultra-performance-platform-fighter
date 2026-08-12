@@ -1,0 +1,161 @@
+{
+  "cases": [
+    {
+      "field_exclusions": {},
+      "id": "sdi_raw_delta_62_reject",
+      "input_runs": [
+        {
+          "input": "0,0,0,0,0,0,0,0,0,0,0,3",
+          "ticks": 1
+        },
+        {
+          "input": "18022,0,0,0,0,0,0,0,0,44,0,3",
+          "ticks": 1
+        },
+        {
+          "input": "25394,0,0,0,0,0,0,0,0,62,0,3",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0,0,0,3",
+          "ticks": 1
+        }
+      ],
+      "runner_arguments": [
+        "--ucf-sdi-hitlag"
+      ],
+      "sample_count": 4,
+      "serialized_fields": [
+        "effective_main_x_q15",
+        "effective_main_y_q15",
+        "tilt_x_age",
+        "tilt_y_age",
+        "ucf_tilt_x_age",
+        "ucf_tilt_y_age",
+        "action_state",
+        "hitlag_ticks",
+        "grounded",
+        "position_x_q16_from_origin"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "sdi_raw_delta_63_accept",
+      "input_runs": [
+        {
+          "input": "0,0,0,0,0,0,0,0,0,0,0,3",
+          "ticks": 1
+        },
+        {
+          "input": "18022,0,0,0,0,0,0,0,0,44,0,3",
+          "ticks": 1
+        },
+        {
+          "input": "25804,0,0,0,0,0,0,0,0,63,0,3",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0,0,0,3",
+          "ticks": 1
+        }
+      ],
+      "runner_arguments": [
+        "--ucf-sdi-hitlag"
+      ],
+      "sample_count": 4,
+      "serialized_fields": [
+        "effective_main_x_q15",
+        "effective_main_y_q15",
+        "tilt_x_age",
+        "tilt_y_age",
+        "ucf_tilt_x_age",
+        "ucf_tilt_y_age",
+        "action_state",
+        "hitlag_ticks",
+        "grounded",
+        "position_x_q16_from_origin"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "shield_sdi_raw_delta_62_reject",
+      "input_runs": [
+        {
+          "input": "0,0,0,0,65535,0,0,0,0,0,0,3",
+          "ticks": 1
+        },
+        {
+          "input": "18022,0,0,0,65535,0,0,0,0,44,0,3",
+          "ticks": 1
+        },
+        {
+          "input": "25394,0,0,0,65535,0,0,0,0,62,0,3",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,65535,0,0,0,0,0,0,3",
+          "ticks": 1
+        }
+      ],
+      "runner_arguments": [
+        "--ucf-shield-sdi-hitlag"
+      ],
+      "sample_count": 4,
+      "serialized_fields": [
+        "effective_main_x_q15",
+        "effective_main_y_q15",
+        "tilt_x_age",
+        "tilt_y_age",
+        "ucf_tilt_x_age",
+        "ucf_tilt_y_age",
+        "action_state",
+        "hitlag_ticks",
+        "grounded",
+        "position_x_q16_from_origin"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "shield_sdi_raw_delta_63_accept",
+      "input_runs": [
+        {
+          "input": "0,0,0,0,65535,0,0,0,0,0,0,3",
+          "ticks": 1
+        },
+        {
+          "input": "18022,0,0,0,65535,0,0,0,0,44,0,3",
+          "ticks": 1
+        },
+        {
+          "input": "25804,0,0,0,65535,0,0,0,0,63,0,3",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,65535,0,0,0,0,0,0,3",
+          "ticks": 1
+        }
+      ],
+      "runner_arguments": [
+        "--ucf-shield-sdi-hitlag"
+      ],
+      "sample_count": 4,
+      "serialized_fields": [
+        "effective_main_x_q15",
+        "effective_main_y_q15",
+        "tilt_x_age",
+        "tilt_y_age",
+        "ucf_tilt_x_age",
+        "ucf_tilt_y_age",
+        "action_state",
+        "hitlag_ticks",
+        "grounded",
+        "position_x_q16_from_origin"
+      ]
+    }
+  ],
+  "domain": "falcon-common-ucf084-hitlag-input",
+  "kind": "native-csv-trace-v1",
+  "production_trace_sha256": "7754c6342a567433d4fb4989405c9e309429782aa52dc34e49f76133b0f01303",
+  "schema": 1,
+  "source_trace_sha256": "9f30698ba7ec1aafc5dd1bbb15e1a6f8bc1f503d04a4e86a318e74a5be3a87e4"
+}

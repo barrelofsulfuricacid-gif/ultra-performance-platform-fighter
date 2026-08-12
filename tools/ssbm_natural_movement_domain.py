@@ -36,6 +36,8 @@ def load_capture(
     path: Path,
     expected_sha256: str,
     live_source: dict[str, Any],
+    *,
+    require_zero_damage: bool = True,
 ) -> dict[str, Any]:
     actual_sha256 = raw_sha256(path)
     if actual_sha256 != expected_sha256:
@@ -91,7 +93,9 @@ def load_capture(
             raise NaturalMovementDomainError(
                 f"capture-gameplay-policy path={path}"
             )
-    if any(row.get("damage_percent") != 0.0 for row in rows):
+    if require_zero_damage and any(
+        row.get("damage_percent") != 0.0 for row in rows
+    ):
         raise NaturalMovementDomainError(f"capture-damage-contamination path={path}")
     return capture
 

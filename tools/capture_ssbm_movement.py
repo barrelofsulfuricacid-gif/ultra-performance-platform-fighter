@@ -4191,6 +4191,11 @@ def input_trace(
             raw_cases = checkpoint_capture_plan.get("damage_response_cases")
             if not isinstance(raw_cases, list) or not raw_cases:
                 raise ValueError("damage response checkpoint cases are required")
+            record_input_window_only = checkpoint_capture_plan.get(
+                "record_input_window_only", False
+            )
+            if not isinstance(record_input_window_only, bool):
+                raise ValueError("record_input_window_only must be boolean")
 
             def case_sticks(
                 raw: object,
@@ -4225,7 +4230,24 @@ def input_trace(
                 ):
                     raise ValueError("damage response case id is invalid")
                 case_ids.add(case_id)
-                pre_hit = case_sticks(raw_case.get("pre_hit", {}))
+                raw_pre_hit = raw_case.get("pre_hit", {})
+                pre_hit_sequence = (
+                    tuple(case_sticks(raw) for raw in raw_pre_hit)
+                    if isinstance(raw_pre_hit, list)
+                    else (case_sticks(raw_pre_hit),) * 2
+                )
+                setup = case_sticks(
+                    raw_case.get(
+                        "setup",
+                        raw_pre_hit if isinstance(raw_pre_hit, dict) else {},
+                    )
+                )
+                shield = raw_case.get("shield", False)
+                if (
+                    len(pre_hit_sequence) != 2
+                    or not isinstance(shield, bool)
+                ):
+                    raise ValueError("damage response pre-hit/shield is invalid")
                 raw_hitlag = raw_case.get("hitlag")
                 if not isinstance(raw_hitlag, list) or len(raw_hitlag) != 3:
                     raise ValueError(
@@ -4233,56 +4255,81 @@ def input_trace(
                     )
                 hitlag = tuple(case_sticks(raw) for raw in raw_hitlag)
                 prefix = f"damage_response_{case_id}"
+                case_trace_start = len(trace)
+                trigger_inputs = {
+                    "left_shoulder": 1.0 if shield else 0.0,
+                    "digital_left": shield,
+                }
                 place = command(
                     f"{prefix}_place",
-                    main_x=pre_hit[0],
-                    main_y=pre_hit[1],
-                    c_x=pre_hit[2],
-                    c_y=pre_hit[3],
+                    main_x=setup[0],
+                    main_y=setup[1],
+                    c_x=setup[2],
+                    c_y=setup[3],
                     fighter_x_override=12.0,
                     fighter_facing_override=-1.0,
                     opponent_x_override=0.0,
                     opponent_facing_override=1.0,
+                    **trigger_inputs,
                 )
                 trace.append({**place, "restore_before": True})
                 repeat(
                     f"{prefix}_settle",
                     8,
-                    main_x=pre_hit[0],
-                    main_y=pre_hit[1],
-                    c_x=pre_hit[2],
-                    c_y=pre_hit[3],
+                    main_x=setup[0],
+                    main_y=setup[1],
+                    c_x=setup[2],
+                    c_y=setup[3],
                     fighter_x_override=12.0,
                     fighter_facing_override=-1.0,
                     opponent_x_override=0.0,
                     opponent_facing_override=1.0,
+                    **trigger_inputs,
                 )
+                if shield:
+                    repeat(
+                        f"{prefix}_shield",
+                        12,
+                        main_x=setup[0],
+                        main_y=setup[1],
+                        c_x=setup[2],
+                        c_y=setup[3],
+                        **trigger_inputs,
+                    )
                 trace.append(
                     command(
                         f"{prefix}_jab",
-                        main_x=pre_hit[0],
-                        main_y=pre_hit[1],
-                        c_x=pre_hit[2],
-                        c_y=pre_hit[3],
+                        main_x=setup[0],
+                        main_y=setup[1],
+                        c_x=setup[2],
+                        c_y=setup[3],
                         opponent_attack=True,
                         fighter_x_override=12.0,
                         fighter_facing_override=-1.0,
                         opponent_x_override=0.0,
                         opponent_facing_override=1.0,
+                        **trigger_inputs,
                     )
                 )
-                repeat(
-                    f"{prefix}_pre_hit",
-                    2,
-                    main_x=pre_hit[0],
-                    main_y=pre_hit[1],
-                    c_x=pre_hit[2],
-                    c_y=pre_hit[3],
-                    fighter_x_override=12.0,
-                    fighter_facing_override=-1.0,
-                    opponent_x_override=0.0,
-                    opponent_facing_override=1.0,
-                )
+                for pre_hit_index, sticks in enumerate(
+                    pre_hit_sequence, start=1
+                ):
+                    trace.append(
+                        command(
+                            f"{prefix}_pre_hit_{pre_hit_index}"
+                            if isinstance(raw_pre_hit, list)
+                            else f"{prefix}_pre_hit",
+                            main_x=sticks[0],
+                            main_y=sticks[1],
+                            c_x=sticks[2],
+                            c_y=sticks[3],
+                            fighter_x_override=12.0,
+                            fighter_facing_override=-1.0,
+                            opponent_x_override=0.0,
+                            opponent_facing_override=1.0,
+                            **trigger_inputs,
+                        )
+                    )
                 for hitlag_index, sticks in enumerate(hitlag, start=1):
                     trace.append(
                         command(
@@ -4291,9 +4338,19 @@ def input_trace(
                             main_y=sticks[1],
                             c_x=sticks[2],
                             c_y=sticks[3],
+                            **trigger_inputs,
                         )
                     )
                 repeat(f"{prefix}_observe", 8)
+                if record_input_window_only:
+                    retained_labels = {
+                        f"{prefix}_pre_hit_1",
+                        f"{prefix}_pre_hit_2",
+                        f"{prefix}_hitlag_1",
+                        f"{prefix}_hitlag_2",
+                    }
+                    for sample in trace[case_trace_start:]:
+                        sample["record"] = sample["label"] in retained_labels
             return trace
 
         # Establish a deterministic close-range neutral state directly. The

@@ -190,6 +190,8 @@ def common_movement_source_sample(
         ),
         "velocity_x_q16": source_x_to_sim_q16(float(row[velocity_x_key])),
         "velocity_y_q16": source_y_to_sim_q16(float(row["velocity_y"])),
+        "hitlag_ticks": round(float(row.get("hitlag_left", 0.0))),
+        "tumble": int(str(row.get("action", "")) == "TUMBLING"),
     }
     input_memory = row.get("input_memory")
     if isinstance(input_memory, dict):

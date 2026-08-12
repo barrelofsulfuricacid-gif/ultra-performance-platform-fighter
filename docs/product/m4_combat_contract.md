@@ -1648,12 +1648,14 @@ a new canonical field because it has been serialized since state schema 51.
 No technique-only Moonwalk oracle or browser startup probe is required. The
 raw-history Dashback boundary, delayed-Turn primitives, and PAD/cardinal
 preprocessing are directly live-qualified against the GALE01-plus-UCF target.
-The other six UCF hook families remain source-audited implementation work
-awaiting their own live domains, and a half-moon owner recipe remains the gate
-that their emergent composition is playable while the visible action labels
-stay ordinary source states. Until that owner qualification is recorded, the
-documentation must not replace the missing composition evidence with a special
-action label or a tuned two-tick shortcut.
+Separate live domains now qualify the remaining Falcon-relevant UCF hooks:
+DBOOC and both shield-drop paths use the Battlefield input/surface theorem;
+ordinary SDI and shield SDI distinguish strict raw delta 62/63; DamageFall
+tumble distinguishes strict raw delta 75/76. The Zelda grounded-Up-B cardinal
+exception remains outside this Falcon scope. A half-moon owner recipe remains
+the playability gate for the emergent Moonwalk composition; the documentation
+must not replace that owner evidence with a special action label or a tuned
+two-tick shortcut.
 
 ## Teeter-cancel contract
 

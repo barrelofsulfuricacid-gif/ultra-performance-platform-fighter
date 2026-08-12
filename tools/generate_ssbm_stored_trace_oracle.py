@@ -50,6 +50,7 @@ NATIVE_CSV_TRACE_FIELDS = {
     "shield_health_q16",
     "shield_strength",
     "hitlag_ticks",
+    "tumble",
     "invulnerable",
     "opponent_action_state",
     "opponent_action_ticks",
