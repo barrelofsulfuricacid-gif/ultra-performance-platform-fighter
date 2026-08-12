@@ -18,7 +18,7 @@
         }
       ],
       "runner_arguments": [
-        "--powershield-special"
+        "--powershield-guardoff"
       ],
       "sample_count": 7,
       "serialized_fields": [
@@ -46,7 +46,7 @@
         }
       ],
       "runner_arguments": [
-        "--powershield-special"
+        "--powershield-guardoff"
       ],
       "sample_count": 7,
       "serialized_fields": [
@@ -74,7 +74,7 @@
         }
       ],
       "runner_arguments": [
-        "--powershield-special"
+        "--powershield-guardoff"
       ],
       "sample_count": 7,
       "serialized_fields": [
@@ -102,7 +102,7 @@
         }
       ],
       "runner_arguments": [
-        "--powershield-special"
+        "--powershield-guardoff"
       ],
       "sample_count": 7,
       "serialized_fields": [
@@ -130,7 +130,119 @@
         }
       ],
       "runner_arguments": [
-        "--ordinary-shield-special"
+        "--ordinary-guardoff"
+      ],
+      "sample_count": 7,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "powershield_jump",
+      "input_runs": [
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,1,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [
+        "--powershield-guardoff"
+      ],
+      "sample_count": 7,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "ordinary_jump",
+      "input_runs": [
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,1,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [
+        "--ordinary-guardoff"
+      ],
+      "sample_count": 7,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "powershield_spot_dodge",
+      "input_runs": [
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,32767,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [
+        "--powershield-guardoff"
+      ],
+      "sample_count": 7,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "ordinary_spot_dodge",
+      "input_runs": [
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,32767,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [
+        "--ordinary-guardoff"
       ],
       "sample_count": 7,
       "serialized_fields": [
@@ -141,9 +253,9 @@
       ]
     }
   ],
-  "domain": "falcon-common-powershield-special-acquisition",
+  "domain": "falcon-common-guardoff-acquisition",
   "kind": "native-csv-trace-v1",
-  "production_trace_sha256": "c19aa7292078d1ac6ce7c2c21ed1f93d2b79d85b7ea71a86389450b73eb18850",
+  "production_trace_sha256": "4899179df79e5ec63f77fe7868c3fad9dd1f907bdc4a69cffc2d90d66784498f",
   "schema": 1,
-  "source_trace_sha256": "5877082e6a327318d4dde7a64d64a5ab40b1710658da1789ca2061eae0f327ea"
+  "source_trace_sha256": "daf5f6ccf6cfc324a5aebcd7b789ff234a55dbabe1ec8010a4377bb6c3c5f443"
 }

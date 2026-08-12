@@ -201,7 +201,7 @@ static int run_teeter_pre_roll(
     return 1;
 }
 
-static int run_shield_special_pre_roll_tick(
+static int run_guardoff_acquisition_pre_roll_tick(
     pf_sim *sim,
     pf_m4_inspection *inspection,
     uint16_t defender_left_trigger,
@@ -227,7 +227,7 @@ static int run_shield_special_pre_roll_tick(
     return 0;
 }
 
-static int run_shield_special_pre_roll(
+static int run_guardoff_acquisition_pre_roll(
     pf_sim *sim,
     pf_m4_inspection *inspection,
     int powershield)
@@ -238,7 +238,7 @@ static int run_shield_special_pre_roll(
 
     for (tick = UINT32_C(0); tick < shield_start_ticks; ++tick)
     {
-        if (run_shield_special_pre_roll_tick(
+        if (run_guardoff_acquisition_pre_roll_tick(
                 sim,
                 inspection,
                 UINT16_MAX,
@@ -247,12 +247,12 @@ static int run_shield_special_pre_roll(
             return 1;
         }
     }
-    if (run_shield_special_pre_roll_tick(
+    if (run_guardoff_acquisition_pre_roll_tick(
             sim,
             inspection,
             powershield != 0 ? UINT16_C(0) : UINT16_MAX,
             PF_INPUT_BUTTON_ATTACK) != 0 ||
-        run_shield_special_pre_roll_tick(
+        run_guardoff_acquisition_pre_roll_tick(
             sim,
             inspection,
             UINT16_MAX,
@@ -262,7 +262,7 @@ static int run_shield_special_pre_roll(
     }
     for (tick = UINT32_C(0); tick < UINT32_C(600); ++tick)
     {
-        if (run_shield_special_pre_roll_tick(
+        if (run_guardoff_acquisition_pre_roll_tick(
                 sim,
                 inspection,
                 UINT16_C(0),
@@ -326,8 +326,8 @@ int main(int argc, char **argv)
     int falcon_kick_air_mode = 0;
     int falcon_kick_air_land_mode = 0;
     int teeter_special_mode = 0;
-    int shield_special_mode = 0;
-    int powershield_special_mode = 0;
+    int guardoff_acquisition_mode = 0;
+    int powershield_guardoff_mode = 0;
 
     if (argc == 2 && strcmp(argv[1], "--platform") == 0)
     {
@@ -439,18 +439,18 @@ int main(int argc, char **argv)
     {
         teeter_special_mode = 1;
     }
-    else if (argc == 2 && strcmp(argv[1], "--powershield-special") == 0)
+    else if (argc == 2 && strcmp(argv[1], "--powershield-guardoff") == 0)
     {
         shield_hit_mode = 1;
         shield_hit_place_mode = 1;
-        shield_special_mode = 1;
-        powershield_special_mode = 1;
+        guardoff_acquisition_mode = 1;
+        powershield_guardoff_mode = 1;
     }
-    else if (argc == 2 && strcmp(argv[1], "--ordinary-shield-special") == 0)
+    else if (argc == 2 && strcmp(argv[1], "--ordinary-guardoff") == 0)
     {
         shield_hit_mode = 1;
         shield_hit_place_mode = 1;
-        shield_special_mode = 1;
+        guardoff_acquisition_mode = 1;
     }
     else if (argc != 1)
     {
@@ -471,7 +471,7 @@ int main(int argc, char **argv)
             "--falcon-kick-ground-hit|--falcon-kick-ground-wall|"
             "--falcon-kick-air|"
             "--falcon-kick-air-land|--teeter-special|"
-            "--powershield-special|--ordinary-shield-special]\n");
+            "--powershield-guardoff|--ordinary-guardoff]\n");
         return 1;
     }
 
@@ -755,16 +755,16 @@ int main(int argc, char **argv)
     {
         return fail_status("inspect-origin", status);
     }
-    if (shield_special_mode != 0)
+    if (guardoff_acquisition_mode != 0)
     {
-        if (run_shield_special_pre_roll(
+        if (run_guardoff_acquisition_pre_roll(
                 sim,
                 &inspection,
-                powershield_special_mode) != 0)
+                powershield_guardoff_mode) != 0)
         {
             (void)fprintf(
                 stderr,
-                "m4-movement-trace=fail operation=shield-special-pre-roll\n");
+                "m4-movement-trace=fail operation=guardoff-acquisition-pre-roll\n");
             return 1;
         }
     }

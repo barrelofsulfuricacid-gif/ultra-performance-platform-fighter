@@ -263,6 +263,7 @@ def input_trace(
             case_id = raw_case.get("id")
             source_state = raw_case.get("source_state")
             edge_main = raw_case.get("edge_main")
+            edge_action = raw_case.get("edge_action", "special")
             observe_ticks = raw_case.get("observe_ticks", 5)
             checkpoint_slot = raw_case.get("checkpoint_slot", 0)
             if (
@@ -284,6 +285,7 @@ def input_trace(
                     or not -32767 <= value <= 32767
                     for value in edge_main
                 )
+                or edge_action not in {"jump", "special", "spot_dodge"}
                 or not isinstance(observe_ticks, int)
                 or isinstance(observe_ticks, bool)
                 or not 1 <= observe_ticks <= 16
@@ -453,7 +455,8 @@ def input_trace(
                     f"{prefix}_edge",
                     main_x=edge_x,
                     main_y=edge_y,
-                    special=True,
+                    jump=edge_action == "jump",
+                    special=edge_action == "special",
                 )
             )
             repeat(f"{prefix}_observe", observe_ticks)

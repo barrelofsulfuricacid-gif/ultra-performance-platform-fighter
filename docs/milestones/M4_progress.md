@@ -6285,28 +6285,32 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   Windows Release passes 41/41, the WSL Release configuration passes all 35
   enabled tests, and focused WSL ASan/UBSan movement/combat pass.
 
-## 2026-08-11 powershield GuardOff special acquisition
+## 2026-08-11 GuardOff callback acquisition
 
 - Pinned decomp `9509dc0` and current upstream `d882af9` agree that
-  `ftCo_GuardOff_IASA` exposes all four common special callbacks only while
-  GuardOff's powershield work flag is set. Ordinary GuardOff does not.
+  `ftCo_GuardOff_IASA` exposes the common special/attack/grab dispatcher only
+  while GuardOff's powershield work flag is set. It then checks spot dodge and
+  button/tap/C-stick jump on both ordinary and powershield release.
 - Production reuses the allocation-free four-bit capability mask and existing
   powershield release-cancel predicate. ShieldRelease conditionally gains the
   four special bits without a new table, parser field, allocation, rollback
   field, or duplicated special router.
-- A five-slot physical pack uses Falcon Jab 1 to qualify neutral/side/up/down
-  B and an ordinary-shield neutral-B negative control. Its generic opponent-
+- A nine-slot physical pack uses Falcon Jab 1 to qualify neutral/side/up/down
+  B, an ordinary-shield neutral-B negative control, and ordinary/powershield
+  jump plus spot dodge. Its generic opponent-
   owned conditional edge applies shield relative to the observed Jab frame,
   while symmetric full position-history resets prevent restored attacker
   collision state from shifting contact. EXI batching is disabled for this
   exact input/collision route.
-- Two 35-row headless/null/unlimited captures are byte-identical at raw
+- Two 63-row headless/null/unlimited captures are byte-identical at raw
   SHA-256
-  `c1969ec384a219b68067a4ede144aa0c635e8ec6fe773a24ca93acb86b70a423`.
+  `b5945c993ad8666e9ff82d1cce8a2b0573b360940d3f647f326d0acc4ae83d78`.
   Source/production semantic SHA-256 values are
-  `5877082e6a327318d4dde7a64d64a5ab40b1710658da1789ca2061eae0f327ea` /
-  `c19aa7292078d1ac6ce7c2c21ed1f93d2b79d85b7ea71a86389450b73eb18850`;
-  warm captures take 0.649198 and 0.605131 seconds.
-- The registry now covers 25 domains / 138 cases plus replay. The complete
-  gate passes in 1,194.419 ms on Windows and 1,224.711 ms in WSL. Both Release
-  suites pass 41/41 and focused WSL ASan/UBSan movement/combat pass.
+  `daf5f6ccf6cfc324a5aebcd7b789ff234a55dbabe1ec8010a4377bb6c3c5f443` /
+  `4899179df79e5ec63f77fe7868c3fad9dd1f907bdc4a69cffc2d90d66784498f`;
+  warm captures take 1.798006 and 1.796908 seconds.
+- The registry now covers 25 domains / 142 cases plus replay. The complete
+  gate passes in 1,589.829 ms on Windows and 1,829.037 ms in WSL; the focused
+  nine-case lane passes in 343.982/369.582 ms. Both post-rename Release suites
+  pass 41/41; focused WSL ASan/UBSan movement/combat passed for the production
+  implementation.

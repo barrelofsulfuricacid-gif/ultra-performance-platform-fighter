@@ -1892,14 +1892,15 @@ the matching production trace hashes to
 This extends the generic special-acquisition schema with a reusable natural
 teeter setup, not a web probe or synthetic source state.
 
-## Falcon powershield GuardOff special acquisition
+## Falcon GuardOff callback acquisition
 
 Pinned decomp revision `9509dc04406fb2028bfab01243841ba4787c0fb7` and
 current upstream `d882af94175e3c880ad51039e2979aa9a50aea09` agree that
-`ftCo_GuardOff_IASA` calls the full special and attack dispatcher only when
-`fp->mv.co.guard.x1C` is nonzero. `ftCo_80094138` sets that work flag on the
-powershield branch in `ftcoll.c`; ordinary GuardOff therefore remains the
-negative control.
+`ftCo_GuardOff_IASA` calls the full special, attack, and grab dispatcher only
+when `fp->mv.co.guard.x1C` is nonzero. `ftCo_80094138` sets that work flag on
+the powershield branch in `ftcoll.c`; ordinary GuardOff therefore remains the
+special-dispatch negative control. Both branches then call the spot-dodge
+checker followed by the button/tap/C-stick jump checker.
 
 Production extends the existing stack-local special capability result rather
 than adding a ShieldRelease-specific router. The four special bits are enabled
@@ -1912,17 +1913,19 @@ The source fixture uses two real Falcons on Final Destination. Player 2
 performs Jab 1; Player 1 shields on a semantic edge keyed to Player 2's
 observed `NEUTRAL_ATTACK_1` frame, releases, and submits neutral, side, up, or
 down B. A fifth case holds shield before the Jab and proves ordinary GuardOff
-retains ShieldRelease on neutral B. Checkpoint placement resets both fighters'
-current, previous, and collision-owned position histories, and this physical
-route disables EXI batching so background controller polling cannot move the
-shield edge.
+retains ShieldRelease on neutral B. Four additional cases submit jump and down
+on ordinary and powershield release, proving the shared KneeBend/JumpingForward
+and SpotDodge sequences. Checkpoint placement resets both fighters' current,
+previous, and collision-owned position histories, and this physical route
+disables EXI batching so background controller polling cannot move the shield
+edge.
 
-Two fresh 35-row captures are byte-identical at raw SHA-256
-`c1969ec384a219b68067a4ede144aa0c635e8ec6fe773a24ca93acb86b70a423`.
-Their warm durations are 0.649198 and 0.605131 seconds. Selected source fields
+Two fresh 63-row captures are byte-identical at raw SHA-256
+`b5945c993ad8666e9ff82d1cce8a2b0573b360940d3f647f326d0acc4ae83d78`.
+Their warm durations are 1.798006 and 1.796908 seconds. Selected source fields
 hash to
-`5877082e6a327318d4dde7a64d64a5ab40b1710658da1789ca2061eae0f327ea`;
+`daf5f6ccf6cfc324a5aebcd7b789ff234a55dbabe1ec8010a4377bb6c3c5f443`;
 the matching production trace hashes to
-`c19aa7292078d1ac6ce7c2c21ed1f93d2b79d85b7ea71a86389450b73eb18850`.
+`4899179df79e5ec63f77fe7868c3fad9dd1f907bdc4a69cffc2d90d66784498f`.
 This is an actual two-controller collision theorem, not a web probe or a
 direct write of action or Guard work state.

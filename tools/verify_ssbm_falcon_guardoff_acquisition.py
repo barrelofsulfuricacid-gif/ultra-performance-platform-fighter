@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify Falcon's powershield-only GuardOff special dispatcher."""
+"""Verify Falcon's ordinary and powershield GuardOff dispatchers."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ from ssbm_natural_movement_domain import (
 
 
 def fail(message: str) -> None:
-    raise SystemExit(f"ssbm-falcon-powershield-special=fail reason={message}")
+    raise SystemExit(f"ssbm-falcon-guardoff-acquisition=fail reason={message}")
 
 
 def case_rows(rows: list[dict[str, Any]], case_id: str) -> list[dict[str, Any]]:
@@ -28,13 +28,14 @@ def case_rows(rows: list[dict[str, Any]], case_id: str) -> list[dict[str, Any]]:
 def qualify_capture(capture: dict[str, Any], coverage: dict[str, Any]) -> None:
     checkpoint = capture.get("checkpoint_pack")
     expected_labels = [case["start_label"] for case in coverage["checkpoint_cases"]]
+    expected_count = len(expected_labels)
     if (
         capture.get("opponent") != "CPTFALCON"
         or not isinstance(checkpoint, dict)
         or checkpoint.get("protocol")
         != "immutable-multislot-slippi-state-file-control-v2"
-        or checkpoint.get("slot_count") != 5
-        or checkpoint.get("case_count") != 5
+        or checkpoint.get("slot_count") != expected_count
+        or checkpoint.get("case_count") != expected_count
         or checkpoint.get("case_start_labels") != expected_labels
     ):
         fail("checkpoint-isolation")
@@ -95,6 +96,41 @@ def qualify_capture(capture: dict[str, Any], coverage: dict[str, Any]) -> None:
     ):
         fail("physical-powershield-discriminator")
 
+    jump_actions = ["KNEE_BEND"] * 4 + ["JUMPING_FORWARD"] * 2
+    jump_frames = [1, 2, 3, 4, 1, 2]
+    for case_id, source_frame in (
+        ("powershield_jump", 4),
+        ("ordinary_jump", 1),
+    ):
+        current = case_rows(capture["rows"], case_id)
+        if (
+            len(current) != 7
+            or current[0].get("action") != "SHIELD_RELEASE"
+            or round(float(current[0]["action_frame"])) != source_frame
+            or [row.get("action") for row in current[1:]] != jump_actions
+            or [round(float(row["action_frame"])) for row in current[1:]]
+            != jump_frames
+            or any(not bool(row.get("grounded")) for row in current[1:5])
+            or any(bool(row.get("grounded")) for row in current[5:])
+        ):
+            fail(f"guardoff-jump case={case_id}")
+
+    for case_id, source_frame in (
+        ("powershield_spot_dodge", 4),
+        ("ordinary_spot_dodge", 1),
+    ):
+        current = case_rows(capture["rows"], case_id)
+        if (
+            len(current) != 7
+            or current[0].get("action") != "SHIELD_RELEASE"
+            or round(float(current[0]["action_frame"])) != source_frame
+            or [row.get("action") for row in current[1:]] != ["SPOTDODGE"] * 6
+            or [round(float(row["action_frame"])) for row in current[1:]]
+            != list(range(1, 7))
+            or any(not bool(row.get("grounded")) for row in current)
+        ):
+            fail(f"guardoff-spot-dodge case={case_id}")
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -107,7 +143,7 @@ def main() -> int:
     if (
         coverage.get("schema") != 1
         or coverage.get("domain")
-        != "falcon-common-powershield-special-acquisition"
+        != "falcon-common-guardoff-acquisition"
         or not isinstance(coverage.get("live_source"), dict)
         or coverage.get("stored_oracle", {}).get("kind")
         != "native-csv-trace-v1"
@@ -142,8 +178,8 @@ def main() -> int:
             f"actual={observed_digest}"
         )
     print(
-        "ssbm-falcon-powershield-special=pass "
-        f"rows={len(capture['rows'])} stored_cases=5 "
+        "ssbm-falcon-guardoff-acquisition=pass "
+        f"rows={len(capture['rows'])} stored_cases=9 "
         f"source_trace_sha256={observed_digest}"
     )
     return 0
