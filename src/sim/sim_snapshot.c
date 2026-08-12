@@ -1,6 +1,7 @@
 #include "sim_internal.h"
 #include "sim_falcon_frame_data.h"
 #include "sim_sha256.h"
+#include "sim_ssbm_common_data.h"
 #include "sim_ssbm_stage_data.h"
 
 #include <limits.h>
@@ -9,7 +10,7 @@
 #include <string.h>
 
 #define PF_SIM_SAVE_HEADER_BYTES ((size_t)140)
-#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)1643)
+#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)1647)
 #define PF_SIM_SAVE_TOTAL_BYTES \
     (PF_SIM_SAVE_HEADER_BYTES + PF_SIM_SAVE_PAYLOAD_BYTES)
 #define PF_M4_SNAPSHOT_GROUND_BLEND_REPLAY_TAG INT32_C(0x40000000)
@@ -952,6 +953,14 @@ static void pf_write_payload(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
+        pf_writer_u8(
+            writer,
+            world->guard_dash_grab_window_ticks[player_index]);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
         pf_writer_u8(writer, world->tumble[player_index]);
     }
     for (player_index = UINT32_C(0);
@@ -1664,6 +1673,13 @@ static void pf_read_payload(
          ++player_index)
     {
         world->powershield[player_index] = pf_reader_u8(reader);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        world->guard_dash_grab_window_ticks[player_index] =
+            pf_reader_u8(reader);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
@@ -3184,6 +3200,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
 {
     const pf_m4_falcon_special_attributes *falcon_attributes =
         pf_m4_falcon_reference_special_attributes();
+    const pf_m4_ssbm_ground_input_attributes *ground_input =
+        pf_m4_ssbm_common_reference_ground_input();
     const uint32_t known_faults =
         (uint32_t)PF_SIM_FAULT_ARITHMETIC |
         (uint32_t)PF_SIM_FAULT_CAPACITY |
@@ -3194,7 +3212,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
     uint8_t expected_shield_recoil_mask = UINT8_C(0);
     uint8_t ledge_claims = UINT8_C(0);
 
-    if (world == NULL || falcon_attributes == NULL ||
+    if (world == NULL || falcon_attributes == NULL || ground_input == NULL ||
         falcon_attributes->speciallw_unk2 < INT32_C(0) ||
         falcon_attributes->speciallw_unk2 >= (int32_t)UINT8_MAX ||
         world->state_schema_version != PF_SIM_STATE_SCHEMA_VERSION ||
@@ -3474,6 +3492,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 hitstun != UINT16_C(0) && hitstun_is_memory == 0;
             const uint8_t powershield =
                 world->powershield[player_index];
+            const uint8_t guard_dash_grab_window =
+                world->guard_dash_grab_window_ticks[player_index];
             const uint8_t tumble = world->tumble[player_index];
             const int8_t tech_direction =
                 world->tech_direction[player_index];
@@ -3662,6 +3682,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                  (world->shield_held[player_index] &
                   PF_M4_TRIGGER_STATE_RIGHT_HELD) == UINT8_C(0)) ||
                 powershield > UINT8_C(1) ||
+                guard_dash_grab_window >
+                    (uint8_t)ground_input->guard_dash_grab_window_ticks ||
                 tumble > UINT8_C(1) ||
                 world->sdi_pulse_count[player_index] >
                     UINT8_C(120) ||
@@ -3927,6 +3949,11 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                  (action != (uint8_t)PF_M4_ACTION_HITLAG ||
                   resume_action !=
                       (uint8_t)PF_M4_ACTION_SHIELD_STUN)) ||
+                (guard_dash_grab_window != UINT8_C(0) &&
+                 action != (uint8_t)PF_M4_ACTION_SHIELD &&
+                 (action != (uint8_t)PF_M4_ACTION_HITLAG ||
+                  resume_action !=
+                      (uint8_t)PF_M4_ACTION_SHIELD_STUN)) ||
                 (tumble != UINT8_C(0) &&
                  action != (uint8_t)PF_M4_ACTION_HITLAG &&
                  !pf_m4_action_is_damage(action) &&
@@ -4163,6 +4190,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                  world->prone_attack_input_age[player_index] !=
                      UINT8_C(0) ||
                  world->powershield[player_index] != UINT8_C(0) ||
+                 world->guard_dash_grab_window_ticks[player_index] !=
+                     UINT8_C(0) ||
                  world->tumble[player_index] != UINT8_C(0) ||
                  world->sdi_pulse_count[player_index] != UINT8_C(0) ||
                  world->sdi_direction_x[player_index] != INT8_C(0) ||

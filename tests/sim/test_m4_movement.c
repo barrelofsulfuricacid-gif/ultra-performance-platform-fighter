@@ -494,7 +494,7 @@ static int run_air_dodge_snapshot_test(
             pf_sim_query_save_size(source, &required_bytes),
             PF_STATUS_OK,
             "air-dodge-query-save-size") ||
-        required_bytes != (size_t)1783)
+        required_bytes != (size_t)1787)
     {
         return 0;
     }
@@ -1241,7 +1241,7 @@ static int run_ledge_cancel_snapshot_test(
             pf_sim_query_save_size(source, &required_bytes),
             PF_STATUS_OK,
             "ledge-cancel-query-save-size") ||
-        required_bytes != (size_t)1783)
+        required_bytes != (size_t)1787)
     {
         return 0;
     }
@@ -1509,7 +1509,7 @@ static int run_ground_dodge_snapshot_test(
             pf_sim_query_save_size(source, &required_bytes),
             PF_STATUS_OK,
             "ground-dodge-query-save-size") ||
-        required_bytes != (size_t)1783)
+        required_bytes != (size_t)1787)
     {
         return 0;
     }
@@ -5348,7 +5348,7 @@ static int run_fox_trot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "fox-trot-query-save-size") ||
-        save_size != (size_t)1783)
+        save_size != (size_t)1787)
     {
         (void)fprintf(
             stderr,
@@ -5819,7 +5819,7 @@ static int run_teeter_cancel_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "teeter-query-save-size") ||
-        save_size != (size_t)1783)
+        save_size != (size_t)1787)
     {
         return 0;
     }
@@ -6193,7 +6193,7 @@ static int run_taunt_cancel_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "taunt-query-save-size") ||
-        save_size != (size_t)1783)
+        save_size != (size_t)1787)
     {
         (void)fprintf(
             stderr,
@@ -6393,7 +6393,7 @@ static int run_stage_humping_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "stage-humping-query-save-size") ||
-        save_size != (size_t)1783)
+        save_size != (size_t)1787)
     {
         (void)fprintf(
             stderr,
@@ -6747,7 +6747,7 @@ static int run_pivot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "pivot-query-save-size") ||
-        save_size != (size_t)1783)
+        save_size != (size_t)1787)
     {
         (void)fprintf(
             stderr,
@@ -7411,7 +7411,7 @@ static int run_instant_double_jump_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "idj-query-save-size") ||
-        save_size != (size_t)1783)
+        save_size != (size_t)1787)
     {
         return 0;
     }
@@ -7759,7 +7759,7 @@ static int run_double_jump_cancel_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "double-jump-cancel-query-save-size") ||
-        save_size != (size_t)1783)
+        save_size != (size_t)1787)
     {
         return 0;
     }
@@ -8581,7 +8581,7 @@ static int run_aerial_trigger_snapshot_test(
             pf_sim_query_save_size(source, &required_bytes),
             PF_STATUS_OK,
             "aerial-query-save-size") ||
-        required_bytes != (size_t)1783)
+        required_bytes != (size_t)1787)
     {
         return 0;
     }
@@ -9456,7 +9456,7 @@ static int run_upper_platform_test(
             pf_sim_save(source, &destination),
             PF_STATUS_OK,
             "upper-platform-save") ||
-        destination.size != (size_t)1783)
+        destination.size != (size_t)1787)
     {
         return 0;
     }
@@ -9981,7 +9981,7 @@ static int run_shield_platform_drop_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "shield-platform-drop-query-save-size") ||
-        save_size != (size_t)1783)
+        save_size != (size_t)1787)
     {
         return 0;
     }
@@ -11462,7 +11462,7 @@ static int run_scar_jump_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "scar-jump-save-size") ||
-        save_size != (size_t)1783)
+        save_size != (size_t)1787)
     {
         return 0;
     }
@@ -11688,7 +11688,7 @@ static int run_edge_hop_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "edge-hop-query-save-size") ||
-        save_size != (size_t)1783)
+        save_size != (size_t)1787)
     {
         return 0;
     }
@@ -12024,7 +12024,7 @@ static int run_edge_dash_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "edge-dash-query-save-size") ||
-        save_size != (size_t)1783)
+        save_size != (size_t)1787)
     {
         (void)fprintf(
             stderr,
@@ -12517,7 +12517,7 @@ static int run_planking_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "planking-query-save-size") ||
-        save_size != (size_t)1783)
+        save_size != (size_t)1787)
     {
         (void)fprintf(
             stderr,
@@ -13850,7 +13850,7 @@ static int run_vector_ascent_test(const pf_m4_content *base_content)
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "vector-ascent-save-size") ||
-        save_size != (size_t)1783)
+        save_size != (size_t)1787)
     {
         return 0;
     }
@@ -15833,6 +15833,235 @@ static int run_ucf084_input_contract_test(
     return 1;
 }
 
+static int reset_to_reference_run(
+    pf_sim *sim,
+    pf_m4_inspection *out_inspection)
+{
+    uint32_t tick;
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0x475541524452554e)),
+            PF_STATUS_OK,
+            "guard-dash-grab-reset"))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(60); ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_MAX,
+                INT16_C(0),
+                UINT64_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+        if (out_inspection->players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_RUN)
+        {
+            return 1;
+        }
+    }
+    (void)fprintf(
+        stderr,
+        "m4-movement=fail operation=guard-dash-grab-run-setup\n");
+    return 0;
+}
+
+static int run_guard_dash_grab_window_test(
+    const pf_content_view *view)
+{
+    const pf_m4_ssbm_ground_input_attributes *ground_input =
+        pf_m4_ssbm_common_reference_ground_input();
+    test_sim_storage storage;
+    test_sim_storage loaded_storage;
+    pf_sim *sim = NULL;
+    pf_sim *loaded = NULL;
+    pf_m4_inspection inspection;
+    pf_m4_inspection loaded_inspection;
+    uint8_t save_bytes[2048];
+    pf_mut_bytes destination;
+    pf_bytes source;
+    size_t required_bytes = (size_t)0;
+    uint32_t tick;
+
+    if (ground_input == NULL ||
+        ground_input->guard_dash_grab_window_ticks != UINT16_C(3) ||
+        !initialize_sim(
+            &storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &sim) ||
+        !initialize_sim(
+            &loaded_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &loaded))
+    {
+        return 0;
+    }
+
+    if (!reset_to_reference_run(sim, &inspection) ||
+        !step_duel_trigger(
+            sim,
+            INT16_MAX,
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD ||
+        sim->world.guard_dash_grab_window_ticks[0] != UINT8_C(3))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=guard-dash-grab-entry"
+            " action=%u window=%u\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)sim->world.guard_dash_grab_window_ticks[0]);
+        return 0;
+    }
+
+    destination.bytes = save_bytes;
+    destination.capacity = sizeof(save_bytes);
+    destination.size = (size_t)0;
+    if (!expect_status(
+            pf_sim_query_save_size(sim, &required_bytes),
+            PF_STATUS_OK,
+            "guard-dash-grab-query-save-size") ||
+        required_bytes != (size_t)1787 ||
+        !expect_status(
+            pf_sim_save(sim, &destination),
+            PF_STATUS_OK,
+            "guard-dash-grab-save"))
+    {
+        return 0;
+    }
+    source.bytes = save_bytes;
+    source.size = destination.size;
+    if (!expect_status(
+            pf_sim_load(loaded, source),
+            PF_STATUS_OK,
+            "guard-dash-grab-load") ||
+        loaded->world.guard_dash_grab_window_ticks[0] != UINT8_C(3) ||
+        !step_duel_trigger(
+            loaded,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_MAX,
+            &loaded_inspection) ||
+        loaded_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_DASH_GRAB ||
+        loaded->world.guard_dash_grab_window_ticks[0] != UINT8_C(0) ||
+        !step_duel_trigger(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_MAX,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_DASH_GRAB ||
+        sim->world.guard_dash_grab_window_ticks[0] != UINT8_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=guard-dash-grab-positive"
+            " action=%u window=%u loaded_action=%u loaded_window=%u\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)sim->world.guard_dash_grab_window_ticks[0],
+            (unsigned int)loaded_inspection.players[0].action_state,
+            (unsigned int)loaded->world.guard_dash_grab_window_ticks[0]);
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0x4755415244574149)),
+            PF_STATUS_OK,
+            "guard-ordinary-grab-reset") ||
+        !step_duel_trigger(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD ||
+        sim->world.guard_dash_grab_window_ticks[0] != UINT8_C(0) ||
+        !step_duel_trigger(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_MAX,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GRAB)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=guard-ordinary-grab-control\n");
+        return 0;
+    }
+
+    if (!reset_to_reference_run(sim, &inspection) ||
+        !step_duel_trigger(
+            sim,
+            INT16_MAX,
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            &inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(3); ++tick)
+    {
+        if (!step_duel_trigger(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_MAX,
+                &inspection) ||
+            inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_SHIELD ||
+            sim->world.guard_dash_grab_window_ticks[0] !=
+                (uint8_t)(UINT32_C(2) - tick))
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=guard-dash-grab-countdown"
+                " tick=%u window=%u\n",
+                (unsigned int)tick,
+                (unsigned int)
+                    sim->world.guard_dash_grab_window_ticks[0]);
+            return 0;
+        }
+    }
+    if (!step_duel_trigger(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_MAX,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GRAB)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=guard-dash-grab-expired\n");
+        return 0;
+    }
+    return 1;
+}
+
 static int run_reference_callback_owner_test(
     const pf_m4_content *content,
     const pf_content_view *view)
@@ -16341,6 +16570,7 @@ int main(void)
         !RUN_MOVEMENT_TEST(run_falcon_dive_source_data_test(&content)) ||
         !RUN_MOVEMENT_TEST(run_falcon_dive_behind_ledge_test(&content)) ||
         !RUN_MOVEMENT_TEST(run_ucf084_input_contract_test(&content, &view)) ||
+        !RUN_MOVEMENT_TEST(run_guard_dash_grab_window_test(&view)) ||
         !RUN_MOVEMENT_TEST(run_reference_callback_owner_test(&content, &view)) ||
         !RUN_MOVEMENT_TEST(run_run_brake_iasa_test(&content, &view)) ||
         !RUN_MOVEMENT_TEST(run_crouch_common_iasa_test(&content)) ||

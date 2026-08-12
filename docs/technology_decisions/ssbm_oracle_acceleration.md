@@ -471,16 +471,14 @@ before executing a candidate. The five tracked legacy files therefore remain
 diagnostic: each lacks raw main Y and independent proof of the pinned UCF
 revision.
 
-The UCF common-special acquisition projection contains 19 cases / 210 rows.
-Independent capture artifacts hash to
-`e4fde0c6b24f62f49a2af1d7e4a0e57d74c4b7750e36a6a3c73f43948789fe02`
-and
-`49d70c676de3d5a4d2071f8c0d9c6abba6c0feb7109fd73df9b3faa10b4c667d`.
+The UCF common-special acquisition projection contains 22 cases / 272 rows.
+Independent capture artifacts are byte-identical at
+`0a3c853d039fb2b5552d195a040bbac5335aa1fe512f0260376f45c05d980027`.
 Both canonicalize to the same source payload, which equals the native
 production payload exactly at SHA-256
-`6b50b9b36d47fb6a4b77bef5a951f03b311898fd88b481ff798909e05749f079`.
+`087c81e3dbdc2794bc5bef1bbd8af32e68e3ee2fb36dc606b8ee266d5c1f2e4a`.
 This directly live-qualifies the raw-history/Dashback boundary and delayed-Turn
-primitives.
+primitives plus the Run-origin GuardOn CatchDash provenance and expiry split.
 
 The separate UCF PAD/cardinal projection contains 16 cases / 48 rows for both
 main and C sticks. The two independent capture SHA-256 values are
@@ -604,3 +602,23 @@ Three full Windows runs take 619.867/679.644/788.424 ms; three WSL runs take
 965.814/947.881/954.270 ms. The 2,000-ms gate still includes all 35
 generated-file checks and deterministic replay. Earlier registry counts and
 timings in this decision record remain historical snapshots.
+
+## Preserve callback-entry provenance as compact canonical state
+
+Two actions with the same public GuardOn state can own different callback move
+variables. Run and late-Dash Guard entry call the source initializer that writes
+PlCo `x68` to GuardOn `x24`; Wait Guard entry does not. Velocity, public action,
+and current stick cannot reconstruct that provenance after entry, so the
+smallest exact rollback contract is one bounded byte per player. It is imported
+once, copied through the ordinary world/scratch/save path, consumed by the
+shared GuardOn grab dispatcher, and cleared whenever the move-variable owner
+changes.
+
+The existing special-acquisition pack absorbed three cases rather than adding
+a protocol or runner. Its 22 cases / 272 samples hash source and production
+exactly to
+`087c81e3dbdc2794bc5bef1bbd8af32e68e3ee2fb36dc606b8ee266d5c1f2e4a`.
+The complete registry remains 35 domains and grows to 221 cases; three
+sequential passes take 774.267-843.944 ms on Windows and 1,117.820-1,984.600 ms
+in WSL under manifest
+SHA-256 `9ef8f2ea5f5a21a0f8856dcc42fb8b5aa313de1f38cac31d8ab6f2a744180670`.

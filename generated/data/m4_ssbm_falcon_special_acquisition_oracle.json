@@ -530,11 +530,118 @@
         "tilt_x_age",
         "grounded"
       ]
+    },
+    {
+      "field_exclusions": {
+        "action_ticks": [
+          [
+            0,
+            26
+          ]
+        ]
+      },
+      "id": "run_guard_dash_grab_hit",
+      "input_runs": [
+        {
+          "input": "32767,0,0,0,0,0,0,0,0",
+          "ticks": 25
+        },
+        {
+          "input": "0,0,0,0,65535,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,65535,0,2,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 28,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
+    },
+    {
+      "field_exclusions": {
+        "action_ticks": [
+          [
+            0,
+            1
+          ]
+        ]
+      },
+      "id": "wait_guard_ordinary_grab",
+      "input_runs": [
+        {
+          "input": "0,0,0,0,65535,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,65535,0,2,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 3,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
+    },
+    {
+      "field_exclusions": {
+        "action_ticks": [
+          [
+            0,
+            29
+          ]
+        ]
+      },
+      "id": "run_guard_dash_grab_expired",
+      "input_runs": [
+        {
+          "input": "32767,0,0,0,0,0,0,0,0",
+          "ticks": 25
+        },
+        {
+          "input": "0,0,0,0,65535,0,0,0,0",
+          "ticks": 4
+        },
+        {
+          "input": "0,0,0,0,65535,0,2,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 31,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
     }
   ],
   "domain": "falcon-common-special-acquisition",
   "kind": "native-csv-trace-v1",
-  "production_trace_sha256": "6b50b9b36d47fb6a4b77bef5a951f03b311898fd88b481ff798909e05749f079",
+  "production_trace_sha256": "087c81e3dbdc2794bc5bef1bbd8af32e68e3ee2fb36dc606b8ee266d5c1f2e4a",
   "schema": 1,
-  "source_trace_sha256": "6b50b9b36d47fb6a4b77bef5a951f03b311898fd88b481ff798909e05749f079"
+  "source_trace_sha256": "087c81e3dbdc2794bc5bef1bbd8af32e68e3ee2fb36dc606b8ee266d5c1f2e4a"
 }

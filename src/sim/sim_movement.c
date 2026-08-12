@@ -5379,6 +5379,7 @@ void pf_m4_reset_player(
     sim->world.trigger_input_age[player_index] = UINT8_MAX;
     sim->world.prone_attack_input_age[player_index] = UINT8_MAX;
     sim->world.powershield[player_index] = UINT8_C(0);
+    sim->world.guard_dash_grab_window_ticks[player_index] = UINT8_C(0);
     sim->world.tumble[player_index] = UINT8_C(0);
     sim->world.sdi_pulse_count[player_index] = UINT8_C(0);
     sim->world.sdi_direction_x[player_index] = INT8_C(0);
@@ -6286,6 +6287,8 @@ static void pf_m4_copy_combat_scratch(
         world->prone_attack_input_age[player_index];
     scratch->powershield[player_index] =
         world->powershield[player_index];
+    scratch->guard_dash_grab_window_ticks[player_index] =
+        world->guard_dash_grab_window_ticks[player_index];
     scratch->tumble[player_index] =
         world->tumble[player_index];
     scratch->sdi_pulse_count[player_index] =
@@ -6403,6 +6406,7 @@ static void pf_m4_prepare_spawn(
     scratch->trigger_input_age[player_index] = UINT8_MAX;
     scratch->prone_attack_input_age[player_index] = UINT8_MAX;
     scratch->powershield[player_index] = UINT8_C(0);
+    scratch->guard_dash_grab_window_ticks[player_index] = UINT8_C(0);
     scratch->tumble[player_index] = UINT8_C(0);
     scratch->sdi_pulse_count[player_index] = UINT8_C(0);
     scratch->sdi_direction_x[player_index] = INT8_C(0);
@@ -7562,6 +7566,7 @@ pf_status pf_m4_step_player(
     int revival_drop_this_tick = 0;
     int damage_fall_wiggle_this_tick = 0;
     int damage_released_jump_requested = 0;
+    int guard_dash_grab_window_entered_this_tick = 0;
     int exact_wall_response_this_tick = 0;
     int32_t exact_wall_contact_position_y_q16 = INT32_C(0);
     int32_t initial_dash_entry_motion_velocity_x = velocity_x;
@@ -7595,6 +7600,10 @@ pf_status pf_m4_step_player(
     }
 
     pf_m4_copy_combat_scratch(world, scratch, player_index);
+    const int guard_dash_grab_available =
+        source_ground_input != NULL &&
+        callback_owner.action_state == (uint8_t)PF_M4_ACTION_SHIELD &&
+        scratch->guard_dash_grab_window_ticks[player_index] != UINT8_C(0);
     if (callback_owner.entered_this_tick != UINT8_C(0))
     {
         if (previous_action_state ==
@@ -9675,6 +9684,7 @@ pf_status pf_m4_step_player(
         facing = reference_turn_callback_facing;
         action_state =
             boost_grab_pressed != 0 ||
+                    guard_dash_grab_available != 0 ||
                     callback_owner.action_state ==
                         (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
                     callback_owner.action_state ==
@@ -9919,6 +9929,24 @@ pf_status pf_m4_step_player(
         {
             action_state = (uint8_t)PF_M4_ACTION_SHIELD;
             dash_direction = INT8_C(0);
+            if (source_ground_input != NULL &&
+                ((callback_owner.action_state ==
+                         (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
+                     reference_current_anim_frame >
+                         initial_dash_special_end_frame) ||
+                 callback_owner.action_state ==
+                     (uint8_t)PF_M4_ACTION_RUN))
+            {
+                scratch->guard_dash_grab_window_ticks[player_index] =
+                    (uint8_t)
+                        source_ground_input->guard_dash_grab_window_ticks;
+                guard_dash_grab_window_entered_this_tick = 1;
+            }
+            else
+            {
+                scratch->guard_dash_grab_window_ticks[player_index] =
+                    UINT8_C(0);
+            }
         }
         action_ticks = UINT16_C(0);
         short_hop_latched = UINT8_C(0);
@@ -15686,6 +15714,23 @@ pf_status pf_m4_step_player(
     {
         ecb_bottom_lock_ticks = UINT8_C(0);
         ecb_locked_bottom_y_q16 = INT32_C(0);
+    }
+    /* Run/Dash set GuardOn's x24 from common-data x68 after entering the
+     * motion. GuardOn checks A before decrementing it on each later IASA
+     * update; every other callback owner either cannot consume the field or
+     * has changed the move-variable union. */
+    if (source_ground_input == NULL ||
+        action_state != (uint8_t)PF_M4_ACTION_SHIELD)
+    {
+        scratch->guard_dash_grab_window_ticks[player_index] = UINT8_C(0);
+    }
+    else if (guard_dash_grab_window_entered_this_tick == 0 &&
+             callback_owner.action_state ==
+                 (uint8_t)PF_M4_ACTION_SHIELD &&
+             scratch->guard_dash_grab_window_ticks[player_index] !=
+                 UINT8_C(0))
+    {
+        --scratch->guard_dash_grab_window_ticks[player_index];
     }
     pf_m4_write_scratch(
         scratch,

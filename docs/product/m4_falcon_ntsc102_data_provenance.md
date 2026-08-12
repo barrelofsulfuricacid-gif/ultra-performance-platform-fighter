@@ -2195,18 +2195,16 @@ implemented and source-audited hooks are PAD/cardinal preprocessing, Dashback,
 DBOOC, SDI, shield SDI, tumble, shield-drop suppression, and the extended pad
 counter.
 
-`tools/ssbm_falcon_special_acquisition_coverage.json` now owns 19 cases / 210
-rows for the UCF/raw-history slice. Two independent live artifacts have raw
-SHA-256 values
-`e4fde0c6b24f62f49a2af1d7e4a0e57d74c4b7750e36a6a3c73f43948789fe02`
-and
-`49d70c676de3d5a4d2071f8c0d9c6abba6c0feb7109fd73df9b3faa10b4c667d`.
-The capture artifacts differ in nonsemantic provenance, while their selected
-source payload and the production payload are structurally identical at
+`tools/ssbm_falcon_special_acquisition_coverage.json` now owns 22 cases / 272
+rows for the UCF/raw-history and GuardOn provenance slice. Two independent
+live artifacts are byte-identical at raw SHA-256
+`0a3c853d039fb2b5552d195a040bbac5335aa1fe512f0260376f45c05d980027`.
+Their selected source payload and the production payload are structurally
+identical at
 SHA-256
-`6b50b9b36d47fb6a4b77bef5a951f03b311898fd88b481ff798909e05749f079`.
+`087c81e3dbdc2794bc5bef1bbd8af32e68e3ee2fb36dc606b8ee266d5c1f2e4a`.
 This live evidence directly qualifies the exact raw-history/Dashback boundary
-and delayed-Turn primitives.
+and delayed-Turn primitives plus the Run/Wait/expired GuardOn grab split.
 
 `tools/ssbm_ucf084_cardinal_input_coverage.json` independently qualifies the
 PAD/cardinal hook with 16 cases / 48 rows. It exercises both main and C sticks,
@@ -2331,3 +2329,32 @@ t-minus-two raw sample, followed by the boundary and one result row for
 hitlag, or a three-row release/precursor/boundary trace for tumble. Unrecorded
 physical acquisition is deliberately excluded from stored payloads but never
 replaced by direct canonical-state mutation.
+
+### GuardOn dash-grab provenance
+
+The source authority for the GuardOn CatchDash window is pinned decomp
+revision `9509dc04406fb2028bfab01243841ba4787c0fb7`. Normalized source SHA-256
+values are `72a9ce8c19948d468f6aea484b72db3b1f0c280846adc4d5677e4c6a20b810fe`
+for `ftCo_Run.c`,
+`23fd2ad0af701c320fb24f6b5e7406971d7c31060b87916a20b242c076d10f7c`
+for `ftCo_Dash.c`,
+`ef789d105924273dd13a873f446df5e6fd68e795ca43820c1275470fd960818b`
+for `ftCo_Guard.c`, and
+`f6b93360e78e0628b7ee489f6c66a25d50b67bcf0b3f6cb84496e5365a9bea70`
+for `ftCo_Attack100.c`. The common-data importer reads PlCo offset `0x68` as
+the integer-valued float 3 and emits one shared semantic field.
+
+Both final live captures hash to
+`0a3c853d039fb2b5552d195a040bbac5335aa1fe512f0260376f45c05d980027`;
+their 272 retained rows canonicalize to
+`087c81e3dbdc2794bc5bef1bbd8af32e68e3ee2fb36dc606b8ee266d5c1f2e4a`,
+which is also the exact Windows and WSL production digest. Capture lifecycles
+were 12.116005 and 12.130769 seconds cold, with 11.106222 and 11.121330
+seconds of parent warm work. No web probe or action-specific runner was added.
+
+The four future-affecting window bytes require state schema 78/save format 68,
+a 1,647-byte payload, and a 1,787-byte checkpoint. The unchanged 240-input
+replay repins to 42,559 bytes with corpus/final/event SHA-256
+`116fb683a6aa5ff1f63ccec3b082fdce351eb985a1ef02214631ff7e80f36394`,
+`5a7db4a5e899b1af31909f7997dcb1a08226aec79f4f09fab7422fe9602f246f`,
+and `787d63c5edf270cdc72d93dbe857c487bdc1ab7bdde59a1975299f1973fa7256`.

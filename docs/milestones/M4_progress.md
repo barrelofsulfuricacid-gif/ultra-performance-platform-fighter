@@ -6828,3 +6828,25 @@ M5 content scaling remains blocked until M4 combat feel is approved.
 - These domains complete direct live boundary qualification for all eight
   Falcon-relevant pinned-UCF hooks. The Zelda grounded-Up-B cardinal exception
   remains an explicit future character-import boundary, not Falcon evidence.
+
+## 2026-08-12: Run/late-Dash GuardOn CatchDash provenance
+
+- Imported PlCo common offset `0x68` as the three-update GuardOn dash-grab
+  window. Run and late InitialDash entry initialize it; Wait and other Guard
+  origins clear it. One shared GuardOn grab branch selects DashGrab while the
+  window is nonzero and decrements it after each rejected GuardOn update.
+- Added three cases to the existing common special-acquisition pack: Run
+  positive, Wait-origin ordinary-grab control, and Run-origin expiry control.
+  Two final headless captures both hash to
+  `0a3c853d039fb2b5552d195a040bbac5335aa1fe512f0260376f45c05d980027`;
+  source and Windows/WSL production are byte-exact at
+  `087c81e3dbdc2794bc5bef1bbd8af32e68e3ee2fb36dc606b8ee266d5c1f2e4a`.
+- State schema 78/save format 68 serialize the four future-affecting window
+  bytes in a 1,787-byte checkpoint. The 240-input replay is now 42,559 bytes at
+  corpus/final/event SHA-256 `116fb683a6aa5ff1f63ccec3b082fdce351eb985a1ef02214631ff7e80f36394`,
+  `5a7db4a5e899b1af31909f7997dcb1a08226aec79f4f09fab7422fe9602f246f`,
+  and `787d63c5edf270cdc72d93dbe857c487bdc1ab7bdde59a1975299f1973fa7256`.
+- The complete reusable registry contains 35 domains / 221 cases; three
+  sequential runs measure 774.267-843.944 ms on Windows and
+  1,117.820-1,984.600 ms in WSL under manifest SHA-256
+  `9ef8f2ea5f5a21a0f8856dcc42fb8b5aa313de1f38cac31d8ab6f2a744180670`.

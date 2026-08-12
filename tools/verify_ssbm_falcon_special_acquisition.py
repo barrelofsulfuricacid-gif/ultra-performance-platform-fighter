@@ -375,6 +375,50 @@ def qualify_capture(
         "dash_up",
     )
 
+    run_guard_hit = case_rows(rows, "run_guard_dash_grab_hit")
+    if len(run_guard_hit) != 28:
+        fail(
+            "row-count case=run_guard_dash_grab_hit "
+            f"actual={len(run_guard_hit)}"
+        )
+    require_ordered_actions(
+        run_guard_hit[-3:],
+        [("SHIELD_REFLECT", -1), ("GRAB_RUNNING", 1), ("GRAB_RUNNING", 2)],
+        "run_guard_dash_grab_hit",
+    )
+
+    wait_guard = case_rows(rows, "wait_guard_ordinary_grab")
+    if len(wait_guard) != 3:
+        fail(
+            "row-count case=wait_guard_ordinary_grab "
+            f"actual={len(wait_guard)}"
+        )
+    require_ordered_actions(
+        wait_guard,
+        [("SHIELD_REFLECT", -1), ("GRAB", 1), ("GRAB", 2)],
+        "wait_guard_ordinary_grab",
+    )
+
+    run_guard_expired = case_rows(rows, "run_guard_dash_grab_expired")
+    if len(run_guard_expired) != 31:
+        fail(
+            "row-count case=run_guard_dash_grab_expired "
+            f"actual={len(run_guard_expired)}"
+        )
+    require_ordered_actions(
+        run_guard_expired[-6:],
+        [("SHIELD_REFLECT", -1)] * 4 + [("GRAB", 1), ("GRAB", 2)],
+        "run_guard_dash_grab_expired",
+    )
+
+    for case_id, current in (
+        ("run_guard_dash_grab_hit", run_guard_hit),
+        ("wait_guard_ordinary_grab", wait_guard),
+        ("run_guard_dash_grab_expired", run_guard_expired),
+    ):
+        if any(row.get("grounded") is not True for row in current):
+            fail(f"grounded context={case_id}")
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)

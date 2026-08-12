@@ -1052,6 +1052,8 @@ pf_status pf_sim_tick_impl(
             scratch->prone_attack_input_age[player_index];
         world->powershield[player_index] =
             scratch->powershield[player_index];
+        world->guard_dash_grab_window_ticks[player_index] =
+            scratch->guard_dash_grab_window_ticks[player_index];
         world->tumble[player_index] =
             scratch->tumble[player_index];
         world->sdi_pulse_count[player_index] =

@@ -4,9 +4,9 @@ This document fixes interface shape rather than wire layout. M2 implements the
 contracts incrementally in public headers and conformance tests.
 
 The active UCF/raw-input slice uses ABI 5, input schema 6, content schema 78,
-fighter schema 70, canonical state schema 77, save format 67, and magic
-`PFSAVE60`. Its fixed checkpoint is a 140-byte header plus a 1,643-byte payload,
-1,783 bytes total. State schema 77 appends the rollback state consumed by the
+fighter schema 70, canonical state schema 78, save format 68, and magic
+`PFSAVE60`. Its fixed checkpoint is a 140-byte header plus a 1,647-byte payload,
+1,787 bytes total. State schema 77 appends the rollback state consumed by the
 pinned UCF 0.84 controller hooks: each player's prior processed main-stick X/Y,
 UCF X/Y tilt ages, raw main-stick X/Y from two samples earlier, and pad-buffer
 count. State schema 76 remains the historical same-layout correction that
@@ -16,6 +16,10 @@ not renumbered and old authored-state saves/replays fail closed. Content schema
 78/fighter schema 70 remove the invented `moonwalk_setup_ticks` field. The
 ordinary horizontal tilt age remains canonical, saturates at 254, and resets to
 254 at the one shared Dash-entry boundary.
+State schema 78 appends one GuardOn dash-grab window byte per player. Imported
+PlCo `x68` initializes it to three only for Run and late-Dash Guard entry;
+GuardOn checks A before expiry, while other entry owners and action changes
+clear it.
 
 Inspection schema 57 exposes that existing age through a previously unused
 inspection byte, and browser view schema 48 replaces the retired action labels
@@ -107,9 +111,9 @@ Rules:
 - Observations and legal-action masks have separately versioned schemas.
 - Single and batched RL entry points invoke the same internal tick semantics.
 
-Save formats 1–66 remain historical checkpoints. The current M4 state uses
-save format 67: a fixed 1,783-byte checkpoint with state schema 77 and a
-1,643-byte payload. Relative to schema 76, schema 77 appends 36 bytes: four
+Save formats 1–67 remain historical checkpoints. The current M4 state uses
+save format 68: a fixed 1,787-byte checkpoint with state schema 78 and a
+1,647-byte payload. Relative to schema 76, schema 77 appends 36 bytes: four
 players' prior processed main-stick X/Y values, UCF X/Y tilt ages, raw
 main-stick X/Y values from two samples earlier, and pad-buffer counts. These
 fields affect future UCF decisions and therefore participate in save/load,
@@ -117,6 +121,9 @@ rollback, replay, validation, and hashing. Historical state schema 76 changes
 no schema-75 payload bytes; it makes reserved action values 71/72 and their
 hitlag-resume use fail closed while the existing horizontal tilt age follows
 the source Dash-entry interpretation.
+Relative to schema 77, schema 78 appends four GuardOn dash-grab window bytes;
+they are range-checked against the imported common-data value, restricted to
+the Guard/ShieldStun continuation, and required to be zero for inactive slots.
 The following format records preserve the historical progression. Save format
 48/state schema 49 packed each
 player's signed tech direction and prone orientation into one canonical byte;

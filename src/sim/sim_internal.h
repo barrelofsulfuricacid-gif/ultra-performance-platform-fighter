@@ -551,6 +551,7 @@ typedef struct pf_world_state
     uint8_t trigger_input_age[PF_SIM_MAX_PLAYERS];
     uint8_t prone_attack_input_age[PF_SIM_MAX_PLAYERS];
     uint8_t powershield[PF_SIM_MAX_PLAYERS];
+    uint8_t guard_dash_grab_window_ticks[PF_SIM_MAX_PLAYERS];
     uint8_t tumble[PF_SIM_MAX_PLAYERS];
     uint8_t sdi_pulse_count[PF_SIM_MAX_PLAYERS];
     int8_t sdi_direction_x[PF_SIM_MAX_PLAYERS];
@@ -676,6 +677,7 @@ typedef struct pf_sim_scratch
     uint8_t trigger_input_age[PF_SIM_MAX_PLAYERS];
     uint8_t prone_attack_input_age[PF_SIM_MAX_PLAYERS];
     uint8_t powershield[PF_SIM_MAX_PLAYERS];
+    uint8_t guard_dash_grab_window_ticks[PF_SIM_MAX_PLAYERS];
     uint8_t tumble[PF_SIM_MAX_PLAYERS];
     uint8_t sdi_pulse_count[PF_SIM_MAX_PLAYERS];
     int8_t sdi_direction_x[PF_SIM_MAX_PLAYERS];

@@ -50,14 +50,14 @@ modifier-sensitive claim. All eight targeted UCF hooks are implemented and
 source-audited: PAD/cardinal preprocessing, Dashback, DBOOC, SDI, shield SDI,
 tumble, shield-drop suppression, and the extended pad counter.
 
-The 19-case / 210-row live acquisition pack directly qualifies exact raw-input
+The 22-case / 272-row live acquisition pack directly qualifies exact raw-input
 history through the UCF Dashback boundary and its delayed-Turn primitives. Its
-independent raw captures hash to
-`e4fde0c6b24f62f49a2af1d7e4a0e57d74c4b7750e36a6a3c73f43948789fe02`
-and
-`49d70c676de3d5a4d2071f8c0d9c6abba6c0feb7109fd73df9b3faa10b4c667d`;
+three added GuardOn cases also prove Run-origin CatchDash provenance, ordinary
+Wait-origin Catch, and the three-tick expiry control. Its independent raw
+captures are byte-identical at
+`0a3c853d039fb2b5552d195a040bbac5335aa1fe512f0260376f45c05d980027`;
 their canonical source projection equals production exactly at SHA-256
-`6b50b9b36d47fb6a4b77bef5a951f03b311898fd88b481ff798909e05749f079`.
+`087c81e3dbdc2794bc5bef1bbd8af32e68e3ee2fb36dc606b8ee266d5c1f2e4a`.
 The separate PAD/cardinal domain adds 16 cases / 48 rows spanning both sticks,
 all signed cardinal axes, raw dominant-axis 80 with orthogonal magnitude 6,
 and dominant-axis 79 / orthogonal-magnitude 7 controls. Its two independent
@@ -74,11 +74,12 @@ The later DBOOC/shield and damage-input domains complete direct Falcon-path
 boundary qualification for all eight targeted hooks. The Zelda grounded-Up-B
 cardinal exception remains outside this Falcon audit.
 
-The staged fast registry now contains 35 domains / 218 cases and passes with
+The staged fast registry now contains 35 domains / 221 cases and passes with
 replay under manifest SHA-256
-`256cc0d55e882b5bff3a0dc52dc521db0d2e64ebb08ea9a479ee22ba81130946`.
-Three isolated complete runs take 619.867-788.424 ms on Windows and
-947.881-965.814 ms in WSL. The preceding
+`9ef8f2ea5f5a21a0f8856dcc42fb8b5aa313de1f38cac31d8ab6f2a744180670`.
+Three sequential complete runs take 774.267-843.944 ms on Windows and
+1,117.820-1,984.600 ms in WSL.
+The preceding
 31-domain / 189-case registry's 42,555-byte deterministic replay pins
 corpus/final/event SHA-256 values
 `a1d9c1d97a3f20bdb9c76094c39b856f731a1eb2c0cca64ac05dd28a6e121949`,
@@ -707,3 +708,21 @@ The six-row tumble source and production traces are byte-exact at
 `da5473c7bfd0883a405eef293d11eca8f7618f78999e42f73097aff99760ff00`.
 This completes direct Falcon-path qualification for all eight pinned hooks,
 not whole-game or unimported-character equivalence.
+
+### Run-origin GuardOn CatchDash window
+
+The common special-acquisition pack now includes the decomp-owned GuardOn
+move-variable provenance. `ftCo_Run_IASA` and late `ftCo_Dash_IASA` enter
+GuardOn through `ftCo_80091B9C`, which copies PlCo `x68` (3) into `x24`;
+GuardOn checks fresh A for CatchDash before decrementing that window. Wait
+Guard entry does not set it.
+
+Two independent 272-row captures are byte-identical at raw SHA-256
+`0a3c853d039fb2b5552d195a040bbac5335aa1fe512f0260376f45c05d980027`.
+The three added cases prove Run-to-GuardOn-to-`GRAB_RUNNING`, Wait-to-GuardOn-
+to-ordinary-`GRAB`, and Run-to-GuardOn-to-ordinary-`GRAB` after four shield
+rows. The complete 22-case source and Windows/WSL production trace is
+byte-exact at
+`087c81e3dbdc2794bc5bef1bbd8af32e68e3ee2fb36dc606b8ee266d5c1f2e4a`.
+This closes the captured provenance/expiry split; uncaptured simultaneous
+inputs and other Guard callbacks remain governed by their own audit rows.

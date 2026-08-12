@@ -1611,9 +1611,10 @@ UCF 0.84 enabled. The vanilla decomp establishes the base callback and timer
 semantics, but does not by itself qualify the UCF raw-stick-history injection.
 The current live special-acquisition pack pins the UCF 0.84 oracle policy and
 adds explicit processed/raw histories for the 75/76 dashback boundaries and a
-delayed pending Turn-to-Dash route. Its 19 cases / 210 rows match source and
-production exactly at semantic SHA-256
-`6b50b9b36d47fb6a4b77bef5a951f03b311898fd88b481ff798909e05749f079`.
+delayed pending Turn-to-Dash route. Its 22 cases / 272 rows additionally prove
+Run-origin GuardOn dash grab, Wait-origin ordinary grab, and expiry back to
+ordinary grab. Source and production match exactly at semantic SHA-256
+`087c81e3dbdc2794bc5bef1bbd8af32e68e3ee2fb36dc606b8ee266d5c1f2e4a`.
 In particular, a vanilla Turn-frame observation remains insufficient evidence
 for the configured target.
 
@@ -1640,8 +1641,10 @@ small input-memory probe for fighter offset `x670`; only cases that declare
 schema 6 can carry explicit signed raw PADStatus axes and per-axis validity for
 those exact lanes. Generic native, browser, and RL callers instead use the
 deterministic processed-axis fallback and are not raw UCF evidence. State
-schema 77 / save format 67 retain the prior processed main stick, UCF tilt
+schema 78 / save format 68 retain the prior processed main stick, UCF tilt
 ages, raw two-sample history, and pad-buffer count that affect later decisions.
+They also retain GuardOn's imported three-update dash-grab window, because a
+rollback during GuardOn can change whether fresh A selects CatchDash or Catch.
 Inspection may expose the ordinary age as a diagnostic; that age itself is not
 a new canonical field because it has been serialized since state schema 51.
 
