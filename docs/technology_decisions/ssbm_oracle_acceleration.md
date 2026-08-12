@@ -248,6 +248,16 @@ velocity-aware ordinary-walk pre-roll against a tiny floor, not a direct state
 write or a fixed-tick approximation. This keeps the oracle compact while
 preserving the causal gameplay transition being qualified.
 
+Physical two-player checkpoint fixtures must reset both fighters symmetrically.
+Overriding visible position alone is insufficient: current, previous, and
+collision-owned position fields can retain the restored branch and alter the
+contact frame. The powershield-special pack resets all of those fields for
+both Falcons, disables EXI batching, and schedules the defender's shield from
+the opponent-owned Jab action/frame rather than a host poll count. Two 35-row
+captures then repeat byte-identically in 0.605-0.649 seconds warm. Opponent-
+owned conditional edges are shared capture infrastructure, not a Falcon-only
+timing path.
+
 ## Manifest-selected stored regression lane
 
 The ordinary edit loop now has a generic no-Dolphin runner:

@@ -1,0 +1,181 @@
+{
+  "schema": 1,
+  "scope": "falcon-common-powershield-special-acquisition",
+  "domain": "falcon-common-powershield-special-acquisition",
+  "character": "falcon",
+  "oracle": "SSBM GALE01 NTSC-U revision 2",
+  "live_source": {
+    "capture_sha256": "c1969ec384a219b68067a4ede144aa0c635e8ec6fe773a24ca93acb86b70a423",
+    "repeat_capture_sha256": "c1969ec384a219b68067a4ede144aa0c635e8ec6fe773a24ca93acb86b70a423",
+    "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
+    "release_artifact_sha256": "87e9ef6d80ed03354a1647d0616016dbc91399aa9e86a69ae5a398edd0a0c2bd",
+    "launcher_sha256": "9eb024aa9347648f020e2a76666e5c5597b77b32ef26752f563c99f0772b1e82",
+    "decomp_revision": "9509dc04406fb2028bfab01243841ba4787c0fb7",
+    "current_decomp_revision": "d882af94175e3c880ad51039e2979aa9a50aea09",
+    "dolphin_version": "3.5.1",
+    "libmelee_version": "0.47.2",
+    "capture_schema": 7,
+    "stage": "FINAL_DESTINATION",
+    "opponent": "CPTFALCON",
+    "row_count": 35
+  },
+  "checkpoint_pack": {
+    "protocol": "immutable-multislot-slippi-state-file-control-v2",
+    "expected_rows": 35,
+    "warm_budget_seconds": 2.0,
+    "capture_plan": {
+      "batch_exi_inputs": false,
+      "checkpoint_slot_count": 5,
+      "special_acquisition_cases": [
+        {
+          "id": "powershield_neutral",
+          "checkpoint_slot": 0,
+          "source_state": "powershield_release",
+          "edge_main": [0, 0],
+          "release_ticks": 6,
+          "observe_ticks": 5
+        },
+        {
+          "id": "powershield_side",
+          "checkpoint_slot": 1,
+          "source_state": "powershield_release",
+          "edge_main": [32767, 0],
+          "release_ticks": 6,
+          "observe_ticks": 5
+        },
+        {
+          "id": "powershield_up",
+          "checkpoint_slot": 2,
+          "source_state": "powershield_release",
+          "edge_main": [0, -32767],
+          "release_ticks": 6,
+          "observe_ticks": 5
+        },
+        {
+          "id": "powershield_down",
+          "checkpoint_slot": 3,
+          "source_state": "powershield_release",
+          "edge_main": [0, 32767],
+          "release_ticks": 6,
+          "observe_ticks": 5
+        },
+        {
+          "id": "ordinary_neutral",
+          "checkpoint_slot": 4,
+          "source_state": "powershield_release",
+          "edge_main": [0, 0],
+          "shield_start_ticks": 12,
+          "release_ticks": 1,
+          "observe_ticks": 5
+        }
+      ]
+    }
+  },
+  "checkpoint_cases": [
+    { "id": "powershield-neutral", "start_label": "special_acquisition_powershield_neutral_setup" },
+    { "id": "powershield-side", "start_label": "special_acquisition_powershield_side_setup" },
+    { "id": "powershield-up", "start_label": "special_acquisition_powershield_up_setup" },
+    { "id": "powershield-down", "start_label": "special_acquisition_powershield_down_setup" },
+    { "id": "ordinary-neutral", "start_label": "special_acquisition_ordinary_neutral_setup" }
+  ],
+  "selection": {
+    "paths": [
+      "generated/data/m4_ssbm_falcon_powershield_special_oracle.json",
+      "src/sim/sim_movement.c",
+      "src/tools/m4_movement_trace.c",
+      "tests/sim/test_m4_combat.c",
+      "tools/bootstrap_ssbm_checkpoint_oracle.sh",
+      "tools/capture_ssbm_movement.py",
+      "tools/compare_ssbm_movement.py",
+      "tools/generate_ssbm_stored_trace_oracle.py",
+      "tools/ssbm_exiai_checkpoint.patch",
+      "tools/ssbm_falcon_powershield_special_coverage.json",
+      "tools/ssbm_live_trace.py",
+      "tools/ssbm_natural_movement_domain.py",
+      "tools/verify_ssbm_falcon_powershield_special.py"
+    ]
+  },
+  "stored_oracle": {
+    "kind": "native-csv-trace-v1",
+    "source_trace_sha256": "5877082e6a327318d4dde7a64d64a5ab40b1710658da1789ca2061eae0f327ea",
+    "production_trace_sha256": "c19aa7292078d1ac6ce7c2c21ed1f93d2b79d85b7ea71a86389450b73eb18850",
+    "serialized_fields": [
+      "action_state",
+      "action_ticks",
+      "facing",
+      "grounded"
+    ],
+    "action_mapping": {
+      "SHIELD_RELEASE": { "action_state": 20, "action_tick_offset": 0 },
+      "NEUTRAL_B_ATTACKING_AIR": { "action_state": 107, "action_tick_offset": 0 },
+      "SWORD_DANCE_1": { "action_state": 109, "action_tick_offset": 0 },
+      "SWORD_DANCE_3_MID": { "action_state": 117, "action_tick_offset": 0 },
+      "SWORD_DANCE_4_LOW": { "action_state": 123, "action_tick_offset": 0 }
+    },
+    "cases": [
+      {
+        "id": "powershield_neutral",
+        "runner_arguments": ["--powershield-special"],
+        "source_label_prefix": "special_acquisition_powershield_neutral_",
+        "sample_count": 7,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{}, {}] },
+          { "ticks": 1, "lanes": [{ "buttons": ["special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "powershield_side",
+        "runner_arguments": ["--powershield-special"],
+        "source_label_prefix": "special_acquisition_powershield_side_",
+        "sample_count": 7,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{}, {}] },
+          { "ticks": 1, "lanes": [{ "main": [32767, 0], "buttons": ["special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "powershield_up",
+        "runner_arguments": ["--powershield-special"],
+        "source_label_prefix": "special_acquisition_powershield_up_",
+        "sample_count": 7,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{}, {}] },
+          { "ticks": 1, "lanes": [{ "main": [0, 32767], "buttons": ["special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "powershield_down",
+        "runner_arguments": ["--powershield-special"],
+        "source_label_prefix": "special_acquisition_powershield_down_",
+        "sample_count": 7,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{}, {}] },
+          { "ticks": 1, "lanes": [{ "main": [0, -32767], "buttons": ["special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "ordinary_neutral",
+        "runner_arguments": ["--ordinary-shield-special"],
+        "source_label_prefix": "special_acquisition_ordinary_neutral_",
+        "sample_count": 7,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{}, {}] },
+          { "ticks": 1, "lanes": [{ "buttons": ["special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      }
+    ],
+    "generator": {
+      "script": "tools/generate_ssbm_stored_trace_oracle.py",
+      "output": "generated/data/m4_ssbm_falcon_powershield_special_oracle.json"
+    },
+    "runner": {
+      "executable": "pf_m4_movement_trace",
+      "arguments": []
+    }
+  }
+}

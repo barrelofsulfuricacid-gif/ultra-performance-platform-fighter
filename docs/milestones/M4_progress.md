@@ -6284,3 +6284,29 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   The complete gate passes in 1,124.230 ms on Windows and 1,271.197 ms in WSL.
   Windows Release passes 41/41, the WSL Release configuration passes all 35
   enabled tests, and focused WSL ASan/UBSan movement/combat pass.
+
+## 2026-08-11 powershield GuardOff special acquisition
+
+- Pinned decomp `9509dc0` and current upstream `d882af9` agree that
+  `ftCo_GuardOff_IASA` exposes all four common special callbacks only while
+  GuardOff's powershield work flag is set. Ordinary GuardOff does not.
+- Production reuses the allocation-free four-bit capability mask and existing
+  powershield release-cancel predicate. ShieldRelease conditionally gains the
+  four special bits without a new table, parser field, allocation, rollback
+  field, or duplicated special router.
+- A five-slot physical pack uses Falcon Jab 1 to qualify neutral/side/up/down
+  B and an ordinary-shield neutral-B negative control. Its generic opponent-
+  owned conditional edge applies shield relative to the observed Jab frame,
+  while symmetric full position-history resets prevent restored attacker
+  collision state from shifting contact. EXI batching is disabled for this
+  exact input/collision route.
+- Two 35-row headless/null/unlimited captures are byte-identical at raw
+  SHA-256
+  `c1969ec384a219b68067a4ede144aa0c635e8ec6fe773a24ca93acb86b70a423`.
+  Source/production semantic SHA-256 values are
+  `5877082e6a327318d4dde7a64d64a5ab40b1710658da1789ca2061eae0f327ea` /
+  `c19aa7292078d1ac6ce7c2c21ed1f93d2b79d85b7ea71a86389450b73eb18850`;
+  warm captures take 0.649198 and 0.605131 seconds.
+- The registry now covers 25 domains / 138 cases plus replay. The complete
+  gate passes in 1,194.419 ms on Windows and 1,224.711 ms in WSL. Both Release
+  suites pass 41/41 and focused WSL ASan/UBSan movement/combat pass.

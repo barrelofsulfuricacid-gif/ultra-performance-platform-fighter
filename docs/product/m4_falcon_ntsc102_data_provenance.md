@@ -1891,3 +1891,38 @@ the matching production trace hashes to
 `63ca98b93c32df9a1937f69d47c3f8e6ab75645d48405a7b67f6579c61b5f9ba`.
 This extends the generic special-acquisition schema with a reusable natural
 teeter setup, not a web probe or synthetic source state.
+
+## Falcon powershield GuardOff special acquisition
+
+Pinned decomp revision `9509dc04406fb2028bfab01243841ba4787c0fb7` and
+current upstream `d882af94175e3c880ad51039e2979aa9a50aea09` agree that
+`ftCo_GuardOff_IASA` calls the full special and attack dispatcher only when
+`fp->mv.co.guard.x1C` is nonzero. `ftCo_80094138` sets that work flag on the
+powershield branch in `ftcoll.c`; ordinary GuardOff therefore remains the
+negative control.
+
+Production extends the existing stack-local special capability result rather
+than adding a ShieldRelease-specific router. The four special bits are enabled
+for `PF_M4_ACTION_SHIELD_RELEASE` only when the existing powershield release
+cancel predicate is ready. The ordinary release path and the previously
+qualified attack-cancel selector remain unchanged, with no new allocation,
+content table, parser field, canonical state, or snapshot byte.
+
+The source fixture uses two real Falcons on Final Destination. Player 2
+performs Jab 1; Player 1 shields on a semantic edge keyed to Player 2's
+observed `NEUTRAL_ATTACK_1` frame, releases, and submits neutral, side, up, or
+down B. A fifth case holds shield before the Jab and proves ordinary GuardOff
+retains ShieldRelease on neutral B. Checkpoint placement resets both fighters'
+current, previous, and collision-owned position histories, and this physical
+route disables EXI batching so background controller polling cannot move the
+shield edge.
+
+Two fresh 35-row captures are byte-identical at raw SHA-256
+`c1969ec384a219b68067a4ede144aa0c635e8ec6fe773a24ca93acb86b70a423`.
+Their warm durations are 0.649198 and 0.605131 seconds. Selected source fields
+hash to
+`5877082e6a327318d4dde7a64d64a5ab40b1710658da1789ca2061eae0f327ea`;
+the matching production trace hashes to
+`c19aa7292078d1ac6ce7c2c21ed1f93d2b79d85b7ea71a86389450b73eb18850`.
+This is an actual two-controller collision theorem, not a web probe or a
+direct write of action or Guard work state.

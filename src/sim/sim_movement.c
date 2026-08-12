@@ -6537,6 +6537,7 @@ static uint8_t pf_m4_reference_action_special_capabilities(
     uint16_t action_ticks,
     uint8_t grounded,
     int normal_landing_interruptible,
+    int powershield_release_cancel_ready,
     uint8_t ground_iasa_capabilities,
     uint16_t initial_dash_special_end_frame)
 {
@@ -6561,9 +6562,11 @@ static uint8_t pf_m4_reference_action_special_capabilities(
     }
     /* SquatWait and SquatRv call only SpecialLw. Turn calls SpecialS,
      * SpecialLw, then SpecialHi, deliberately omitting SpecialN. Ottotto and
-     * OttottoWait share the full common dispatcher. Guard, GuardOff,
-     * RunBrake, TurnRun, and recovery states have no special dispatcher.
-     * Every remaining listed state owns the full common table. */
+     * OttottoWait share the full common dispatcher. Powershield GuardOff
+     * exposes the full table while its x1C cancel window remains live.
+     * Ordinary GuardOff, Guard, RunBrake, TurnRun, and recovery states have
+     * no special dispatcher. Every remaining listed state owns the full
+     * common table. */
     if (action_state == (uint8_t)PF_M4_ACTION_CROUCH ||
         action_state == (uint8_t)PF_M4_ACTION_CROUCH_END)
     {
@@ -6583,6 +6586,8 @@ static uint8_t pf_m4_reference_action_special_capabilities(
             action_state == (uint8_t)PF_M4_ACTION_CROUCH_START ||
             action_state == (uint8_t)PF_M4_ACTION_TEETER ||
             pf_m4_action_is_damage(action_state) ||
+            (action_state == (uint8_t)PF_M4_ACTION_SHIELD_RELEASE &&
+             powershield_release_cancel_ready != 0) ||
             (action_state == (uint8_t)PF_M4_ACTION_LANDING &&
              normal_landing_interruptible != 0))
                ? (uint8_t)PF_M4_REFERENCE_SPECIAL_ALL
@@ -8920,6 +8925,7 @@ pf_status pf_m4_step_player(
                       fighter,
                       action_state,
                       action_ticks),
+                  powershield_release_cancel_ready,
                   ground_iasa_capabilities,
                   initial_dash_special_end_frame)
             : UINT8_C(0);

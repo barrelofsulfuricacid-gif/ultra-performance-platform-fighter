@@ -201,6 +201,88 @@ static int run_teeter_pre_roll(
     return 1;
 }
 
+static int run_shield_special_pre_roll_tick(
+    pf_sim *sim,
+    pf_m4_inspection *inspection,
+    uint16_t defender_left_trigger,
+    uint64_t attacker_buttons)
+{
+    pf_input_frame inputs[PF_SIM_MAX_PLAYERS];
+    pf_tick_result result;
+
+    (void)memset(inputs, 0, sizeof(inputs));
+    inputs[0].tick = inspection->tick;
+    inputs[0].schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
+    inputs[0].player_slot = UINT8_C(0);
+    inputs[0].left_trigger = defender_left_trigger;
+    inputs[1].tick = inspection->tick;
+    inputs[1].schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
+    inputs[1].player_slot = UINT8_C(1);
+    inputs[1].buttons = attacker_buttons;
+    if (pf_sim_tick(sim, inputs, (size_t)2, &result) != PF_STATUS_OK ||
+        pf_m4_inspect(sim, inspection) != PF_STATUS_OK)
+    {
+        return 1;
+    }
+    return 0;
+}
+
+static int run_shield_special_pre_roll(
+    pf_sim *sim,
+    pf_m4_inspection *inspection,
+    int powershield)
+{
+    const uint32_t shield_start_ticks =
+        powershield != 0 ? UINT32_C(0) : UINT32_C(12);
+    uint32_t tick;
+
+    for (tick = UINT32_C(0); tick < shield_start_ticks; ++tick)
+    {
+        if (run_shield_special_pre_roll_tick(
+                sim,
+                inspection,
+                UINT16_MAX,
+                UINT64_C(0)) != 0)
+        {
+            return 1;
+        }
+    }
+    if (run_shield_special_pre_roll_tick(
+            sim,
+            inspection,
+            powershield != 0 ? UINT16_C(0) : UINT16_MAX,
+            PF_INPUT_BUTTON_ATTACK) != 0 ||
+        run_shield_special_pre_roll_tick(
+            sim,
+            inspection,
+            UINT16_MAX,
+            UINT64_C(0)) != 0)
+    {
+        return 1;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(600); ++tick)
+    {
+        if (run_shield_special_pre_roll_tick(
+                sim,
+                inspection,
+                UINT16_C(0),
+                UINT64_C(0)) != 0)
+        {
+            return 1;
+        }
+        if (inspection->players[0].action_state ==
+                (uint8_t)PF_M4_ACTION_SHIELD_RELEASE &&
+            inspection->players[0].action_ticks == UINT16_C(3))
+        {
+            return inspection->players[0].powershield ==
+                           (powershield != 0 ? UINT8_C(1) : UINT8_C(0))
+                       ? 0
+                       : 1;
+        }
+    }
+    return 1;
+}
+
 int main(int argc, char **argv)
 {
     pf_trace_storage storage;
@@ -244,6 +326,8 @@ int main(int argc, char **argv)
     int falcon_kick_air_mode = 0;
     int falcon_kick_air_land_mode = 0;
     int teeter_special_mode = 0;
+    int shield_special_mode = 0;
+    int powershield_special_mode = 0;
 
     if (argc == 2 && strcmp(argv[1], "--platform") == 0)
     {
@@ -355,6 +439,19 @@ int main(int argc, char **argv)
     {
         teeter_special_mode = 1;
     }
+    else if (argc == 2 && strcmp(argv[1], "--powershield-special") == 0)
+    {
+        shield_hit_mode = 1;
+        shield_hit_place_mode = 1;
+        shield_special_mode = 1;
+        powershield_special_mode = 1;
+    }
+    else if (argc == 2 && strcmp(argv[1], "--ordinary-shield-special") == 0)
+    {
+        shield_hit_mode = 1;
+        shield_hit_place_mode = 1;
+        shield_special_mode = 1;
+    }
     else if (argc != 1)
     {
         (void)fprintf(
@@ -373,7 +470,8 @@ int main(int argc, char **argv)
             "--falcon-kick-ground|--falcon-kick-ground-edge|"
             "--falcon-kick-ground-hit|--falcon-kick-ground-wall|"
             "--falcon-kick-air|"
-            "--falcon-kick-air-land|--teeter-special]\n");
+            "--falcon-kick-air-land|--teeter-special|"
+            "--powershield-special|--ordinary-shield-special]\n");
         return 1;
     }
 
@@ -657,7 +755,20 @@ int main(int argc, char **argv)
     {
         return fail_status("inspect-origin", status);
     }
-    if (teeter_special_mode != 0)
+    if (shield_special_mode != 0)
+    {
+        if (run_shield_special_pre_roll(
+                sim,
+                &inspection,
+                powershield_special_mode) != 0)
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement-trace=fail operation=shield-special-pre-roll\n");
+            return 1;
+        }
+    }
+    else if (teeter_special_mode != 0)
     {
         if (run_teeter_pre_roll(sim, &content, &inspection) != 0)
         {

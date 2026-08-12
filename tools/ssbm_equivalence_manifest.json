@@ -44,6 +44,7 @@
     "tools/ssbm_falcon_aerial_attack_landing_coverage.json",
     "tools/ssbm_falcon_special_acquisition_coverage.json",
     "tools/ssbm_falcon_teeter_special_coverage.json",
+    "tools/ssbm_falcon_powershield_special_coverage.json",
     "tools/ssbm_falcon_shield_break_coverage.json"
   ],
   "replay": {

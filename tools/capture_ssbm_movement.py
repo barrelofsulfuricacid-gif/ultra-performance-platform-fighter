@@ -148,6 +148,7 @@ def input_trace(
         opponent_x_from_item_offset: float | None = None,
         opponent_y_override: float | None = None,
         opponent_facing_override: float | None = None,
+        opponent_position_state_reset: bool = False,
         source_random_seed_override: int | None = None,
     ) -> dict[str, object]:
         return {
@@ -188,6 +189,7 @@ def input_trace(
             "opponent_x_from_item_offset": opponent_x_from_item_offset,
             "opponent_y_override": opponent_y_override,
             "opponent_facing_override": opponent_facing_override,
+            "opponent_position_state_reset": opponent_position_state_reset,
             "source_random_seed_override": source_random_seed_override,
         }
 
@@ -270,6 +272,7 @@ def input_trace(
                 or source_state not in {
                     "squat_wait",
                     "squat_rv",
+                    "powershield_release",
                     "teeter",
                     "turn",
                 }
@@ -300,7 +303,13 @@ def input_trace(
                     else (0.65 if source_state == "teeter" else 0.5)
                 ),
                 main_y=(
-                    0.5 if source_state in {"teeter", "turn"} else 0.0
+                    0.5
+                    if source_state in {
+                        "powershield_release",
+                        "teeter",
+                        "turn",
+                    }
+                    else 0.0
                 ),
                 fighter_x_override=(
                     85.0 if source_state == "teeter" else None
@@ -318,7 +327,10 @@ def input_trace(
                     **first,
                     "restore_before": True,
                     "checkpoint_slot": checkpoint_slot,
-                    "record": source_state != "teeter",
+                    "record": source_state not in {
+                        "powershield_release",
+                        "teeter",
+                    },
                 }
             )
             if source_state in {"squat_wait", "squat_rv"}:
@@ -336,6 +348,103 @@ def input_trace(
                 trace.append(
                     {**command(f"{prefix}_setup"), "record": False}
                 )
+                trace.append(command(f"{prefix}_setup"))
+            elif source_state == "powershield_release":
+                # Reach GuardOff's powershield-only IASA branch through an
+                # actual Falcon Jab 1 collision. Placement and the complete
+                # causal setup stay outside the retained theorem, but no
+                # action or guard work variable is written directly.
+                trace[-1].update(
+                    fighter_x_override=0.0,
+                    fighter_y_override=0.0001,
+                    fighter_facing_override=1.0,
+                    fighter_position_state_reset=True,
+                    opponent_x_override=22.0,
+                    opponent_y_override=0.0001,
+                    opponent_facing_override=-1.0,
+                    opponent_position_state_reset=True,
+                )
+                for _ in range(10):
+                    trace.append(
+                        {**command(f"{prefix}_setup"), "record": False}
+                    )
+                shield_start_ticks = raw_case.get("shield_start_ticks", 0)
+                if (
+                    not isinstance(shield_start_ticks, int)
+                    or isinstance(shield_start_ticks, bool)
+                    or not 0 <= shield_start_ticks <= 32
+                ):
+                    raise ValueError(
+                        "invalid powershield shield-start ticks "
+                        f"{shield_start_ticks!r}"
+                    )
+                for _ in range(shield_start_ticks):
+                    trace.append(
+                        {
+                            **command(
+                                f"{prefix}_setup",
+                                left_shoulder=1.0,
+                                digital_left=True,
+                            ),
+                            "record": False,
+                        }
+                    )
+                trace.append(
+                    {
+                        **command(
+                            f"{prefix}_setup",
+                            left_shoulder=(
+                                1.0 if shield_start_ticks != 0 else 0.0
+                            ),
+                            digital_left=shield_start_ticks != 0,
+                            opponent_attack=True,
+                        ),
+                        "record": False,
+                    }
+                )
+                if shield_start_ticks == 0:
+                    shield_edge = {
+                        "id": f"{case_id}_jab_shield",
+                        "owner": "opponent",
+                        "action": "NEUTRAL_ATTACK_1",
+                        "frame": 1,
+                        "inputs": {
+                            "left_shoulder": 1.0,
+                            "digital_left": True,
+                        },
+                    }
+                    for _ in range(4):
+                        trace.append(
+                            {
+                                **command(f"{prefix}_setup"),
+                                "conditional_edge": shield_edge,
+                                "record": False,
+                            }
+                        )
+                else:
+                    trace.append(
+                        {
+                            **command(
+                                f"{prefix}_setup",
+                                left_shoulder=1.0,
+                                digital_left=True,
+                            ),
+                            "record": False,
+                        }
+                    )
+                release_ticks = raw_case.get("release_ticks", 8)
+                if (
+                    not isinstance(release_ticks, int)
+                    or isinstance(release_ticks, bool)
+                    or not 1 <= release_ticks <= 32
+                ):
+                    raise ValueError(
+                        f"invalid powershield release ticks {release_ticks!r}"
+                    )
+                for _ in range(release_ticks):
+                    trace.append(
+                        {**command(f"{prefix}_setup"), "record": False}
+                    )
                 trace.append(command(f"{prefix}_setup"))
             edge_x = controller_axis(edge_main[0])
             edge_y = controller_axis(-edge_main[1])
@@ -2964,6 +3073,7 @@ def input_trace(
                                 "a non-empty object list"
                             )
                         edge_allowed_fields = {
+                            "owner",
                             "action",
                             "frame",
                             "main",
@@ -2976,8 +3086,9 @@ def input_trace(
                             *button_fields,
                         }
                         parsed_edges: list[dict[str, object]] = []
-                        edge_boundaries: set[tuple[str, int]] = set()
+                        edge_boundaries: set[tuple[str, str, int]] = set()
                         for raw_edge in raw_conditional_edges:
+                            edge_owner = raw_edge.get("owner", "fighter")
                             edge_action = raw_edge.get("action")
                             edge_frame = raw_edge.get("frame")
                             edge_main = raw_edge.get("main", main)
@@ -2989,7 +3100,8 @@ def input_trace(
                                 "opponent_facing_override"
                             )
                             if (
-                                not isinstance(edge_action, str)
+                                edge_owner not in {"fighter", "opponent"}
+                                or not isinstance(edge_action, str)
                                 or edge_action not in melee.Action.__members__
                                 or not isinstance(edge_frame, int)
                                 or isinstance(edge_frame, bool)
@@ -3030,13 +3142,20 @@ def input_trace(
                                         "opponent_attack",
                                     )
                                 )
-                                or (edge_action, edge_frame) in edge_boundaries
+                                or (
+                                    edge_owner,
+                                    edge_action,
+                                    edge_frame,
+                                )
+                                in edge_boundaries
                             ):
                                 raise ValueError(
                                     f"invalid conditional response edge in "
                                     f"{segment_id!r}"
                                 )
-                            edge_boundaries.add((edge_action, edge_frame))
+                            edge_boundaries.add(
+                                (edge_owner, edge_action, edge_frame)
+                            )
                             edge_inputs: dict[str, object] = {
                                 "main_x": controller_axis(edge_main[0]),
                                 "main_y": controller_axis(edge_main[1]),
@@ -3074,6 +3193,7 @@ def input_trace(
                             )
                             parsed_edges.append(
                                 {
+                                    "owner": edge_owner,
                                     "action": edge_action,
                                     "frame": edge_frame,
                                     "inputs": edge_inputs,
@@ -6272,6 +6392,19 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
     battlefield_checkpoint_route = bool(
         surface_response_route and surface_response_stage == "BATTLEFIELD"
     )
+    raw_special_acquisition_cases = (
+        checkpoint_capture_plan.get("special_acquisition_cases", [])
+        if checkpoint_capture_plan is not None
+        else []
+    )
+    powershield_special_route = bool(
+        isinstance(raw_special_acquisition_cases, list)
+        and any(
+            isinstance(case, dict)
+            and case.get("source_state") == "powershield_release"
+            for case in raw_special_acquisition_cases
+        )
+    )
     if wall_geometry_route and set(args.special_geometry_move) != {"down_ground_wall"}:
         raise ValueError(
             "down_ground_wall uses Hyrule Temple and must be captured alone"
@@ -6416,6 +6549,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                         or args.hitbox_geometry_only
                         or args.throw_geometry_only
                         or args.special_geometry_only
+                        or powershield_special_route
                     )
                     else melee.Character.FOX
                 ),
@@ -6677,7 +6811,9 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 "fighter_knockback_velocity_y_override": None,
                 "fighter_position_state_reset": False,
                 "opponent_x_override": None,
+                "opponent_y_override": None,
                 "opponent_facing_override": None,
+                "opponent_position_state_reset": False,
                 "source_random_seed_override": None,
             }
             for _ in range(pipeline_delay)
@@ -6816,6 +6952,9 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 or controller_sample.get("opponent_x_override") is not None
                 or controller_sample.get("opponent_y_override") is not None
                 or controller_sample.get("opponent_facing_override") is not None
+                or bool(
+                    controller_sample.get("opponent_position_state_reset", False)
+                )
                 or controller_sample.get("source_random_seed_override") is not None
             )
 
@@ -6957,23 +7096,30 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                         "EXI input pipeline"
                     )
                 player_before_step = gamestate.players.get(1)
+                opponent_before_step = gamestate.players.get(2)
                 for conditional_edge in conditional_edges:
                     edge_id = str(conditional_edge["id"])
+                    edge_owner = conditional_edge.get("owner", "fighter")
+                    edge_player = (
+                        opponent_before_step
+                        if edge_owner == "opponent"
+                        else player_before_step
+                    )
                     if (
                         edge_id not in fired_conditional_edges
-                        and player_before_step is not None
+                        and edge_player is not None
                         and len(conditional_edge_observations[edge_id]) < 16
                     ):
                         conditional_edge_observations[edge_id].append(
-                            f"{player_before_step.action.name}:"
-                            f"{int(player_before_step.action_frame)}"
+                            f"{edge_owner}:{edge_player.action.name}:"
+                            f"{int(edge_player.action_frame)}"
                         )
                     if (
                         edge_id not in fired_conditional_edges
-                        and player_before_step is not None
-                        and player_before_step.action.name
+                        and edge_player is not None
+                        and edge_player.action.name
                         == conditional_edge["action"]
-                        and int(player_before_step.action_frame)
+                        and int(edge_player.action_frame)
                         == conditional_edge["frame"]
                     ):
                         sample.update(conditional_edge["inputs"])
@@ -7050,6 +7196,30 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     (0, 0x710, reset_y),
                     (0, 0x718, reset_x),
                     (0, 0x71C, reset_y),
+                )
+            if bool(sample["opponent_position_state_reset"]):
+                if (
+                    opponent_x_override is None
+                    or sample["opponent_y_override"] is None
+                ):
+                    raise RuntimeError(
+                        "opponent position-state reset requires x and y overrides"
+                    )
+                reset_x = float(opponent_x_override)
+                reset_y = float(sample["opponent_y_override"])
+                fighter_overrides += (
+                    (1, 0xBC, reset_x),
+                    (1, 0xC0, reset_y),
+                    (1, 0xC8, 0.0),
+                    (1, 0xCC, 0.0),
+                    (1, 0x6F4, reset_x),
+                    (1, 0x6F8, reset_y),
+                    (1, 0x700, reset_x),
+                    (1, 0x704, reset_y),
+                    (1, 0x70C, reset_x),
+                    (1, 0x710, reset_y),
+                    (1, 0x718, reset_x),
+                    (1, 0x71C, reset_y),
                 )
             source_random_seed_override = sample[
                 "source_random_seed_override"
@@ -7659,6 +7829,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     or args.hitbox_geometry_only
                     or args.throw_geometry_only
                     or args.special_geometry_only
+                    or powershield_special_route
                 )
                 else "FOX"
             ),

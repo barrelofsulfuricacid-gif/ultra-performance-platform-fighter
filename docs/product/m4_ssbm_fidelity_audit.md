@@ -393,3 +393,17 @@ source/production semantic SHA-256 values are
 `63ca98b93c32df9a1937f69d47c3f8e6ab75645d48405a7b67f6579c61b5f9ba`.
 The fixture never writes a teeter action directly. Unrepresented callback
 lists remain open.
+
+The powershield GuardOff addendum closes another conditional callback surface.
+Pinned and current `ftCo_GuardOff_IASA` expose the complete common special
+dispatcher only when GuardOff's powershield work flag is set; ordinary
+GuardOff omits it. Production reuses the existing stack-local capability mask
+and powershield-release predicate, so ShieldRelease gains neutral/side/up/down
+specials only on that source branch. A five-case/35-row physical Falcon-Jab
+domain matches all four acquired actions and an ordinary-shield neutral-B
+negative control. Its source/production semantic SHA-256 values are
+`5877082e6a327318d4dde7a64d64a5ab40b1710658da1789ca2061eae0f327ea` /
+`c19aa7292078d1ac6ce7c2c21ed1f93d2b79d85b7ea71a86389450b73eb18850`.
+The setup resets both fighters' collision-position history and keys the shield
+edge to the opponent's observed Jab frame; it is neither a web probe nor a
+synthetic source-state write. Other unrepresented callback lists remain open.
