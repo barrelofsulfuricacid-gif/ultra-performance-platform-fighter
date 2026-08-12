@@ -399,15 +399,17 @@ Pinned and current `ftCo_GuardOff_IASA` expose the complete common special,
 attack, and grab dispatcher only when GuardOff's powershield work flag is set;
 ordinary GuardOff omits it. Both branches then check spot dodge followed by
 button/tap/C-stick jump. Production reuses the existing stack-local capability
-mask and powershield-release predicate, so ShieldRelease gains
-neutral/side/up/down specials only on the source powershield branch while both
-branches retain the shared movement callbacks. A nine-case/63-row physical
-Falcon-Jab domain matches all four acquired specials, an ordinary-shield
-neutral-B negative control, and ordinary/powershield jump and spot dodge. Its
+mask and powershield-release predicate, so ShieldRelease gains the complete
+special/attack/grab dispatcher only on the source powershield branch while
+both branches retain the shared movement callbacks. A 17-case/119-row physical
+Falcon-Jab domain matches all four acquired specials, jab, all three tilts,
+all three smashes, grab, an ordinary-shield neutral-B negative control, and
+ordinary/powershield jump and spot dodge. Its
 source/production semantic SHA-256 values are
-`daf5f6ccf6cfc324a5aebcd7b789ff234a55dbabe1ec8010a4377bb6c3c5f443` /
-`4899179df79e5ec63f77fe7868c3fad9dd1f907bdc4a69cffc2d90d66784498f`.
-The setup resets both fighters' collision-position history and keys each
-powershield edge to the opponent's observed Jab frame; it is neither a web
-probe nor a synthetic source-state write. Other unrepresented callback lists
-remain open.
+`851a0c05e393bd644344bf8a49d70fceea179727903ff68feacebb1c12a27c0d` /
+`0b56d0726ae0eb248d244107b50741d1451d8550889c481d8881d6b726a04d00`.
+The setup resets both fighters' collision-position history, begins shield on
+the attack edge, and reaffirms it at the opponent's observed Jab frame. Six
+concurrent shards keep each divergent worker at three cases or fewer; it is
+neither a web probe nor a synthetic source-state write. Other unrepresented
+callback lists remain open.

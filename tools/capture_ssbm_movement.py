@@ -263,6 +263,7 @@ def input_trace(
             case_id = raw_case.get("id")
             source_state = raw_case.get("source_state")
             edge_main = raw_case.get("edge_main")
+            edge_c = raw_case.get("edge_c", [0, 0])
             edge_action = raw_case.get("edge_action", "special")
             observe_ticks = raw_case.get("observe_ticks", 5)
             checkpoint_slot = raw_case.get("checkpoint_slot", 0)
@@ -285,7 +286,22 @@ def input_trace(
                     or not -32767 <= value <= 32767
                     for value in edge_main
                 )
-                or edge_action not in {"jump", "special", "spot_dodge"}
+                or not isinstance(edge_c, list)
+                or len(edge_c) != 2
+                or any(
+                    not isinstance(value, int)
+                    or isinstance(value, bool)
+                    or not -32767 <= value <= 32767
+                    for value in edge_c
+                )
+                or edge_action not in {
+                    "attack",
+                    "grab",
+                    "jump",
+                    "none",
+                    "special",
+                    "spot_dodge",
+                }
                 or not isinstance(observe_ticks, int)
                 or isinstance(observe_ticks, bool)
                 or not 1 <= observe_ticks <= 16
@@ -395,10 +411,8 @@ def input_trace(
                     {
                         **command(
                             f"{prefix}_setup",
-                            left_shoulder=(
-                                1.0 if shield_start_ticks != 0 else 0.0
-                            ),
-                            digital_left=shield_start_ticks != 0,
+                            left_shoulder=1.0,
+                            digital_left=True,
                             opponent_attack=True,
                         ),
                         "record": False,
@@ -450,11 +464,17 @@ def input_trace(
                 trace.append(command(f"{prefix}_setup"))
             edge_x = controller_axis(edge_main[0])
             edge_y = controller_axis(-edge_main[1])
+            edge_c_x = controller_axis(edge_c[0])
+            edge_c_y = controller_axis(-edge_c[1])
             trace.append(
                 command(
                     f"{prefix}_edge",
                     main_x=edge_x,
                     main_y=edge_y,
+                    c_x=edge_c_x,
+                    c_y=edge_c_y,
+                    attack=edge_action == "attack",
+                    grab=edge_action == "grab",
                     jump=edge_action == "jump",
                     special=edge_action == "special",
                 )

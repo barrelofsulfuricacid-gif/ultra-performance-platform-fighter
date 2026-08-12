@@ -1910,22 +1910,23 @@ qualified attack-cancel selector remain unchanged, with no new allocation,
 content table, parser field, canonical state, or snapshot byte.
 
 The source fixture uses two real Falcons on Final Destination. Player 2
-performs Jab 1; Player 1 shields on a semantic edge keyed to Player 2's
-observed `NEUTRAL_ATTACK_1` frame, releases, and submits neutral, side, up, or
-down B. A fifth case holds shield before the Jab and proves ordinary GuardOff
-retains ShieldRelease on neutral B. Four additional cases submit jump and down
-on ordinary and powershield release, proving the shared KneeBend/JumpingForward
-and SpotDodge sequences. Checkpoint placement resets both fighters' current,
-previous, and collision-owned position histories, and this physical route
-disables EXI batching so background controller polling cannot move the shield
-edge.
+performs Jab 1; Player 1 begins shield on the causal attack edge and reaffirms
+it on a semantic edge keyed to Player 2's observed `NEUTRAL_ATTACK_1` frame,
+then releases. Seventeen cases qualify neutral/side/up/down B, jab, all three
+tilts, all three smashes, grab, an ordinary-GuardOff neutral-B negative, and
+ordinary/powershield jump plus spot dodge. Checkpoint placement resets both
+fighters' current, previous, and collision-owned position histories, and this
+physical route disables EXI batching so background controller polling cannot
+move the shield edge. Six concurrent headless workers retain at most three
+divergent physical cases each; this stays inside the empirically reliable
+rollback depth without serializing six emulator lifecycles.
 
-Two fresh 63-row captures are byte-identical at raw SHA-256
-`b5945c993ad8666e9ff82d1cce8a2b0573b360940d3f647f326d0acc4ae83d78`.
-Their warm durations are 1.798006 and 1.796908 seconds. Selected source fields
-hash to
-`daf5f6ccf6cfc324a5aebcd7b789ff234a55dbabe1ec8010a4377bb6c3c5f443`;
+Two fresh 119-row captures are byte-identical at raw SHA-256
+`20e3d7a2e5e5cba93df059069b72cf560a0c4641258582997fd6aebc6bdc8649`.
+Their warm durations are 7.867078 and 7.607262 seconds, and complete cold
+durations are 9.102883 and 7.937196 seconds. Selected source fields hash to
+`851a0c05e393bd644344bf8a49d70fceea179727903ff68feacebb1c12a27c0d`;
 the matching production trace hashes to
-`4899179df79e5ec63f77fe7868c3fad9dd1f907bdc4a69cffc2d90d66784498f`.
+`0b56d0726ae0eb248d244107b50741d1451d8550889c481d8881d6b726a04d00`.
 This is an actual two-controller collision theorem, not a web probe or a
 direct write of action or Guard work state.

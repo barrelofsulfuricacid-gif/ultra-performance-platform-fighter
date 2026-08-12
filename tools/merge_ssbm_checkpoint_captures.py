@@ -24,9 +24,29 @@ def main(argv: list[str] | None = None) -> int:
         str(case["start_label"]): str(case["id"])
         for case in case_specs
     }
+    merge_setup_suffixes = manifest.get("checkpoint_pack", {}).get(
+        "merge_setup_suffixes"
+    )
     if (
         len(case_by_start_label) != len(case_specs)
         or len(set(case_order)) != len(case_specs)
+        or (
+            merge_setup_suffixes is not None
+            and (
+                not isinstance(merge_setup_suffixes, list)
+                or not merge_setup_suffixes
+                or any(
+                    not isinstance(suffix, str) or not suffix
+                    for suffix in merge_setup_suffixes
+                )
+                or len(set(merge_setup_suffixes)) != len(merge_setup_suffixes)
+                or any(
+                    left.startswith(right) or right.startswith(left)
+                    for index, left in enumerate(merge_setup_suffixes)
+                    for right in merge_setup_suffixes[index + 1 :]
+                )
+            )
+        )
     ):
         raise SystemExit("duplicate checkpoint case id or start label")
     captures: list[dict[str, Any]] = [
@@ -68,15 +88,27 @@ def main(argv: list[str] | None = None) -> int:
             if case_id in rows_by_case:
                 raise SystemExit(f"duplicate checkpoint shard case: {case_id}")
             if start_label.endswith("_setup"):
-                prefix = start_label.removesuffix("_setup") + "_observe"
+                base_prefix = start_label.removesuffix("_setup") + "_"
+                prefixes = (
+                    tuple(
+                        base_prefix + str(suffix)
+                        for suffix in merge_setup_suffixes
+                    )
+                    if merge_setup_suffixes is not None
+                    else (base_prefix + "observe",)
+                )
             elif start_label.endswith("_place"):
-                prefix = start_label.removesuffix("_place") + "_"
+                prefixes = (start_label.removesuffix("_place") + "_",)
             else:
                 raise SystemExit(
                     f"unsupported checkpoint shard start label: {start_label}"
                 )
             rows_by_case[case_id] = [
-                row for row in capture["rows"] if row["label"].startswith(prefix)
+                row
+                for row in capture["rows"]
+                if any(
+                    row["label"].startswith(prefix) for prefix in prefixes
+                )
             ]
             if not rows_by_case[case_id]:
                 raise SystemExit(f"empty checkpoint shard case: {case_id}")

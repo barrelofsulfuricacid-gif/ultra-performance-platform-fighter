@@ -167,6 +167,19 @@ def canonical_capture(
     fields = stored.get("serialized_fields")
     if not isinstance(cases, list) or not cases or not isinstance(fields, list):
         raise NaturalMovementDomainError("stored-case-schema")
+    source_prefixes = [
+        (str(case.get("id")), case.get("source_label_prefix"))
+        for case in cases
+        if isinstance(case, dict)
+        and isinstance(case.get("source_label_prefix"), str)
+    ]
+    for index, (case_id, prefix) in enumerate(source_prefixes):
+        for other_id, other_prefix in source_prefixes[index + 1 :]:
+            if prefix.startswith(other_prefix) or other_prefix.startswith(prefix):
+                raise NaturalMovementDomainError(
+                    "source-label-prefix-overlap "
+                    f"cases={case_id},{other_id}"
+                )
     domain_action_mapping = _action_mapping(
         stored.get("action_mapping"),
         "stored-oracle",

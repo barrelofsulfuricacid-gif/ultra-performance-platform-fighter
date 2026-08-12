@@ -53,9 +53,12 @@ def main() -> int:
     )
     parser.add_argument(
         "--memory-probe",
-        choices=("surface", "hitbox", "hurtbox"),
-        default="surface",
-        help="live-memory observation family recorded by every shard",
+        choices=("none", "surface", "hitbox", "hurtbox"),
+        default=None,
+        help=(
+            "live-memory observation family recorded by every shard "
+            "(defaults to none for acquisition and surface otherwise)"
+        ),
     )
     parser.add_argument(
         "--disable-fast-forward",
@@ -123,9 +126,16 @@ def main() -> int:
         or not isinstance(cold_budget, (int, float))
         or isinstance(cold_budget, bool)
         or float(cold_budget) < float(warm_budget)
-        or capture_route not in ("damage-hit", "common-hurt-geometry")
+        or capture_route not in (
+            "damage-hit",
+            "common-hurt-geometry",
+            "special-acquisition",
+        )
     ):
         raise SystemExit("checkpoint capture shards or wall budgets are invalid")
+    memory_probe = args.memory_probe or (
+        "none" if capture_route == "special-acquisition" else "surface"
+    )
     captured_cases = [str(case) for shard in shards for case in shard]
     if len(captured_cases) != len(set(captured_cases)) or set(captured_cases) != set(
         expected_cases
@@ -186,17 +196,18 @@ def main() -> int:
                     str(shard_outputs[index]),
                     "--slippi-port",
                     str(args.base_port + index),
-                    (
-                        "--common-hurt-geometry-only"
-                        if capture_route == "common-hurt-geometry"
-                        else "--damage-hit-only"
-                    ),
-                    f"--memory-probe-{args.memory_probe}",
+                    {
+                        "common-hurt-geometry": "--common-hurt-geometry-only",
+                        "damage-hit": "--damage-hit-only",
+                        "special-acquisition": "--special-acquisition-only",
+                    }[capture_route],
                     "--oracle-exiai",
                     "--oracle-checkpoint-pack",
                     "--oracle-coverage-manifest",
                     str(manifest_path),
                 ]
+                if memory_probe != "none":
+                    worker_argv.append(f"--memory-probe-{memory_probe}")
                 if args.disable_fast_forward:
                     worker_argv.append("--oracle-exiai-no-fast-forward")
                 if args.checkpoint_no_batch_inputs:

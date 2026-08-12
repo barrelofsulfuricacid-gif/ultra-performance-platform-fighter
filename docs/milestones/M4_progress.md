@@ -6295,22 +6295,25 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   powershield release-cancel predicate. ShieldRelease conditionally gains the
   four special bits without a new table, parser field, allocation, rollback
   field, or duplicated special router.
-- A nine-slot physical pack uses Falcon Jab 1 to qualify neutral/side/up/down
-  B, an ordinary-shield neutral-B negative control, and ordinary/powershield
-  jump plus spot dodge. Its generic opponent-
-  owned conditional edge applies shield relative to the observed Jab frame,
-  while symmetric full position-history resets prevent restored attacker
-  collision state from shifting contact. EXI batching is disabled for this
-  exact input/collision route.
-- Two 63-row headless/null/unlimited captures are byte-identical at raw
+- A 17-case physical pack uses Falcon Jab 1 to qualify neutral/side/up/down B,
+  jab, forward/up/down tilt, forward/up/down smash, grab, an ordinary-shield
+  neutral-B negative control, and ordinary/powershield jump plus spot dodge.
+  Its generic opponent-owned conditional edge reaffirms shield at the observed
+  Jab frame after shield begins on the causal attack edge, while symmetric
+  full position-history resets prevent restored attacker collision state from
+  shifting contact. EXI batching is disabled for this exact input/collision
+  route. Six concurrent workers retain no more than three divergent physical
+  cases each, avoiding the observed long-session rollback boundary.
+- Two 119-row headless/null/unlimited captures are byte-identical at raw
   SHA-256
-  `b5945c993ad8666e9ff82d1cce8a2b0573b360940d3f647f326d0acc4ae83d78`.
+  `20e3d7a2e5e5cba93df059069b72cf560a0c4641258582997fd6aebc6bdc8649`.
   Source/production semantic SHA-256 values are
-  `daf5f6ccf6cfc324a5aebcd7b789ff234a55dbabe1ec8010a4377bb6c3c5f443` /
-  `4899179df79e5ec63f77fe7868c3fad9dd1f907bdc4a69cffc2d90d66784498f`;
-  warm captures take 1.798006 and 1.796908 seconds.
-- The registry now covers 25 domains / 142 cases plus replay. The complete
-  gate passes in 1,589.829 ms on Windows and 1,829.037 ms in WSL; the focused
-  nine-case lane passes in 343.982/369.582 ms. Both post-rename Release suites
+  `851a0c05e393bd644344bf8a49d70fceea179727903ff68feacebb1c12a27c0d` /
+  `0b56d0726ae0eb248d244107b50741d1451d8550889c481d8881d6b726a04d00`;
+  warm captures take 7.867078 and 7.607262 seconds, while complete cold runs
+  take 9.102883 and 7.937196 seconds.
+- The registry now covers 25 domains / 150 cases plus replay. The complete
+  gate passes in 1,138.696 ms on Windows and 923.125 ms in WSL; the focused
+  17-case lane passes in 879.898/417.053 ms. Both post-rename Release suites
   pass 41/41; focused WSL ASan/UBSan movement/combat passed for the production
   implementation.

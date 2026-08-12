@@ -252,11 +252,17 @@ Physical two-player checkpoint fixtures must reset both fighters symmetrically.
 Overriding visible position alone is insufficient: current, previous, and
 collision-owned position fields can retain the restored branch and alter the
 contact frame. The GuardOff acquisition pack resets all of those fields for
-both Falcons, disables EXI batching, and schedules the defender's shield from
-the opponent-owned Jab action/frame rather than a host poll count. Two 63-row
-captures then repeat byte-identically in 1.797-1.798 seconds warm. Opponent-
-owned conditional edges are shared capture infrastructure, not a Falcon-only
-timing path.
+both Falcons, disables EXI batching, begins the defender's shield with the
+causal attack input, and reaffirms it from the opponent-owned Jab action/frame
+rather than a host poll count. Waiting until that observed frame to begin
+shielding produced intermittent ordinary hits despite a fired edge. Its
+17 cases are therefore split into six concurrent workers with no more than
+three divergent physical cases per worker; two 119-row captures repeat
+byte-identically in 7.607-7.867 seconds warm and 7.937-9.103 seconds cold.
+The shared merger retains manifest-declared `setup/edge/observe` suffixes and
+rejects missing/duplicate cases. Opponent-owned conditional edges, route-
+selected workers, and suffix projection are shared capture infrastructure,
+not Falcon-only timing paths.
 
 ## Manifest-selected stored regression lane
 

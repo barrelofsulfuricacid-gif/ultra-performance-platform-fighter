@@ -29,12 +29,15 @@ def qualify_capture(capture: dict[str, Any], coverage: dict[str, Any]) -> None:
     checkpoint = capture.get("checkpoint_pack")
     expected_labels = [case["start_label"] for case in coverage["checkpoint_cases"]]
     expected_count = len(expected_labels)
+    expected_slots = coverage["checkpoint_pack"]["capture_plan"][
+        "checkpoint_slot_count"
+    ]
     if (
         capture.get("opponent") != "CPTFALCON"
         or not isinstance(checkpoint, dict)
         or checkpoint.get("protocol")
         != "immutable-multislot-slippi-state-file-control-v2"
-        or checkpoint.get("slot_count") != expected_count
+        or checkpoint.get("slot_count") != expected_slots
         or checkpoint.get("case_count") != expected_count
         or checkpoint.get("case_start_labels") != expected_labels
     ):
@@ -131,6 +134,36 @@ def qualify_capture(capture: dict[str, Any], coverage: dict[str, Any]) -> None:
         ):
             fail(f"guardoff-spot-dodge case={case_id}")
 
+    acquired_ground_actions = {
+        "powershield_jab": "NEUTRAL_ATTACK_1",
+        "powershield_tilt_forward": "FTILT_MID",
+        "powershield_tilt_up": "UPTILT",
+        "powershield_tilt_down": "DOWNTILT",
+        "powershield_smash_forward": "FSMASH_MID",
+        "powershield_smash_up": "UPSMASH",
+        "powershield_smash_down": "DOWNSMASH",
+        "powershield_grab": "GRAB",
+    }
+    for case_id, acquired_action in acquired_ground_actions.items():
+        current = case_rows(capture["rows"], case_id)
+        if (
+            len(current) != 7
+            or current[0].get("action") != "SHIELD_RELEASE"
+            or not 1 <= round(float(current[0]["action_frame"])) <= 5
+            or [row.get("action") for row in current[1:]]
+            != [acquired_action] * 6
+            or [round(float(row["action_frame"])) for row in current[1:]]
+            != list(range(1, 7))
+            or any(not bool(row.get("grounded")) for row in current)
+            or float(current[0]["shield_health"])
+            - float(ordinary[0]["shield_health"])
+            <= 1.0
+        ):
+            fail(
+                f"guardoff-ground-action case={case_id} "
+                f"action={acquired_action}"
+            )
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -179,7 +212,7 @@ def main() -> int:
         )
     print(
         "ssbm-falcon-guardoff-acquisition=pass "
-        f"rows={len(capture['rows'])} stored_cases=9 "
+        f"rows={len(capture['rows'])} stored_cases=17 "
         f"source_trace_sha256={observed_digest}"
     )
     return 0
