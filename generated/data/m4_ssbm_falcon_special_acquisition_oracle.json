@@ -213,6 +213,159 @@
     },
     {
       "field_exclusions": {},
+      "id": "dash_ordinary_early_attack",
+      "input_runs": [
+        {
+          "input": "32767,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "32767,0,0,0,0,0,2,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 4
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 6,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "dash_turn_origin_early_attack",
+      "input_runs": [
+        {
+          "input": "-16384,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "-32767,0,0,0,0,0,0,0,0",
+          "ticks": 6
+        },
+        {
+          "input": "-32767,0,0,0,0,0,2,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 4
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 13,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "dash_ordinary_early_shield",
+      "input_runs": [
+        {
+          "input": "32767,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "32767,0,0,0,65535,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 4
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 6,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
+    },
+    {
+      "field_exclusions": {
+        "action_ticks": [
+          [
+            8,
+            13
+          ]
+        ]
+      },
+      "id": "dash_turn_origin_early_shield",
+      "input_runs": [
+        {
+          "input": "-16384,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "-32767,0,0,0,0,0,0,0,0",
+          "ticks": 6
+        },
+        {
+          "input": "-32767,0,0,0,65535,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 4
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 13,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "dash_ordinary_early_taunt",
+      "input_runs": [
+        {
+          "input": "32767,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "32767,0,0,0,0,0,16,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 4
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 6,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
+    },
+    {
+      "field_exclusions": {},
       "id": "squat_wait_down",
       "input_runs": [
         {
@@ -704,7 +857,7 @@
   ],
   "domain": "falcon-common-special-acquisition",
   "kind": "native-csv-trace-v1",
-  "production_trace_sha256": "5a22a6f401df8a8557bd2ac16b5c3dd34211cf825f302a9f81db2f4e2897253f",
+  "production_trace_sha256": "0ca93dea87caf0f2911a16806e7402bbff054a0278ad2029a925d23f742f2fe1",
   "schema": 1,
-  "source_trace_sha256": "5a22a6f401df8a8557bd2ac16b5c3dd34211cf825f302a9f81db2f4e2897253f"
+  "source_trace_sha256": "0ca93dea87caf0f2911a16806e7402bbff054a0278ad2029a925d23f742f2fe1"
 }

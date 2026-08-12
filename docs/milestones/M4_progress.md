@@ -6869,3 +6869,39 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   `ab99092abaf6231497ffc901499a11c0b6c29678bc70c7e60536fe1653a1b7c1`.
   Three complete runs take 887.531-946.419 ms on Windows and
   1,075.190-1,131.290 ms in WSL; strict CTest passes 47/47 and 41/41.
+
+## 2026-08-12: InitialDash entry provenance and early callback split
+
+- Pinned `ftCo_Dash.c` proves that `mv.co.dash.x4` distinguishes ordinary
+  `Dash_CheckInput` entry from Turn-origin entry. Ordinary early Dash checks
+  F-smash and held LR through PlCo x48 for EscapeF; Turn-origin Dash checks
+  Dash Attack and Guard. The shared tail accepts Appeal in every phase.
+- Production packs this provenance into the magnitude of the existing signed
+  dash-direction byte: magnitude 1 is ordinary entry, magnitude 2 is
+  Turn-origin entry, and sign remains direction. No canonical field, save
+  byte, replay byte, allocation, or new public action was added. Save/load
+  coverage preserves the Turn-origin branch.
+- The common-data importer now owns PlCo x48 as
+  `initial_dash_forward_roll_end_frame=3`, alongside x44=4 and x4C=20. The
+  authored early-shield rejection and early-taunt lockout are removed.
+- Two independent 322-row UCF Dolphin captures hash to
+  `750800f604c03baed6c74870b43b624957cb65a89a8570c1f905b608eb1021c3`
+  and `fb59fd9809c4f805436cfa0e298e9b4b452b562e6a489fb542147393d112cb15`.
+  They prove ordinary A -> FsmashMid, Turn-origin A -> DashAttack, ordinary
+  shield -> RollForward, Turn-origin shield -> GuardReflect, and early Appeal
+  -> TauntRight.
+- The 29-case / 322-row source and production traces are byte-exact at
+  `0ca93dea87caf0f2911a16806e7402bbff054a0278ad2029a925d23f742f2fe1`.
+  GuardReflect's source animation frame `-1` is the only excluded clock; the
+  action, facing, grounding, inputs, and surrounding Dash clocks remain strict.
+  Generated-oracle SHA-256 is
+  `4f83a1ace4ff284b9a24852882ebdb797e3fb144cec64efbd9760ccdc8edab5b`.
+- The 35-domain / 228-case registry passes under manifest SHA-256
+  `53b22294f20946ec42cc32eb89d72d2b32b3c19d050996f3fd1585d43dffc39f`.
+  Isolated runs take 888.277-1,118.575 ms on Windows and
+  1,068.334-1,205.796 ms in WSL; the focused domain takes 254.896 ms.
+- The 240 inputs, final state, and event stream are unchanged. Imported x48
+  changes only the replay content identity to
+  `fb0f4e7251e70f7660801222b5b5a2627e9c45e1b56b7d5763035947cb553d1c`;
+  final/event hashes remain `5a7db4a5e899b1af31909f7997dcb1a08226aec79f4f09fab7422fe9602f246f`
+  and `787d63c5edf270cdc72d93dbe857c487bdc1ab7bdde59a1975299f1973fa7256`.

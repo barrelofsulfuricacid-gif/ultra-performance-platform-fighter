@@ -15935,6 +15935,236 @@ static int reset_to_reference_run(
     return 0;
 }
 
+static int enter_ucf_turn_origin_initial_dash(
+    pf_sim *sim,
+    uint64_t seed,
+    pf_m4_inspection *out_inspection)
+{
+    return expect_status(
+               pf_sim_reset(sim, seed),
+               PF_STATUS_OK,
+               "initial-dash-origin-reset") &&
+           step_duel_raw_main_x(
+               sim,
+               INT16_C(0),
+               INT8_C(0),
+               out_inspection) &&
+           step_duel_raw_main_x(
+               sim,
+               -INT16_C(16384),
+               -INT8_C(40),
+               out_inspection) &&
+           out_inspection->players[0].action_state ==
+               (uint8_t)PF_M4_ACTION_STANDING_TURN &&
+           step_duel_raw_main_x(
+               sim,
+               -INT16_C(31129),
+               -INT8_C(76),
+               out_inspection) &&
+           out_inspection->players[0].action_state ==
+               (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
+           out_inspection->players[0].action_ticks == UINT16_C(1) &&
+           sim->world.dash_direction[0] ==
+               -PF_M4_INITIAL_DASH_TURN_PHASE;
+}
+
+static int run_initial_dash_origin_callback_test(
+    const pf_content_view *view)
+{
+    const pf_m4_ssbm_ground_input_attributes *ground_input =
+        pf_m4_ssbm_common_reference_ground_input();
+    test_sim_storage storage;
+    test_sim_storage loaded_storage;
+    pf_sim *sim = NULL;
+    pf_sim *loaded = NULL;
+    pf_m4_inspection inspection;
+    uint8_t save_bytes[2048];
+    pf_mut_bytes destination;
+    pf_bytes source;
+
+    if (ground_input == NULL ||
+        ground_input->initial_dash_early_end_frame != UINT16_C(4) ||
+        ground_input->initial_dash_forward_roll_end_frame != UINT16_C(3) ||
+        ground_input->initial_dash_special_end_frame != UINT16_C(20) ||
+        !initialize_sim(
+            &storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &sim) ||
+        !initialize_sim(
+            &loaded_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &loaded))
+    {
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0xda510001)),
+            PF_STATUS_OK,
+            "initial-dash-ordinary-attack-reset") ||
+        !step_duel(
+            sim,
+            INT16_MAX,
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        sim->world.dash_direction[0] !=
+            PF_M4_INITIAL_DASH_ORDINARY_PHASE ||
+        !step_duel(
+            sim,
+            INT16_MAX,
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_FORWARD_STRONG_CHARGE ||
+        inspection.players[0].action_ticks != UINT16_C(1))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=initial-dash-ordinary-attack"
+            " action=%u ticks=%u phase=%d\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks,
+            (int)sim->world.dash_direction[0]);
+        return 0;
+    }
+
+    if (!enter_ucf_turn_origin_initial_dash(
+            sim,
+            UINT64_C(0xda510002),
+            &inspection) ||
+        !step_duel_raw_main_x_buttons(
+            sim,
+            -INT16_C(31129),
+            -INT8_C(76),
+            PF_INPUT_BUTTON_ATTACK,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_DASH_ATTACK ||
+        inspection.players[0].action_ticks != UINT16_C(1))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=initial-dash-turn-attack"
+            " action=%u ticks=%u\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks);
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0xda510003)),
+            PF_STATUS_OK,
+            "initial-dash-ordinary-shield-reset") ||
+        !step_duel(
+            sim,
+            INT16_MAX,
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        !step_duel_trigger(
+            sim,
+            INT16_MAX,
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_ROLL_FORWARD ||
+        inspection.players[0].action_ticks != UINT16_C(1))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=initial-dash-ordinary-shield"
+            " action=%u ticks=%u\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks);
+        return 0;
+    }
+
+    if (!enter_ucf_turn_origin_initial_dash(
+            sim,
+            UINT64_C(0xda510004),
+            &inspection))
+    {
+        return 0;
+    }
+    destination.bytes = save_bytes;
+    destination.capacity = sizeof(save_bytes);
+    destination.size = (size_t)0;
+    if (!expect_status(
+            pf_sim_save(sim, &destination),
+            PF_STATUS_OK,
+            "initial-dash-turn-save"))
+    {
+        return 0;
+    }
+    source.bytes = save_bytes;
+    source.size = destination.size;
+    if (!expect_status(
+            pf_sim_load(loaded, source),
+            PF_STATUS_OK,
+            "initial-dash-turn-load") ||
+        loaded->world.dash_direction[0] !=
+            -PF_M4_INITIAL_DASH_TURN_PHASE ||
+        !step_duel_trigger(
+            loaded,
+            -INT16_C(31129),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD ||
+        loaded->world.guard_dash_grab_window_ticks[0] != UINT8_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=initial-dash-turn-shield"
+            " action=%u phase=%d window=%u\n",
+            (unsigned int)inspection.players[0].action_state,
+            (int)loaded->world.dash_direction[0],
+            (unsigned int)
+                loaded->world.guard_dash_grab_window_ticks[0]);
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0xda510005)),
+            PF_STATUS_OK,
+            "initial-dash-taunt-reset") ||
+        !step_duel(
+            sim,
+            INT16_MAX,
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        !step_duel(
+            sim,
+            INT16_MAX,
+            INT16_C(0),
+            PF_INPUT_BUTTON_TAUNT,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_TAUNT ||
+        inspection.players[0].action_ticks != UINT16_C(1))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=initial-dash-taunt"
+            " action=%u ticks=%u\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks);
+        return 0;
+    }
+    return 1;
+}
+
 static int run_guard_dash_grab_window_test(
     const pf_content_view *view)
 {
@@ -16636,6 +16866,7 @@ int main(void)
         !RUN_MOVEMENT_TEST(run_falcon_dive_source_data_test(&content)) ||
         !RUN_MOVEMENT_TEST(run_falcon_dive_behind_ledge_test(&content)) ||
         !RUN_MOVEMENT_TEST(run_ucf084_input_contract_test(&content, &view)) ||
+        !RUN_MOVEMENT_TEST(run_initial_dash_origin_callback_test(&view)) ||
         !RUN_MOVEMENT_TEST(run_guard_dash_grab_window_test(&view)) ||
         !RUN_MOVEMENT_TEST(run_reference_callback_owner_test(&content, &view)) ||
         !RUN_MOVEMENT_TEST(run_run_brake_iasa_test(&content, &view)) ||

@@ -5,8 +5,8 @@
   "character": "falcon",
   "oracle": "SSBM GALE01 NTSC-U revision 2 with UCF 0.84",
   "live_source": {
-    "capture_sha256": "e4193dce5d782716f41d35b7495e94a345142412c0dbc4813aa430907a998a3a",
-    "repeat_capture_sha256": "e4193dce5d782716f41d35b7495e94a345142412c0dbc4813aa430907a998a3a",
+    "capture_sha256": "750800f604c03baed6c74870b43b624957cb65a89a8570c1f905b608eb1021c3",
+    "repeat_capture_sha256": "fb59fd9809c4f805436cfa0e298e9b4b452b562e6a489fb542147393d112cb15",
     "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
     "release_artifact_sha256": "87e9ef6d80ed03354a1647d0616016dbc91399aa9e86a69ae5a398edd0a0c2bd",
     "launcher_sha256": "9eb024aa9347648f020e2a76666e5c5597b77b32ef26752f563c99f0772b1e82",
@@ -25,18 +25,21 @@
       "policy_sha256": "a8368a3901828602833fba82f2c1e2490df6537151ff5cd6a216419a6051b7cc"
     },
     "stage": "FINAL_DESTINATION",
-    "row_count": 278
+    "row_count": 322
   },
   "checkpoint_pack": {
     "protocol": "immutable-multislot-slippi-state-file-control-v2",
-    "expected_rows": 278,
-    "warm_budget_seconds": 14.0,
+    "expected_rows": 322,
+    "warm_budget_seconds": 16.0,
     "cold_budget_seconds": 20.0,
     "capture_route": "special-acquisition",
     "capture_shards": [[
       "turn_neutral", "turn_side", "turn_up", "turn_down",
       "turn_ucf_raw_delta_76", "turn_delayed_pending_dash",
-      "turn_ucf_raw_delta_75_release", "squat_wait_down",
+      "turn_ucf_raw_delta_75_release", "dash_ordinary_early_attack",
+      "dash_turn_origin_early_attack", "dash_ordinary_early_shield",
+      "dash_turn_origin_early_shield", "dash_ordinary_early_taunt",
+      "squat_wait_down",
       "squat_wait_diagonal_down", "squat_rv_down",
       "squat_rv_diagonal_down", "walk_grab_special_priority",
       "walk_side_special", "walk_reverse_tilt_wait",
@@ -111,6 +114,58 @@
           "edge_main": [-30719, 0],
           "edge_action": "none",
           "observe_ticks": 6
+        },
+        {
+          "id": "dash_ordinary_early_attack",
+          "checkpoint_slot": 3,
+          "source_state": "dash",
+          "edge_main": [32767, 0],
+          "edge_action": "attack",
+          "observe_ticks": 4
+        },
+        {
+          "id": "dash_turn_origin_early_attack",
+          "checkpoint_slot": 4,
+          "source_state": "turn",
+          "pre_edge_phases": [
+            { "ticks": 1 },
+            { "ticks": 6, "main": [-32767, 0] }
+          ],
+          "edge_main": [-32767, 0],
+          "edge_action": "attack",
+          "observe_ticks": 4
+        },
+        {
+          "id": "dash_ordinary_early_shield",
+          "checkpoint_slot": 5,
+          "source_state": "dash",
+          "edge_main": [32767, 0],
+          "edge_action": "none",
+          "edge_left_trigger": 65535,
+          "edge_digital_left": true,
+          "observe_ticks": 4
+        },
+        {
+          "id": "dash_turn_origin_early_shield",
+          "checkpoint_slot": 6,
+          "source_state": "turn",
+          "pre_edge_phases": [
+            { "ticks": 1 },
+            { "ticks": 6, "main": [-32767, 0] }
+          ],
+          "edge_main": [-32767, 0],
+          "edge_action": "none",
+          "edge_left_trigger": 65535,
+          "edge_digital_left": true,
+          "observe_ticks": 4
+        },
+        {
+          "id": "dash_ordinary_early_taunt",
+          "checkpoint_slot": 7,
+          "source_state": "dash",
+          "edge_main": [32767, 0],
+          "edge_action": "taunt",
+          "observe_ticks": 4
         },
         {
           "id": "squat_wait_down",
@@ -267,6 +322,11 @@
     { "id": "turn_ucf_raw_delta_76", "start_label": "special_acquisition_turn_ucf_raw_delta_76_setup" },
     { "id": "turn_delayed_pending_dash", "start_label": "special_acquisition_turn_delayed_pending_dash_setup" },
     { "id": "turn_ucf_raw_delta_75_release", "start_label": "special_acquisition_turn_ucf_raw_delta_75_release_setup" },
+    { "id": "dash_ordinary_early_attack", "start_label": "special_acquisition_dash_ordinary_early_attack_setup" },
+    { "id": "dash_turn_origin_early_attack", "start_label": "special_acquisition_dash_turn_origin_early_attack_setup" },
+    { "id": "dash_ordinary_early_shield", "start_label": "special_acquisition_dash_ordinary_early_shield_setup" },
+    { "id": "dash_turn_origin_early_shield", "start_label": "special_acquisition_dash_turn_origin_early_shield_setup" },
+    { "id": "dash_ordinary_early_taunt", "start_label": "special_acquisition_dash_ordinary_early_taunt_setup" },
     { "id": "squat_wait_down", "start_label": "special_acquisition_squat_wait_down_setup" },
     { "id": "squat_wait_diagonal_down", "start_label": "special_acquisition_squat_wait_diagonal_down_setup" },
     { "id": "squat_rv_down", "start_label": "special_acquisition_squat_rv_down_setup" },
@@ -305,8 +365,8 @@
   },
   "stored_oracle": {
     "kind": "native-csv-trace-v1",
-    "source_trace_sha256": "5a22a6f401df8a8557bd2ac16b5c3dd34211cf825f302a9f81db2f4e2897253f",
-    "production_trace_sha256": "5a22a6f401df8a8557bd2ac16b5c3dd34211cf825f302a9f81db2f4e2897253f",
+    "source_trace_sha256": "0ca93dea87caf0f2911a16806e7402bbff054a0278ad2029a925d23f742f2fe1",
+    "production_trace_sha256": "0ca93dea87caf0f2911a16806e7402bbff054a0278ad2029a925d23f742f2fe1",
     "require_exact_source_match": true,
     "serialized_fields": [
       "action_state",
@@ -323,7 +383,12 @@
       "WALK_MIDDLE": { "action_state": 1, "action_tick_offset": 0 },
       "WALK_FAST": { "action_state": 1, "action_tick_offset": 0 },
       "DASHING": { "action_state": 2, "action_tick_offset": 0 },
+      "DASH_ATTACK": { "action_state": 57, "action_tick_offset": 0 },
+      "ROLL_FORWARD": { "action_state": 38, "action_tick_offset": 0 },
       "SHIELD_START": { "action_state": 18, "action_tick_offset": 0 },
+      "SHIELD_REFLECT": { "action_state": 18, "action_tick_offset": 1 },
+      "TAUNT_RIGHT": { "action_state": 75, "action_tick_offset": 0 },
+      "TAUNT_LEFT": { "action_state": 75, "action_tick_offset": 0 },
       "GRAB": { "action_state": 49, "action_tick_offset": 0 },
       "GRAB_RUNNING": { "action_state": 106, "action_tick_offset": 0 }
     },
@@ -433,6 +498,71 @@
           { "ticks": 1, "lanes": [{ "main": [-16384, 0], "raw_main": [-40, 0] }, {}] },
           { "ticks": 1, "lanes": [{ "main": [-30719, 0], "raw_main": [-75, 0] }, {}] },
           { "ticks": 6, "lanes": [{ "raw_main": [0, 0] }, {}] }
+        ]
+      },
+      {
+        "id": "dash_ordinary_early_attack",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_dash_ordinary_early_attack_",
+        "sample_count": 6,
+        "action_mapping": {
+          "FSMASH_MID": { "action_state": 91, "action_tick_offset": 0 }
+        },
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "main": [32767, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [32767, 0], "buttons": ["attack"] }, {}] },
+          { "ticks": 4, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "dash_turn_origin_early_attack",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_dash_turn_origin_early_attack_",
+        "sample_count": 13,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "main": [-16384, 0] }, {}] },
+          { "ticks": 1, "lanes": [{}, {}] },
+          { "ticks": 6, "lanes": [{ "main": [-32767, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [-32767, 0], "buttons": ["attack"] }, {}] },
+          { "ticks": 4, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "dash_ordinary_early_shield",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_dash_ordinary_early_shield_",
+        "sample_count": 6,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "main": [32767, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [32767, 0], "left_trigger": 65535 }, {}] },
+          { "ticks": 4, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "dash_turn_origin_early_shield",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_dash_turn_origin_early_shield_",
+        "sample_count": 13,
+        "field_exclusions": {
+          "action_ticks": [[8, 13]]
+        },
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "main": [-16384, 0] }, {}] },
+          { "ticks": 1, "lanes": [{}, {}] },
+          { "ticks": 6, "lanes": [{ "main": [-32767, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [-32767, 0], "left_trigger": 65535 }, {}] },
+          { "ticks": 4, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "dash_ordinary_early_taunt",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_dash_ordinary_early_taunt_",
+        "sample_count": 6,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "main": [32767, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [32767, 0], "buttons": ["taunt"] }, {}] },
+          { "ticks": 4, "lanes": [{}, {}] }
         ]
       },
       {

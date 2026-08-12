@@ -258,6 +258,43 @@ def qualify_capture(
     if ucf_negative[2]["observed_raw_main_x"] - ucf_negative[0]["observed_raw_main_x"] != -75:
         fail("ucf-raw-delta case=turn_ucf_raw_delta_75_release")
 
+    dash_origin_cases = {
+        "dash_ordinary_early_attack": (
+            [("DASHING", 1)]
+            + [("FSMASH_MID", frame) for frame in range(1, 6)],
+            [1.0] * 6,
+        ),
+        "dash_turn_origin_early_attack": (
+            [("TURNING", frame) for frame in range(1, 8)]
+            + [("DASHING", 1)]
+            + [("DASH_ATTACK", frame) for frame in range(1, 6)],
+            [1.0] * 7 + [-1.0] * 6,
+        ),
+        "dash_ordinary_early_shield": (
+            [("DASHING", 1)]
+            + [("ROLL_FORWARD", frame) for frame in range(1, 6)],
+            [1.0] * 6,
+        ),
+        "dash_turn_origin_early_shield": (
+            [("TURNING", frame) for frame in range(1, 8)]
+            + [("DASHING", 1)]
+            + [("SHIELD_REFLECT", -1)] * 5,
+            [1.0] * 7 + [-1.0] * 6,
+        ),
+        "dash_ordinary_early_taunt": (
+            [("DASHING", 1)]
+            + [("TAUNT_RIGHT", frame) for frame in range(1, 6)],
+            [1.0] * 6,
+        ),
+    }
+    for case_id, (expected_actions, expected_facing) in dash_origin_cases.items():
+        current = case_rows(rows, case_id)
+        require_ordered_actions(current, expected_actions, case_id)
+        if [row.get("facing") for row in current] != expected_facing:
+            fail(f"dash-origin-facing case={case_id}")
+        if any(row.get("grounded") is not True for row in current):
+            fail(f"grounded context={case_id}")
+
     crouch_cases = {
         "squat_wait_down": (26, "CROUCHING"),
         "squat_wait_diagonal_down": (26, "CROUCHING"),

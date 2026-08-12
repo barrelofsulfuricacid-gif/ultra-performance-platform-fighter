@@ -2379,3 +2379,35 @@ Their 278 rows and the Windows production trace canonicalize exactly to
 The parallel captures report 9.559/9.639-second lifecycles and
 10.466/10.540-second parent warm totals. No new protocol, runner, public
 state, snapshot byte, or web probe was added.
+
+### InitialDash x4 entry provenance and PlCo x48
+
+Pinned decomp revision `9509dc04406fb2028bfab01243841ba4787c0fb7`
+owns this behavior through `ftCo_Dash.c` (normalized SHA-256
+`23fd2ad0af701c320fb24f6b5e7406971d7c31060b87916a20b242c076d10f7c`).
+`ftCo_Dash_Enter` stores its caller's x4 argument: ordinary Wait/Walk entry
+passes 1, while Turn passes 0. IASA uses that bit to select the early
+F-smash/EscapeF block or DashAttack/Guard block before joining the Appeal tail.
+
+The owner-supplied PlCo DAT remains SHA-256
+`63841336337eb5a7366b06ccc60ea4bd37c3604ab56e19939d78b9aa9cdd234c`.
+The importer now reads x48 as integer float 3 and validates
+`0 < x48 <= x44 < x4C` before emitting its typed field. Production stores x4
+provenance in the magnitude of the existing signed InitialDash phase byte; no
+new save or replay field is introduced.
+
+The final live artifacts hash to
+`750800f604c03baed6c74870b43b624957cb65a89a8570c1f905b608eb1021c3`
+and `fb59fd9809c4f805436cfa0e298e9b4b452b562e6a489fb542147393d112cb15`.
+Their 322 rows and Windows/WSL production canonicalize exactly to
+`0ca93dea87caf0f2911a16806e7402bbff054a0278ad2029a925d23f742f2fe1`.
+Checkpoint work took 9.065739 and 9.480028 seconds; complete capture
+lifecycles took 13.320399 and 13.347289 seconds. No web probe or new native
+runner was added.
+
+The imported field changes deterministic content identity, not behavior: the
+240-input replay corpus becomes
+`fb0f4e7251e70f7660801222b5b5a2627e9c45e1b56b7d5763035947cb553d1c`,
+while final/event hashes remain
+`5a7db4a5e899b1af31909f7997dcb1a08226aec79f4f09fab7422fe9602f246f`
+and `787d63c5edf270cdc72d93dbe857c487bdc1ab7bdde59a1975299f1973fa7256`.

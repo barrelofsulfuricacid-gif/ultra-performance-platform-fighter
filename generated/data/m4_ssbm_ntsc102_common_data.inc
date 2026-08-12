@@ -226,6 +226,7 @@ pf_m4_ssbm_ground_input_attribute_data = {
     UINT16_C(18022),
     UINT16_C(20),
     UINT16_C(4),
+    UINT16_C(3),
     UINT16_C(20),
     UINT16_C(18431),
     UINT16_C(2),

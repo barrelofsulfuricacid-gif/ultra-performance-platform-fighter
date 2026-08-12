@@ -742,3 +742,20 @@ production at
 `5a22a6f401df8a8557bd2ac16b5c3dd34211cf825f302a9f81db2f4e2897253f`.
 This closes the represented Walk reversal split, not every uncaptured Walk
 callback or simultaneous-input combination.
+
+### InitialDash ordinary-versus-Turn origin
+
+The represented InitialDash callback surface is equivalent for both source
+entry classes. Ordinary entry retains `ftCo_Dash` x4 and maps early A to
+F-smash plus held LR through imported PlCo x48=3 to forward roll. Turn-origin
+entry clears x4 and maps the same displayed Dash frame to Dash Attack and
+Guard. Appeal remains available from the shared Dash tail. Production encodes
+the source bit in the magnitude of its existing signed dash-direction phase,
+so this correction adds no canonical state or public action.
+
+Two independent 322-row captures prove all five discriminators and
+canonicalize identically. The complete 29-case source and production trace is
+byte-exact at
+`0ca93dea87caf0f2911a16806e7402bbff054a0278ad2029a925d23f742f2fe1`.
+This closes the represented entry-provenance split, not every uncaptured
+simultaneous-input combination or later Dash callback.

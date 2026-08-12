@@ -44,6 +44,19 @@ static inline int32_t pf_m4_total_velocity_q16(
 #define PF_M4_STANDING_TURN_BASIC_PHASE INT8_C(2)
 #define PF_M4_STANDING_TURN_DASH_ARMED_PHASE INT8_C(3)
 
+/* InitialDash reuses that byte for ftCo_Dash's x4 entry provenance. The
+ * sign remains the motion direction, while the magnitude distinguishes an
+ * ordinary Wait/Walk entry from Turn's held-reversal entry. */
+#define PF_M4_INITIAL_DASH_ORDINARY_PHASE INT8_C(1)
+#define PF_M4_INITIAL_DASH_TURN_PHASE INT8_C(2)
+
+static inline int8_t pf_m4_signed_phase_direction(int8_t phase)
+{
+    return phase < INT8_C(0)
+               ? INT8_C(-1)
+               : phase > INT8_C(0) ? INT8_C(1) : INT8_C(0);
+}
+
 #define PF_M4_UCF084_DBOOC_RELEASE_AXIS_THRESHOLD UINT16_C(19333)
 #define PF_M4_UCF084_SHIELD_DROP_C_UPPER_AXIS UINT16_C(22937)
 #define PF_M4_UCF084_SHIELD_DROP_MAIN_UPPER_AXIS UINT16_C(26214)

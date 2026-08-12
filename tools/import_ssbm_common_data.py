@@ -117,6 +117,7 @@ def generate(raw: bytes) -> str:
     special_vertical_axis_threshold = f32(0x21C)
     neutral_special_turn_window_ticks = i32(0x224)
     initial_dash_early_end_frame = f32(0x044)
+    initial_dash_forward_roll_end_frame = f32(0x048)
     initial_dash_special_end_frame = f32(0x04C)
     throw_animation_weight_scale = f32(0x37C)
     grab_release_air_speed_x = f32(0x374)
@@ -232,6 +233,9 @@ def generate(raw: bytes) -> str:
         or not 0 < neutral_special_turn_window_ticks <= 0xFFFF
         or not initial_dash_early_end_frame.is_integer()
         or not 0 < initial_dash_early_end_frame <= 0xFFFF
+        or not initial_dash_forward_roll_end_frame.is_integer()
+        or not 0 < initial_dash_forward_roll_end_frame
+        <= initial_dash_early_end_frame
         or not initial_dash_special_end_frame.is_integer()
         or not initial_dash_early_end_frame
         < initial_dash_special_end_frame
@@ -502,6 +506,9 @@ def generate(raw: bytes) -> str:
         "initial_dash_early_end_frame": int(
             initial_dash_early_end_frame
         ),
+        "initial_dash_forward_roll_end_frame": int(
+            initial_dash_forward_roll_end_frame
+        ),
         "initial_dash_special_end_frame": int(
             initial_dash_special_end_frame
         ),
@@ -722,6 +729,7 @@ def generate(raw: bytes) -> str:
             f"    UINT16_C({ground_input_attributes['special_vertical_axis_threshold']}),",
             f"    UINT16_C({ground_input_attributes['neutral_special_turn_window_ticks']}),",
             f"    UINT16_C({ground_input_attributes['initial_dash_early_end_frame']}),",
+            f"    UINT16_C({ground_input_attributes['initial_dash_forward_roll_end_frame']}),",
             f"    UINT16_C({ground_input_attributes['initial_dash_special_end_frame']}),",
             f"    UINT16_C({ground_input_attributes['running_jump_axis_threshold']}),",
             f"    UINT16_C({ground_input_attributes['forward_smash_input_window_ticks']}),",

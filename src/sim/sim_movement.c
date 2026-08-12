@@ -7158,6 +7158,10 @@ pf_status pf_m4_step_player(
         source_ground_input != NULL
             ? source_ground_input->initial_dash_early_end_frame
             : UINT16_C(0);
+    const uint16_t initial_dash_forward_roll_end_frame =
+        source_ground_input != NULL
+            ? source_ground_input->initial_dash_forward_roll_end_frame
+            : UINT16_C(0);
     const uint16_t initial_dash_special_end_frame =
         source_ground_input != NULL
             ? source_ground_input->initial_dash_special_end_frame
@@ -7168,6 +7172,21 @@ pf_status pf_m4_step_player(
      * boundaries retain their source meaning. */
     const uint32_t reference_current_anim_frame =
         (uint32_t)callback_owner.action_ticks + UINT32_C(1);
+    const int8_t reference_initial_dash_direction =
+        pf_m4_signed_phase_direction(
+            world->dash_direction[player_index]);
+    const int reference_initial_dash_turn_origin =
+        source_ground_input != NULL &&
+        callback_owner.action_state ==
+            (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
+        (world->dash_direction[player_index] ==
+             (int8_t)(reference_initial_dash_direction *
+                      PF_M4_INITIAL_DASH_TURN_PHASE));
+    const int reference_initial_dash_ordinary_origin =
+        source_ground_input != NULL &&
+        callback_owner.action_state ==
+            (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
+        reference_initial_dash_turn_origin == 0;
     const int secondary_stick_active =
         secondary_horizontal_magnitude >= fighter->axis_dead_zone ||
         secondary_vertical_magnitude >= fighter->axis_dead_zone;
@@ -7273,9 +7292,7 @@ pf_status pf_m4_step_player(
             callback_owner.action_state,
             callback_owner.action_ticks);
     const int reference_initial_dash_forward_smash =
-        source_ground_input != NULL &&
-        callback_owner.action_state ==
-            (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
+        reference_initial_dash_ordinary_origin != 0 &&
         reference_current_anim_frame <=
             initial_dash_early_end_frame &&
         (forward_smash_pressed != 0 ||
@@ -7285,8 +7302,9 @@ pf_status pf_m4_step_player(
         source_ground_input != NULL &&
         callback_owner.action_state ==
             (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
-        reference_current_anim_frame >
-            initial_dash_early_end_frame &&
+        (reference_initial_dash_turn_origin != 0 ||
+         reference_current_anim_frame >
+             initial_dash_early_end_frame) &&
         reference_current_anim_frame <=
             initial_dash_special_end_frame &&
         grab_blocks_attack == 0 && light_attack_pressed != 0;
@@ -9890,14 +9908,36 @@ pf_status pf_m4_step_player(
     if (!ledge_motion_handled &&
         !hitstun_locked &&
         grounded != UINT8_C(0) &&
+        source_ground_input != NULL &&
+        action_state == (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
+        reference_initial_dash_ordinary_origin != 0 &&
+        reference_current_anim_frame <=
+            initial_dash_forward_roll_end_frame &&
+        shield_held != 0 &&
+        attack_pressed == 0)
+    {
+        /* Ordinary ftCo_Dash x4 routes held LR through ftCo_80099264 on
+         * frames <= x48. Turn-origin Dash has x4 clear and reaches Guard. */
+        action_state = (uint8_t)PF_M4_ACTION_ROLL_FORWARD;
+        action_ticks = UINT16_C(0);
+        velocity_x = INT32_C(0);
+        short_hop_latched = UINT8_C(0);
+        dash_direction = facing;
+        scratch->powershield[player_index] = UINT8_C(0);
+    }
+
+    if (!ledge_motion_handled &&
+        !hitstun_locked &&
+        grounded != UINT8_C(0) &&
         shield_held != 0 &&
         grab_fallback_attack_pressed == 0 &&
         (source_ground_input == NULL || attack_pressed == 0) &&
         !pf_m4_action_is_shield(action_state) &&
         !(action_state == (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
           (source_ground_input == NULL ||
-           reference_current_anim_frame <=
-               initial_dash_early_end_frame)) &&
+           (reference_initial_dash_ordinary_origin != 0 &&
+            reference_current_anim_frame <=
+                initial_dash_early_end_frame))) &&
         (!pf_m4_action_is_ground_attack(action_state) ||
          (ground_iasa_capabilities &
           PF_M4_FALCON_IASA_GUARD) != UINT8_C(0)) &&
@@ -10065,9 +10105,6 @@ pf_status pf_m4_step_player(
         !hitstun_locked &&
         grounded != UINT8_C(0) &&
         taunt_pressed != 0 &&
-        !(source_ground_input != NULL &&
-          action_state == (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
-          action_ticks <= initial_dash_special_end_frame) &&
         (pf_m4_action_can_start_taunt(action_state) ||
          (pf_m4_action_is_ground_attack(action_state) &&
           (ground_iasa_capabilities &
@@ -12239,6 +12276,9 @@ pf_status pf_m4_step_player(
                 initial_dash_entry_motion_velocity_x = velocity_x;
                 action_state = (uint8_t)PF_M4_ACTION_INITIAL_DASH;
                 action_ticks = UINT16_C(1);
+                dash_direction =
+                    (int8_t)(target_direction *
+                             PF_M4_INITIAL_DASH_TURN_PHASE);
                 velocity_x = pf_m4_enter_initial_dash_velocity(
                     fighter,
                     velocity_x,
@@ -12284,6 +12324,9 @@ pf_status pf_m4_step_player(
                 action_state =
                     (uint8_t)PF_M4_ACTION_INITIAL_DASH;
                 action_ticks = UINT16_C(1);
+                dash_direction =
+                    (int8_t)(target_direction *
+                             PF_M4_INITIAL_DASH_TURN_PHASE);
                 velocity_x = pf_m4_enter_initial_dash_velocity(
                     fighter,
                     velocity_x,
@@ -12331,8 +12374,11 @@ pf_status pf_m4_step_player(
         else if (action_state ==
                  (uint8_t)PF_M4_ACTION_INITIAL_DASH)
         {
+            const int8_t initial_dash_direction =
+                pf_m4_signed_phase_direction(dash_direction);
+
             if (fresh_dash_input != 0 &&
-                strong_direction == -dash_direction &&
+                strong_direction == -initial_dash_direction &&
                 (source_ground_input == NULL ||
                  reference_current_anim_frame >
                      initial_dash_early_end_frame))
@@ -12350,7 +12396,7 @@ pf_status pf_m4_step_player(
             }
             else if (source_ground_input != NULL &&
                      fresh_dash_input != 0 &&
-                     strong_direction == dash_direction &&
+                     strong_direction == initial_dash_direction &&
                      action_ticks > initial_dash_special_end_frame)
             {
                 initial_dash_entered_this_tick = 1;
@@ -12615,7 +12661,8 @@ pf_status pf_m4_step_player(
             }
             else if (action_state ==
                          (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
-                     strong_direction == dash_direction &&
+                     strong_direction ==
+                         pf_m4_signed_phase_direction(dash_direction) &&
                      action_ticks <
                          fighter->dash_run_transition_ticks)
             {

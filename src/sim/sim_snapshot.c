@@ -3756,8 +3756,15 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                  world->dash_direction[player_index] != INT8_C(1)) ||
                 (action ==
                      (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
-                 world->dash_direction[player_index] !=
-                     world->facing[player_index]) ||
+                 (pf_m4_signed_phase_direction(
+                      world->dash_direction[player_index]) !=
+                      world->facing[player_index] ||
+                  (world->dash_direction[player_index] !=
+                       (int8_t)(world->facing[player_index] *
+                                PF_M4_INITIAL_DASH_ORDINARY_PHASE) &&
+                   world->dash_direction[player_index] !=
+                       (int8_t)(world->facing[player_index] *
+                                PF_M4_INITIAL_DASH_TURN_PHASE)))) ||
                 (action !=
                      (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
                  action !=

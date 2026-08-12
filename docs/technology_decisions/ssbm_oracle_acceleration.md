@@ -622,3 +622,25 @@ The complete registry remains 35 domains and grows to 221 cases; three
 sequential passes take 774.267-843.944 ms on Windows and 1,117.820-1,984.600 ms
 in WSL under manifest
 SHA-256 `9ef8f2ea5f5a21a0f8856dcc42fb8b5aa313de1f38cac31d8ab6f2a744180670`.
+
+## Preserve same-action entry provenance in a compact phase
+
+An action label is not always a complete oracle key. `ftCo_Dash` exposes the
+same public Dash motion for ordinary and Turn-origin entry while x4 changes
+the early callback table. Qualify paired routes on the same displayed frame
+and preserve the smallest source move-variable bit in an existing action-local
+phase when its range has room. For InitialDash, sign remains direction and
+magnitudes 1/2 encode ordinary/Turn origin. This is allocation-free,
+snapshot-stable, and avoids duplicate actions.
+
+The existing special-acquisition protocol absorbed five cases: ordinary/Turn
+early A, ordinary/Turn early shield, and ordinary early taunt. Its generic
+input grammar gained Appeal, but no new protocol, probe, or runner was created.
+Two 322-row captures canonicalize identically; the 29-case source/production
+digest is
+`0ca93dea87caf0f2911a16806e7402bbff054a0278ad2029a925d23f742f2fe1`.
+
+The current registry contains 35 domains / 228 cases under manifest SHA-256
+`53b22294f20946ec42cc32eb89d72d2b32b3c19d050996f3fd1585d43dffc39f`.
+Three isolated Windows runs take 888.277-1,118.575 ms and three WSL runs take
+1,068.334-1,205.796 ms. Earlier counts and timings above remain historical.

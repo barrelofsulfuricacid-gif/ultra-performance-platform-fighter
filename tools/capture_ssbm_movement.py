@@ -335,6 +335,7 @@ def input_trace(
                         "none",
                         "special",
                         "spot_dodge",
+                        "taunt",
                     }
                     for edge_action in edge_actions
                 )
@@ -411,7 +412,13 @@ def input_trace(
                         or any(
                             not isinstance(action, str)
                             or action
-                            not in {"attack", "grab", "jump", "special"}
+                            not in {
+                                "attack",
+                                "grab",
+                                "jump",
+                                "special",
+                                "taunt",
+                            }
                             for action in phase_actions
                         )
                         or len(set(phase_actions)) != len(phase_actions)
@@ -444,6 +451,7 @@ def input_trace(
                                 "grab": "grab" in phase_actions,
                                 "jump": "jump" in phase_actions,
                                 "special": "special" in phase_actions,
+                                "taunt": "taunt" in phase_actions,
                             },
                         )
                     )
@@ -722,6 +730,7 @@ def input_trace(
                     grab="grab" in edge_actions,
                     jump="jump" in edge_actions,
                     special="special" in edge_actions,
+                    taunt="taunt" in edge_actions,
                 )
             )
             repeat(f"{prefix}_observe", observe_ticks)
