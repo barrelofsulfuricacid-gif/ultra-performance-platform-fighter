@@ -1219,7 +1219,6 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_u16(hash, fighter->standing_turn_ticks);
     pf_m4_hash_u16(hash, fighter->standing_turn_facing_tick);
     pf_m4_hash_u16(hash, fighter->dash_input_window_ticks);
-    pf_m4_hash_u16(hash, fighter->moonwalk_setup_ticks);
     pf_m4_hash_u16(hash, fighter->teeter_ticks);
     pf_m4_hash_u16(hash, fighter->teeter_turn_axis_threshold);
     pf_m4_hash_u16(hash, fighter->teeter_walk_axis_threshold);
@@ -1638,6 +1637,7 @@ static void pf_m4_content_hash(
     pf_m4_hash_u8(&hash, content->reflector_count);
     pf_m4_hash_u8(&hash, content->charge_count);
     pf_m4_hash_u8(&hash, content->recovery_count);
+    pf_m4_hash_u8(&hash, content->gameplay_ruleset);
     pf_m4_hash_fighter(&hash, &content->fighter);
     pf_m4_hash_stage(&hash, &content->stage);
     pf_m4_hash_item(&hash, &content->item);
@@ -1797,6 +1797,8 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     out_content->reflector_count = PF_M4_TEST_REFLECTOR_COUNT;
     out_content->charge_count = PF_M4_TEST_CHARGE_COUNT;
     out_content->recovery_count = PF_M4_TEST_RECOVERY_COUNT;
+    out_content->gameplay_ruleset =
+        (uint8_t)PF_M4_GAMEPLAY_RULESET_SSBM_NTSC102_UCF084;
 
     fighter = &out_content->fighter;
     fighter->struct_size = (uint32_t)sizeof(*fighter);
@@ -2269,7 +2271,6 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->dash_run_transition_ticks = UINT16_C(16);
     fighter->standing_turn_facing_tick = UINT16_C(8);
     fighter->dash_input_window_ticks = UINT16_C(2);
-    fighter->moonwalk_setup_ticks = UINT16_C(2);
     fighter->teeter_ticks = UINT16_C(30);
     fighter->teeter_turn_axis_threshold =
         ground_input->teeter_turn_axis_threshold;
@@ -2799,6 +2800,8 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         content->reflector_count != PF_M4_TEST_REFLECTOR_COUNT ||
         content->charge_count != PF_M4_TEST_CHARGE_COUNT ||
         content->recovery_count != PF_M4_TEST_RECOVERY_COUNT ||
+        content->gameplay_ruleset >
+            (uint8_t)PF_M4_GAMEPLAY_RULESET_SSBM_NTSC102_UCF084 ||
         content->fighter.reference_frame_data_enabled > UINT8_C(1) ||
         content->fighter.reserved != UINT8_C(0) ||
         content->fighter.smash_charge_reserved != UINT16_C(0) ||
@@ -3461,9 +3464,6 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
             fighter->standing_turn_ticks ||
         fighter->dash_input_window_ticks == UINT16_C(0) ||
         fighter->dash_input_window_ticks >
-            fighter->initial_dash_ticks ||
-        fighter->moonwalk_setup_ticks < UINT16_C(2) ||
-        fighter->moonwalk_setup_ticks >=
             fighter->initial_dash_ticks ||
         fighter->teeter_ticks == UINT16_C(0) ||
         fighter->teeter_ticks > UINT16_C(120) ||

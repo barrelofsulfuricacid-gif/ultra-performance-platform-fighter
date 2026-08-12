@@ -37,6 +37,25 @@ static inline int32_t pf_m4_total_velocity_q16(
 #define PF_M4_COMMON_AIR_ENTRY_ECB_LOCK_TICKS UINT8_C(10)
 #define PF_M4_USE_ALL_JUMPS_ECB_LOCK_TICKS UINT8_C(5)
 
+/* StandingTurn reuses the signed dash-direction byte for the source motion's
+ * compact callback phase. The sign is facing_after; the magnitude replaces
+ * ftCo_Turn's separate booleans/x8 field without growing canonical state. */
+#define PF_M4_STANDING_TURN_SMASH_PHASE INT8_C(1)
+#define PF_M4_STANDING_TURN_BASIC_PHASE INT8_C(2)
+#define PF_M4_STANDING_TURN_DASH_ARMED_PHASE INT8_C(3)
+
+#define PF_M4_UCF084_DBOOC_RELEASE_AXIS_THRESHOLD UINT16_C(19333)
+#define PF_M4_UCF084_SHIELD_DROP_C_UPPER_AXIS UINT16_C(22937)
+#define PF_M4_UCF084_SHIELD_DROP_MAIN_UPPER_AXIS UINT16_C(26214)
+
+static inline int pf_m4_action_is_canonical(uint8_t action_state)
+{
+    return action_state <=
+               (uint8_t)PF_M4_ACTION_FORWARD_STRONG_CHARGE_LOW &&
+           action_state != (uint8_t)PF_M4_ACTION_RESERVED_71 &&
+           action_state != (uint8_t)PF_M4_ACTION_RESERVED_72;
+}
+
 #define PF_M4_TRIGGER_STATE_LEFT_HELD UINT8_C(1)
 #define PF_M4_TRIGGER_STATE_RIGHT_HELD UINT8_C(2)
 #define PF_M4_TRIGGER_STATE_LEFT_DENSE UINT8_C(4)
@@ -293,6 +312,79 @@ static inline int32_t pf_m4_axis_q16(int16_t axis)
                      denominator);
 }
 
+static inline int8_t pf_m4_source_stick_direction(
+    int16_t axis,
+    uint16_t threshold)
+{
+    return axis >= (int16_t)threshold
+               ? INT8_C(1)
+               : (axis <= -(int16_t)threshold ? INT8_C(-1) : INT8_C(0));
+}
+
+static inline uint8_t pf_m4_source_stick_age(
+    int16_t axis,
+    uint16_t threshold,
+    int8_t previous_direction,
+    uint8_t previous_age,
+    int8_t *out_direction)
+{
+    const int8_t direction = pf_m4_source_stick_direction(axis, threshold);
+
+    *out_direction = direction;
+    if (direction == INT8_C(0))
+    {
+        return UINT8_C(254);
+    }
+    if (previous_direction == INT8_C(0) ||
+        direction != previous_direction)
+    {
+        return UINT8_C(0);
+    }
+    return previous_age < UINT8_C(254)
+               ? (uint8_t)(previous_age + UINT8_C(1))
+               : UINT8_C(254);
+}
+
+/* UCF 0.84 converts Melee's processed axis back to the controller's adjusted
+ * integer radius with trunc(abs(axis) * 80 - epsilon) + 2. HSD produces the
+ * source axis on the 1/80 grid; first recover that grid point from Q15 with
+ * symmetric nearest rounding, then apply the source's +1 nonzero/+2 zero
+ * result. Using ceil directly is wrong when a positive Q15 encoding lies a
+ * fraction above its source grid point (for example, encoded 0.5). */
+static inline int pf_m4_ucf084_adjusted_axis(int16_t axis)
+{
+    const int32_t value = (int32_t)axis;
+    const int32_t magnitude = value < INT32_C(0) ? -value : value;
+    const int32_t denominator =
+        value < INT32_C(0) ? INT32_C(32768) : INT32_C(32767);
+    const int32_t source_grid_magnitude =
+        (magnitude * INT32_C(80) + denominator / INT32_C(2)) /
+        denominator;
+
+    if (source_grid_magnitude == INT32_C(0))
+    {
+        return 2;
+    }
+    return (int)(source_grid_magnitude + INT32_C(1));
+}
+
+static inline int pf_m4_ucf084_adjusted_radial_sq(
+    int16_t stick_x,
+    int16_t stick_y)
+{
+    const int adjusted_x = pf_m4_ucf084_adjusted_axis(stick_x);
+    const int adjusted_y = pf_m4_ucf084_adjusted_axis(stick_y);
+
+    return adjusted_x * adjusted_x + adjusted_y * adjusted_y;
+}
+
+static inline int pf_m4_ucf084_adjusted_radial_qualifies(
+    int16_t stick_x,
+    int16_t stick_y)
+{
+    return pf_m4_ucf084_adjusted_radial_sq(stick_x, stick_y) > 80 * 80;
+}
+
 static inline uint8_t pf_m4_input_trigger_state(
     const pf_m4_fighter_data *fighter,
     const pf_input_frame *input)
@@ -418,8 +510,15 @@ typedef struct pf_world_state
     int8_t mash_stick_y_direction[PF_SIM_MAX_PLAYERS];
     int16_t previous_secondary_stick_x[PF_SIM_MAX_PLAYERS];
     int16_t previous_secondary_stick_y[PF_SIM_MAX_PLAYERS];
+    int16_t previous_main_stick_x[PF_SIM_MAX_PLAYERS];
+    int16_t previous_main_stick_y[PF_SIM_MAX_PLAYERS];
     uint8_t tilt_x_age[PF_SIM_MAX_PLAYERS];
     uint8_t tilt_y_age[PF_SIM_MAX_PLAYERS];
+    uint8_t ucf_tilt_x_age[PF_SIM_MAX_PLAYERS];
+    uint8_t ucf_tilt_y_age[PF_SIM_MAX_PLAYERS];
+    int8_t raw_main_t2_x[PF_SIM_MAX_PLAYERS];
+    int8_t raw_main_t2_y[PF_SIM_MAX_PLAYERS];
+    uint8_t ucf_pad_buffer_count[PF_SIM_MAX_PLAYERS];
     uint8_t horizontal_input_age[PF_SIM_MAX_PLAYERS];
     int8_t horizontal_input_direction[PF_SIM_MAX_PLAYERS];
     uint32_t damage_q16[PF_SIM_MAX_PLAYERS];
@@ -536,8 +635,15 @@ typedef struct pf_sim_scratch
     int8_t mash_stick_y_direction[PF_SIM_MAX_PLAYERS];
     int16_t previous_secondary_stick_x[PF_SIM_MAX_PLAYERS];
     int16_t previous_secondary_stick_y[PF_SIM_MAX_PLAYERS];
+    int16_t previous_main_stick_x[PF_SIM_MAX_PLAYERS];
+    int16_t previous_main_stick_y[PF_SIM_MAX_PLAYERS];
     uint8_t tilt_x_age[PF_SIM_MAX_PLAYERS];
     uint8_t tilt_y_age[PF_SIM_MAX_PLAYERS];
+    uint8_t ucf_tilt_x_age[PF_SIM_MAX_PLAYERS];
+    uint8_t ucf_tilt_y_age[PF_SIM_MAX_PLAYERS];
+    int8_t raw_main_t2_x[PF_SIM_MAX_PLAYERS];
+    int8_t raw_main_t2_y[PF_SIM_MAX_PLAYERS];
+    uint8_t ucf_pad_buffer_count[PF_SIM_MAX_PLAYERS];
     uint8_t horizontal_input_age[PF_SIM_MAX_PLAYERS];
     int8_t horizontal_input_direction[PF_SIM_MAX_PLAYERS];
     uint32_t damage_q16[PF_SIM_MAX_PLAYERS];

@@ -6,8 +6,9 @@ native, web, rollback, headless, and reinforcement-learning targets.
 The project has completed **M0: product contract and measured architecture
 decisions** and **M1: reproducible foundation**. The M2 deterministic
 simulation is complete, and its reinforcement-learning contract has been
-accepted by the owner; its current schema-7 observation includes M4 stock,
-respawn, special charge, smash charge, projectile, item, and recovery state.
+accepted by the owner; its current structured-observation schema 13 includes
+M4 stock, respawn, special charge, smash charge, projectile, item, and recovery
+state.
 M4 is in progress with production-path movement, the complete jab/tilt/dash-
 attack/directional-strong ground vocabulary, charged directional smashes,
 hit reaction, ground/wall/ceiling teching, missed-tech recovery, dense shield,
@@ -130,8 +131,9 @@ stock KOs show results/rematch, and simultaneous final-stock KOs enter the
 300% sudden-death fixture. A sequenced deterministic feed shows the current
 hit, shield, grab, pummel, throw, KO, respawn, sudden-death, and result events.
 It must report
-`web-client-smoke=pass sim_abi=4 tick_hz=60`, `webgl2=pass batch_draws=1`,
-`replay=pass ticks=240 winner_mask=5`, and every M4 startup probe as `pass`.
+`web-client-smoke=pass sim_abi=5 tick_hz=60`, `webgl2=pass batch_draws=1`,
+`replay=pass ticks=240 winner_mask=5`, and the browser-specific startup and
+bridge gates as `pass`.
 The collapsible owner-evidence panel presents all 61 registry recipes, saves a
 local draft, captures the combat rubric and mandatory match/input gates, and
 exports Markdown or JSON without automatically changing registry status.

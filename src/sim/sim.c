@@ -15,6 +15,34 @@ _Static_assert(sizeof(uint64_t) == 8U,
                "pf_sim requires an exact 64-bit uint64_t");
 _Static_assert(sizeof(int32_t) == 4U,
                "pf_sim requires an exact 32-bit int32_t");
+_Static_assert(sizeof(pf_input_raw_pad) == 4U,
+               "raw PADStatus axes must remain four packed bytes");
+_Static_assert(sizeof(pf_input_frame) == 32U,
+               "one input frame must remain exactly 32 bytes");
+_Static_assert(offsetof(pf_input_frame, tick) == 0U,
+               "input tick wire offset changed");
+_Static_assert(offsetof(pf_input_frame, buttons) == 8U,
+               "input control-word wire offset changed");
+_Static_assert(offsetof(pf_input_frame, main_stick_x) == 16U,
+               "input main-X wire offset changed");
+_Static_assert(offsetof(pf_input_frame, main_stick_y) == 18U,
+               "input main-Y wire offset changed");
+_Static_assert(offsetof(pf_input_frame, secondary_stick_x) == 20U,
+               "input C-X wire offset changed");
+_Static_assert(offsetof(pf_input_frame, secondary_stick_y) == 22U,
+               "input C-Y wire offset changed");
+_Static_assert(offsetof(pf_input_frame, left_trigger) == 24U,
+               "input left-trigger wire offset changed");
+_Static_assert(offsetof(pf_input_frame, right_trigger) == 26U,
+               "input right-trigger wire offset changed");
+_Static_assert(offsetof(pf_input_frame, schema_version) == 28U,
+               "input schema wire offset changed");
+_Static_assert(offsetof(pf_input_frame, player_slot) == 30U,
+               "input player-slot wire offset changed");
+_Static_assert(offsetof(pf_input_frame, raw_axis_valid_mask) == 31U,
+               "input raw-validity wire offset changed");
+_Static_assert((PF_INPUT_KNOWN_BUTTONS & PF_INPUT_RAW_PAD_BITS) == UINT64_C(0),
+               "logical buttons and raw PADStatus bytes must not overlap");
 _Static_assert(PF_SIM_MAX_PLAYERS == UINT32_C(4),
                "simulation state layout assumes four player slots");
 
@@ -438,8 +466,12 @@ pf_status pf_sim_observe(
     {
         pf_player_observation *player =
             &out_observation->players[player_index];
+        /* Canonical state retains resolved raw PAD bytes for UCF's two-frame
+         * history, but the public observation field remains a logical-button
+         * contract. */
         player->previous_buttons =
-            sim->world.previous_buttons[player_index];
+            sim->world.previous_buttons[player_index] &
+            PF_INPUT_KNOWN_BUTTONS;
         player->position_x_q16 =
             sim->world.position_x_q16[player_index];
         player->position_y_q16 =

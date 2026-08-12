@@ -254,4 +254,20 @@ void pf_m2_replay_make_tick_inputs(
     {
         inputs[3].buttons |= PF_INPUT_BUTTON_FORFEIT;
     }
+    if (tick == UINT64_C(0))
+    {
+        const pf_input_raw_pad raw_pad = {
+            INT8_C(1),
+            -INT8_C(2),
+            INT8_C(0),
+            INT8_C(0)};
+
+        /* Exercise the schema-6 replay codec with authoritative PADStatus
+         * bytes that cannot be reconstructed from the processed axes. The
+         * resulting raw history is future-affecting UCF state, so replay hash
+         * verification proves the field-by-field LE round trip. */
+        pf_input_set_raw_pad(&inputs[2], raw_pad);
+        inputs[2].raw_axis_valid_mask =
+            PF_INPUT_RAW_MAIN_X_VALID | PF_INPUT_RAW_MAIN_Y_VALID;
+    }
 }

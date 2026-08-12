@@ -453,6 +453,53 @@ of forcing every case into one repeated acquired action. Character-overloaded
 libmelee action names are resolved only by the domain manifest; they are not
 added to the generic action map.
 
+## Current pinned-UCF raw-input qualification
+
+Modifier-sensitive evidence now targets the owner-supplied `GALE01` NTSC-U
+revision-2 executable with official pinned UCF 0.84 enabled. The vanilla decomp
+is still the base authority, but the oracle must also pin and reproduce the UCF
+hook set and the raw controller history consumed at those boundaries.
+
+The shared input path keeps the 32-byte frame fixed and transports signed raw
+stick samples with per-axis validity alongside processed Q15 input. Missing raw
+axes use the deterministic processed-input fallback. This permits exact live or
+modern-replay evidence without falsely treating a legacy payload's absent raw
+axis as zero. The character-independent Slippi differential parser/runner has
+16 focused tests and requires exact disc/UCF provenance plus both raw main axes
+before executing a candidate. The five tracked legacy files therefore remain
+diagnostic: each lacks raw main Y and independent proof of the pinned UCF
+revision.
+
+The UCF common-special acquisition projection contains 19 cases / 210 rows.
+Independent capture artifacts hash to
+`e4fde0c6b24f62f49a2af1d7e4a0e57d74c4b7750e36a6a3c73f43948789fe02`
+and
+`49d70c676de3d5a4d2071f8c0d9c6abba6c0feb7109fd73df9b3faa10b4c667d`.
+Both canonicalize to the same source payload, which equals the native
+production payload exactly at SHA-256
+`6b50b9b36d47fb6a4b77bef5a951f03b311898fd88b481ff798909e05749f079`.
+This directly live-qualifies the raw-history/Dashback boundary and delayed-Turn
+primitives. All eight UCF hooks are implemented and source-audited, but this is
+not a live theorem for all eight: PAD/cardinal preprocessing, DBOOC, SDI,
+shield SDI, tumble, shield-drop suppression, and extended-pad-counter behavior
+still need seven direct live boundary domains.
+
+The staged registry now declares 31 domains / 189 cases. The current 240-tick
+replay is 42,555 bytes at corpus/final/event SHA-256 values
+`a1d9c1d97a3f20bdb9c76094c39b856f731a1eb2c0cca64ac05dd28a6e121949`,
+`3bdbbbc5d7faa6c8fd077ebd47aaa061f738a3561aa4c66ae2bfe4f8455cda6a`,
+and
+`a4020969be032543b9b229c8801bde77581b9f7fe26a9fe8aca91527627b13ec`.
+The full Windows/WSL registry passes under manifest SHA-256
+`34be35b31153031861cbe481cdd1d4e94dd158d079b09efee9561de3389e77aa`.
+The verifier invokes the two character-independent generator APIs in-process
+and caps its outer and nested worker pools, avoiding 31 redundant Python
+startups without weakening generated-file checks. Three sequential Windows
+runs take 943.548/903.249/1,068.009 ms and three WSL runs take
+1,319.901/1,038.275/1,163.897 ms. The earlier 31-domain / 186-case numbers
+above remain the completed pre-UCF checkpoint; they are not relabeled as
+current evidence.
+
 ## Geometry-sampling limitation
 
 ExiAI deliberately skips display-side bone evaluation while fast-forwarding.

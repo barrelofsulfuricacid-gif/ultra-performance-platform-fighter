@@ -15,11 +15,19 @@ import sys
 import time
 from typing import Any
 
+from generate_ssbm_stored_oracle import generate as generate_pose_oracle
+from generate_ssbm_stored_trace_oracle import generate as generate_trace_oracle
 from ssbm_live_trace import canonical_sha256
 from ssbm_native_csv_trace import NativeCsvTraceError, canonical_runner_trace
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
+MAX_DOMAIN_WORKERS = 8
+
+IN_PROCESS_GENERATORS = {
+    "tools/generate_ssbm_stored_oracle.py": "pose",
+    "tools/generate_ssbm_stored_trace_oracle.py": "trace",
+}
 
 
 def fail(message: str) -> None:
@@ -151,6 +159,52 @@ def run_checked(
             f"operation={label} reason=exit-code code={result.returncode}"
         )
     return result.stdout
+
+
+def check_generated_oracle(
+    domain_name: str,
+    domain_path: Path,
+    generator_script: Path,
+    generated_output: Path,
+) -> None:
+    """Verify one generated binding without paying a Python startup per domain."""
+
+    relative_script = generator_script.relative_to(REPOSITORY_ROOT).as_posix()
+    generator_kind = IN_PROCESS_GENERATORS.get(relative_script)
+    if generator_kind is None:
+        run_checked(
+            [
+                sys.executable,
+                str(generator_script),
+                str(domain_path),
+                str(generated_output),
+                "--check",
+            ],
+            f"generated-check-{domain_name}",
+        )
+        return
+
+    try:
+        manifest = json.loads(domain_path.read_text(encoding="utf-8"))
+        if generator_kind == "pose":
+            generated = generate_pose_oracle(
+                manifest,
+                domain_path.parent,
+                allow_pending_production_digest=False,
+            )
+        else:
+            generated = generate_trace_oracle(manifest)
+        current = generated_output.read_text(encoding="utf-8")
+    except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
+        fail(
+            f"operation=generated-check-{domain_name} "
+            f"reason={type(error).__name__} detail={error}"
+        )
+    if current != generated:
+        fail(
+            f"operation=generated-check-{domain_name} "
+            f"reason=stale-generated-oracle output={generated_output}"
+        )
 
 
 def run_native_csv_trace_domain(
@@ -304,15 +358,11 @@ def run_stored_domain(
         generator.get("output"),
         f"{domain_name}.stored_oracle.generator.output",
     )
-    run_checked(
-        [
-            sys.executable,
-            str(generator_script),
-            str(domain_path),
-            str(generated_output),
-            "--check",
-        ],
-        f"generated-check-{domain_name}",
+    check_generated_oracle(
+        domain_name,
+        domain_path,
+        generator_script,
+        generated_output,
     )
 
     kind = stored.get("kind", "pose-geometry-v1")
@@ -514,7 +564,11 @@ def main() -> int:
     if not build_directory.is_absolute():
         build_directory = (REPOSITORY_ROOT / build_directory).resolve()
     generated_checks = len(selected)
-    worker_count = min(len(selected), max(1, os.cpu_count() or 1))
+    worker_count = min(
+        len(selected),
+        max(1, os.cpu_count() or 1),
+        MAX_DOMAIN_WORKERS,
+    )
     with ThreadPoolExecutor(max_workers=worker_count) as executor:
         stored_cases = sum(
             executor.map(

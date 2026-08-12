@@ -32,8 +32,8 @@ one data-defined Arc Reservoir with charge, storage cancel, exact resume, and
 scaled grounded release,
 one data-defined once-per-airtime Vector Ascent with horizontal steering,
 ordinary gravity, spent-resource fall special, and landing/ledge restoration,
-an authored two-tick shallow-back Moonwalk setup with facing-preserving reverse
-slide and immediate/one-tick dashback controls,
+source-derived horizontal input aging and ordinary Turn/Dash behavior from
+which Moonwalk emerges without a technique-only action,
 an authored support-edge Teeter with neutral duration, standing-attack and
 reverse-dash cancels, plus held-outward and early-release controls,
 an authored one-tick crouch step with release-gated repetition and held,
@@ -94,7 +94,7 @@ silently inferred from replay metadata.
 |---|---|---|
 | Full left/right input and horizontal DI | `A` / `D` | Left / Right |
 | Reduced-magnitude walk | `Shift+A` / `Shift+D` | `Shift+Left` / `Shift+Right` |
-| Moonwalk | Dash, sweep through `S`, then `S` plus opposite, then release `S` at back; `Shift` plus opposite remains an alternate | Sweep the GameCube main stick through the lower half from forward to straight back; pausing at lower-back for two ticks also works |
+| Moonwalk | Keyboard directions are only a coarse route check; use a GameCube stick for fidelity | Dash, then roll the GameCube main stick through the lower half toward back; the slide must retain forward facing while the inspector continues to show ordinary source movement states |
 | Teeter cancel | Dash toward an edge, release the direction just before crossing, then Attack or press full opposite direction | Same with Left / Right |
 | Crouch step / Stage humping | Tap `S` plus `A` or `D`, release, and repeat | Tap Down plus Left or Right, release, and repeat |
 | Taunt / Taunt cancel | `T`; while dashing toward an edge, release horizontal and press `T` just before crossing | `,`; use the same edge timing |
@@ -179,10 +179,15 @@ attached controllers are assigned.
 
 In Wii U mode, the browser claims USB interface 0, writes the adapter's `0x13`
 start command, and continuously decodes its 37-byte reports. Each of the four
-nine-byte port records preserves the GameCube main stick, C-stick, analog L/R,
-digital buttons, and connection type. The first two occupied ports become P1
-and P2; unplugged ports do not consume a player slot. Previously authorized
-devices reconnect on page reload without another picker.
+nine-byte port records supplies the GameCube main stick, C-stick, analog L/R,
+digital buttons, and connection type. The browser currently converts those
+stick bytes to the same processed Q15 bridge axes used by other controllers;
+the bridge does not mark input-schema-6 raw axes as valid. The simulation's
+deterministic raw-axis fallback therefore keeps this path playable, but browser
+input is not authoritative raw-controller evidence for UCF equivalence. The
+first two occupied ports become P1 and P2; unplugged ports do not consume a
+player slot. Previously authorized devices reconnect on page reload without
+another picker.
 
 The DirectInput main-stick and C-stick profiles saturate their physical 0.75
 cardinal range to the simulation's full axis, so real adapter values cross the
@@ -197,9 +202,12 @@ strong-attack and held shield-escape behavior as the GameCube C-stick.
 In Team Wobble Lab, the two physical controller assignments deliberately map
 to allied simulation slots P1 and P3. The default duel maps them to P1 and P2.
 
-Browser view schema 47 contains the same 503 signed values as schema 46 while
-making packed action-transition and coalesced-forfeit event meanings fail
-closed. Each of the four player
+Browser view schema 48 preserves schema 47's 503 signed values and appends 100
+values for exact imported hit spheres, producing 603 values total. Each fixed
+player owns a 25-value block at 503–602: one sphere count followed by four
+six-value slots containing center X, center Y, radius, effect index, hitbox ID,
+and group ID. Schema 47 had made packed action-transition and
+coalesced-forfeit event meanings fail closed. Each of the four player
 blocks has a 53-value stride and appends shield-active, exact
 left/right/top/bottom bounds, and signed x/y tilt after raw shield strength;
 event count is at 236, event entries begin at 237, the item block begins at
@@ -320,16 +328,16 @@ reaching full horizontal on the next sample produces the ordinary
 `INITIAL DASH`, as does a direct snap. The D-pad and keyboard full-direction
 keys are immediate inputs and therefore dash.
 
-For a Moonwalk, begin a full forward dash and sweep the GameCube main stick in
-a half-moon through the lower half to straight back. Forward-down, down, and
-lower-back remain `MOONWALK SETUP`; finishing straight back becomes `MOONWALK`
-without changing facing. On keyboard, pass through `S`, then `S` plus the
-opposite horizontal direction, then release `S` while holding back. Pausing at
-the lower-back notch for at least two simulation ticks and the existing
-`Shift` plus opposite route also work. Release the direction to see ordinary
-traction preserve the diminishing slide. Switching directly to straight full
-back or doing so after only one direct lower-back setup tick instead turns the
-fighter into an ordinary opposite `INITIAL DASH`.
+For a Moonwalk, begin a forward dash and roll the GameCube main stick through
+the lower half toward back. There is no `MOONWALK SETUP` or `MOONWALK` action:
+the technique must emerge from the same signed horizontal input history,
+Turn/Dash callbacks, retained velocity, and traction used by every other route.
+Confirm backward motion while Falcon keeps facing forward, and confirm the
+inspector continues to show ordinary source movement states. Compare a direct
+opposite flick as the dashback control. The fidelity target is GALE01 NTSC 1.02
+with pinned UCF 0.84, so record the controller, active UCF build/hooks, and raw
+and processed stick history with any mismatch; keyboard input is only a coarse
+route check and cannot qualify the analog half-moon.
 
 For a Teeter cancel, dash toward the floor edge and release the horizontal key
 just before residual momentum would carry the fighter off. The inspector names
@@ -665,7 +673,7 @@ visibly rotates and the state card prefixes its action with `TUMBLE`. The cards
 also show percent, hitstun, SDI pulse count, tech window/lockout, tech
 direction, and the last combat-event sequence.
 
-The event panel is driven by the ABI-4 per-tick journal rather than inferred
+The event panel is driven by the ABI-5 per-tick journal rather than inferred
 from the rendered state. It shows canonical sequence/tick labels for packed
 per-player action transitions, hits and their tumble/crouch-cancel flags,
 shield interactions, grabs, pummels, escapes, throws, KOs, respawns, revival
@@ -1270,8 +1278,10 @@ through:
   `VECTOR_ASCENT`, consuming the visible once-per-airtime recovery flag, and
   producing the authored positive horizontal and upward velocities before the
   live recovery lab is installed;
-- a two-tick reduced-back Moonwalk setup entering a facing-preserving backward
-  slide, plus immediate full-back and one-tick-setup dashback negatives;
+- **Historical and superseded:** a two-tick reduced-back Moonwalk setup entering
+  a facing-preserving backward slide, plus immediate full-back and one-tick-
+  setup dashback negatives. This was the retired authored-state probe, not a
+  current GALE01-plus-UCF fidelity requirement;
 - a support-edge Teeter entering only after near-edge input release, cancelling
   immediately into standing attack and reverse dash, plus held-outward run-off
   and early-release negatives;
@@ -1333,6 +1343,10 @@ through:
   climb, roll, attack, simultaneous occupancy, exact option and disabled-regrab
   timing, three hash-equivalent planking refreshes, a mistimed punish,
   mid-climb/mid-roll save-load equivalence, and ledge-attack hitlag rollback.
+
+The `moonwalk_probe` token in the following historical output is superseded by
+the source-derived input-age and ordinary Turn/Dash contract. It is preserved
+to document what those builds reported, not as current readiness evidence.
 
 Historical builds reported
 `playtest=ready input_probe=pass air_facing_probe=pass

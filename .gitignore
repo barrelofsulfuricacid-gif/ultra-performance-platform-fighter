@@ -10,6 +10,7 @@
 /experiments/m0_playtest/web/node_modules/
 __pycache__/
 *.pyc
+*.egg-info/
 .venv/
 *.o
 *.obj

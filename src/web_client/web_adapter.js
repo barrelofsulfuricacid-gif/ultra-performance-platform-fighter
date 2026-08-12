@@ -1846,12 +1846,6 @@ mergeInto(LibraryManager.library, {
       "enters RUN TURNAROUND instead. To fox-trot, rhythmically tap and release " +
       "one full direction; each fresh tap restarts INITIAL DASH, while holding " +
       "the direction reaches RUN and a reduced-magnitude re-entry only walks. " +
-      "To moonwalk, dash and sweep the main stick through the lower half from " +
-      "forward through down to back, then finish at straight back; the whole " +
-      "GameCube half-moon stays in dash and slides backward without changing " +
-      "facing. Pausing at the lower-back notch for two ticks also works. Keyboard " +
-      "supports S, then S plus opposite, then opposite; Shift plus opposite " +
-      "followed by releasing Shift remains available. " +
       "A faster straight reversal is a dashback. " +
       "To pivot, dash, tap the opposite full direction for one tick, return to " +
       "neutral on the next tick, and immediately attack; the fighter keeps the " +
@@ -2614,7 +2608,7 @@ mergeInto(LibraryManager.library, {
     );
 
     var view = state.latest;
-    if (view[0] !== 47) {
+    if (view[0] !== 48) {
       return;
     }
     var canvas = state.canvas;
@@ -2700,8 +2694,8 @@ mergeInto(LibraryManager.library, {
       "ARC RESERVOIR CHARGE",
       "ARC RESERVOIR STORE",
       "ARC RESERVOIR RELEASE",
-      "MOONWALK SETUP",
-      "MOONWALK",
+      "INVALID ACTION 71",
+      "INVALID ACTION 72",
       "TEETER",
       "CROUCH STEP",
       "TAUNT",

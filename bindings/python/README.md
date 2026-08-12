@@ -35,7 +35,7 @@ dictionary:
 | `secondary_stick` | `(4, 2)` / `int16` | Per-player x/y in `[-32768, 32767]` |
 | `triggers` | `(4, 2)` / `uint16` | Per-player left/right in `[0, 65535]` |
 
-The observation is the exact 102-element `int32` compact schema-12 layout in
+The observation is the exact 102-element `int32` compact schema-13 layout in
 `include/pf/rl.h`. Words 2–3 are reserved zero, so the reset seed is not
 exposed to the policy. The layout contains global match state, four fixed
 player records, the item and projectile slots, per-player charge, smash,

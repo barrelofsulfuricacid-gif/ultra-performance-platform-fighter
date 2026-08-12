@@ -9,17 +9,17 @@ extern "C"
 {
 #endif
 
-#define PF_SIM_ABI_VERSION UINT32_C(4)
+#define PF_SIM_ABI_VERSION UINT32_C(5)
 #define PF_SIM_TICK_RATE_HZ UINT32_C(60)
 #define PF_SIM_CONFIG_SCHEMA_VERSION UINT16_C(2)
 #define PF_SIM_CONTENT_SCHEMA_VERSION UINT16_C(1)
-#define PF_SIM_INPUT_SCHEMA_VERSION UINT16_C(5)
-#define PF_SIM_STATE_SCHEMA_VERSION UINT16_C(75)
+#define PF_SIM_INPUT_SCHEMA_VERSION UINT16_C(6)
+#define PF_SIM_STATE_SCHEMA_VERSION UINT16_C(77)
 #define PF_SIM_OBSERVATION_SCHEMA_VERSION UINT16_C(13)
 #define PF_SIM_IDENTITY_SCHEMA_VERSION UINT16_C(2)
 #define PF_SIM_ARITHMETIC_VERSION UINT16_C(1)
 #define PF_SIM_RNG_VERSION UINT16_C(2)
-#define PF_SIM_SAVE_FORMAT_VERSION UINT16_C(66)
+#define PF_SIM_SAVE_FORMAT_VERSION UINT16_C(67)
 #define PF_SIM_STATE_HASH_ALGORITHM_SHA256 UINT16_C(1)
 #define PF_SIM_STATE_HASH_ALGORITHM_VERSION UINT16_C(1)
 #define PF_SIM_STATE_HASH_BYTES UINT16_C(32)
@@ -44,6 +44,33 @@ extern "C"
     (PF_INPUT_BUTTON_JUMP | PF_INPUT_BUTTON_ATTACK |                       \
      PF_INPUT_BUTTON_STRONG_ATTACK | PF_INPUT_BUTTON_SPECIAL |             \
      PF_INPUT_BUTTON_TAUNT | PF_INPUT_BUTTON_FORFEIT)
+
+/* UCF reads the signed PADStatus axes from HSD's controller queue before the
+ * game derives its normalized stick values. Keep those four bytes in the
+ * otherwise-unused input control word so a
+ * four-player input batch remains exactly two 64-byte cache lines. They are
+ * transport metadata, not logical buttons. Resolved raw bytes remain in the
+ * canonical previous-control word for UCF's t-1 history, while public button
+ * observations expose only the logical-button mask. */
+#define PF_INPUT_RAW_MAIN_X_SHIFT 8U
+#define PF_INPUT_RAW_MAIN_Y_SHIFT 16U
+#define PF_INPUT_RAW_SECONDARY_X_SHIFT 24U
+#define PF_INPUT_RAW_SECONDARY_Y_SHIFT 32U
+#define PF_INPUT_RAW_AXIS_MASK UINT64_C(0xff)
+#define PF_INPUT_RAW_PAD_BITS                                             \
+    ((PF_INPUT_RAW_AXIS_MASK << PF_INPUT_RAW_MAIN_X_SHIFT) |             \
+     (PF_INPUT_RAW_AXIS_MASK << PF_INPUT_RAW_MAIN_Y_SHIFT) |             \
+     (PF_INPUT_RAW_AXIS_MASK << PF_INPUT_RAW_SECONDARY_X_SHIFT) |        \
+     (PF_INPUT_RAW_AXIS_MASK << PF_INPUT_RAW_SECONDARY_Y_SHIFT))
+#define PF_INPUT_FRAME_KNOWN_BITS                                        \
+    (PF_INPUT_KNOWN_BUTTONS | PF_INPUT_RAW_PAD_BITS)
+#define PF_INPUT_RAW_MAIN_X_VALID UINT8_C(1)
+#define PF_INPUT_RAW_MAIN_Y_VALID UINT8_C(2)
+#define PF_INPUT_RAW_SECONDARY_X_VALID UINT8_C(4)
+#define PF_INPUT_RAW_SECONDARY_Y_VALID UINT8_C(8)
+#define PF_INPUT_RAW_PAD_ALL_VALID                                     \
+    (PF_INPUT_RAW_MAIN_X_VALID | PF_INPUT_RAW_MAIN_Y_VALID |          \
+     PF_INPUT_RAW_SECONDARY_X_VALID | PF_INPUT_RAW_SECONDARY_Y_VALID)
 
 typedef enum pf_status
 {
@@ -232,8 +259,163 @@ typedef struct pf_input_frame
     uint16_t right_trigger;
     uint16_t schema_version;
     uint8_t player_slot;
-    uint8_t reserved;
+    uint8_t raw_axis_valid_mask;
 } pf_input_frame;
+
+typedef struct pf_input_raw_pad
+{
+    int8_t main_stick_x;
+    int8_t main_stick_y;
+    int8_t secondary_stick_x;
+    int8_t secondary_stick_y;
+} pf_input_raw_pad;
+
+static inline uint64_t pf_input_raw_axis_bits(int8_t axis, uint32_t shift)
+{
+    return shift < UINT32_C(64)
+               ? ((uint64_t)(uint8_t)axis) << shift
+               : UINT64_C(0);
+}
+
+static inline void pf_input_set_raw_pad(
+    pf_input_frame *input,
+    pf_input_raw_pad raw_pad)
+{
+    const uint64_t raw_bits =
+        pf_input_raw_axis_bits(
+            raw_pad.main_stick_x,
+            PF_INPUT_RAW_MAIN_X_SHIFT) |
+        pf_input_raw_axis_bits(
+            raw_pad.main_stick_y,
+            PF_INPUT_RAW_MAIN_Y_SHIFT) |
+        pf_input_raw_axis_bits(
+            raw_pad.secondary_stick_x,
+            PF_INPUT_RAW_SECONDARY_X_SHIFT) |
+        pf_input_raw_axis_bits(
+            raw_pad.secondary_stick_y,
+            PF_INPUT_RAW_SECONDARY_Y_SHIFT);
+
+    input->buttons =
+        (input->buttons & ~PF_INPUT_RAW_PAD_BITS) | raw_bits;
+    input->raw_axis_valid_mask = PF_INPUT_RAW_PAD_ALL_VALID;
+}
+
+static inline int pf_input_has_complete_raw_pad(
+    const pf_input_frame *input)
+{
+    return input->raw_axis_valid_mask == PF_INPUT_RAW_PAD_ALL_VALID;
+}
+
+static inline int8_t pf_input_decode_raw_axis(uint8_t bits)
+{
+    const int16_t value =
+        bits < UINT8_C(128)
+            ? (int16_t)bits
+            : (int16_t)bits - INT16_C(256);
+
+    return (int8_t)value;
+}
+
+static inline int8_t pf_input_raw_axis(
+    const pf_input_frame *input,
+    uint32_t shift)
+{
+    return shift < UINT32_C(64)
+               ? pf_input_decode_raw_axis((uint8_t)(
+                     (input->buttons >> shift) & PF_INPUT_RAW_AXIS_MASK))
+               : INT8_C(0);
+}
+
+static inline int pf_input_raw_payload_valid(
+    const pf_input_frame *input)
+{
+    const uint8_t mask = input->raw_axis_valid_mask;
+
+    return (mask & (uint8_t)~PF_INPUT_RAW_PAD_ALL_VALID) == UINT8_C(0) &&
+           (((mask & PF_INPUT_RAW_MAIN_X_VALID) != UINT8_C(0)) ||
+            pf_input_raw_axis(input, PF_INPUT_RAW_MAIN_X_SHIFT) ==
+                INT8_C(0)) &&
+           (((mask & PF_INPUT_RAW_MAIN_Y_VALID) != UINT8_C(0)) ||
+            pf_input_raw_axis(input, PF_INPUT_RAW_MAIN_Y_SHIFT) ==
+                INT8_C(0)) &&
+           (((mask & PF_INPUT_RAW_SECONDARY_X_VALID) != UINT8_C(0)) ||
+            pf_input_raw_axis(input, PF_INPUT_RAW_SECONDARY_X_SHIFT) ==
+                INT8_C(0)) &&
+           (((mask & PF_INPUT_RAW_SECONDARY_Y_VALID) != UINT8_C(0)) ||
+            pf_input_raw_axis(input, PF_INPUT_RAW_SECONDARY_Y_SHIFT) ==
+                INT8_C(0));
+}
+
+static inline pf_input_raw_pad pf_input_get_raw_pad(
+    const pf_input_frame *input)
+{
+    const pf_input_raw_pad result = {
+        pf_input_raw_axis(input, PF_INPUT_RAW_MAIN_X_SHIFT),
+        pf_input_raw_axis(input, PF_INPUT_RAW_MAIN_Y_SHIFT),
+        pf_input_raw_axis(input, PF_INPUT_RAW_SECONDARY_X_SHIFT),
+        pf_input_raw_axis(input, PF_INPUT_RAW_SECONDARY_Y_SHIFT)};
+    return result;
+}
+
+static inline uint64_t pf_input_logical_buttons(
+    const pf_input_frame *input)
+{
+    return input->buttons & PF_INPUT_KNOWN_BUTTONS;
+}
+
+static inline int8_t pf_input_synthesize_raw_axis(
+    int16_t axis,
+    int invert)
+{
+    int32_t value = (int32_t)axis;
+    int32_t magnitude;
+    int32_t denominator;
+    int32_t scaled;
+
+    if (invert != 0)
+    {
+        value = -value;
+    }
+    magnitude = value < INT32_C(0) ? -value : value;
+    denominator =
+        magnitude > INT32_C(32767) || value < INT32_C(0)
+            ? INT32_C(32768)
+            : INT32_C(32767);
+    scaled =
+        (magnitude * INT32_C(80) + denominator / INT32_C(2)) /
+        denominator;
+    if (scaled > INT32_C(80))
+    {
+        scaled = INT32_C(80);
+    }
+    return (int8_t)(value < INT32_C(0) ? -scaled : scaled);
+}
+
+static inline pf_input_raw_pad pf_input_effective_raw_pad(
+    const pf_input_frame *input)
+{
+    const pf_input_raw_pad explicit_raw = pf_input_get_raw_pad(input);
+    const pf_input_raw_pad result = {
+        (input->raw_axis_valid_mask & PF_INPUT_RAW_MAIN_X_VALID) != 0
+            ? explicit_raw.main_stick_x
+            : pf_input_synthesize_raw_axis(input->main_stick_x, 0),
+        (input->raw_axis_valid_mask & PF_INPUT_RAW_MAIN_Y_VALID) != 0
+            ? explicit_raw.main_stick_y
+            : pf_input_synthesize_raw_axis(input->main_stick_y, 1),
+        (input->raw_axis_valid_mask & PF_INPUT_RAW_SECONDARY_X_VALID) != 0
+            ? explicit_raw.secondary_stick_x
+            : pf_input_synthesize_raw_axis(input->secondary_stick_x, 0),
+        (input->raw_axis_valid_mask & PF_INPUT_RAW_SECONDARY_Y_VALID) != 0
+            ? explicit_raw.secondary_stick_y
+            : pf_input_synthesize_raw_axis(input->secondary_stick_y, 1)};
+    return result;
+}
+
+static inline void pf_input_resolve_raw_pad(pf_input_frame *input)
+{
+    const pf_input_raw_pad resolved = pf_input_effective_raw_pad(input);
+    pf_input_set_raw_pad(input, resolved);
+}
 
 typedef struct pf_tick_result
 {

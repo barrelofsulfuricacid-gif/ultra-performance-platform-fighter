@@ -18,6 +18,9 @@ class NativeCsvTraceError(RuntimeError):
     """Raised when a native trace cannot be reproduced canonically."""
 
 
+MAX_CASE_WORKERS = 4
+
+
 def canonical_runner_trace(
     generated: dict[str, Any],
     executable: Path,
@@ -121,7 +124,7 @@ def canonical_runner_trace(
             ) from error
         return {"id": case_id, "samples": samples}
 
-    worker_count = min(len(prepared), os.cpu_count() or 1, 8)
+    worker_count = min(len(prepared), os.cpu_count() or 1, MAX_CASE_WORKERS)
     with ThreadPoolExecutor(max_workers=worker_count) as executor:
         canonical_cases = list(executor.map(run_case, prepared))
     return {"schema": 1, "domain": domain, "cases": canonical_cases}

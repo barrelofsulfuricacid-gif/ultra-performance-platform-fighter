@@ -6622,3 +6622,88 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   Emscripten page rebuilds, and Chrome smoke passes with the current 83-event
   replay and final SHA-256
   `de96572115c1e4850d79353839576efc4b780ccbd75e8e70a2f23bee419c14af`.
+
+## 2026-08-12: fictional Moonwalk-state retirement and source input-age correction
+
+- The source audit found no Moonwalk action or authored setup duration in the
+  NTSC 1.02 action tables or common movement callbacks. Moonwalk is an emergent
+  composition of ordinary signed horizontal input history, Turn/Dash,
+  retained velocity, and traction. The former two-tick setup, forced reverse
+  velocity, and technique-only state/probe were modeling inventions and are
+  now explicitly superseded wherever they had been presented as current.
+- The base decomp increments a held same-side horizontal tilt age and saturates
+  at 254, assigns age 0 on a fresh signed threshold crossing, and assigns 254
+  inside the threshold. Dash checks the magnitude and age window, while every
+  `ftCo_Dash_Enter` caller resets the age to 254. Production owns that reset at
+  one shared Dash-entry boundary rather than duplicating caller logic.
+- Public action values 71 and 72 remain reserved invalid holes. They are not
+  renumbered away because later serialized values must remain stable; current
+  and hitlag-resume validation reject them. State schema 76 retains the
+  schema-75 1,607-byte payload and 1,747-byte format-66 checkpoint. Content
+  schema 78/fighter schema 70 remove `moonwalk_setup_ticks`; inspection schema
+  57 exposes the existing canonical age, and browser view schema 48 retires the
+  two labels without growing its 603-value layout. Custom/reference packs must
+  rebuild under the new content identity and cannot rely on the retired public
+  actions, while unrelated custom behavior keeps its existing fields.
+- The existing special-acquisition lane is the minimal live coverage route. A
+  small optional input-memory probe reads fighter offset `x670`, and per-case
+  `serialized_fields` keep that observation limited to relevant Dash samples
+  rather than coupling input history to the large surface/pose probe. Source,
+  capture, shard merge, and generated projection must agree on the probe
+  provenance before the result is accepted.
+- The fidelity target is GALE01 NTSC 1.02 with pinned UCF 0.84 enabled. Vanilla
+  decomp remains the base source, but ordinary vanilla Turn timing is not the
+  complete target: live qualification must record the exact active UCF code
+  and hook inventory plus raw and processed stick history at modifier-sensitive
+  boundaries. Historical authored `moonwalk_probe` results remain in the
+  milestone record, clearly labeled superseded; they are not current evidence.
+- No dedicated Moonwalk simulation test is added. Primitive input-age,
+  Dash-entry, Turn/Dash, physics, save/load, and live-acquisition checks own the
+  deterministic contract, followed by a GameCube-controller owner recipe for
+  the emergent composition.
+
+## 2026-08-12: pinned UCF 0.84 raw-input qualification slice (current)
+
+- The executable target is now stated without ambiguity: owner-supplied
+  `GALE01` NTSC-U revision 2 with official pinned UCF 0.84 enabled. Vanilla
+  decomp remains the base callback/data authority, while modifier-sensitive
+  behavior also requires the pinned UCF hooks and their raw controller history.
+- The fixed-size input path now carries the physically serialized signed raw
+  stick samples plus per-axis validity alongside processed Q15 input. Missing
+  raw axes use the deterministic processed-input fallback instead of pretending
+  that an unsupported replay recorded exact controller history. Canonical state
+  retains the processed/raw history and UCF ages consumed by the hooks.
+- All eight targeted UCF hooks are implemented and source-audited: PAD/cardinal
+  preprocessing, Dashback, DBOOC, SDI, shield SDI, tumble, shield-drop
+  suppression, and the extended pad counter. The current live pack directly
+  qualifies the raw-history/Dashback boundary and delayed-Turn primitives;
+  direct live boundary domains for the other seven hooks remain outstanding.
+- The common-special acquisition pack now contains 19 cases / 210 rows. Two
+  independent raw captures hash to
+  `e4fde0c6b24f62f49a2af1d7e4a0e57d74c4b7750e36a6a3c73f43948789fe02`
+  and
+  `49d70c676de3d5a4d2071f8c0d9c6abba6c0feb7109fd73df9b3faa10b4c667d`.
+  Their canonical source projection is exactly equal to production at SHA-256
+  `6b50b9b36d47fb6a4b77bef5a951f03b311898fd88b481ff798909e05749f079`.
+- The staged stored registry now declares 31 domains / 189 cases. The current
+  deterministic replay is 42,555 bytes at corpus/final/event SHA-256 values
+  `a1d9c1d97a3f20bdb9c76094c39b856f731a1eb2c0cca64ac05dd28a6e121949`,
+  `3bdbbbc5d7faa6c8fd077ebd47aaa061f738a3561aa4c66ae2bfe4f8455cda6a`,
+  and
+  `a4020969be032543b9b229c8801bde77581b9f7fe26a9fe8aca91527627b13ec`.
+  The full 31-domain / 189-case registry passes under manifest SHA-256
+  `34be35b31153031861cbe481cdd1d4e94dd158d079b09efee9561de3389e77aa`.
+  The stored verifier now calls its two reusable generators in-process and caps
+  nested worker pools instead of starting 31 Python interpreters. Three
+  sequential Windows runs take 943.548/903.249/1,068.009 ms and three WSL runs
+  take 1,319.901/1,038.275/1,163.897 ms. The repeated-match verifier independently
+  repeats digest `e70fc9c6d825c4a2` on Windows and WSL after the canonical
+  UCF input-history state became hash-visible.
+- The pinned Emscripten build and real headless Chrome smoke pass the current
+  ABI-5 replay projection, including final SHA-256
+  `3bdbbbc5d7faa6c8fd077ebd47aaa061f738a3561aa4c66ae2bfe4f8455cda6a`
+  and all 84 re-simulated typed events.
+- The Slippi differential parser and runner have 16 focused unit tests. The
+  tracked legacy corpus remains correctly fail-closed: its old pre-frame
+  payloads do not contain raw main Y and do not independently prove the exact
+  disc/UCF revision, so they remain diagnostic rather than promoted evidence.

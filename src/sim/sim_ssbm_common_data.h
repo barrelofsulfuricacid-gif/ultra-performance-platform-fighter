@@ -124,6 +124,8 @@ typedef struct pf_m4_ssbm_ground_input_attributes
     uint16_t c_stick_down_smash_threshold;
     uint16_t escape_axis_threshold;
     uint16_t escape_tilt_window_ticks;
+    uint16_t platform_drop_axis_threshold;
+    uint16_t platform_drop_tilt_window_ticks;
     uint16_t special_vertical_axis_threshold;
     uint16_t neutral_special_turn_window_ticks;
     uint16_t initial_dash_early_end_frame;

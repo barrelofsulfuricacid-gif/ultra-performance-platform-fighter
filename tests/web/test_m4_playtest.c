@@ -136,7 +136,7 @@ static int test_startup_view_contract(void)
            test_dash_axis == 32767 &&
            test_aerial_landing_lag_ticks == 15 &&
            test_strong_aerial_landing_lag_ticks == 30 &&
-           test_view[TEST_VIEW_SCHEMA] == 47 &&
+           test_view[TEST_VIEW_SCHEMA] == 48 &&
            test_view[TEST_VIEW_TICK] == 0 &&
            test_view[TEST_STOCK_COUNT] == 4 &&
            test_view[TEST_PLAYER0_BASE + TEST_PLAYER_STOCKS] == 4 &&
@@ -427,7 +427,7 @@ int main(void)
     }
 
     (void)printf(
-        "m4-web-bridge=pass view_schema=47 endpoints=3 renders=%d\n",
+        "m4-web-bridge=pass view_schema=48 endpoints=3 renders=%d\n",
         test_render_count);
     return 0;
 }

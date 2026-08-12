@@ -1,6 +1,7 @@
 #include "pf/m4.h"
 #include "pf/rl.h"
 #include "pf/sim.h"
+#include "../../src/sim/sim_internal.h"
 #include "../../src/sim/sim_falcon_frame_data.h"
 #include "../../src/sim/sim_ssbm_common_data.h"
 
@@ -169,6 +170,41 @@ static int step_duel(
         INT16_C(0),
         UINT64_C(0),
         out_inspection);
+}
+
+static int step_duel_raw_main_x(
+    pf_sim *sim,
+    int16_t main_stick_x,
+    int8_t raw_main_stick_x,
+    pf_m4_inspection *out_inspection)
+{
+    pf_m4_inspection before;
+    pf_input_frame inputs[PF_SIM_MAX_PLAYERS];
+    pf_input_raw_pad raw_pad = {
+        raw_main_stick_x,
+        INT8_C(0),
+        INT8_C(0),
+        INT8_C(0)};
+    pf_tick_result result;
+
+    if (!expect_status(
+            pf_m4_inspect(sim, &before),
+            PF_STATUS_OK,
+            "inspect-before-raw-main-step"))
+    {
+        return 0;
+    }
+    make_inputs(inputs, UINT8_C(2), before.tick);
+    inputs[0].main_stick_x = main_stick_x;
+    pf_input_set_raw_pad(&inputs[0], raw_pad);
+    return expect_status(
+               pf_sim_tick(sim, inputs, (size_t)2, &result),
+               PF_STATUS_OK,
+               "raw-main-step") &&
+           expect_status(
+               pf_m4_inspect(sim, out_inspection),
+               PF_STATUS_OK,
+               "inspect-after-raw-main-step");
 }
 
 static int step_duel_sticks(
@@ -442,7 +478,7 @@ static int run_air_dodge_snapshot_test(
             pf_sim_query_save_size(source, &required_bytes),
             PF_STATUS_OK,
             "air-dodge-query-save-size") ||
-        required_bytes != (size_t)1747)
+        required_bytes != (size_t)1783)
     {
         return 0;
     }
@@ -1188,7 +1224,7 @@ static int run_ledge_cancel_snapshot_test(
             pf_sim_query_save_size(source, &required_bytes),
             PF_STATUS_OK,
             "ledge-cancel-query-save-size") ||
-        required_bytes != (size_t)1747)
+        required_bytes != (size_t)1783)
     {
         return 0;
     }
@@ -1456,7 +1492,7 @@ static int run_ground_dodge_snapshot_test(
             pf_sim_query_save_size(source, &required_bytes),
             PF_STATUS_OK,
             "ground-dodge-query-save-size") ||
-        required_bytes != (size_t)1747)
+        required_bytes != (size_t)1783)
     {
         return 0;
     }
@@ -2504,7 +2540,6 @@ static int run_content_contract_test(
     pf_m4_content jump_tuned_content = *default_content;
     pf_m4_content tap_jump_tuned_content = *default_content;
     pf_m4_content dash_window_tuned_content = *default_content;
-    pf_m4_content moonwalk_tuned_content = *default_content;
     pf_m4_content teeter_tuned_content = *default_content;
     pf_m4_content crouch_tuned_content = *default_content;
     pf_m4_content crouch_step_tuned_content = *default_content;
@@ -2514,7 +2549,6 @@ static int run_content_contract_test(
     pf_content_view jump_tuned_view;
     pf_content_view tap_jump_tuned_view;
     pf_content_view dash_window_tuned_view;
-    pf_content_view moonwalk_tuned_view;
     pf_content_view teeter_tuned_view;
     pf_content_view crouch_tuned_view;
     pf_content_view crouch_step_tuned_view;
@@ -2712,45 +2746,6 @@ static int run_content_contract_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=dash-window-content-hash\n");
-        return 0;
-    }
-
-    invalid_content = *default_content;
-    invalid_content.fighter.moonwalk_setup_ticks = UINT16_C(1);
-    if (default_content->fighter.moonwalk_setup_ticks != UINT16_C(2) ||
-        !expect_status(
-            pf_m4_validate_content(&invalid_content),
-            PF_STATUS_INVALID_CONFIG,
-            "reject-short-moonwalk-setup"))
-    {
-        return 0;
-    }
-    invalid_content = *default_content;
-    invalid_content.fighter.moonwalk_setup_ticks =
-        invalid_content.fighter.initial_dash_ticks;
-    if (!expect_status(
-            pf_m4_validate_content(&invalid_content),
-            PF_STATUS_INVALID_CONFIG,
-            "reject-long-moonwalk-setup"))
-    {
-        return 0;
-    }
-
-    moonwalk_tuned_content.fighter.moonwalk_setup_ticks = UINT16_C(3);
-    if (!expect_status(
-            pf_m4_make_content_view(
-                &moonwalk_tuned_content,
-                &moonwalk_tuned_view),
-            PF_STATUS_OK,
-            "moonwalk-tuned-content-view") ||
-        memcmp(
-            default_view->content_hash.bytes,
-            moonwalk_tuned_view.content_hash.bytes,
-            sizeof(default_view->content_hash.bytes)) == 0)
-    {
-        (void)fprintf(
-            stderr,
-            "m4-movement=fail operation=moonwalk-content-hash\n");
         return 0;
     }
 
@@ -3790,7 +3785,8 @@ static int run_ground_control_test(
             &inspection) ||
         inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
-        inspection.players[0].dash_direction != INT8_C(1))
+        inspection.players[0].dash_direction != INT8_C(1) ||
+        inspection.players[0].tilt_x_age != UINT8_C(254))
     {
         (void)fprintf(
             stderr,
@@ -3824,6 +3820,7 @@ static int run_ground_control_test(
     if (inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
         inspection.players[0].dash_direction != INT8_C(1) ||
+        inspection.players[0].tilt_x_age != UINT8_C(254) ||
         inspection.players[0].facing != INT8_C(1) ||
         dash_velocity <= slow_walk_velocity)
     {
@@ -3845,7 +3842,8 @@ static int run_ground_control_test(
             &inspection) ||
         inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
-        inspection.players[0].dash_direction != INT8_C(1))
+        inspection.players[0].dash_direction != INT8_C(1) ||
+        inspection.players[0].tilt_x_age != UINT8_C(254))
     {
         (void)fprintf(
             stderr,
@@ -3863,7 +3861,8 @@ static int run_ground_control_test(
                 UINT64_C(0),
                 &inspection) ||
             inspection.players[0].action_state !=
-                (uint8_t)PF_M4_ACTION_INITIAL_DASH)
+                (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
+            inspection.players[0].tilt_x_age != UINT8_C(254))
         {
             (void)fprintf(
                 stderr,
@@ -3904,6 +3903,7 @@ static int run_ground_control_test(
         inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
         inspection.players[0].dash_direction != INT8_C(-1) ||
+        inspection.players[0].tilt_x_age != UINT8_C(254) ||
         inspection.players[0].facing != INT8_C(-1) ||
         inspection.players[0].velocity_x_q16 >= INT32_C(0))
     {
@@ -4905,12 +4905,12 @@ static int run_tap_jump_test(
     test_sim_storage storage;
     pf_sim *sim = NULL;
     pf_m4_inspection inspection;
-    const int16_t tap_axis =
-        -(int16_t)content->fighter.tap_jump_axis_threshold;
-    const int16_t below_axis =
-        -(int16_t)(content->fighter.tap_jump_axis_threshold - UINT16_C(1));
-    const int16_t mild_axis =
-        -(int16_t)(content->fighter.tilt_axis_threshold + UINT16_C(1));
+    const int16_t tap_axis = (int16_t)(
+        -(int32_t)content->fighter.tap_jump_axis_threshold);
+    const int16_t below_axis = (int16_t)(
+        -(int32_t)(content->fighter.tap_jump_axis_threshold - UINT16_C(1)));
+    const int16_t mild_axis = (int16_t)(
+        -(int32_t)(content->fighter.tilt_axis_threshold + UINT16_C(1)));
     uint32_t tick;
 
     if (content == NULL ||
@@ -5277,7 +5277,7 @@ static int run_fox_trot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "fox-trot-query-save-size") ||
-        save_size != (size_t)1747)
+        save_size != (size_t)1783)
     {
         (void)fprintf(
             stderr,
@@ -5492,367 +5492,6 @@ static int run_fox_trot_test(
             " action=%u dash=%d\n",
             (unsigned int)source_inspection.players[0].action_state,
             (int)source_inspection.players[0].dash_direction);
-        return 0;
-    }
-    return 1;
-}
-
-static int run_moonwalk_test(
-    const pf_m4_content *content,
-    const pf_content_view *view)
-{
-    test_sim_storage source_storage;
-    test_sim_storage loaded_storage;
-    pf_sim *source = NULL;
-    pf_sim *loaded = NULL;
-    pf_m4_inspection source_inspection;
-    pf_m4_inspection loaded_inspection;
-    pf_state_hash source_hash;
-    pf_state_hash loaded_hash;
-    uint8_t save_bytes[2048];
-    pf_mut_bytes destination;
-    pf_bytes source_bytes;
-    size_t save_size = (size_t)0;
-    int32_t active_position_x;
-
-    if (!initialize_sim(
-            &source_storage,
-            view,
-            UINT8_C(2),
-            PF_SIM_MODE_DUEL,
-            &source) ||
-        !initialize_sim(
-            &loaded_storage,
-            view,
-            UINT8_C(2),
-            PF_SIM_MODE_DUEL,
-            &loaded) ||
-        !expect_status(
-            pf_sim_reset(source, UINT64_C(0x600dca7)),
-            PF_STATUS_OK,
-            "moonwalk-reset") ||
-        !step_duel(
-            source,
-            INT16_MAX,
-            INT16_C(0),
-            UINT64_C(0),
-            &source_inspection) ||
-        source_inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
-        source_inspection.players[0].facing != INT8_C(1) ||
-        source_inspection.players[0].dash_direction != INT8_C(1) ||
-        !step_duel(
-            source,
-            INT16_MAX,
-            INT16_MAX,
-            UINT64_C(0),
-            &source_inspection) ||
-        source_inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_MOONWALK_SETUP ||
-        source_inspection.players[0].action_ticks !=
-            content->fighter.moonwalk_setup_ticks ||
-        source_inspection.players[0].facing != INT8_C(1) ||
-        source_inspection.players[0].dash_direction != INT8_C(1) ||
-        !expect_status(
-            pf_sim_query_save_size(source, &save_size),
-            PF_STATUS_OK,
-            "moonwalk-query-save-size") ||
-        save_size != (size_t)1747)
-    {
-        (void)fprintf(
-            stderr,
-            "m4-movement=fail operation=moonwalk-setup"
-            " action=%u ticks=%u facing=%d dash=%d\n",
-            (unsigned int)source_inspection.players[0].action_state,
-            (unsigned int)source_inspection.players[0].action_ticks,
-            (int)source_inspection.players[0].facing,
-            (int)source_inspection.players[0].dash_direction);
-        return 0;
-    }
-
-    destination.bytes = save_bytes;
-    destination.capacity = sizeof(save_bytes);
-    destination.size = (size_t)0;
-    if (!expect_status(
-            pf_sim_save(source, &destination),
-            PF_STATUS_OK,
-            "moonwalk-save"))
-    {
-        return 0;
-    }
-    source_bytes.bytes = save_bytes;
-    source_bytes.size = destination.size;
-    if (destination.size != save_size ||
-        !expect_status(
-            pf_sim_load(loaded, source_bytes),
-            PF_STATUS_OK,
-            "moonwalk-load"))
-    {
-        return 0;
-    }
-
-    if (!step_duel(
-            source,
-            INT16_C(0),
-            INT16_MAX,
-            UINT64_C(0),
-            &source_inspection) ||
-        !step_duel(
-            loaded,
-            INT16_C(0),
-            INT16_MAX,
-            UINT64_C(0),
-            &loaded_inspection) ||
-        source_inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_MOONWALK_SETUP ||
-        source_inspection.players[0].action_ticks !=
-            content->fighter.moonwalk_setup_ticks ||
-        !expect_status(
-            pf_sim_hash(source, &source_hash),
-            PF_STATUS_OK,
-            "moonwalk-source-setup-hash") ||
-        !expect_status(
-            pf_sim_hash(loaded, &loaded_hash),
-            PF_STATUS_OK,
-            "moonwalk-loaded-setup-hash") ||
-        memcmp(
-            source_hash.bytes,
-            loaded_hash.bytes,
-            sizeof(source_hash.bytes)) != 0)
-    {
-        (void)fprintf(
-            stderr,
-            "m4-movement=fail operation=moonwalk-setup-window\n");
-        return 0;
-    }
-
-    if (!step_duel(
-            source,
-            INT16_MIN,
-            INT16_MAX,
-            UINT64_C(0),
-            &source_inspection) ||
-        !step_duel(
-            loaded,
-            INT16_MIN,
-            INT16_MAX,
-            UINT64_C(0),
-            &loaded_inspection) ||
-        source_inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_MOONWALK_SETUP ||
-        source_inspection.players[0].action_ticks !=
-            content->fighter.moonwalk_setup_ticks ||
-        source_inspection.players[0].facing != INT8_C(1) ||
-        source_inspection.players[0].dash_direction != INT8_C(1) ||
-        !expect_status(
-            pf_sim_hash(source, &source_hash),
-            PF_STATUS_OK,
-            "moonwalk-source-lower-back-hash") ||
-        !expect_status(
-            pf_sim_hash(loaded, &loaded_hash),
-            PF_STATUS_OK,
-            "moonwalk-loaded-lower-back-hash") ||
-        memcmp(
-            source_hash.bytes,
-            loaded_hash.bytes,
-            sizeof(source_hash.bytes)) != 0)
-    {
-        (void)fprintf(
-            stderr,
-            "m4-movement=fail operation=moonwalk-lower-back\n");
-        return 0;
-    }
-
-    if (!step_duel(
-            source,
-            INT16_MIN,
-            INT16_C(0),
-            UINT64_C(0),
-            &source_inspection) ||
-        !step_duel(
-            loaded,
-            INT16_MIN,
-            INT16_C(0),
-            UINT64_C(0),
-            &loaded_inspection) ||
-        source_inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_MOONWALK ||
-        source_inspection.players[0].action_ticks != UINT16_C(1) ||
-        source_inspection.players[0].facing != INT8_C(1) ||
-        source_inspection.players[0].dash_direction != INT8_C(1) ||
-        source_inspection.players[0].velocity_x_q16 !=
-            -content->fighter.initial_dash_speed_q16 ||
-        !expect_status(
-            pf_sim_hash(source, &source_hash),
-            PF_STATUS_OK,
-            "moonwalk-source-entry-hash") ||
-        !expect_status(
-            pf_sim_hash(loaded, &loaded_hash),
-            PF_STATUS_OK,
-            "moonwalk-loaded-entry-hash") ||
-        memcmp(
-            source_hash.bytes,
-            loaded_hash.bytes,
-            sizeof(source_hash.bytes)) != 0)
-    {
-        (void)fprintf(
-            stderr,
-            "m4-movement=fail operation=moonwalk-entry"
-            " action=%u ticks=%u facing=%d dash=%d velocity=%" PRId32
-            "\n",
-            (unsigned int)source_inspection.players[0].action_state,
-            (unsigned int)source_inspection.players[0].action_ticks,
-            (int)source_inspection.players[0].facing,
-            (int)source_inspection.players[0].dash_direction,
-            source_inspection.players[0].velocity_x_q16);
-        return 0;
-    }
-
-    if (!step_duel(
-            source,
-            INT16_MIN,
-            INT16_C(0),
-            UINT64_C(0),
-            &source_inspection) ||
-        !step_duel(
-            loaded,
-            INT16_MIN,
-            INT16_C(0),
-            UINT64_C(0),
-            &loaded_inspection) ||
-        source_inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_MOONWALK ||
-        source_inspection.players[0].action_ticks != UINT16_C(2) ||
-        source_inspection.players[0].facing != INT8_C(1) ||
-        source_inspection.players[0].velocity_x_q16 !=
-            -content->fighter.initial_dash_speed_q16 ||
-        !expect_status(
-            pf_sim_hash(source, &source_hash),
-            PF_STATUS_OK,
-            "moonwalk-source-hold-hash") ||
-        !expect_status(
-            pf_sim_hash(loaded, &loaded_hash),
-            PF_STATUS_OK,
-            "moonwalk-loaded-hold-hash") ||
-        memcmp(
-            source_hash.bytes,
-            loaded_hash.bytes,
-            sizeof(source_hash.bytes)) != 0)
-    {
-        (void)fprintf(
-            stderr,
-            "m4-movement=fail operation=moonwalk-hold\n");
-        return 0;
-    }
-    active_position_x = source_inspection.players[0].position_x_q16;
-
-    if (!step_duel(
-            source,
-            INT16_C(0),
-            INT16_C(0),
-            UINT64_C(0),
-            &source_inspection) ||
-        !step_duel(
-            loaded,
-            INT16_C(0),
-            INT16_C(0),
-            UINT64_C(0),
-            &loaded_inspection) ||
-        source_inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
-        source_inspection.players[0].action_ticks != UINT16_C(0) ||
-        source_inspection.players[0].dash_direction != INT8_C(0) ||
-        source_inspection.players[0].velocity_x_q16 > INT32_C(0) ||
-        source_inspection.players[0].velocity_x_q16 <=
-            -content->fighter.initial_dash_speed_q16 ||
-        source_inspection.players[0].position_x_q16 >= active_position_x ||
-        !expect_status(
-            pf_sim_hash(source, &source_hash),
-            PF_STATUS_OK,
-            "moonwalk-source-release-hash") ||
-        !expect_status(
-            pf_sim_hash(loaded, &loaded_hash),
-            PF_STATUS_OK,
-            "moonwalk-loaded-release-hash") ||
-        memcmp(
-            source_hash.bytes,
-            loaded_hash.bytes,
-            sizeof(source_hash.bytes)) != 0)
-    {
-        (void)fprintf(
-            stderr,
-            "m4-movement=fail operation=moonwalk-release"
-            " action=%u velocity=%" PRId32 " position=%" PRId32
-            " active_position=%" PRId32 "\n",
-            (unsigned int)source_inspection.players[0].action_state,
-            source_inspection.players[0].velocity_x_q16,
-            source_inspection.players[0].position_x_q16,
-            active_position_x);
-        return 0;
-    }
-
-    if (!expect_status(
-            pf_sim_reset(source, UINT64_C(0x600dca8)),
-            PF_STATUS_OK,
-            "moonwalk-immediate-reset") ||
-        !step_duel(
-            source,
-            INT16_MAX,
-            INT16_C(0),
-            UINT64_C(0),
-            &source_inspection) ||
-        !step_duel(
-            source,
-            INT16_MIN,
-            INT16_C(0),
-            UINT64_C(0),
-            &source_inspection) ||
-        source_inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
-        source_inspection.players[0].facing != INT8_C(-1) ||
-        source_inspection.players[0].dash_direction != INT8_C(-1) ||
-        source_inspection.players[0].velocity_x_q16 !=
-            -content->fighter.initial_dash_speed_q16)
-    {
-        (void)fprintf(
-            stderr,
-            "m4-movement=fail operation=moonwalk-immediate-negative\n");
-        return 0;
-    }
-
-    if (!expect_status(
-            pf_sim_reset(source, UINT64_C(0x600dca9)),
-            PF_STATUS_OK,
-            "moonwalk-short-reset") ||
-        !step_duel(
-            source,
-            INT16_MAX,
-            INT16_C(0),
-            UINT64_C(0),
-            &source_inspection) ||
-        !step_duel(
-            source,
-            INT16_C(-13500),
-            INT16_C(0),
-            UINT64_C(0),
-            &source_inspection) ||
-        source_inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_MOONWALK_SETUP ||
-        source_inspection.players[0].action_ticks != UINT16_C(1) ||
-        !step_duel(
-            source,
-            INT16_MIN,
-            INT16_C(0),
-            UINT64_C(0),
-            &source_inspection) ||
-        source_inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
-        source_inspection.players[0].facing != INT8_C(-1) ||
-        source_inspection.players[0].dash_direction != INT8_C(-1))
-    {
-        (void)fprintf(
-            stderr,
-            "m4-movement=fail operation=moonwalk-short-negative\n");
         return 0;
     }
     return 1;
@@ -6109,7 +5748,7 @@ static int run_teeter_cancel_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "teeter-query-save-size") ||
-        save_size != (size_t)1747)
+        save_size != (size_t)1783)
     {
         return 0;
     }
@@ -6483,7 +6122,7 @@ static int run_taunt_cancel_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "taunt-query-save-size") ||
-        save_size != (size_t)1747)
+        save_size != (size_t)1783)
     {
         (void)fprintf(
             stderr,
@@ -6680,7 +6319,7 @@ static int run_stage_humping_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "stage-humping-query-save-size") ||
-        save_size != (size_t)1747)
+        save_size != (size_t)1783)
     {
         (void)fprintf(
             stderr,
@@ -7034,7 +6673,7 @@ static int run_pivot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "pivot-query-save-size") ||
-        save_size != (size_t)1747)
+        save_size != (size_t)1783)
     {
         (void)fprintf(
             stderr,
@@ -7698,7 +7337,7 @@ static int run_instant_double_jump_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "idj-query-save-size") ||
-        save_size != (size_t)1747)
+        save_size != (size_t)1783)
     {
         return 0;
     }
@@ -8046,7 +7685,7 @@ static int run_double_jump_cancel_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "double-jump-cancel-query-save-size") ||
-        save_size != (size_t)1747)
+        save_size != (size_t)1783)
     {
         return 0;
     }
@@ -8868,7 +8507,7 @@ static int run_aerial_trigger_snapshot_test(
             pf_sim_query_save_size(source, &required_bytes),
             PF_STATUS_OK,
             "aerial-query-save-size") ||
-        required_bytes != (size_t)1747)
+        required_bytes != (size_t)1783)
     {
         return 0;
     }
@@ -9743,7 +9382,7 @@ static int run_upper_platform_test(
             pf_sim_save(source, &destination),
             PF_STATUS_OK,
             "upper-platform-save") ||
-        destination.size != (size_t)1747)
+        destination.size != (size_t)1783)
     {
         return 0;
     }
@@ -9805,8 +9444,8 @@ static int run_upper_platform_test(
         !step_duel_trigger(
             source,
             INT16_C(0),
-            (int16_t)platform_content.fighter
-                .shield_drop_axis_threshold,
+            (int16_t)pf_m4_ssbm_common_reference_ground_input()
+                ->platform_drop_axis_threshold,
             UINT64_C(0),
             UINT16_MAX,
             &source_inspection) ||
@@ -9969,6 +9608,207 @@ static int enter_platform_shield(
                UINT8_C(0);
 }
 
+static void force_reference_crouch_history(
+    pf_sim *sim,
+    int8_t previous_y_direction,
+    uint8_t previous_y_age,
+    uint8_t previous_ucf_y_age)
+{
+    sim->world.velocity_x_q16[0] = INT32_C(0);
+    sim->world.velocity_y_q16[0] = INT32_C(0);
+    sim->world.action_state[0] = (uint8_t)PF_M4_ACTION_CROUCH;
+    sim->world.action_ticks[0] = UINT16_C(0);
+    sim->world.source_submotion[0] =
+        (uint16_t)PF_M4_FALCON_SUBMOTION_SQUAT_WAIT;
+    sim->world.source_animation_frame_q16[0] = INT32_C(0);
+    sim->world.source_animation_rate_q16[0] = (int32_t)PF_Q16_ONE;
+    sim->world.dash_direction[0] = INT8_C(0);
+    sim->world.previous_tilt_x_direction[0] = INT8_C(0);
+    sim->world.previous_tilt_y_direction[0] = previous_y_direction;
+    sim->world.tilt_x_age[0] = UINT8_C(254);
+    sim->world.tilt_y_age[0] = previous_y_age;
+    sim->world.ucf_tilt_x_age[0] = UINT8_C(254);
+    sim->world.ucf_tilt_y_age[0] = previous_ucf_y_age;
+}
+
+static int run_crouch_platform_drop_test(
+    const pf_m4_content *default_content,
+    const pf_content_view *default_view)
+{
+    const pf_m4_ssbm_ground_input_attributes *ground_input =
+        pf_m4_ssbm_common_reference_ground_input();
+    test_sim_storage platform_storage;
+    test_sim_storage floor_storage;
+    pf_m4_content platform_content = *default_content;
+    pf_content_view platform_view;
+    pf_sim *platform = NULL;
+    pf_sim *floor = NULL;
+    pf_m4_inspection inspection;
+    const uint8_t ucf_age_before = UINT8_C(40);
+
+    platform_content.stage.platform_center_x_q16 =
+        -INT32_C(8) * PF_Q16_ONE;
+    platform_content.stage.platform_motion_amplitude_q16 = INT32_C(0);
+    platform_content.stage.platform_half_width_q16 =
+        INT32_C(6) * PF_Q16_ONE;
+    if (ground_input == NULL ||
+        ground_input->platform_drop_axis_threshold != UINT16_C(21626) ||
+        ground_input->platform_drop_tilt_window_ticks != UINT16_C(6) ||
+        !expect_status(
+            pf_m4_make_content_view(&platform_content, &platform_view),
+            PF_STATUS_OK,
+            "crouch-platform-drop-content-view") ||
+        !initialize_sim(
+            &platform_storage,
+            &platform_view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &platform) ||
+        !initialize_sim(
+            &floor_storage,
+            default_view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &floor))
+    {
+        return 0;
+    }
+
+    if (!prepare_shield_drop_platform(platform, &inspection))
+    {
+        return 0;
+    }
+    force_reference_crouch_history(
+        platform,
+        INT8_C(1),
+        UINT8_C(4),
+        ucf_age_before);
+    if (!step_duel(
+            platform,
+            INT16_C(0),
+            (int16_t)ground_input->platform_drop_axis_threshold,
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AIRBORNE ||
+        inspection.players[0].grounded != UINT8_C(0) ||
+        inspection.players[0].support !=
+            (uint8_t)PF_M4_SURFACE_NONE ||
+        inspection.players[0].platform_drop_ticks == UINT8_C(0) ||
+        platform->world.tilt_y_age[0] != UINT8_C(254) ||
+        platform->world.ucf_tilt_y_age[0] !=
+            (uint8_t)(ucf_age_before + UINT8_C(1)))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=crouch-platform-drop-age5 "
+            "action=%u grounded=%u x671=%u x674=%u\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].grounded,
+            (unsigned int)platform->world.tilt_y_age[0],
+            (unsigned int)platform->world.ucf_tilt_y_age[0]);
+        return 0;
+    }
+
+    if (!prepare_shield_drop_platform(platform, &inspection))
+    {
+        return 0;
+    }
+    force_reference_crouch_history(
+        platform,
+        INT8_C(1),
+        UINT8_C(5),
+        ucf_age_before);
+    if (!step_duel(
+            platform,
+            INT16_C(0),
+            (int16_t)ground_input->platform_drop_axis_threshold,
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_CROUCH ||
+        inspection.players[0].grounded == UINT8_C(0) ||
+        inspection.players[0].support !=
+            (uint8_t)PF_M4_SURFACE_PLATFORM ||
+        inspection.players[0].platform_drop_ticks != UINT8_C(0) ||
+        platform->world.tilt_y_age[0] != UINT8_C(6))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=crouch-platform-drop-age6 "
+            "action=%u grounded=%u age=%u\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].grounded,
+            (unsigned int)platform->world.tilt_y_age[0]);
+        return 0;
+    }
+
+    if (!prepare_shield_drop_platform(platform, &inspection))
+    {
+        return 0;
+    }
+    force_reference_crouch_history(
+        platform,
+        INT8_C(0),
+        UINT8_C(254),
+        UINT8_C(254));
+    if (!step_duel(
+            platform,
+            INT16_MAX,
+            (int16_t)ground_input->platform_drop_axis_threshold,
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AIRBORNE ||
+        inspection.players[0].grounded != UINT8_C(0) ||
+        inspection.players[0].platform_drop_ticks == UINT8_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=crouch-pass-before-dash "
+            "action=%u grounded=%u\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].grounded);
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(floor, UINT64_C(0x63726f756368)),
+            PF_STATUS_OK,
+            "crouch-platform-drop-floor-reset"))
+    {
+        return 0;
+    }
+    force_reference_crouch_history(
+        floor,
+        INT8_C(0),
+        UINT8_C(254),
+        UINT8_C(254));
+    if (!step_duel(
+            floor,
+            INT16_C(0),
+            (int16_t)ground_input->platform_drop_axis_threshold,
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_CROUCH ||
+        inspection.players[0].grounded == UINT8_C(0) ||
+        inspection.players[0].support !=
+            (uint8_t)PF_M4_SURFACE_FLOOR ||
+        inspection.players[0].platform_drop_ticks != UINT8_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=crouch-platform-drop-floor "
+            "action=%u grounded=%u support=%u\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].grounded,
+            (unsigned int)inspection.players[0].support);
+        return 0;
+    }
+    return 1;
+}
+
 static int run_shield_platform_drop_test(
     const pf_m4_content *default_content,
     const pf_content_view *default_view)
@@ -9996,6 +9836,8 @@ static int run_shield_platform_drop_test(
     uint32_t tick;
 
     if (ground_input == NULL ||
+        ground_input->platform_drop_axis_threshold != UINT16_C(21626) ||
+        ground_input->platform_drop_tilt_window_ticks != UINT16_C(6) ||
         default_content->fighter.shield_drop_axis_threshold !=
             UINT16_C(12288) ||
         default_content->fighter.shield_drop_axis_threshold <=
@@ -10059,14 +9901,13 @@ static int run_shield_platform_drop_test(
             &floor) ||
         !enter_platform_shield(
             source,
-            (int16_t)platform_content.fighter
-                .shield_drop_axis_threshold,
+            (int16_t)ground_input->platform_drop_axis_threshold,
             &source_inspection) ||
         !expect_status(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "shield-platform-drop-query-save-size") ||
-        save_size != (size_t)1747)
+        save_size != (size_t)1783)
     {
         return 0;
     }
@@ -10090,16 +9931,14 @@ static int run_shield_platform_drop_test(
         !step_duel_trigger(
             source,
             INT16_C(0),
-            (int16_t)platform_content.fighter
-                .shield_drop_axis_threshold,
+            (int16_t)ground_input->platform_drop_axis_threshold,
             UINT64_C(0),
             UINT16_MAX,
             &source_inspection) ||
         !step_duel_trigger(
             loaded,
             INT16_C(0),
-            (int16_t)platform_content.fighter
-                .shield_drop_axis_threshold,
+            (int16_t)ground_input->platform_drop_axis_threshold,
             UINT64_C(0),
             UINT16_MAX,
             &loaded_inspection) ||
@@ -10180,8 +10019,7 @@ static int run_shield_platform_drop_test(
             source,
             INT16_C(0),
             (int16_t)(
-                platform_content.fighter
-                    .shield_drop_axis_threshold -
+                ground_input->platform_drop_axis_threshold -
                 UINT16_C(1)),
             UINT64_C(0),
             UINT16_MAX,
@@ -11550,7 +11388,7 @@ static int run_scar_jump_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "scar-jump-save-size") ||
-        save_size != (size_t)1747)
+        save_size != (size_t)1783)
     {
         return 0;
     }
@@ -11776,7 +11614,7 @@ static int run_edge_hop_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "edge-hop-query-save-size") ||
-        save_size != (size_t)1747)
+        save_size != (size_t)1783)
     {
         return 0;
     }
@@ -12112,7 +11950,7 @@ static int run_edge_dash_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "edge-dash-query-save-size") ||
-        save_size != (size_t)1747)
+        save_size != (size_t)1783)
     {
         (void)fprintf(
             stderr,
@@ -12605,7 +12443,7 @@ static int run_planking_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "planking-query-save-size") ||
-        save_size != (size_t)1747)
+        save_size != (size_t)1783)
     {
         (void)fprintf(
             stderr,
@@ -13938,7 +13776,7 @@ static int run_vector_ascent_test(const pf_m4_content *base_content)
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "vector-ascent-save-size") ||
-        save_size != (size_t)1747)
+        save_size != (size_t)1783)
     {
         return 0;
     }
@@ -15541,6 +15379,263 @@ static int run_falcon_dive_behind_ledge_test(
     return 1;
 }
 
+static int run_ucf084_input_contract_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage storage;
+    pf_sim *sim = NULL;
+    pf_m4_inspection inspection;
+    pf_input_frame input;
+    pf_input_raw_pad raw_pad;
+
+    (void)memset(&input, 0, sizeof(input));
+    input.main_stick_x = INT16_MIN;
+    input.main_stick_y = INT16_MIN;
+    raw_pad = pf_input_effective_raw_pad(&input);
+    if (sizeof(pf_input_frame) != (size_t)32 ||
+        content->gameplay_ruleset !=
+            (uint8_t)PF_M4_GAMEPLAY_RULESET_SSBM_NTSC102_UCF084 ||
+        raw_pad.main_stick_x != -INT8_C(80) ||
+        raw_pad.main_stick_y != INT8_C(80))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=ucf-input-layout\n");
+        return 0;
+    }
+
+    if (pf_m4_ucf084_adjusted_axis(INT16_C(0)) != 2 ||
+        pf_m4_ucf084_adjusted_axis(INT16_C(16384)) != 41 ||
+        pf_m4_ucf084_adjusted_axis(-INT16_C(16384)) != 41 ||
+        pf_m4_ucf084_adjusted_radial_qualifies(
+            INT16_C(0),
+            INT16_C(31948)) ||
+        !pf_m4_ucf084_adjusted_radial_qualifies(
+            INT16_C(0),
+            INT16_C(32358)))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=ucf-adjusted-radius-boundary\n");
+        return 0;
+    }
+
+    raw_pad.main_stick_x = INT8_MIN;
+    raw_pad.main_stick_y = INT8_MAX;
+    raw_pad.secondary_stick_x = -INT8_C(1);
+    raw_pad.secondary_stick_y = INT8_C(1);
+    pf_input_set_raw_pad(&input, raw_pad);
+    if (!pf_input_raw_payload_valid(&input) ||
+        pf_input_get_raw_pad(&input).main_stick_x != INT8_MIN ||
+        pf_input_get_raw_pad(&input).main_stick_y != INT8_MAX)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=ucf-raw-roundtrip\n");
+        return 0;
+    }
+
+    if (pf_input_raw_axis_bits(INT8_MIN, UINT32_C(64)) != UINT64_C(0) ||
+        pf_input_raw_axis_bits(INT8_MAX, UINT32_MAX) != UINT64_C(0) ||
+        pf_input_raw_axis(&input, UINT32_C(64)) != INT8_C(0) ||
+        pf_input_raw_axis(&input, UINT32_MAX) != INT8_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=ucf-raw-shift-range\n");
+        return 0;
+    }
+
+    raw_pad.secondary_stick_x = INT8_C(0);
+    raw_pad.secondary_stick_y = INT8_C(0);
+    pf_input_set_raw_pad(&input, raw_pad);
+    input.raw_axis_valid_mask =
+        PF_INPUT_RAW_MAIN_X_VALID | PF_INPUT_RAW_MAIN_Y_VALID;
+    if (!pf_input_raw_payload_valid(&input) ||
+        pf_input_has_complete_raw_pad(&input) ||
+        pf_input_effective_raw_pad(&input).main_stick_x != INT8_MIN ||
+        pf_input_effective_raw_pad(&input).main_stick_y != INT8_MAX ||
+        pf_input_logical_buttons(&input) != UINT64_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=ucf-partial-raw-contract\n");
+        return 0;
+    }
+    input.raw_axis_valid_mask = UINT8_C(0);
+    if (pf_input_raw_payload_valid(&input))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=ucf-invalid-raw-payload\n");
+        return 0;
+    }
+    input.buttons &= ~PF_INPUT_RAW_PAD_BITS;
+    input.raw_axis_valid_mask = UINT8_C(0x10);
+    if (pf_input_raw_payload_valid(&input))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=ucf-invalid-raw-mask\n");
+        return 0;
+    }
+    input.raw_axis_valid_mask = UINT8_C(0);
+
+    if (!initialize_sim(
+            &storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &sim) ||
+        !expect_status(
+            pf_sim_reset(sim, UINT64_C(0x0cf08401)),
+            PF_STATUS_OK,
+            "ucf-dashback-positive-reset") ||
+        !step_duel_raw_main_x(
+            sim,
+            INT16_C(0),
+            INT8_C(0),
+            &inspection) ||
+        !step_duel_raw_main_x(
+            sim,
+            -INT16_C(16384),
+            -INT8_C(40),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_STANDING_TURN ||
+        !step_duel_raw_main_x(
+            sim,
+            -INT16_C(31129),
+            -INT8_C(76),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
+        inspection.players[0].facing != INT8_C(-1))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=ucf-dashback-positive "
+            "action=%u ticks=%u facing=%d age=%u\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks,
+            (int)inspection.players[0].facing,
+            (unsigned int)inspection.players[0].tilt_x_age);
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0x0cf08402)),
+            PF_STATUS_OK,
+            "ucf-dashback-threshold-reset") ||
+        !step_duel_raw_main_x(
+            sim,
+            INT16_C(0),
+            INT8_C(0),
+            &inspection) ||
+        !step_duel_raw_main_x(
+            sim,
+            -INT16_C(16384),
+            -INT8_C(40),
+            &inspection) ||
+        !step_duel_raw_main_x(
+            sim,
+            -INT16_C(30719),
+            -INT8_C(75),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_STANDING_TURN ||
+        inspection.players[0].facing != INT8_C(1))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=ucf-dashback-threshold "
+            "action=%u ticks=%u facing=%d age=%u\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks,
+            (int)inspection.players[0].facing,
+            (unsigned int)inspection.players[0].tilt_x_age);
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0x0cf08403)),
+            PF_STATUS_OK,
+            "source-jump-age-reset") )
+    {
+        return 0;
+    }
+    sim->world.action_state[0] = (uint8_t)PF_M4_ACTION_JUMP_SQUAT;
+    sim->world.action_ticks[0] =
+        content->fighter.jump_squat_ticks - UINT16_C(1);
+    sim->world.previous_tilt_y_direction[0] = INT8_C(1);
+    sim->world.previous_main_stick_y[0] = INT16_C(9000);
+    sim->world.tilt_y_age[0] = UINT8_C(4);
+    sim->world.ucf_tilt_y_age[0] = UINT8_C(7);
+    if (!step_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(9000),
+            PF_INPUT_BUTTON_JUMP,
+            &inspection) ||
+        sim->world.grounded[0] != UINT8_C(0) ||
+        sim->world.tilt_y_age[0] != UINT8_C(254) ||
+        sim->world.ucf_tilt_y_age[0] != UINT8_C(8))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=source-jump-age-reset"
+            " grounded=%u age=%u ucf_age=%u\n",
+            (unsigned int)sim->world.grounded[0],
+            (unsigned int)sim->world.tilt_y_age[0],
+            (unsigned int)sim->world.ucf_tilt_y_age[0]);
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0x0cf08404)),
+            PF_STATUS_OK,
+            "source-jump-aerial-age-reset"))
+    {
+        return 0;
+    }
+    sim->world.grounded[0] = UINT8_C(0);
+    sim->world.support[0] = (uint8_t)PF_M4_SURFACE_NONE;
+    sim->world.position_y_q16[0] = INT32_C(20) * PF_Q16_ONE;
+    sim->world.velocity_y_q16[0] = -PF_Q16_ONE;
+    sim->world.action_state[0] = (uint8_t)PF_M4_ACTION_AIRBORNE;
+    sim->world.action_ticks[0] = UINT16_C(0);
+    sim->world.source_submotion[0] =
+        (uint16_t)PF_M4_FALCON_SUBMOTION_FALL;
+    sim->world.air_jumps_remaining[0] = UINT8_C(1);
+    sim->world.previous_tilt_y_direction[0] = INT8_C(1);
+    sim->world.previous_main_stick_y[0] = INT16_C(9000);
+    sim->world.tilt_y_age[0] = UINT8_C(4);
+    sim->world.ucf_tilt_y_age[0] = UINT8_C(7);
+    if (!step_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(9000),
+            PF_INPUT_BUTTON_JUMP,
+            &inspection) ||
+        sim->world.air_jumps_remaining[0] != UINT8_C(0) ||
+        sim->world.tilt_y_age[0] != UINT8_C(254) ||
+        sim->world.ucf_tilt_y_age[0] != UINT8_C(8))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=source-jump-aerial-age-reset"
+            " action=%u grounded=%u jumps=%u age=%u ucf_age=%u\n",
+            (unsigned int)sim->world.action_state[0],
+            (unsigned int)sim->world.grounded[0],
+            (unsigned int)sim->world.air_jumps_remaining[0],
+            (unsigned int)sim->world.tilt_y_age[0],
+            (unsigned int)sim->world.ucf_tilt_y_age[0]);
+        return 0;
+    }
+    return 1;
+}
+
 #define RUN_MOVEMENT_TEST(call)                                         \
     ((call) ? 1                                                        \
             : ((void)fprintf(                                         \
@@ -15571,6 +15666,7 @@ int main(void)
         !RUN_MOVEMENT_TEST(run_raptor_boost_source_data_test(&content)) ||
         !RUN_MOVEMENT_TEST(run_falcon_dive_source_data_test(&content)) ||
         !RUN_MOVEMENT_TEST(run_falcon_dive_behind_ledge_test(&content)) ||
+        !RUN_MOVEMENT_TEST(run_ucf084_input_contract_test(&content, &view)) ||
         !RUN_MOVEMENT_TEST(run_run_brake_iasa_test(&content, &view)) ||
         !RUN_MOVEMENT_TEST(run_crouch_common_iasa_test(&content)) ||
         !RUN_MOVEMENT_TEST(run_ground_control_test(&content, &view)) ||
@@ -15579,7 +15675,6 @@ int main(void)
         !RUN_MOVEMENT_TEST(
             run_jump_takeoff_momentum_test(&content, &view)) ||
         (0 && !run_fox_trot_test(&content, &view)) ||
-        (0 && !run_moonwalk_test(&content, &view)) ||
         !RUN_MOVEMENT_TEST(run_teeter_cancel_test(&content, &view)) ||
         !RUN_MOVEMENT_TEST(run_taunt_cancel_test(&content, &view)) ||
         (0 && !run_stage_humping_test(&content, &view)) ||
@@ -15599,6 +15694,8 @@ int main(void)
             run_strong_aerial_landing_test(&content, &view)) ||
         !RUN_MOVEMENT_TEST(run_platform_test(&content)) ||
         !RUN_MOVEMENT_TEST(run_upper_platform_test(&content)) ||
+        !RUN_MOVEMENT_TEST(
+            run_crouch_platform_drop_test(&content, &view)) ||
         !RUN_MOVEMENT_TEST(
             run_shield_platform_drop_test(&content, &view)) ||
         !RUN_MOVEMENT_TEST(run_solid_geometry_test(&content)) ||

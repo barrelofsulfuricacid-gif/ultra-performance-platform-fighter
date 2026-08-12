@@ -4,6 +4,7 @@
   "selection": {
     "shared_paths": [
       "CMakeLists.txt",
+      "generated/data/m4_ssbm_ntsc102_common_data.inc",
       "include/pf/**",
       "src/sim/**",
       "tests/sim/**",
@@ -12,12 +13,15 @@
       "tools/capture_ssbm_movement.py",
       "tools/compare_ssbm_live_native_trace.py",
       "tools/generate_ssbm_stored_oracle.py",
+      "tools/import_ssbm_common_data.py",
+      "tools/merge_ssbm_checkpoint_captures.py",
       "tools/ssbm_checkpoint_manifest.py",
       "tools/ssbm_collision.py",
       "tools/ssbm_equivalence_manifest.json",
       "tools/ssbm_exiai_checkpoint.patch",
       "tools/ssbm_live_trace.py",
       "tools/ssbm_native_csv_trace.py",
+      "tools/ssbm_ucf_oracle.py",
       "tools/verify_ssbm_oracle_acceleration.py",
       "tools/verify_ssbm_stored_equivalence.py"
     ]
@@ -61,10 +65,10 @@
     "expected": {
       "ticks": "240",
       "players": "4",
-      "bytes": "42519",
-      "corpus_sha256": "6727023fb07bcb7a4fcbaf9c0beac0f8220c1c1802b19da891ae2ae2be252240",
-      "final_sha256": "de96572115c1e4850d79353839576efc4b780ccbd75e8e70a2f23bee419c14af",
-      "events_sha256": "124a94734029321020513ec749b2f4d26cd60b4ed2129e25ce104692739fa9af"
+      "bytes": "42555",
+      "corpus_sha256": "a1d9c1d97a3f20bdb9c76094c39b856f731a1eb2c0cca64ac05dd28a6e121949",
+      "final_sha256": "3bdbbbc5d7faa6c8fd077ebd47aaa061f738a3561aa4c66ae2bfe4f8455cda6a",
+      "events_sha256": "a4020969be032543b9b229c8801bde77581b9f7fe26a9fe8aca91527627b13ec"
     }
   }
 }

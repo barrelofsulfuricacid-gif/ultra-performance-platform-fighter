@@ -53,7 +53,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--memory-probe",
-        choices=("none", "surface", "hitbox", "hurtbox"),
+        choices=("none", "input", "surface", "hitbox", "hurtbox"),
         default=None,
         help=(
             "live-memory observation family recorded by every shard "

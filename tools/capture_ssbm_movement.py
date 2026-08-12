@@ -265,6 +265,7 @@ def input_trace(
             source_state = raw_case.get("source_state")
             edge_main = raw_case.get("edge_main")
             edge_c = raw_case.get("edge_c", [0, 0])
+            raw_pre_source_phases = raw_case.get("pre_source_phases", [])
             raw_pre_edge_phases = raw_case.get("pre_edge_phases", [])
             raw_edge_actions = raw_case.get("edge_actions")
             edge_actions = (
@@ -305,6 +306,8 @@ def input_trace(
                     for value in edge_c
                 )
                 or not isinstance(raw_pre_edge_phases, list)
+                or not isinstance(raw_pre_source_phases, list)
+                or (raw_pre_source_phases and source_state != "turn")
                 or not isinstance(edge_actions, list)
                 or not edge_actions
                 or any(
@@ -331,57 +334,68 @@ def input_trace(
                 raise ValueError(
                     f"invalid special acquisition case {case_id!r}"
                 )
+            def parse_input_phases(
+                raw_phases: list[object], phase_kind: str
+            ) -> list[tuple[int, list[int], list[int], list[str]]]:
+                phases: list[
+                    tuple[int, list[int], list[int], list[str]]
+                ] = []
+                for phase_index, raw_phase in enumerate(raw_phases):
+                    if not isinstance(raw_phase, dict):
+                        raise ValueError(
+                            f"invalid special acquisition {phase_kind} phase "
+                            f"case={case_id!r} phase={phase_index}"
+                        )
+                    phase_ticks = raw_phase.get("ticks")
+                    phase_main = raw_phase.get("main", [0, 0])
+                    phase_c = raw_phase.get("c_stick", [0, 0])
+                    phase_actions = raw_phase.get("actions", [])
+                    if (
+                        set(raw_phase)
+                        - {"ticks", "main", "c_stick", "actions"}
+                        or not isinstance(phase_ticks, int)
+                        or isinstance(phase_ticks, bool)
+                        or not 1 <= phase_ticks <= 254
+                        or not isinstance(phase_main, list)
+                        or len(phase_main) != 2
+                        or any(
+                            not isinstance(value, int)
+                            or isinstance(value, bool)
+                            or not -32767 <= value <= 32767
+                            for value in phase_main
+                        )
+                        or not isinstance(phase_c, list)
+                        or len(phase_c) != 2
+                        or any(
+                            not isinstance(value, int)
+                            or isinstance(value, bool)
+                            or not -32767 <= value <= 32767
+                            for value in phase_c
+                        )
+                        or not isinstance(phase_actions, list)
+                        or any(
+                            not isinstance(action, str)
+                            or action
+                            not in {"attack", "grab", "jump", "special"}
+                            for action in phase_actions
+                        )
+                        or len(set(phase_actions)) != len(phase_actions)
+                    ):
+                        raise ValueError(
+                            f"invalid special acquisition {phase_kind} phase "
+                            f"case={case_id!r} phase={phase_index}"
+                        )
+                    phases.append(
+                        (phase_ticks, phase_main, phase_c, phase_actions)
+                    )
+                return phases
+
+            pre_source_phases = parse_input_phases(
+                raw_pre_source_phases, "pre-source"
+            )
             pre_edge_phases: list[
                 tuple[int, list[int], list[int], list[str]]
-            ] = []
-            for phase_index, raw_phase in enumerate(raw_pre_edge_phases):
-                if not isinstance(raw_phase, dict):
-                    raise ValueError(
-                        "invalid special acquisition pre-edge phase "
-                        f"case={case_id!r} phase={phase_index}"
-                    )
-                phase_ticks = raw_phase.get("ticks")
-                phase_main = raw_phase.get("main", [0, 0])
-                phase_c = raw_phase.get("c_stick", [0, 0])
-                phase_actions = raw_phase.get("actions", [])
-                if (
-                    set(raw_phase)
-                    - {"ticks", "main", "c_stick", "actions"}
-                    or not isinstance(phase_ticks, int)
-                    or isinstance(phase_ticks, bool)
-                    or not 1 <= phase_ticks <= 254
-                    or not isinstance(phase_main, list)
-                    or len(phase_main) != 2
-                    or any(
-                        not isinstance(value, int)
-                        or isinstance(value, bool)
-                        or not -32767 <= value <= 32767
-                        for value in phase_main
-                    )
-                    or not isinstance(phase_c, list)
-                    or len(phase_c) != 2
-                    or any(
-                        not isinstance(value, int)
-                        or isinstance(value, bool)
-                        or not -32767 <= value <= 32767
-                        for value in phase_c
-                    )
-                    or not isinstance(phase_actions, list)
-                    or any(
-                        not isinstance(action, str)
-                        or action
-                        not in {"attack", "grab", "jump", "special"}
-                        for action in phase_actions
-                    )
-                    or len(set(phase_actions)) != len(phase_actions)
-                ):
-                    raise ValueError(
-                        "invalid special acquisition pre-edge phase "
-                        f"case={case_id!r} phase={phase_index}"
-                    )
-                pre_edge_phases.append(
-                    (phase_ticks, phase_main, phase_c, phase_actions)
-                )
+            ] = parse_input_phases(raw_pre_edge_phases, "pre-edge")
             prefix = f"special_acquisition_{case_id}"
             first = command(
                 f"{prefix}_setup",
@@ -425,19 +439,70 @@ def input_trace(
                 ),
                 fighter_position_state_reset=source_state == "teeter",
             )
-            trace.append(
-                {
-                    **first,
-                    "restore_before": True,
-                    "checkpoint_slot": checkpoint_slot,
-                    "record": source_state not in {
-                        "powershield_release",
-                        "teeter",
-                        "walk",
-                        "wait",
-                    },
-                }
-            )
+            if pre_source_phases:
+                phase_ticks, phase_main, phase_c, phase_actions = (
+                    pre_source_phases[0]
+                )
+                trace.append(
+                    {
+                        **command(
+                            f"{prefix}_setup",
+                            main_x=controller_axis(phase_main[0]),
+                            main_y=controller_axis(-phase_main[1]),
+                            c_x=controller_axis(phase_c[0]),
+                            c_y=controller_axis(-phase_c[1]),
+                            attack="attack" in phase_actions,
+                            grab="grab" in phase_actions,
+                            jump="jump" in phase_actions,
+                            special="special" in phase_actions,
+                        ),
+                        "restore_before": True,
+                        "checkpoint_slot": checkpoint_slot,
+                        "record": True,
+                    }
+                )
+                repeat(
+                    f"{prefix}_setup",
+                    phase_ticks - 1,
+                    main_x=controller_axis(phase_main[0]),
+                    main_y=controller_axis(-phase_main[1]),
+                    c_x=controller_axis(phase_c[0]),
+                    c_y=controller_axis(-phase_c[1]),
+                    attack="attack" in phase_actions,
+                    grab="grab" in phase_actions,
+                    jump="jump" in phase_actions,
+                    special="special" in phase_actions,
+                )
+                for phase_ticks, phase_main, phase_c, phase_actions in (
+                    pre_source_phases[1:]
+                ):
+                    repeat(
+                        f"{prefix}_setup",
+                        phase_ticks,
+                        main_x=controller_axis(phase_main[0]),
+                        main_y=controller_axis(-phase_main[1]),
+                        c_x=controller_axis(phase_c[0]),
+                        c_y=controller_axis(-phase_c[1]),
+                        attack="attack" in phase_actions,
+                        grab="grab" in phase_actions,
+                        jump="jump" in phase_actions,
+                        special="special" in phase_actions,
+                    )
+                trace.append(first)
+            else:
+                trace.append(
+                    {
+                        **first,
+                        "restore_before": True,
+                        "checkpoint_slot": checkpoint_slot,
+                        "record": source_state not in {
+                            "powershield_release",
+                            "teeter",
+                            "walk",
+                            "wait",
+                        },
+                    }
+                )
             if source_state in {"squat_wait", "squat_rv"}:
                 repeat(f"{prefix}_setup", 19, main_y=0.0)
                 if source_state == "squat_rv":
@@ -7413,6 +7478,12 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             player_two_state = gamestate.players[2]
             observed_x = float(player.controller_state.main_stick[0])
             observed_y = float(player.controller_state.main_stick[1])
+            observed_raw_main_x = int(
+                player.controller_state.raw_main_stick[0]
+            )
+            observed_raw_main_y = int(
+                player.controller_state.raw_main_stick[1]
+            )
             observed_c_x = float(player.controller_state.c_stick[0])
             observed_c_y = float(player.controller_state.c_stick[1])
             observed_left_shoulder = float(player.controller_state.l_shoulder)
@@ -7785,6 +7856,8 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 ],
                 "observed_main_x": observed_x,
                 "observed_main_y": observed_y,
+                "observed_raw_main_x": observed_raw_main_x,
+                "observed_raw_main_y": observed_raw_main_y,
                 "observed_c_x": observed_c_x,
                 "observed_c_y": observed_c_y,
                 "observed_left_shoulder": observed_left_shoulder,

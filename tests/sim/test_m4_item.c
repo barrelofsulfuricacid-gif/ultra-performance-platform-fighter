@@ -158,10 +158,11 @@ static int reset_sim(pf_sim *sim)
         "sim-reset");
 }
 
-static int step_sim(
+static int step_sim_with_player0_raw_pad(
     pf_sim *sim,
     test_command player0,
     test_command player1,
+    const pf_input_raw_pad *player0_raw_pad,
     pf_tick_result *out_result,
     pf_m4_inspection *out_inspection)
 {
@@ -191,6 +192,10 @@ static int step_sim(
     inputs[0].main_stick_y = player0.y;
     inputs[0].buttons = player0.buttons;
     inputs[0].left_trigger = player0.trigger;
+    if (player0_raw_pad != NULL)
+    {
+        pf_input_set_raw_pad(&inputs[0], *player0_raw_pad);
+    }
     inputs[1].main_stick_x = player1.x;
     inputs[1].main_stick_y = player1.y;
     inputs[1].buttons = player1.buttons;
@@ -221,6 +226,22 @@ static int step_sim(
         return 0;
     }
     return 1;
+}
+
+static int step_sim(
+    pf_sim *sim,
+    test_command player0,
+    test_command player1,
+    pf_tick_result *out_result,
+    pf_m4_inspection *out_inspection)
+{
+    return step_sim_with_player0_raw_pad(
+        sim,
+        player0,
+        player1,
+        NULL,
+        out_result,
+        out_inspection);
 }
 
 static int neutral_step(
@@ -443,6 +464,88 @@ static int run_directional_throw_contract(
                 inspection.item.velocity_y_q16);
             return fail("directional-throw");
         }
+    }
+    return 1;
+}
+
+static int run_ucf_cardinal_item_throw_contract(
+    const pf_m4_content *ucf_content,
+    const pf_content_view *ucf_view)
+{
+    const test_command processed_up_throw = {
+        INT16_C(0),
+        INT16_MIN,
+        PF_INPUT_BUTTON_ATTACK,
+        UINT16_C(0)};
+    const test_command neutral = {0};
+    const pf_input_raw_pad horizontal_cardinal_boundary = {
+        INT8_C(80),
+        INT8_C(6),
+        INT8_C(0),
+        INT8_C(0)};
+    pf_m4_content generic_content = *ucf_content;
+    pf_content_view generic_view;
+    test_storage ucf_storage;
+    test_storage generic_storage;
+    pf_sim *ucf_sim = NULL;
+    pf_sim *generic_sim = NULL;
+    pf_tick_result result;
+    pf_m4_inspection inspection;
+    const pf_sim_event *event;
+
+    if (ucf_content->gameplay_ruleset !=
+        (uint8_t)PF_M4_GAMEPLAY_RULESET_SSBM_NTSC102_UCF084)
+    {
+        return fail("ucf-cardinal-fixture");
+    }
+    if (!initialize_sim(&ucf_storage, ucf_view, &ucf_sim) ||
+        !reset_sim(ucf_sim) ||
+        !pickup_item(ucf_sim, &result, &inspection) ||
+        !step_sim_with_player0_raw_pad(
+            ucf_sim,
+            processed_up_throw,
+            neutral,
+            &horizontal_cardinal_boundary,
+            &result,
+            &inspection))
+    {
+        return 0;
+    }
+    event = find_event(&result, PF_SIM_EVENT_ITEM_THROW);
+    if (event == NULL ||
+        event->detail != (uint16_t)PF_M4_ITEM_THROW_FORWARD ||
+        inspection.item.throw_direction !=
+            (uint8_t)PF_M4_ITEM_THROW_FORWARD)
+    {
+        return fail("ucf-cardinal-item-throw");
+    }
+
+    generic_content.gameplay_ruleset =
+        (uint8_t)PF_M4_GAMEPLAY_RULESET_GENERIC;
+    if (!expect_status(
+            pf_m4_make_content_view(&generic_content, &generic_view),
+            PF_STATUS_OK,
+            "generic-item-content-view") ||
+        !initialize_sim(&generic_storage, &generic_view, &generic_sim) ||
+        !reset_sim(generic_sim) ||
+        !pickup_item(generic_sim, &result, &inspection) ||
+        !step_sim_with_player0_raw_pad(
+            generic_sim,
+            processed_up_throw,
+            neutral,
+            &horizontal_cardinal_boundary,
+            &result,
+            &inspection))
+    {
+        return 0;
+    }
+    event = find_event(&result, PF_SIM_EVENT_ITEM_THROW);
+    if (event == NULL ||
+        event->detail != (uint16_t)PF_M4_ITEM_THROW_UP ||
+        inspection.item.throw_direction !=
+            (uint8_t)PF_M4_ITEM_THROW_UP)
+    {
+        return fail("generic-cardinal-control-item-throw");
     }
     return 1;
 }
@@ -840,7 +943,7 @@ static int run_save_replay_rl_contract(
                 pf_sim_query_save_size(source, &save_size),
                 PF_STATUS_OK,
                 "item-save-size") ||
-            save_size != (size_t)1747)
+            save_size != (size_t)1783)
         {
             return fail("item-save-setup");
         }
@@ -1078,6 +1181,10 @@ int main(void)
     {
         return fail("directional-throw-suite");
     }
+    if (!run_ucf_cardinal_item_throw_contract(&content, &view))
+    {
+        return fail("ucf-cardinal-item-throw-suite");
+    }
     if (!run_glide_toss_contract(&content, &view))
     {
         return fail("glide-toss-suite");
@@ -1100,7 +1207,7 @@ int main(void)
     }
 
     (void)printf(
-        "m4-item=pass content_schema=%u state_schema=%u save_bytes=1747 "
+        "m4-item=pass content_schema=%u state_schema=%u save_bytes=1783 "
         "item_invariants=44 bat_drop=1 glide_toss=1 "
         "jump_cancel_throw=1 directional_throws=4 replay=1 rl=1\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,

@@ -46,6 +46,87 @@ def require_action_frames(
         )
 
 
+def require_ordered_actions(
+    rows: list[dict[str, Any]],
+    expected: list[tuple[str, int | None]],
+    context: str,
+) -> None:
+    actual = [
+        (str(row.get("action")), round(float(row.get("action_frame", 0.0))))
+        for row in rows
+    ]
+    if len(actual) != len(expected) or any(
+        action != expected_action
+        or (expected_frame is not None and frame != expected_frame)
+        for (action, frame), (expected_action, expected_frame) in zip(
+            actual, expected, strict=True
+        )
+    ):
+        fail(
+            f"ordered-actions context={context} "
+            f"expected={expected} actual={actual}"
+        )
+
+
+def requested_main_x_q15(row: dict[str, Any]) -> int:
+    return round((float(row["requested_main_x"]) - 0.5) * 65534.0)
+
+
+def require_turn_input_history(
+    rows: list[dict[str, Any]],
+    *,
+    requested_x: list[int],
+    raw_x: list[int],
+    label_suffixes: list[str],
+    context: str,
+) -> None:
+    actual_requested = [requested_main_x_q15(row) for row in rows]
+    actual_raw = [row.get("observed_raw_main_x") for row in rows]
+    actual_raw_y = [row.get("observed_raw_main_y") for row in rows]
+    actual_labels = [str(row.get("label", "")) for row in rows]
+    expected_labels = [
+        f"special_acquisition_{context}_{suffix}" for suffix in label_suffixes
+    ]
+    if actual_requested != requested_x:
+        fail(
+            f"requested-main-x context={context} "
+            f"expected={requested_x} actual={actual_requested}"
+        )
+    if actual_raw != raw_x or actual_raw_y != [0] * len(rows):
+        fail(
+            f"raw-main context={context} expected_x={raw_x} "
+            f"actual_x={actual_raw} actual_y={actual_raw_y}"
+        )
+    if actual_labels != expected_labels:
+        fail(
+            f"labels context={context} "
+            f"expected={expected_labels} actual={actual_labels}"
+        )
+    if any(row.get("grounded") is not True for row in rows):
+        fail(f"grounded context={context}")
+
+
+def require_tilt_x_ages(
+    rows: list[dict[str, Any]],
+    expected: list[int],
+    context: str,
+) -> None:
+    actual: list[int] = []
+    for row in rows:
+        input_memory = row.get("input_memory")
+        if not isinstance(input_memory, dict):
+            fail(f"input-memory context={context}")
+        age = input_memory.get("tilt_x_age")
+        if not isinstance(age, int) or isinstance(age, bool):
+            fail(f"tilt-x-age-type context={context} actual={age!r}")
+        actual.append(age)
+    if actual != expected:
+        fail(
+            f"tilt-x-age context={context} "
+            f"expected={expected} actual={actual}"
+        )
+
+
 def qualify_capture(
     capture: dict[str, Any],
     coverage: dict[str, Any],
@@ -96,6 +177,86 @@ def qualify_capture(
         )
         if any(row.get("facing") != -1.0 for row in current[1:]):
             fail(f"turn-facing case={case_id}")
+
+    ucf_positive = case_rows(rows, "turn_ucf_raw_delta_76")
+    if len(ucf_positive) != 4:
+        fail(
+            "row-count case=turn_ucf_raw_delta_76 "
+            f"actual={len(ucf_positive)}"
+        )
+    require_ordered_actions(
+        ucf_positive,
+        [("STANDING", None), ("TURNING", 1), ("DASHING", 1), ("DASHING", 2)],
+        "turn_ucf_raw_delta_76",
+    )
+    if [row.get("facing") for row in ucf_positive] != [1.0, 1.0, -1.0, -1.0]:
+        fail("turn-facing case=turn_ucf_raw_delta_76")
+    require_tilt_x_ages(
+        ucf_positive,
+        [254, 0, 254, 254],
+        "turn_ucf_raw_delta_76",
+    )
+    require_turn_input_history(
+        ucf_positive,
+        requested_x=[0, -16384, -31129, 0],
+        raw_x=[0, -40, -76, 0],
+        label_suffixes=["setup", "setup", "edge", "observe"],
+        context="turn_ucf_raw_delta_76",
+    )
+    if ucf_positive[2]["observed_raw_main_x"] - ucf_positive[0]["observed_raw_main_x"] != -76:
+        fail("ucf-raw-delta case=turn_ucf_raw_delta_76")
+
+    delayed = case_rows(rows, "turn_delayed_pending_dash")
+    if len(delayed) != 9:
+        fail(f"row-count case=turn_delayed_pending_dash actual={len(delayed)}")
+    require_ordered_actions(
+        delayed,
+        [("TURNING", frame) for frame in range(1, 8)]
+        + [("DASHING", 1), ("DASHING", 2)],
+        "turn_delayed_pending_dash",
+    )
+    if [row.get("facing") for row in delayed] != [1.0] * 7 + [-1.0] * 2:
+        fail("turn-facing case=turn_delayed_pending_dash")
+    require_tilt_x_ages(
+        delayed,
+        [0, 254, 0, 1, 2, 3, 4, 254, 254],
+        "turn_delayed_pending_dash",
+    )
+    require_turn_input_history(
+        delayed,
+        requested_x=[-16384, 0] + [-32767] * 6 + [0],
+        raw_x=[-40, 0] + [-80] * 6 + [0],
+        label_suffixes=["setup"] * 7 + ["edge", "observe"],
+        context="turn_delayed_pending_dash",
+    )
+
+    ucf_negative = case_rows(rows, "turn_ucf_raw_delta_75_release")
+    if len(ucf_negative) != 9:
+        fail(
+            "row-count case=turn_ucf_raw_delta_75_release "
+            f"actual={len(ucf_negative)}"
+        )
+    require_ordered_actions(
+        ucf_negative,
+        [("STANDING", None)] + [("TURNING", frame) for frame in range(1, 9)],
+        "turn_ucf_raw_delta_75_release",
+    )
+    if [row.get("facing") for row in ucf_negative] != [1.0] * 8 + [-1.0]:
+        fail("turn-facing case=turn_ucf_raw_delta_75_release")
+    require_tilt_x_ages(
+        ucf_negative,
+        [254, 0, 1, 254, 254, 254, 254, 254, 254],
+        "turn_ucf_raw_delta_75_release",
+    )
+    require_turn_input_history(
+        ucf_negative,
+        requested_x=[0, -16384, -30719] + [0] * 6,
+        raw_x=[0, -40, -75] + [0] * 6,
+        label_suffixes=["setup", "setup", "edge"] + ["observe"] * 6,
+        context="turn_ucf_raw_delta_75_release",
+    )
+    if ucf_negative[2]["observed_raw_main_x"] - ucf_negative[0]["observed_raw_main_x"] != -75:
+        fail("ucf-raw-delta case=turn_ucf_raw_delta_75_release")
 
     crouch_cases = {
         "squat_wait_down": (26, "CROUCHING"),
@@ -185,14 +346,17 @@ def qualify_capture(
         list(range(1, 7)),
         "dash_side",
     )
+    require_tilt_x_ages(dash_side, [254] * 7, "dash_side")
 
     for case_id in ("dash_neutral", "dash_down"):
+        current = case_rows(rows, case_id)
         require_action_frames(
-            case_rows(rows, case_id),
+            current,
             "DASHING",
             list(range(1, 8)),
             case_id,
         )
+        require_tilt_x_ages(current, [254] * 7, case_id)
 
     dash_up = case_rows(rows, "dash_up")
     if len(dash_up) != 7 or dash_up[0].get("action") != "DASHING":
@@ -203,6 +367,7 @@ def qualify_capture(
         list(range(1, 5)),
         "dash_up",
     )
+    require_tilt_x_ages(dash_up, [254] * 7, "dash_up")
     require_action_frames(
         dash_up[5:],
         "JUMPING_FORWARD",

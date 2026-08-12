@@ -1,23 +1,25 @@
 # TDR-0008: Reinforcement-learning contract
 
-- **Status:** Accepted by owner; current implementation is RL schema 13
+- **Status:** Accepted by owner; current implementation is RL schema 14
 - **Date:** 2026-08-01
 
 ## Scope
 
 This record defines the C contract exposed by `pf/rl.h`. The owner accepted
-raw analog actions, both observation forms with seed redaction, shaped rewards,
+signed analog actions, both observation forms with seed redaction, shaped rewards,
 and the fixed-stride independent-error batch contract. Those decisions are
 implemented in RL schema 2 before later combat, mode, and content work made
 the interface expensive to change. RL schema 3 preserved those decisions and
 added the M4 stock, respawn, invulnerability, and sudden-death observations.
-RL schema/transition schema 4 retain the same action, observation, reward, and
-batch semantics while embedding the ABI-4 per-tick event journal in every
-transition result. Later compatible revisions expose the fixed item slot,
-projectile slot, per-player special charge, per-player recovery availability,
-per-player smash charge, raw shield strength, shield health, and shield tilt.
-The current contract is RL schema 13, action schema 1, transition schema 11,
-structured observation schema 11, and compact observation schema 12.
+Historical RL schema/transition schema 4 retained the same action, observation,
+reward, and batch semantics while embedding the then-current ABI-4 per-tick
+event journal in every transition result. Later compatible revisions expose
+the fixed item slot, projectile slot, per-player special charge, per-player
+recovery availability, per-player smash charge, raw shield strength, shield
+health, and shield tilt.
+The current contract is RL schema 14, action schema 1, transition schema 12,
+structured observation schema 13, and compact observation schema 13. Its
+transition result embeds the ABI-5 event journal.
 
 ## Actions
 
@@ -25,7 +27,7 @@ One `pf_rl_action` represents one player for one logical tick:
 
 | Field | Encoding |
 |---|---|
-| Buttons | Versioned 64-bit bitset shared with normalized player input |
+| Buttons | Versioned logical-button bitset shared with normalized player input |
 | Main stick | Signed 16-bit x/y |
 | Secondary stick | Signed 16-bit x/y |
 | Triggers | Unsigned 16-bit left/right |
@@ -34,6 +36,10 @@ One `pf_rl_action` represents one player for one logical tick:
 The environment supplies tick and stable player-slot identity. Single stepping
 requires exactly the configured player count. Batched actions use a fixed
 four-action stride so duel and team environments share one memory layout.
+The action schema deliberately exposes processed Q15 axes, not the input-schema
+6 raw PADStatus bytes or validity mask. RL stepping therefore uses the core's
+deterministic processed-axis-to-raw fallback. It follows the same production
+simulation path, but is not an authoritative raw-controller UCF evidence lane.
 
 Legal-button masks report the accepted versioned button vocabulary for active
 players while an episode can advance. A player waiting to respawn or already

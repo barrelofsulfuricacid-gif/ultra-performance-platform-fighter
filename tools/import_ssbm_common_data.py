@@ -111,6 +111,8 @@ def generate(raw: bytes) -> str:
     escape_spot_dodge_tilt_window_ticks = i32(0x318)
     escape_roll_axis_threshold = f32(0x31C)
     escape_roll_tilt_window_ticks = i32(0x320)
+    platform_drop_axis_threshold = f32(0x464)
+    platform_drop_tilt_window_ticks = f32(0x468)
     special_vertical_axis_threshold = f32(0x21C)
     neutral_special_turn_window_ticks = i32(0x224)
     initial_dash_early_end_frame = f32(0x044)
@@ -220,6 +222,9 @@ def generate(raw: bytes) -> str:
         or escape_spot_dodge_axis_threshold != escape_roll_axis_threshold
         or not 0 < escape_spot_dodge_tilt_window_ticks <= 0xFFFF
         or escape_spot_dodge_tilt_window_ticks != escape_roll_tilt_window_ticks
+        or not 0.0 < platform_drop_axis_threshold <= 1.0
+        or not platform_drop_tilt_window_ticks.is_integer()
+        or not 0 < platform_drop_tilt_window_ticks <= 0xFFFF
         or not 0.0 < special_vertical_axis_threshold <= 1.0
         or not 0 < neutral_special_turn_window_ticks <= 0xFFFF
         or not initial_dash_early_end_frame.is_integer()
@@ -476,6 +481,12 @@ def generate(raw: bytes) -> str:
             escape_roll_axis_threshold * 32767.0
         ),
         "escape_tilt_window_ticks": escape_roll_tilt_window_ticks,
+        "platform_drop_axis_threshold": round(
+            platform_drop_axis_threshold * 32767.0
+        ),
+        "platform_drop_tilt_window_ticks": int(
+            platform_drop_tilt_window_ticks
+        ),
         "special_vertical_axis_threshold": round(
             special_vertical_axis_threshold * 32767.0
         ),
@@ -699,6 +710,8 @@ def generate(raw: bytes) -> str:
             f"    UINT16_C({ground_input_attributes['c_stick_down_smash_threshold']}),",
             f"    UINT16_C({ground_input_attributes['escape_axis_threshold']}),",
             f"    UINT16_C({ground_input_attributes['escape_tilt_window_ticks']}),",
+            f"    UINT16_C({ground_input_attributes['platform_drop_axis_threshold']}),",
+            f"    UINT16_C({ground_input_attributes['platform_drop_tilt_window_ticks']}),",
             f"    UINT16_C({ground_input_attributes['special_vertical_axis_threshold']}),",
             f"    UINT16_C({ground_input_attributes['neutral_special_turn_window_ticks']}),",
             f"    UINT16_C({ground_input_attributes['initial_dash_early_end_frame']}),",

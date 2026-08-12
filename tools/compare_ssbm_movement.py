@@ -212,7 +212,11 @@ def controller_trigger(value: float) -> int:
     return round(max(0.0, min(1.0, value)) * 65535.0)
 
 
-def native_input_line(row: dict[str, object]) -> str:
+def native_input_line(
+    row: dict[str, object],
+    *,
+    include_raw_main: bool = False,
+) -> str:
     """Normalize one captured GameCube sample for the native CSV runner."""
 
     observed_analog = float(row.get("observed_analog_shoulder", 0.0))
@@ -260,7 +264,7 @@ def native_input_line(row: dict[str, object]) -> str:
     opponent_buttons = (
         2 if bool(row.get("observed_opponent_attack", False)) else 0
     )
-    return (
+    line = (
         f"{controller_axis(float(row['observed_main_x']))},"
         f"{controller_axis_y(float(row.get('observed_main_y', 0.5)))},"
         f"{controller_axis(float(row.get('observed_c_x', 0.5)))},"
@@ -268,6 +272,20 @@ def native_input_line(row: dict[str, object]) -> str:
         f"{left_trigger},{right_trigger},{buttons},{opponent_input_x},"
         f"{opponent_buttons}"
     )
+    if not include_raw_main:
+        return line
+    raw_main_x = row.get("observed_raw_main_x")
+    raw_main_y = row.get("observed_raw_main_y")
+    if (
+        not isinstance(raw_main_x, int)
+        or isinstance(raw_main_x, bool)
+        or not -128 <= raw_main_x <= 127
+        or not isinstance(raw_main_y, int)
+        or isinstance(raw_main_y, bool)
+        or not -128 <= raw_main_y <= 127
+    ):
+        raise ValueError("captured row lacks exact signed raw main-stick bytes")
+    return f"{line},{raw_main_x},{raw_main_y},3"
 
 
 def normalized_shield_strength(

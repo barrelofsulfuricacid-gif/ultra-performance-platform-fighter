@@ -46,9 +46,9 @@ static pf_status pf_validate_inputs(
         {
             return PF_STATUS_UNSUPPORTED_VERSION;
         }
-        if (input->reserved != UINT8_C(0) ||
-            input->player_slot != (uint8_t)player_index ||
-            (input->buttons & ~PF_INPUT_KNOWN_BUTTONS) != UINT64_C(0))
+        if (input->player_slot != (uint8_t)player_index ||
+            (input->buttons & ~PF_INPUT_FRAME_KNOWN_BITS) != UINT64_C(0) ||
+            !pf_input_raw_payload_valid(input))
         {
             return PF_STATUS_INVALID_ARGUMENT;
         }
@@ -164,6 +164,75 @@ static pf_input_frame pf_m4_reference_priority_input(
         result.buttons &= ~PF_INPUT_BUTTON_SPECIAL;
     }
     return result;
+}
+
+static int pf_m4_abs_raw_axis(int8_t axis)
+{
+    return axis < INT8_C(0) ? -(int)axis : (int)axis;
+}
+
+static void pf_m4_apply_ucf084_cardinals(pf_input_frame *input)
+{
+    const pf_input_raw_pad raw = pf_input_get_raw_pad(input);
+
+    if (pf_m4_abs_raw_axis(raw.main_stick_x) >= 80 &&
+        pf_m4_abs_raw_axis(raw.main_stick_y) <= 6)
+    {
+        input->main_stick_x =
+            raw.main_stick_x < INT8_C(0) ? INT16_MIN : INT16_MAX;
+        input->main_stick_y = INT16_C(0);
+    }
+    else if (pf_m4_abs_raw_axis(raw.main_stick_y) >= 80 &&
+             pf_m4_abs_raw_axis(raw.main_stick_x) <= 6)
+    {
+        input->main_stick_x = INT16_C(0);
+        input->main_stick_y =
+            raw.main_stick_y > INT8_C(0) ? INT16_MIN : INT16_MAX;
+    }
+
+    if (pf_m4_abs_raw_axis(raw.secondary_stick_x) >= 80 &&
+        pf_m4_abs_raw_axis(raw.secondary_stick_y) <= 6)
+    {
+        input->secondary_stick_x =
+            raw.secondary_stick_x < INT8_C(0) ? INT16_MIN : INT16_MAX;
+        input->secondary_stick_y = INT16_C(0);
+    }
+    else if (pf_m4_abs_raw_axis(raw.secondary_stick_y) >= 80 &&
+             pf_m4_abs_raw_axis(raw.secondary_stick_x) <= 6)
+    {
+        input->secondary_stick_x = INT16_C(0);
+        input->secondary_stick_y =
+            raw.secondary_stick_y > INT8_C(0) ? INT16_MIN : INT16_MAX;
+    }
+}
+
+static uint8_t pf_m4_ucf084_pad_buffer_count(
+    const pf_input_frame *input,
+    pf_input_raw_pad current_raw,
+    int8_t raw_main_t2_y,
+    uint8_t previous_tilt_y_age,
+    uint8_t previous_count)
+{
+    const int raw_delta_y =
+        (int)current_raw.main_stick_y - (int)raw_main_t2_y;
+    const int down_qualifies =
+        (int32_t)input->main_stick_y * INT32_C(64) >=
+        INT32_C(39) * INT32_C(32767);
+    const int radial_qualifies = pf_m4_ucf084_adjusted_radial_qualifies(
+        input->main_stick_x,
+        input->main_stick_y);
+
+    if (down_qualifies == 0 || radial_qualifies == 0)
+    {
+        return UINT8_C(0);
+    }
+    if (previous_count != UINT8_C(0) ||
+        (previous_tilt_y_age <= UINT8_C(1) &&
+         raw_delta_y * raw_delta_y > 44 * 44))
+    {
+        return (uint8_t)(previous_count + UINT8_C(1));
+    }
+    return UINT8_C(0);
 }
 
 static int32_t pf_m4_player_nudge_x_q16(
@@ -570,11 +639,75 @@ pf_status pf_sim_tick_impl(
          ++player_index)
     {
         const pf_input_frame *input = &inputs[player_index];
+        pf_input_frame source_input = *input;
+        const int8_t previous_tilt_x_direction =
+            world->previous_tilt_x_direction[player_index];
+        const int8_t previous_tilt_y_direction =
+            world->previous_tilt_y_direction[player_index];
+        int8_t input_tilt_x_direction;
+        int8_t input_tilt_y_direction;
+        uint8_t input_tilt_x_age;
+        uint8_t input_tilt_y_age;
+        uint8_t ucf_tilt_x_age;
+        uint8_t ucf_tilt_y_age;
+        uint8_t ucf_pad_buffer_count;
+        pf_input_raw_pad current_raw;
+        pf_input_raw_pad previous_raw;
+
+        pf_input_resolve_raw_pad(&source_input);
+        current_raw = pf_input_get_raw_pad(&source_input);
+        previous_raw.main_stick_x = pf_input_decode_raw_axis((uint8_t)(
+            (world->previous_buttons[player_index] >>
+             PF_INPUT_RAW_MAIN_X_SHIFT) & PF_INPUT_RAW_AXIS_MASK));
+        previous_raw.main_stick_y = pf_input_decode_raw_axis((uint8_t)(
+            (world->previous_buttons[player_index] >>
+             PF_INPUT_RAW_MAIN_Y_SHIFT) & PF_INPUT_RAW_AXIS_MASK));
+        previous_raw.secondary_stick_x = INT8_C(0);
+        previous_raw.secondary_stick_y = INT8_C(0);
+        input_tilt_x_age = pf_m4_source_stick_age(
+            source_input.main_stick_x,
+            sim->content.fighter.tilt_axis_threshold,
+            previous_tilt_x_direction,
+            world->tilt_x_age[player_index],
+            &input_tilt_x_direction);
+        input_tilt_y_age = pf_m4_source_stick_age(
+            source_input.main_stick_y,
+            sim->content.fighter.tilt_axis_threshold,
+            previous_tilt_y_direction,
+            world->tilt_y_age[player_index],
+            &input_tilt_y_direction);
+        ucf_tilt_x_age = pf_m4_source_stick_age(
+            source_input.main_stick_x,
+            sim->content.fighter.tilt_axis_threshold,
+            previous_tilt_x_direction,
+            world->ucf_tilt_x_age[player_index],
+            &input_tilt_x_direction);
+        ucf_tilt_y_age = pf_m4_source_stick_age(
+            source_input.main_stick_y,
+            sim->content.fighter.tilt_axis_threshold,
+            previous_tilt_y_direction,
+            world->ucf_tilt_y_age[player_index],
+            &input_tilt_y_direction);
+        if (sim->content.gameplay_ruleset ==
+            (uint8_t)PF_M4_GAMEPLAY_RULESET_SSBM_NTSC102_UCF084)
+        {
+            pf_m4_apply_ucf084_cardinals(&source_input);
+        }
+        ucf_pad_buffer_count =
+            sim->content.gameplay_ruleset ==
+                    (uint8_t)PF_M4_GAMEPLAY_RULESET_SSBM_NTSC102_UCF084
+                ? pf_m4_ucf084_pad_buffer_count(
+                      &source_input,
+                      current_raw,
+                      world->raw_main_t2_y[player_index],
+                      input_tilt_y_age,
+                      world->ucf_pad_buffer_count[player_index])
+                : UINT8_C(0);
         const pf_input_frame priority_input =
             pf_m4_reference_priority_input(
                 &sim->content,
                 world,
-                input,
+                &source_input,
                 player_index);
         pf_input_frame charge_input;
         pf_input_frame reflector_input;
@@ -609,6 +742,24 @@ pf_status pf_sim_tick_impl(
                 player_index,
                 &effective_input);
 
+        /* These values are updated by UCF's pad hook before the ordinary
+         * per-action callbacks. Keep them visible to those callbacks; the
+         * movement step owns any technique-specific x670/x671 resets only. */
+        scratch->ucf_tilt_x_age[player_index] = ucf_tilt_x_age;
+        scratch->ucf_tilt_y_age[player_index] = ucf_tilt_y_age;
+        scratch->tilt_x_age[player_index] = input_tilt_x_age;
+        scratch->tilt_y_age[player_index] = input_tilt_y_age;
+        scratch->previous_tilt_x_direction[player_index] =
+            input_tilt_x_direction;
+        scratch->previous_tilt_y_direction[player_index] =
+            input_tilt_y_direction;
+        scratch->raw_main_t2_x[player_index] =
+            world->raw_main_t2_x[player_index];
+        scratch->raw_main_t2_y[player_index] =
+            world->raw_main_t2_y[player_index];
+        scratch->ucf_pad_buffer_count[player_index] =
+            ucf_pad_buffer_count;
+
         if ((input->buttons & PF_INPUT_BUTTON_FORFEIT) != UINT64_C(0))
         {
             forfeit_mask |= UINT64_C(1) << player_index;
@@ -628,9 +779,27 @@ pf_status pf_sim_tick_impl(
             pf_write_result(world, NULL, out_result);
             return status;
         }
-        scratch->previous_buttons[player_index] = input->buttons;
+        scratch->previous_buttons[player_index] = source_input.buttons;
+        scratch->previous_main_stick_x[player_index] =
+            source_input.main_stick_x;
+        scratch->previous_main_stick_y[player_index] =
+            source_input.main_stick_y;
+        scratch->previous_tilt_x_direction[player_index] =
+            pf_m4_source_stick_direction(
+                source_input.main_stick_x,
+                sim->content.fighter.tilt_axis_threshold);
+        scratch->previous_tilt_y_direction[player_index] =
+            pf_m4_source_stick_direction(
+                source_input.main_stick_y,
+                sim->content.fighter.tilt_axis_threshold);
+        scratch->ucf_tilt_x_age[player_index] = ucf_tilt_x_age;
+        scratch->ucf_tilt_y_age[player_index] = ucf_tilt_y_age;
+        scratch->raw_main_t2_x[player_index] = previous_raw.main_stick_x;
+        scratch->raw_main_t2_y[player_index] = previous_raw.main_stick_y;
+        scratch->ucf_pad_buffer_count[player_index] =
+            ucf_pad_buffer_count;
         scratch->shield_held[player_index] =
-            pf_m4_input_trigger_state(&sim->content.fighter, input);
+            pf_m4_input_trigger_state(&sim->content.fighter, &source_input);
         if (projectile_intent != PF_M4_PROJECTILE_INPUT_NONE)
         {
             status = pf_m4_apply_projectile_input(
@@ -651,7 +820,7 @@ pf_status pf_sim_tick_impl(
                 &sim->content,
                 world,
                 scratch,
-                input,
+                &source_input,
                 player_index,
                 item_intent);
             if (status != PF_STATUS_OK)
@@ -807,10 +976,24 @@ pf_status pf_sim_tick_impl(
             scratch->previous_secondary_stick_x[player_index];
         world->previous_secondary_stick_y[player_index] =
             scratch->previous_secondary_stick_y[player_index];
+        world->previous_main_stick_x[player_index] =
+            scratch->previous_main_stick_x[player_index];
+        world->previous_main_stick_y[player_index] =
+            scratch->previous_main_stick_y[player_index];
         world->tilt_x_age[player_index] =
             scratch->tilt_x_age[player_index];
         world->tilt_y_age[player_index] =
             scratch->tilt_y_age[player_index];
+        world->ucf_tilt_x_age[player_index] =
+            scratch->ucf_tilt_x_age[player_index];
+        world->ucf_tilt_y_age[player_index] =
+            scratch->ucf_tilt_y_age[player_index];
+        world->raw_main_t2_x[player_index] =
+            scratch->raw_main_t2_x[player_index];
+        world->raw_main_t2_y[player_index] =
+            scratch->raw_main_t2_y[player_index];
+        world->ucf_pad_buffer_count[player_index] =
+            scratch->ucf_pad_buffer_count[player_index];
         world->horizontal_input_age[player_index] =
             scratch->horizontal_input_age[player_index];
         world->horizontal_input_direction[player_index] =

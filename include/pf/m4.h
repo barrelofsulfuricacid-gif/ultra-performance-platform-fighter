@@ -10,15 +10,15 @@ extern "C"
 {
 #endif
 
-#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(77)
-#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(69)
+#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(78)
+#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(70)
 #define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(5)
 #define PF_M4_ITEM_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_PROJECTILE_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_REFLECTOR_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_CHARGE_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_RECOVERY_SCHEMA_VERSION UINT16_C(1)
-#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(56)
+#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(57)
 #define PF_M4_INSPECTION_HIT_SPHERE_CAPACITY 4
 #define PF_M4_INSPECTION_HURT_CAPSULE_CAPACITY 11
 #define PF_M4_PLACEHOLDER_FIGHTER_COUNT UINT8_C(1)
@@ -102,8 +102,8 @@ typedef enum pf_m4_action_state
     PF_M4_ACTION_CHARGE_GROUND = 68,
     PF_M4_ACTION_CHARGE_STORE_GROUND = 69,
     PF_M4_ACTION_CHARGE_RELEASE_GROUND = 70,
-    PF_M4_ACTION_MOONWALK_SETUP = 71,
-    PF_M4_ACTION_MOONWALK = 72,
+    PF_M4_ACTION_RESERVED_71 = 71,
+    PF_M4_ACTION_RESERVED_72 = 72,
     PF_M4_ACTION_TEETER = 73,
     PF_M4_ACTION_CROUCH_STEP = 74,
     PF_M4_ACTION_TAUNT = 75,
@@ -424,6 +424,12 @@ typedef enum pf_m4_prone_orientation
     PF_M4_PRONE_STOMACH = 2
 } pf_m4_prone_orientation;
 
+typedef enum pf_m4_gameplay_ruleset
+{
+    PF_M4_GAMEPLAY_RULESET_GENERIC = 0,
+    PF_M4_GAMEPLAY_RULESET_SSBM_NTSC102_UCF084 = 1
+} pf_m4_gameplay_ruleset;
+
 typedef struct pf_m4_getup_roll_timing
 {
     uint8_t movement_begin_tick;
@@ -630,7 +636,6 @@ typedef struct pf_m4_fighter_data
     uint16_t standing_turn_ticks;
     uint16_t standing_turn_facing_tick;
     uint16_t dash_input_window_ticks;
-    uint16_t moonwalk_setup_ticks;
     uint16_t teeter_ticks;
     uint16_t teeter_turn_axis_threshold;
     uint16_t teeter_walk_axis_threshold;
@@ -840,6 +845,7 @@ typedef struct pf_m4_content
     uint8_t reflector_count;
     uint8_t charge_count;
     uint8_t recovery_count;
+    uint8_t gameplay_ruleset;
     pf_m4_fighter_data fighter;
     pf_m4_stage_data stage;
     pf_m4_item_data item;
@@ -909,6 +915,7 @@ typedef struct pf_m4_player_inspection
     uint8_t fall_animation_target_switched;
     uint8_t active;
     uint8_t ledge;
+    uint8_t tilt_x_age;
     uint64_t last_hit_tick;
     uint32_t damage_q16;
     uint32_t last_hit_sequence;

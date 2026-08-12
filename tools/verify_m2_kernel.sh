@@ -72,7 +72,7 @@ compile_sim_test \
 
 "$output_dir/sim_snapshot_test" >"$output_dir/sim_snapshot.txt"
 grep -Fqx \
-    'sim-snapshot=pass bytes=1747 hash_algorithm=sha256' \
+    'sim-snapshot=pass bytes=1783 hash_algorithm=sha256' \
     "$output_dir/sim_snapshot.txt"
 
 compile_sim_test \
@@ -91,7 +91,7 @@ compile_sim_test \
 
 "$output_dir/replay_corpus" >"$output_dir/replay_corpus.txt"
 grep -Fqx \
-    'sim-replay=pass ticks=240 players=4 bytes=42519 corpus_sha256=6727023fb07bcb7a4fcbaf9c0beac0f8220c1c1802b19da891ae2ae2be252240 final_sha256=de96572115c1e4850d79353839576efc4b780ccbd75e8e70a2f23bee419c14af events_sha256=124a94734029321020513ec749b2f4d26cd60b4ed2129e25ce104692739fa9af' \
+    'sim-replay=pass ticks=240 players=4 bytes=42555 corpus_sha256=a1d9c1d97a3f20bdb9c76094c39b856f731a1eb2c0cca64ac05dd28a6e121949 final_sha256=3bdbbbc5d7faa6c8fd077ebd47aaa061f738a3561aa4c66ae2bfe4f8455cda6a events_sha256=a4020969be032543b9b229c8801bde77581b9f7fe26a9fe8aca91527627b13ec' \
     "$output_dir/replay_corpus.txt"
 
 compile_sim_object()
@@ -181,4 +181,4 @@ else
     echo "m2-forbidden-symbol-validation=skipped reason=nm-not-on-path"
 fi
 
-echo "m2-kernel-verification=pass deterministic_ticks=180 replay_ticks=240 rl_batch=6 players=4 abi=4"
+echo "m2-kernel-verification=pass deterministic_ticks=180 replay_ticks=240 rl_batch=6 players=4 abi=5"

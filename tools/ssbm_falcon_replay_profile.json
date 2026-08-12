@@ -1,0 +1,96 @@
+{
+  "schema": "ssbm-replay-differential-profile-v1",
+  "id": "falcon-common-isolated-v1",
+  "description": "Captain Falcon common movement on an isolated flat floor; action IDs not listed here end the qualified prefix.",
+  "reference_target": {
+    "disc": {
+      "game_id": "GALE01",
+      "revision": 2,
+      "sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464"
+    },
+    "modifier": {
+      "name": "UCF",
+      "revision": "0.84",
+      "official_release_tag": "ucf0.84_2024-06-27",
+      "official_release_revision": "01122231ea97683cf7adea43d732ce0a4784c849"
+    }
+  },
+  "source_character_id": 0,
+  "source_wait_action_id": 14,
+  "source_main_floor_ground_ids": [1],
+  "supported_stage_ids": [31, 32],
+  "target_initial_facing": 1,
+  "source_to_target_x_scale": {
+    "numerator": 12,
+    "denominator": 115
+  },
+  "source_to_target_y_scale": {
+    "numerator": 11,
+    "denominator": 62,
+    "invert": true
+  },
+  "anchor": {
+    "neutral_history_frames": 8,
+    "maximum_abs_source_x": 45.0,
+    "minimum_opponent_x_distance": 35.0
+  },
+  "qualification": {
+    "maximum_prefix_frames": 120,
+    "maximum_abs_source_x": 55.0,
+    "minimum_opponent_x_distance": 22.0,
+    "minimum_opponent_y_distance": 18.0
+  },
+  "comparison": {
+    "position_tolerance_q16": 640,
+    "velocity_tolerance_q16": 32
+  },
+  "source_actions": {
+    "14": { "name": "STANDING", "target_action": 0 },
+    "15": { "name": "WALK_SLOW", "target_action": 1 },
+    "16": { "name": "WALK_MIDDLE", "target_action": 1 },
+    "17": { "name": "WALK_FAST", "target_action": 1 },
+    "18": { "name": "TURNING", "target_action": 103 },
+    "19": { "name": "TURNING_RUN", "target_action": 10 },
+    "20": { "name": "DASHING", "target_action": 2 },
+    "21": { "name": "RUNNING", "target_action": 3 },
+    "23": { "name": "RUN_BRAKE", "target_action": 11 },
+    "24": { "name": "KNEE_BEND", "target_action": 5 },
+    "25": { "name": "JUMPING_FORWARD", "target_action": 6 },
+    "26": { "name": "JUMPING_BACKWARD", "target_action": 6 },
+    "27": { "name": "JUMPING_ARIAL_FORWARD", "target_action": 6 },
+    "28": { "name": "JUMPING_ARIAL_BACKWARD", "target_action": 6 },
+    "29": { "name": "FALLING", "target_action": 6 },
+    "30": { "name": "FALLING_FORWARD", "target_action": 6 },
+    "31": { "name": "FALLING_BACKWARD", "target_action": 6 },
+    "32": { "name": "FALLING_AERIAL", "target_action": 6 },
+    "33": { "name": "FALLING_AERIAL_FORWARD", "target_action": 6 },
+    "34": { "name": "FALLING_AERIAL_BACKWARD", "target_action": 6 },
+    "39": { "name": "CROUCH_START", "target_action": 104 },
+    "40": { "name": "CROUCHING", "target_action": 4 },
+    "41": { "name": "CROUCH_END", "target_action": 105 },
+    "42": { "name": "LANDING", "target_action": 7 },
+    "43": { "name": "LANDING_SPECIAL", "target_action": 34 },
+    "65": { "name": "NAIR", "target_action": 35 },
+    "66": { "name": "FAIR", "target_action": 81 },
+    "67": { "name": "BAIR", "target_action": 82 },
+    "68": { "name": "UAIR", "target_action": 83 },
+    "69": { "name": "DAIR", "target_action": 84 },
+    "70": { "name": "NAIR_LANDING", "target_action": 36, "l_cancel_target_action": 37 },
+    "71": { "name": "FAIR_LANDING", "target_action": 95, "l_cancel_target_action": 99 },
+    "72": { "name": "BAIR_LANDING", "target_action": 96, "l_cancel_target_action": 100 },
+    "73": { "name": "UAIR_LANDING", "target_action": 97, "l_cancel_target_action": 101 },
+    "74": { "name": "DAIR_LANDING", "target_action": 98, "l_cancel_target_action": 102 },
+    "178": { "name": "SHIELD_START", "target_action": 18 },
+    "179": { "name": "SHIELD", "target_action": 18 },
+    "180": { "name": "SHIELD_RELEASE", "target_action": 20 },
+    "181": { "name": "SHIELD_STUN", "target_action": 19 },
+    "182": { "name": "SHIELD_REFLECT", "target_action": 18 },
+    "233": { "name": "ROLL_FORWARD", "target_action": 38 },
+    "234": { "name": "ROLL_BACKWARD", "target_action": 39 },
+    "235": { "name": "SPOTDODGE", "target_action": 40 },
+    "236": { "name": "AIRDODGE", "target_action": 32 },
+    "244": { "name": "PLATFORM_DROP", "target_action": 6 },
+    "264": { "name": "TAUNT_RIGHT", "target_action": 75 },
+    "265": { "name": "TAUNT_LEFT", "target_action": 75 }
+  }
+}

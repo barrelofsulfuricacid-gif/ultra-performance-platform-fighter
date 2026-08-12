@@ -30,6 +30,7 @@ NATIVE_CSV_TRACE_FIELDS = {
     "action_state",
     "action_ticks",
     "facing",
+    "tilt_x_age",
     "grounded",
     "support",
     "surface_normal_source_x_q16",
@@ -104,6 +105,16 @@ def axis(value: Any, field: str) -> int:
         or not -32767 <= value <= 32767
     ):
         raise ValueError(f"{field} must be a signed controller axis")
+    return value
+
+
+def raw_axis(value: Any, field: str) -> int:
+    if (
+        not isinstance(value, int)
+        or isinstance(value, bool)
+        or not -128 <= value <= 127
+    ):
+        raise ValueError(f"{field} must be a signed raw controller byte")
     return value
 
 
@@ -499,6 +510,8 @@ def native_csv_input_line(
     sample: dict[str, Any],
     case_id: str,
     sample_index: int,
+    *,
+    include_raw_main: bool = False,
 ) -> str:
     raw_lanes = sample.get("lanes")
     if (
@@ -554,10 +567,22 @@ def native_csv_input_line(
         player.get("right_trigger", 0),
         f"{player_field}.right_trigger",
     )
-    return (
+    line = (
         f"{main_x},{main_y},{c_x},{c_y},{left_trigger},{right_trigger},"
         f"{player_buttons},{opponent_x},{opponent_buttons}"
     )
+    raw_main_value = player.get("raw_main")
+    if not include_raw_main:
+        if raw_main_value is not None:
+            raise ValueError(
+                f"{player_field}.raw_main requires an exact-raw input case"
+            )
+        return line
+    if not isinstance(raw_main_value, list) or len(raw_main_value) != 2:
+        raise ValueError(f"{player_field}.raw_main must contain two raw axes")
+    raw_main_x = raw_axis(raw_main_value[0], f"{player_field}.raw_main[0]")
+    raw_main_y = raw_axis(raw_main_value[1], f"{player_field}.raw_main[1]")
+    return f"{line},{raw_main_x},{raw_main_y},3"
 
 
 def generate_native_csv(manifest: dict[str, Any]) -> str:
@@ -618,8 +643,25 @@ def generate_native_csv(manifest: dict[str, Any]) -> str:
             f"{case_id}.field_exclusions",
         )
         samples = expand_case_samples(case, case_id, sample_count, "inputs")
+        raw_main_presence = [
+            isinstance(sample.get("lanes"), list)
+            and len(sample["lanes"]) == 2
+            and isinstance(sample["lanes"][0], dict)
+            and "raw_main" in sample["lanes"][0]
+            for sample in samples
+        ]
+        if any(raw_main_presence) and not all(raw_main_presence):
+            raise ValueError(
+                f"{case_id}.inputs must declare raw_main on every sample"
+            )
+        include_raw_main = all(raw_main_presence)
         lines = [
-            native_csv_input_line(sample, case_id, sample_index)
+            native_csv_input_line(
+                sample,
+                case_id,
+                sample_index,
+                include_raw_main=include_raw_main,
+            )
             for sample_index, sample in enumerate(samples)
         ]
         runs: list[dict[str, Any]] = []

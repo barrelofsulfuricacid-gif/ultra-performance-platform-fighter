@@ -45,12 +45,17 @@ def load_capture(
         )
     capture = json.loads(path.read_text(encoding="utf-8"))
     execution = capture.get("oracle_execution")
+    gameplay_policy = capture.get("oracle_gameplay_policy")
+    expected_policy = live_source.get("oracle_gameplay_policy")
     disc = capture.get("disc")
     rows = capture.get("rows")
     if (
         capture.get("schema") != live_source.get("capture_schema", 11)
         or capture.get("oracle")
-        != "SSBM GALE01 NTSC-U revision 2 via Dolphin/Slippi"
+        != live_source.get(
+            "oracle",
+            "SSBM GALE01 NTSC-U revision 2 via Dolphin/Slippi",
+        )
         or capture.get("stage") != live_source.get("stage", "BATTLEFIELD")
         or capture.get("fighter") != live_source.get("fighter", "CPTFALCON")
         or capture.get("opponent") != live_source.get("opponent", "FOX")
@@ -73,6 +78,19 @@ def load_capture(
         or len(rows) != live_source.get("row_count")
     ):
         raise NaturalMovementDomainError(f"capture-provenance path={path}")
+    if expected_policy is not None:
+        if (
+            not isinstance(expected_policy, dict)
+            or not isinstance(gameplay_policy, dict)
+            or gameplay_policy.get("runtime_verified") is not True
+            or any(
+                gameplay_policy.get(key) != value
+                for key, value in expected_policy.items()
+            )
+        ):
+            raise NaturalMovementDomainError(
+                f"capture-gameplay-policy path={path}"
+            )
     if any(row.get("damage_percent") != 0.0 for row in rows):
         raise NaturalMovementDomainError(f"capture-damage-contamination path={path}")
     return capture
@@ -190,6 +208,11 @@ def canonical_capture(
         if not isinstance(case, dict):
             raise NaturalMovementDomainError("stored-case-schema")
         case_id = str(case.get("id"))
+        case_fields = case.get("serialized_fields", fields)
+        if not isinstance(case_fields, list) or not case_fields:
+            raise NaturalMovementDomainError(
+                f"serialized-fields case={case_id}"
+            )
         action_mapping = {
             **domain_action_mapping,
             **_action_mapping(
@@ -204,11 +227,31 @@ def canonical_capture(
                 f"actual={len(rows)}"
             )
         inputs = expand_case_samples(case, case_id, len(rows), "inputs")
+        raw_main_presence = [
+            isinstance(sample.get("lanes"), list)
+            and len(sample["lanes"]) == 2
+            and isinstance(sample["lanes"][0], dict)
+            and "raw_main" in sample["lanes"][0]
+            for sample in inputs
+        ]
+        if any(raw_main_presence) and not all(raw_main_presence):
+            raise NaturalMovementDomainError(
+                f"raw-main-partial case={case_id}"
+            )
+        include_raw_main = all(raw_main_presence)
         stored_input_lines = [
-            native_csv_input_line(sample, case_id, sample_index)
+            native_csv_input_line(
+                sample,
+                case_id,
+                sample_index,
+                include_raw_main=include_raw_main,
+            )
             for sample_index, sample in enumerate(inputs)
         ]
-        live_input_lines = [native_input_line(row) for row in rows]
+        live_input_lines = [
+            native_input_line(row, include_raw_main=include_raw_main)
+            for row in rows
+        ]
         if stored_input_lines != live_input_lines:
             mismatch = next(
                 index
@@ -243,7 +286,7 @@ def canonical_capture(
                     else round(action_frame) + tick_offset
                 )
             selected_fields = selected_trace_fields(
-                fields,
+                case_fields,
                 exclusions,
                 sample_index,
             )
@@ -261,6 +304,14 @@ def canonical_capture(
                 action_ticks=action_ticks if action_ticks is not None else 0,
                 origin_y=origin_y,
             )
+            missing_fields = [
+                field for field in selected_fields if field not in values
+            ]
+            if missing_fields:
+                raise NaturalMovementDomainError(
+                    f"source-field case={case_id} sample={sample_index} "
+                    f"missing={','.join(missing_fields)}"
+                )
             samples.append(
                 {field: values[field] for field in selected_fields}
             )

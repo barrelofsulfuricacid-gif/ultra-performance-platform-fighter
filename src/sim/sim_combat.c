@@ -10,6 +10,21 @@
 #include <stdint.h>
 #include <string.h>
 
+static inline void pf_m4_reset_ordinary_tilt_x_age(
+    pf_sim_scratch *scratch,
+    uint32_t player_index)
+{
+    scratch->tilt_x_age[player_index] = UINT8_C(254);
+}
+
+static inline void pf_m4_reset_ordinary_tilt_ages(
+    pf_sim_scratch *scratch,
+    uint32_t player_index)
+{
+    pf_m4_reset_ordinary_tilt_x_age(scratch, player_index);
+    scratch->tilt_y_age[player_index] = UINT8_C(254);
+}
+
 static uint32_t pf_m4_saturating_damage(
     uint32_t current,
     uint32_t added)
@@ -1548,6 +1563,10 @@ static pf_status pf_m4_apply_shield_hit(
     }
     else
     {
+        /* ftCo_80092F2C enters GuardSetOff with x670 = 0xFE. Its
+         * shield-SDI callback consumes only the ordinary horizontal age;
+         * UCF's continuous x673 age remains independent. */
+        pf_m4_reset_ordinary_tilt_x_age(scratch, target_index);
         scratch->shield_stun_ticks[target_index] = response.stun_ticks;
         scratch->source_animation_frame_q16[target_index] = INT32_C(0);
         scratch->source_animation_rate_q16[target_index] =
@@ -3707,6 +3726,14 @@ static pf_status pf_m4_apply_hit_reaction(
               hitstun_ticks <=
                   content->fighter
                       .double_jump_armor_max_hitstun_ticks;
+    if (armored == 0)
+    {
+        /* ftCo_8008DCE0 resets x670/x671 on every actual Damage entry.
+         * ResetBound takes that same entry route; the armor branch instead
+         * preserves its existing action and therefore keeps both ages. UCF
+         * x673/x674 are deliberately separate continuous histories. */
+        pf_m4_reset_ordinary_tilt_ages(scratch, target_index);
+    }
     reset = armored == 0 &&
             pf_m4_event_is_physical_hit(event_type) &&
             (previous_action == (uint8_t)PF_M4_ACTION_DOWN_WAIT ||

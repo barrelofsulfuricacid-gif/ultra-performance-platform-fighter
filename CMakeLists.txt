@@ -302,7 +302,7 @@ function(pf_add_smoke_product target product_name render_probe)
         set_tests_properties(
             ${target}.smoke
             PROPERTIES PASS_REGULAR_EXPRESSION
-                       "${product_name}-smoke=pass sim_abi=4 tick_hz=60")
+                       "${product_name}-smoke=pass sim_abi=5 tick_hz=60")
     endif()
 endfunction()
 
@@ -328,7 +328,7 @@ if(PF_BUILD_NATIVE_CLIENT)
             set_tests_properties(
                 native_client.smoke
                 PROPERTIES PASS_REGULAR_EXPRESSION
-                           "native-client-smoke=pass sim_abi=4 tick_hz=60 sdl=3.4.12 event=pass gamepad=pass geometry=pass batch_draws=1")
+                           "native-client-smoke=pass sim_abi=5 tick_hz=60 sdl=3.4.12 event=pass gamepad=pass geometry=pass batch_draws=1")
         endif()
     else()
         pf_add_smoke_product(native_client "native-client" 0)
@@ -522,7 +522,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.contract
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "sim-contract=pass abi=4 tick_hz=60")
+                   "sim-contract=pass abi=5 tick_hz=60")
 
     add_executable(sim_world_test tests/sim/test_sim_world.c)
     target_link_libraries(sim_world_test PRIVATE sim)
@@ -555,7 +555,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.snapshot
             PROPERTIES PASS_REGULAR_EXPRESSION
-                       "sim-snapshot=pass bytes=1747 hash_algorithm=sha256")
+                       "sim-snapshot=pass bytes=1783 hash_algorithm=sha256")
 
     add_executable(
         m4_hsd_transition_test
@@ -588,7 +588,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.m4_movement
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-movement=pass content_schema=77 deterministic_ticks=20000 movement_core=pass tap_jump=1 jump_takeoff_momentum=1 player_push=1 teeter_cancel=1 taunt_cancel=1 double_jump_cancel=skipped vector_ascent=1 ledge_roll=1 emergent_technique_tests=skipped")
+                   "m4-movement=pass content_schema=78 deterministic_ticks=20000 movement_core=pass tap_jump=1 jump_takeoff_momentum=1 player_push=1 teeter_cancel=1 taunt_cancel=1 double_jump_cancel=skipped vector_ascent=1 ledge_roll=1 emergent_technique_tests=skipped")
 
     add_executable(
         m4_combat_test
@@ -605,7 +605,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.m4_combat
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-combat=pass content_schema=77 deterministic_ticks=20000 combat_core=pass journal_invariants=74 weight=1 stale_move=1 prone_getup_roll=2 directional_ground_attacks=1 smash_charge=1 light_shield=1 shield_geometry=1 shield_sdi=1 ssbm_damage=1 directional_aerials=1 ledge_attack=1 crouch_cancel=1 double_jump_cancel_counter=skipped approach=1 spacing=1 mindgame=1 jab_cancel=1 pummel=1 directional_throws=1 chain_grab=1 team_resolution=1 team_wobble=skipped emergent_technique_tests=skipped")
+                   "m4-combat=pass content_schema=78 deterministic_ticks=20000 combat_core=pass journal_invariants=74 weight=1 stale_move=1 prone_getup_roll=2 directional_ground_attacks=1 smash_charge=1 light_shield=1 shield_geometry=1 shield_sdi=1 ssbm_damage=1 directional_aerials=1 ledge_attack=1 crouch_cancel=1 double_jump_cancel_counter=skipped approach=1 spacing=1 mindgame=1 jab_cancel=1 pummel=1 directional_throws=1 chain_grab=1 team_resolution=1 team_wobble=skipped emergent_technique_tests=skipped")
 
     add_test(
         NAME sim.m4_ssbm_falcon_common_hurt
@@ -798,7 +798,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.m4_item
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-item=pass content_schema=77 state_schema=75 save_bytes=1747 item_invariants=44 bat_drop=1 glide_toss=1 jump_cancel_throw=1 directional_throws=4 replay=1 rl=1")
+                   "m4-item=pass content_schema=78 state_schema=77 save_bytes=1783 item_invariants=44 bat_drop=1 glide_toss=1 jump_cancel_throw=1 directional_throws=4 replay=1 rl=1")
 
     add_executable(
         m4_projectile_test
@@ -815,7 +815,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.m4_projectile
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-projectile=pass content_schema=77 state_schema=75 save_bytes=1747 projectile_invariants=46 short_hop_laser=1 powershield_reflect=1 replay=1 rl=1 emergent_technique_tests=skipped")
+                   "m4-projectile=pass content_schema=78 state_schema=77 save_bytes=1783 projectile_invariants=46 short_hop_laser=1 powershield_reflect=1 replay=1 rl=1 emergent_technique_tests=skipped")
 
     add_executable(
         m4_reflector_test
@@ -832,7 +832,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.m4_reflector
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-reflector=pass content_schema=77 state_schema=75 save_bytes=1747 reflector_invariants=32 shine_spike=1 projectile_reflect=1 replay=1 rl=1")
+                   "m4-reflector=pass content_schema=78 state_schema=77 save_bytes=1783 reflector_invariants=32 shine_spike=1 projectile_reflect=1 replay=1 rl=1")
 
     add_executable(
         m4_charge_test
@@ -852,7 +852,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.m4_charge
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-charge=pass content_schema=77 state_schema=75 save_bytes=1747 charge_invariants=28 charge_storage_cancel=1 resumed_release=1 replay=1 rl=1")
+                   "m4-charge=pass content_schema=78 state_schema=77 save_bytes=1783 charge_invariants=28 charge_storage_cancel=1 resumed_release=1 replay=1 rl=1")
 
     add_executable(m4_match_test tests/sim/test_m4_match.c)
     target_link_libraries(m4_match_test PRIVATE sim)
@@ -889,7 +889,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         web.m4_playtest
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-web-bridge=pass view_schema=47 endpoints=3 renders=[1-9][0-9]*")
+                   "m4-web-bridge=pass view_schema=48 endpoints=3 renders=[1-9][0-9]*")
 
     add_executable(rl_api_test tests/sim/test_rl_api.c)
     target_link_libraries(rl_api_test PRIVATE sim)
@@ -909,7 +909,7 @@ if(BUILD_TESTING)
         set_tests_properties(
             sim.replay_corpus
             PROPERTIES PASS_REGULAR_EXPRESSION
-                       "sim-replay=pass ticks=240 players=4 bytes=42519")
+                       "sim-replay=pass ticks=240 players=4 bytes=42555")
     endif()
 
     if(PF_BUILD_HEADLESS)
@@ -917,7 +917,7 @@ if(BUILD_TESTING)
         set_tests_properties(
             headless.smoke
             PROPERTIES PASS_REGULAR_EXPRESSION
-                       "headless-smoke=pass sim_abi=4 tick_hz=60")
+                       "headless-smoke=pass sim_abi=5 tick_hz=60")
 
         add_test(
             NAME headless.throughput_smoke

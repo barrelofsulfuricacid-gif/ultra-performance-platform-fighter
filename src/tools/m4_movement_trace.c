@@ -329,6 +329,9 @@ int main(int argc, char **argv)
     int input_c_y;
     int opponent_input_x;
     uint64_t opponent_buttons;
+    int raw_main_x;
+    int raw_main_y;
+    unsigned int raw_axis_valid_mask;
     char input_line[256];
     unsigned int left_trigger;
     unsigned int right_trigger;
@@ -1336,7 +1339,8 @@ int main(int argc, char **argv)
         "ecb_bottom_y_from_origin_q16,"
         "facing,grounded,support,"
         "surface_normal_source_x_q16,surface_normal_source_y_q16,"
-        "dash_direction,previous_strong_direction,position_x_q16_from_origin,"
+        "dash_direction,previous_strong_direction,tilt_x_age,"
+        "position_x_q16_from_origin,"
         "position_y_q16_from_origin,"
         "velocity_x_q16,velocity_y_q16,shield_recoil_x_q16,"
         "shield_health_q16,shield_strength,shield_angle_turn,"
@@ -1361,9 +1365,13 @@ int main(int argc, char **argv)
         int parsed_input_count;
 
         opponent_buttons = UINT64_C(0);
+        raw_main_x = 0;
+        raw_main_y = 0;
+        raw_axis_valid_mask = 0U;
         parsed_input_count = sscanf(
             input_line,
-            "%d,%d,%d,%d,%u,%u,%" SCNu64 ",%d,%" SCNu64,
+            "%d,%d,%d,%d,%u,%u,%" SCNu64 ",%d,%" SCNu64
+            ",%d,%d,%u",
             &input_x,
             &input_y,
             &input_c_x,
@@ -1372,8 +1380,12 @@ int main(int argc, char **argv)
             &right_trigger,
             &buttons,
             &opponent_input_x,
-            &opponent_buttons);
-        if (parsed_input_count != 8 && parsed_input_count != 9)
+            &opponent_buttons,
+            &raw_main_x,
+            &raw_main_y,
+            &raw_axis_valid_mask);
+        if (parsed_input_count != 8 && parsed_input_count != 9 &&
+            parsed_input_count != 12)
         {
             (void)fprintf(
                 stderr,
@@ -1391,7 +1403,15 @@ int main(int argc, char **argv)
             opponent_input_x < (int)INT16_MIN ||
             opponent_input_x > (int)INT16_MAX ||
             left_trigger > (unsigned int)UINT16_MAX ||
-            right_trigger > (unsigned int)UINT16_MAX)
+            right_trigger > (unsigned int)UINT16_MAX ||
+            (parsed_input_count == 12 &&
+             (raw_main_x < (int)INT8_MIN ||
+              raw_main_x > (int)INT8_MAX ||
+              raw_main_y < (int)INT8_MIN ||
+              raw_main_y > (int)INT8_MAX ||
+              raw_axis_valid_mask !=
+                  (unsigned int)(PF_INPUT_RAW_MAIN_X_VALID |
+                                 PF_INPUT_RAW_MAIN_Y_VALID))))
         {
             (void)fprintf(
                 stderr,
@@ -1417,6 +1437,18 @@ int main(int argc, char **argv)
         inputs[0].left_trigger = (uint16_t)left_trigger;
         inputs[0].right_trigger = (uint16_t)right_trigger;
         inputs[0].buttons = buttons;
+        if (parsed_input_count == 12)
+        {
+            const pf_input_raw_pad raw_pad = {
+                (int8_t)raw_main_x,
+                (int8_t)raw_main_y,
+                INT8_C(0),
+                INT8_C(0)};
+
+            pf_input_set_raw_pad(&inputs[0], raw_pad);
+            inputs[0].raw_axis_valid_mask =
+                (uint8_t)raw_axis_valid_mask;
+        }
         inputs[1].tick = inspection.tick;
         inputs[1].schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
         inputs[1].player_slot = UINT8_C(1);
@@ -1448,7 +1480,7 @@ int main(int argc, char **argv)
         }
         (void)printf(
             "%" PRIu32 ",%d,%d,%d,%d,%u,%u,%" PRIu64 ",%" PRIu64
-            ",%u,%u,%u,%" PRId32 ",%" PRId32 ",%" PRId32 ",%u,%" PRId32 ",%d,%u,%u,%" PRId32 ",%" PRId32 ",%d,%d,%" PRId32 ",%" PRId32 ",%" PRId32 ",%" PRId32
+            ",%u,%u,%u,%" PRId32 ",%" PRId32 ",%" PRId32 ",%u,%" PRId32 ",%d,%u,%u,%" PRId32 ",%" PRId32 ",%d,%d,%u,%" PRId32 ",%" PRId32 ",%" PRId32 ",%" PRId32
             ",%" PRId32
             ",%" PRIu32 ",%u,%u,%u,%" PRId32 ",%" PRId32 ",%" PRId32
             ",%" PRId32 ",%u,%u,%u,%u,%u,%u,%u,%u,%d,%u,%" PRId32 ",%" PRId32
@@ -1478,6 +1510,7 @@ int main(int argc, char **argv)
             surface_normal_source_y_q16,
             (int)inspection.players[0].dash_direction,
             (int)inspection.players[0].previous_strong_direction,
+            (unsigned int)inspection.players[0].tilt_x_age,
             inspection.players[0].position_x_q16 - origin_x_q16,
             inspection.players[0].position_y_q16 - origin_y_q16,
             inspection.players[0].velocity_x_q16,

@@ -1,6 +1,6 @@
 # TDR-0006: Canonical state format and hash
 
-- **Status:** Accepted through save format 66 / state schema 71
+- **Status:** Accepted through save format 67 / state schema 77
 - **Date:** 2026-08-01
 
 ## Decision
@@ -73,6 +73,8 @@ Save formats are fixed, field-by-field little-endian encodings:
 | 64 | 69 | 140 | 775 | 915 | Static-decomp closure state: KO/fall counters, mash/C-stick/horizontal-input history, rebound and jab-chain continuation, and damage-jump buffering; fail-closed expanded Falcon/common action vocabulary |
 | 65 | 70 | 140 | 807 | 947 | Ground-loop source animation cursor/rate and the preceding callback-audit continuation state |
 | 66 | 71 | 140 | 1567 | 1707 | Four compact six-frame Falcon ground-loop blend poses: 19 canonicalized Q15 quaternion xyz triples, six Q16 translation triples, and one Q16 progress value per player |
+| 66 | 76 | 140 | 1607 | 1747 | Schema-75 byte layout with action values 71/72 retired as reserved invalid holes and source-exact horizontal tilt-age/Dash-entry interpretation; no schema-75 payload-layout change |
+| 67 | 77 | 140 | 1643 | 1783 | Per-player prior processed main-stick X/Y, UCF X/Y tilt ages, raw main-stick X/Y from two samples earlier, and UCF pad-buffer count |
 
 The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE05`, `PFSAVE06`, `PFSAVE07`, `PFSAVE08`, `PFSAVE09`, `PFSAVE10`, or
@@ -84,7 +86,7 @@ The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE41`, `PFSAVE42`, `PFSAVE43`, `PFSAVE44`, `PFSAVE45`, `PFSAVE46`,
 `PFSAVE47`, `PFSAVE48`, `PFSAVE49`, `PFSAVE50`, `PFSAVE51`, `PFSAVE52`,
 `PFSAVE53`, `PFSAVE54`, `PFSAVE58`, `PFSAVE59`, or `PFSAVE60`.
-The active M4 runtime emits and accepts format 66 with state schema 71 and
+The active M4 runtime emits and accepts format 67 with state schema 77 and
 magic `PFSAVE60`; formats 61-63 were compatibility steps inside the same
 unverified static slice and are not accepted by the final reader. Earlier
 schemas and formats remain documented as historical evidence rather than
@@ -93,6 +95,39 @@ configuration identity is SHA-256 over the domain `PFCFG001` followed by the
 canonical configuration fields. The payload checksum is SHA-256 over the exact
 payload bytes. `pf_sim_hash` is SHA-256 over the complete emitted save stream
 and reports both its algorithm and algorithm version.
+
+Historical state schema 76 retires an earlier modeling error without
+renumbering the public action domain. Values 71 and 72, historically assigned to
+`MOONWALK_SETUP` and `MOONWALK`, are now reserved invalid holes. Load rejects
+either value as a current or hitlag-resume action; content schema 78/fighter
+schema 70 remove the corresponding `moonwalk_setup_ticks` field. The old
+format-30 row and narrative below remain solely as a record of what that
+historical schema meant.
+
+Moonwalk is emergent from ordinary input history, Turn/Dash callbacks, retained
+velocity, and traction. Horizontal tilt age was already serialized at state
+schema 51, so source-exact saturation at 254 and the shared
+`ftCo_Dash_Enter`-equivalent reset to 254 require no payload byte. Inspection
+schema 57 exposes that age through prior padding; browser view schema 48
+versions the retired action labels and appends exact imported hit-sphere
+records for its 603-value layout.
+
+State schema 77 / save format 67 adds the 36 bytes of UCF-consumed rollback
+state that schema 76 lacked. For each fixed player slot, the stream appends the
+prior processed main-stick X/Y values, UCF X/Y tilt ages, raw main-stick X/Y
+values from two samples earlier, and pad-buffer count. Loading bounds both UCF
+ages to 254 and requires all appended values to be zero for inactive slots.
+Because these values can change a later UCF decision, save/load, clone,
+rollback, replay, and hashing all retain them instead of reconstructing them
+from the current normalized input.
+
+The reference configuration is GALE01 NTSC 1.02 with pinned UCF 0.84 enabled.
+The vanilla decomp proves the base age and Dash-entry rules. The live
+special-acquisition lane now pins the UCF 0.84 policy and explicitly compares
+the processed and raw input history at the 75/76 dashback boundaries and a
+delayed Turn-to-Dash route. A vanilla Turn-frame observation alone still cannot
+qualify the configured contract, and the complete player-performed Moonwalk
+remains a separate emergent-composition playability gate.
 
 Load parses into a temporary fixed-size world value, validates the complete
 header, lengths, compatibility identity, checksum, schema fields, enum values,
@@ -229,8 +264,8 @@ incompatible with disabled content or the action/grounding relationship.
 Storage cancel, exact resume, charge-scaled release, completion clearing, and
 hit-interruption clearing therefore participate in the canonical future under
 schema 30.
-Format 30 retains the same payload and adds no mutable field. During initial
-dash, the two explicit Moonwalk actions encode the authored shallow-back setup
+Historical format 30 retained the same payload and added no mutable field.
+During initial dash, the two explicit Moonwalk actions encoded the authored shallow-back setup
 and the subsequent full-back slide in existing action ID/timer, facing,
 dash-direction, and velocity fields. Loading rejects zero/out-of-range setup
 or active ticks, airborne/reaction-incompatible actions, missing or
@@ -476,7 +511,8 @@ service-envelope responsibility.
 - Mid-jump-cancel save/load plus retained dash momentum, both attack-button
   routes, threshold/neutral/late exclusions, a real strong hit, and equal
   future hashes and events in `tests/sim/test_m4_combat.c`.
-- Mid-Moonwalk-setup save/load plus exact setup/activation timing, preserved
+- **Historical and superseded:** Mid-Moonwalk-setup save/load plus exact
+  setup/activation timing, preserved
   facing, reverse velocity, traction exit, two mistimed dashback controls, and
   equal future hashes in `tests/sim/test_m4_movement.c`.
 - Mid-Vector-Ascent save/load plus equal future hashes, exact resource

@@ -158,7 +158,7 @@ def common_movement_source_sample(
                 normal_x_q16 = round(float(normal[0]) * 65536.0)
                 normal_y_q16 = round(float(normal[1]) * 65536.0)
     velocity_x_key = "ground_velocity_x" if grounded != 0 else "air_velocity_x"
-    return {
+    sample = {
         "action_state": action_state,
         "action_ticks": action_ticks,
         "facing": int(row["facing"]),
@@ -175,6 +175,16 @@ def common_movement_source_sample(
         "velocity_x_q16": source_x_to_sim_q16(float(row[velocity_x_key])),
         "velocity_y_q16": source_y_to_sim_q16(float(row["velocity_y"])),
     }
+    input_memory = row.get("input_memory")
+    if isinstance(input_memory, dict):
+        tilt_x_age = input_memory.get("tilt_x_age")
+        if (
+            isinstance(tilt_x_age, int)
+            and not isinstance(tilt_x_age, bool)
+            and 0 <= tilt_x_age <= 254
+        ):
+            sample["tilt_x_age"] = tilt_x_age
+    return sample
 
 
 def validate_capture_provenance(

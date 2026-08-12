@@ -99,13 +99,13 @@ pf_require_dom()
 
 pf_require_dom \
     "simulation ABI status" \
-    'web-client-smoke=pass sim_abi=4 tick_hz=60'
+    'web-client-smoke=pass sim_abi=5 tick_hz=60'
 pf_require_dom \
     "WebGL2 status" \
     'webgl2=pass batch_draws=1'
 pf_require_dom \
     "deterministic replay status" \
-    'replay=pass ticks=240 winner_mask=5 final_sha256=de96572115c1e4850d79353839576efc4b780ccbd75e8e70a2f23bee419c14af'
+    'replay=pass ticks=240 winner_mask=5 final_sha256=3bdbbbc5d7faa6c8fd077ebd47aaa061f738a3561aa4c66ae2bfe4f8455cda6a'
 pf_require_dom \
     "replay inspector" \
     'id="pf-replay-inspector"'
@@ -120,7 +120,7 @@ pf_require_dom \
     'id="pf-replay-events"'
 pf_require_dom \
     "re-simulated canonical events" \
-    '83 typed events'
+    '84 typed events'
 pf_require_dom \
     "M4 browser integration status" \
     'playtest=ready gamepad_api=available wii_u_adapter_api=available controls=keyboard-gamepad-webusb-two-controller-duel-team-lab owner_checklist=ready-61'

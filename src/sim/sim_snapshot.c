@@ -9,7 +9,7 @@
 #include <string.h>
 
 #define PF_SIM_SAVE_HEADER_BYTES ((size_t)140)
-#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)1607)
+#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)1643)
 #define PF_SIM_SAVE_TOTAL_BYTES \
     (PF_SIM_SAVE_HEADER_BYTES + PF_SIM_SAVE_PAYLOAD_BYTES)
 #define PF_M4_SNAPSHOT_GROUND_BLEND_REPLAY_TAG INT32_C(0x40000000)
@@ -707,6 +707,22 @@ static void pf_write_payload(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
+        pf_writer_u16(
+            writer,
+            (uint16_t)world->previous_main_stick_x[player_index]);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        pf_writer_u16(
+            writer,
+            (uint16_t)world->previous_main_stick_y[player_index]);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
         pf_writer_u8(writer, world->tilt_x_age[player_index]);
     }
     for (player_index = UINT32_C(0);
@@ -714,6 +730,36 @@ static void pf_write_payload(
          ++player_index)
     {
         pf_writer_u8(writer, world->tilt_y_age[player_index]);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        pf_writer_u8(writer, world->ucf_tilt_x_age[player_index]);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        pf_writer_u8(writer, world->ucf_tilt_y_age[player_index]);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        pf_writer_i8(writer, world->raw_main_t2_x[player_index]);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        pf_writer_i8(writer, world->raw_main_t2_y[player_index]);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        pf_writer_u8(writer, world->ucf_pad_buffer_count[player_index]);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
@@ -1380,6 +1426,20 @@ static void pf_read_payload(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
+        world->previous_main_stick_x[player_index] =
+            (int16_t)pf_reader_u16(reader);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        world->previous_main_stick_y[player_index] =
+            (int16_t)pf_reader_u16(reader);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
         world->tilt_x_age[player_index] = pf_reader_u8(reader);
     }
     for (player_index = UINT32_C(0);
@@ -1387,6 +1447,36 @@ static void pf_read_payload(
          ++player_index)
     {
         world->tilt_y_age[player_index] = pf_reader_u8(reader);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        world->ucf_tilt_x_age[player_index] = pf_reader_u8(reader);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        world->ucf_tilt_y_age[player_index] = pf_reader_u8(reader);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        world->raw_main_t2_x[player_index] = pf_reader_i8(reader);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        world->raw_main_t2_y[player_index] = pf_reader_i8(reader);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        world->ucf_pad_buffer_count[player_index] = pf_reader_u8(reader);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
@@ -2847,14 +2937,6 @@ static int pf_m4_snapshot_content_state_consistent(
               action_ticks >
                   charge->release_startup_ticks +
                       charge->release_active_ticks)) ||
-            (action ==
-                 (uint8_t)PF_M4_ACTION_MOONWALK_SETUP &&
-             (action_ticks == UINT16_C(0) ||
-              action_ticks >
-                  content->fighter.moonwalk_setup_ticks)) ||
-            (action == (uint8_t)PF_M4_ACTION_MOONWALK &&
-             (action_ticks == UINT16_C(0) ||
-              action_ticks >= content->fighter.initial_dash_ticks)) ||
             (action == (uint8_t)PF_M4_ACTION_TEETER &&
              world->velocity_x_q16[player_index] != INT32_C(0)) ||
             (action == (uint8_t)PF_M4_ACTION_CROUCH_STEP &&
@@ -3412,7 +3494,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 world->team[player_index] != expected_team ||
                 world->grounded[player_index] > UINT8_C(1) ||
                 (world->previous_buttons[player_index] &
-                 ~PF_INPUT_KNOWN_BUTTONS) != UINT64_C(0) ||
+                 ~PF_INPUT_FRAME_KNOWN_BITS) != UINT64_C(0) ||
                 world->position_x_q16[player_index] <
                     -world->arena_half_width_q16 ||
                 world->position_x_q16[player_index] >
@@ -3442,8 +3524,9 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 world->action_ticks[player_index] > UINT16_C(640) ||
                 world->source_submotion[player_index] >=
                     PF_M4_FALCON_SUBMOTION_COUNT ||
-                action >
-                    (uint8_t)PF_M4_ACTION_FORWARD_STRONG_CHARGE_LOW ||
+                !pf_m4_action_is_canonical(action) ||
+                (resume_action != UINT8_C(0) &&
+                 !pf_m4_action_is_canonical(resume_action)) ||
                 world->rebound_duration_ticks[player_index] >
                     UINT16_C(640) ||
                 world->jab_chain_buffered[player_index] > UINT8_C(1) ||
@@ -3506,8 +3589,10 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 world->fast_fall[player_index] > UINT8_C(1) ||
                 (world->facing[player_index] != INT8_C(-1) &&
                  world->facing[player_index] != INT8_C(1)) ||
-                world->dash_direction[player_index] < INT8_C(-2) ||
-                world->dash_direction[player_index] > INT8_C(2) ||
+                world->dash_direction[player_index] <
+                    -PF_M4_STANDING_TURN_DASH_ARMED_PHASE ||
+                world->dash_direction[player_index] >
+                    PF_M4_STANDING_TURN_DASH_ARMED_PHASE ||
                 world->previous_strong_direction[player_index] <
                     INT8_C(-1) ||
                 world->previous_strong_direction[player_index] >
@@ -3536,6 +3621,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 world->mash_stick_y_direction[player_index] > INT8_C(1) ||
                 world->tilt_x_age[player_index] > UINT8_C(254) ||
                 world->tilt_y_age[player_index] > UINT8_C(254) ||
+                world->ucf_tilt_x_age[player_index] > UINT8_C(254) ||
+                world->ucf_tilt_y_age[player_index] > UINT8_C(254) ||
                 world->horizontal_input_age[player_index] >
                     UINT8_C(254) ||
                 world->horizontal_input_direction[player_index] <
@@ -3639,18 +3726,14 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                   action ==
                       (uint8_t)PF_M4_ACTION_RUN_TURNAROUND ||
                   action ==
-                      (uint8_t)PF_M4_ACTION_STANDING_TURN ||
-                  action ==
-                      (uint8_t)PF_M4_ACTION_MOONWALK_SETUP ||
-                  action ==
-                      (uint8_t)PF_M4_ACTION_MOONWALK) &&
+                      (uint8_t)PF_M4_ACTION_STANDING_TURN) &&
                  world->dash_direction[player_index] == INT8_C(0)) ||
-                ((action ==
-                      (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
-                  action ==
-                      (uint8_t)PF_M4_ACTION_MOONWALK_SETUP ||
-                  action ==
-                      (uint8_t)PF_M4_ACTION_MOONWALK) &&
+                (action ==
+                     (uint8_t)PF_M4_ACTION_RUN_TURNAROUND &&
+                 world->dash_direction[player_index] != INT8_C(-1) &&
+                 world->dash_direction[player_index] != INT8_C(1)) ||
+                (action ==
+                     (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
                  world->dash_direction[player_index] !=
                      world->facing[player_index]) ||
                 (action !=
@@ -3659,10 +3742,6 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                      (uint8_t)PF_M4_ACTION_RUN_TURNAROUND &&
                  action !=
                      (uint8_t)PF_M4_ACTION_STANDING_TURN &&
-                 action !=
-                     (uint8_t)PF_M4_ACTION_MOONWALK_SETUP &&
-                 action !=
-                     (uint8_t)PF_M4_ACTION_MOONWALK &&
                  action !=
                      (uint8_t)PF_M4_ACTION_ROLL_FORWARD &&
                  action !=
@@ -3679,7 +3758,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                        (uint8_t)PF_M4_ACTION_ROLL_FORWARD ||
                   action ==
                        (uint8_t)PF_M4_ACTION_ROLL_BACKWARD) &&
-                 world->dash_direction[player_index] == INT8_C(0)) ||
+                 world->dash_direction[player_index] != INT8_C(-1) &&
+                 world->dash_direction[player_index] != INT8_C(1)) ||
                 (action ==
                      (uint8_t)PF_M4_ACTION_SPECIAL_LANDING &&
                  world->dash_direction[player_index] != INT8_C(-1) &&
@@ -3914,10 +3994,6 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                        (uint8_t)PF_M4_ACTION_CHARGE_STORE_GROUND ||
                    action ==
                        (uint8_t)PF_M4_ACTION_CHARGE_RELEASE_GROUND ||
-                   action ==
-                       (uint8_t)PF_M4_ACTION_MOONWALK_SETUP ||
-                   action ==
-                       (uint8_t)PF_M4_ACTION_MOONWALK ||
                    action == (uint8_t)PF_M4_ACTION_TEETER ||
                    action == (uint8_t)PF_M4_ACTION_CROUCH_STEP ||
                    action == (uint8_t)PF_M4_ACTION_TAUNT ||
@@ -4037,8 +4113,17 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                      INT16_C(0) ||
                  world->previous_secondary_stick_y[player_index] !=
                      INT16_C(0) ||
+                 world->previous_main_stick_x[player_index] !=
+                     INT16_C(0) ||
+                 world->previous_main_stick_y[player_index] !=
+                     INT16_C(0) ||
                  world->tilt_x_age[player_index] != UINT8_C(0) ||
                  world->tilt_y_age[player_index] != UINT8_C(0) ||
+                 world->ucf_tilt_x_age[player_index] != UINT8_C(0) ||
+                 world->ucf_tilt_y_age[player_index] != UINT8_C(0) ||
+                 world->raw_main_t2_x[player_index] != INT8_C(0) ||
+                 world->raw_main_t2_y[player_index] != INT8_C(0) ||
+                 world->ucf_pad_buffer_count[player_index] != UINT8_C(0) ||
                  world->horizontal_input_age[player_index] != UINT8_C(0) ||
                  world->horizontal_input_direction[player_index] !=
                      INT8_C(0) ||

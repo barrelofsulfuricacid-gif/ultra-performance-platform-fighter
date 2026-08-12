@@ -379,7 +379,7 @@ static void pf_replay_write_input(
     pf_replay_writer_u16(writer, input->right_trigger);
     pf_replay_writer_u16(writer, input->schema_version);
     pf_replay_writer_u8(writer, input->player_slot);
-    pf_replay_writer_u8(writer, input->reserved);
+    pf_replay_writer_u8(writer, input->raw_axis_valid_mask);
 }
 
 static pf_input_frame pf_replay_read_input(pf_replay_reader *reader)
@@ -397,7 +397,7 @@ static pf_input_frame pf_replay_read_input(pf_replay_reader *reader)
     input.right_trigger = pf_replay_reader_u16(reader);
     input.schema_version = pf_replay_reader_u16(reader);
     input.player_slot = pf_replay_reader_u8(reader);
-    input.reserved = pf_replay_reader_u8(reader);
+    input.raw_axis_valid_mask = pf_replay_reader_u8(reader);
     return input;
 }
 
@@ -519,10 +519,8 @@ static int pf_replay_action_transition_event_valid(
 
         if (player_index < (uint32_t)player_count)
         {
-            if (previous_action >
-                    (uint8_t)PF_M4_ACTION_FORWARD_STRONG_CHARGE_LOW ||
-                next_action >
-                    (uint8_t)PF_M4_ACTION_FORWARD_STRONG_CHARGE_LOW ||
+            if (!pf_m4_action_is_canonical(previous_action) ||
+                !pf_m4_action_is_canonical(next_action) ||
                 changed !=
                     ((event->detail &
                       (uint16_t)(UINT16_C(1) << player_index)) !=
@@ -613,10 +611,10 @@ static int pf_replay_input_valid(
 {
     return input->tick == tick &&
            input->buttons ==
-               (input->buttons & PF_INPUT_KNOWN_BUTTONS) &&
+               (input->buttons & PF_INPUT_FRAME_KNOWN_BITS) &&
            input->schema_version == PF_SIM_INPUT_SCHEMA_VERSION &&
            input->player_slot == player_slot &&
-           input->reserved == UINT8_C(0);
+           pf_input_raw_payload_valid(input);
 }
 
 static pf_status pf_replay_calculate_layout(

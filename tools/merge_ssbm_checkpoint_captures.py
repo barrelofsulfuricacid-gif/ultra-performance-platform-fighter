@@ -63,6 +63,8 @@ def main(argv: list[str] | None = None) -> int:
         "dolphin_version",
         "libmelee_version",
         "stage_collision_memory",
+        "oracle_gameplay_policy",
+        "input_memory_probe",
         "surface_collision_memory_probe",
         "hitbox_memory_probe",
         "hurtbox_memory_probe",

@@ -3,10 +3,10 @@
   "scope": "falcon-common-special-acquisition",
   "domain": "falcon-common-special-acquisition",
   "character": "falcon",
-  "oracle": "SSBM GALE01 NTSC-U revision 2",
+  "oracle": "SSBM GALE01 NTSC-U revision 2 with UCF 0.84",
   "live_source": {
-    "capture_sha256": "f92c89a2108d880746bf66d286d42dfcfcb5ad87eee425dec22cdf933115e4cc",
-    "repeat_capture_sha256": "f92c89a2108d880746bf66d286d42dfcfcb5ad87eee425dec22cdf933115e4cc",
+    "capture_sha256": "e4fde0c6b24f62f49a2af1d7e4a0e57d74c4b7750e36a6a3c73f43948789fe02",
+    "repeat_capture_sha256": "49d70c676de3d5a4d2071f8c0d9c6abba6c0feb7109fd73df9b3faa10b4c667d",
     "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
     "release_artifact_sha256": "87e9ef6d80ed03354a1647d0616016dbc91399aa9e86a69ae5a398edd0a0c2bd",
     "launcher_sha256": "9eb024aa9347648f020e2a76666e5c5597b77b32ef26752f563c99f0772b1e82",
@@ -14,16 +14,25 @@
     "current_decomp_revision": "d882af94175e3c880ad51039e2979aa9a50aea09",
     "dolphin_version": "3.5.1",
     "libmelee_version": "0.47.2",
-    "capture_schema": 7,
+    "capture_schema": 13,
+    "oracle": "SSBM GALE01 NTSC-U revision 2 with UCF 0.84 via Dolphin/Slippi",
+    "oracle_gameplay_policy": {
+      "schema": "ssbm-ntsc102-ucf084-oracle-v2",
+      "target": "GALE01 NTSC-U revision 2 with UCF 0.84",
+      "ucf_version": "0.84",
+      "ucf_official_release_tag": "ucf0.84_2024-06-27",
+      "ucf_official_release_revision": "01122231ea97683cf7adea43d732ce0a4784c849",
+      "policy_sha256": "a8368a3901828602833fba82f2c1e2490df6537151ff5cd6a216419a6051b7cc"
+    },
     "stage": "FINAL_DESTINATION",
-    "row_count": 188
+    "row_count": 210
   },
   "checkpoint_pack": {
     "protocol": "immutable-multislot-slippi-state-file-control-v2",
-    "expected_rows": 188,
-    "warm_budget_seconds": 3.5,
+    "expected_rows": 210,
+    "warm_budget_seconds": 6.0,
     "capture_plan": {
-      "batch_exi_inputs": true,
+      "batch_exi_inputs": false,
       "checkpoint_slot_count": 16,
       "special_acquisition_cases": [
         {
@@ -53,6 +62,40 @@
           "source_state": "turn",
           "edge_main": [0, 32767],
           "observe_ticks": 5
+        },
+        {
+          "id": "turn_ucf_raw_delta_76",
+          "checkpoint_slot": 0,
+          "source_state": "turn",
+          "pre_source_phases": [
+            { "ticks": 1 }
+          ],
+          "edge_main": [-31129, 0],
+          "edge_action": "none",
+          "observe_ticks": 1
+        },
+        {
+          "id": "turn_delayed_pending_dash",
+          "checkpoint_slot": 1,
+          "source_state": "turn",
+          "pre_edge_phases": [
+            { "ticks": 1 },
+            { "ticks": 5, "main": [-32767, 0] }
+          ],
+          "edge_main": [-32767, 0],
+          "edge_action": "none",
+          "observe_ticks": 1
+        },
+        {
+          "id": "turn_ucf_raw_delta_75_release",
+          "checkpoint_slot": 2,
+          "source_state": "turn",
+          "pre_source_phases": [
+            { "ticks": 1 }
+          ],
+          "edge_main": [-30719, 0],
+          "edge_action": "none",
+          "observe_ticks": 6
         },
         {
           "id": "squat_wait_down",
@@ -149,6 +192,9 @@
     { "id": "turn_side", "start_label": "special_acquisition_turn_side_setup" },
     { "id": "turn_up", "start_label": "special_acquisition_turn_up_setup" },
     { "id": "turn_down", "start_label": "special_acquisition_turn_down_setup" },
+    { "id": "turn_ucf_raw_delta_76", "start_label": "special_acquisition_turn_ucf_raw_delta_76_setup" },
+    { "id": "turn_delayed_pending_dash", "start_label": "special_acquisition_turn_delayed_pending_dash_setup" },
+    { "id": "turn_ucf_raw_delta_75_release", "start_label": "special_acquisition_turn_ucf_raw_delta_75_release_setup" },
     { "id": "squat_wait_down", "start_label": "special_acquisition_squat_wait_down_setup" },
     { "id": "squat_wait_diagonal_down", "start_label": "special_acquisition_squat_wait_diagonal_down_setup" },
     { "id": "squat_rv_down", "start_label": "special_acquisition_squat_rv_down_setup" },
@@ -176,13 +222,14 @@
       "tools/ssbm_falcon_special_acquisition_coverage.json",
       "tools/ssbm_live_trace.py",
       "tools/ssbm_natural_movement_domain.py",
+      "tools/ssbm_ucf_oracle.py",
       "tools/verify_ssbm_falcon_special_acquisition.py"
     ]
   },
   "stored_oracle": {
     "kind": "native-csv-trace-v1",
-    "source_trace_sha256": "8fbfbcb12c5cdb483891315a4dc4c57a642c28ae2eb8ad886b31fecf9d3cd03d",
-    "production_trace_sha256": "8fbfbcb12c5cdb483891315a4dc4c57a642c28ae2eb8ad886b31fecf9d3cd03d",
+    "source_trace_sha256": "6b50b9b36d47fb6a4b77bef5a951f03b311898fd88b481ff798909e05749f079",
+    "production_trace_sha256": "6b50b9b36d47fb6a4b77bef5a951f03b311898fd88b481ff798909e05749f079",
     "require_exact_source_match": true,
     "serialized_fields": [
       "action_state",
@@ -244,6 +291,69 @@
           { "ticks": 1, "lanes": [{ "main": [-16384, 0] }, {}] },
           { "ticks": 1, "lanes": [{ "main": [0, -32767], "buttons": ["special"] }, {}] },
           { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "turn_ucf_raw_delta_76",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_turn_ucf_raw_delta_76_",
+        "sample_count": 4,
+        "serialized_fields": [
+          "action_state",
+          "action_ticks",
+          "facing",
+          "tilt_x_age",
+          "grounded"
+        ],
+        "field_exclusions": {
+          "action_ticks": [[0, 1]]
+        },
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "raw_main": [0, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [-16384, 0], "raw_main": [-40, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [-31129, 0], "raw_main": [-76, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "raw_main": [0, 0] }, {}] }
+        ]
+      },
+      {
+        "id": "turn_delayed_pending_dash",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_turn_delayed_pending_dash_",
+        "sample_count": 9,
+        "serialized_fields": [
+          "action_state",
+          "action_ticks",
+          "facing",
+          "tilt_x_age",
+          "grounded"
+        ],
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "main": [-16384, 0], "raw_main": [-40, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "raw_main": [0, 0] }, {}] },
+          { "ticks": 6, "lanes": [{ "main": [-32767, 0], "raw_main": [-80, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "raw_main": [0, 0] }, {}] }
+        ]
+      },
+      {
+        "id": "turn_ucf_raw_delta_75_release",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_turn_ucf_raw_delta_75_release_",
+        "sample_count": 9,
+        "serialized_fields": [
+          "action_state",
+          "action_ticks",
+          "facing",
+          "tilt_x_age",
+          "grounded"
+        ],
+        "field_exclusions": {
+          "action_ticks": [[0, 1]]
+        },
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "raw_main": [0, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [-16384, 0], "raw_main": [-40, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [-30719, 0], "raw_main": [-75, 0] }, {}] },
+          { "ticks": 6, "lanes": [{ "raw_main": [0, 0] }, {}] }
         ]
       },
       {
@@ -339,6 +449,13 @@
         "runner_arguments": [],
         "source_label_prefix": "special_acquisition_dash_side_",
         "sample_count": 7,
+        "serialized_fields": [
+          "action_state",
+          "action_ticks",
+          "facing",
+          "tilt_x_age",
+          "grounded"
+        ],
         "input_phases": [
           { "ticks": 1, "lanes": [{ "main": [32767, 0] }, {}] },
           { "ticks": 1, "lanes": [{ "main": [32767, 0], "buttons": ["special"] }, {}] },
@@ -350,6 +467,13 @@
         "runner_arguments": [],
         "source_label_prefix": "special_acquisition_dash_neutral_",
         "sample_count": 7,
+        "serialized_fields": [
+          "action_state",
+          "action_ticks",
+          "facing",
+          "tilt_x_age",
+          "grounded"
+        ],
         "input_phases": [
           { "ticks": 1, "lanes": [{ "main": [32767, 0] }, {}] },
           { "ticks": 1, "lanes": [{ "buttons": ["special"] }, {}] },
@@ -361,6 +485,13 @@
         "runner_arguments": [],
         "source_label_prefix": "special_acquisition_dash_up_",
         "sample_count": 7,
+        "serialized_fields": [
+          "action_state",
+          "action_ticks",
+          "facing",
+          "tilt_x_age",
+          "grounded"
+        ],
         "input_phases": [
           { "ticks": 1, "lanes": [{ "main": [32767, 0] }, {}] },
           { "ticks": 1, "lanes": [{ "main": [0, 32767], "buttons": ["special"] }, {}] },
@@ -372,6 +503,13 @@
         "runner_arguments": [],
         "source_label_prefix": "special_acquisition_dash_down_",
         "sample_count": 7,
+        "serialized_fields": [
+          "action_state",
+          "action_ticks",
+          "facing",
+          "tilt_x_age",
+          "grounded"
+        ],
         "input_phases": [
           { "ticks": 1, "lanes": [{ "main": [32767, 0] }, {}] },
           { "ticks": 1, "lanes": [{ "main": [0, -32767], "buttons": ["special"] }, {}] },

@@ -2176,3 +2176,58 @@ and event SHA-256
 The unchanged input payload, replay shape, terminal result, and winner justify
 repinning the central replay constants and every active manifest, shell, and
 browser-smoke expectation derived from them.
+
+## Pinned UCF 0.84 raw-input acquisition (current)
+
+The reference configuration for modifier-sensitive behavior is the owner's
+`GALE01` NTSC-U revision-2 executable with official pinned UCF 0.84 enabled.
+The vanilla decomp remains the base source for common and Falcon callbacks;
+the UCF source and exact active hook set are additional authorities wherever
+the modifier changes input history or a callback boundary.
+
+The production input ABI retains its fixed 32-byte frame while carrying the
+physically serialized signed raw stick samples and a per-axis validity mask
+alongside processed Q15 input. A missing raw axis is synthesized through the
+documented deterministic processed-input fallback and is never mislabeled as
+an exact replay sample. Canonical fighter state retains only the processed/raw
+history, UCF ages, and pad counter consumed by the source hooks. The eight
+implemented and source-audited hooks are PAD/cardinal preprocessing, Dashback,
+DBOOC, SDI, shield SDI, tumble, shield-drop suppression, and the extended pad
+counter.
+
+`tools/ssbm_falcon_special_acquisition_coverage.json` now owns 19 cases / 210
+rows for the UCF/raw-history slice. Two independent live artifacts have raw
+SHA-256 values
+`e4fde0c6b24f62f49a2af1d7e4a0e57d74c4b7750e36a6a3c73f43948789fe02`
+and
+`49d70c676de3d5a4d2071f8c0d9c6abba6c0feb7109fd73df9b3faa10b4c667d`.
+The capture artifacts differ in nonsemantic provenance, while their selected
+source payload and the production payload are structurally identical at
+SHA-256
+`6b50b9b36d47fb6a4b77bef5a951f03b311898fd88b481ff798909e05749f079`.
+This live evidence directly qualifies the exact raw-history/Dashback boundary
+and delayed-Turn primitives. It does not qualify all eight UCF hooks: direct
+live boundary domains remain outstanding for PAD/cardinal preprocessing,
+DBOOC, SDI, shield SDI, tumble, shield-drop suppression, and the extended pad
+counter.
+
+The staged shared registry now declares 31 domains / 189 cases. Its current
+240-tick deterministic replay is 42,555 bytes with corpus/final/event SHA-256
+values
+`a1d9c1d97a3f20bdb9c76094c39b856f731a1eb2c0cca64ac05dd28a6e121949`,
+`3bdbbbc5d7faa6c8fd077ebd47aaa061f738a3561aa4c66ae2bfe4f8455cda6a`,
+and
+`a4020969be032543b9b229c8801bde77581b9f7fe26a9fe8aca91527627b13ec`.
+The full Windows/WSL stored registry passes under manifest SHA-256
+`34be35b31153031861cbe481cdd1d4e94dd158d079b09efee9561de3389e77aa`.
+The reusable generator checks now run in-process and nested worker pools are
+capped. Three sequential Windows runs take 943.548/903.249/1,068.009 ms and
+three WSL runs take 1,319.901/1,038.275/1,163.897 ms. Earlier 31-domain / 186-case evidence above
+remains a historical checkpoint rather than being relabeled as current.
+
+The character-independent Slippi differential path has 16 focused unit tests.
+It requires independently proven revision-2 disc identity, pinned UCF 0.84,
+the observed controller-fix family, and both raw main-stick axes before it
+executes a candidate as exact-reference evidence. The five tracked legacy
+Slippi files omit raw main Y and exact UCF-revision proof, so they correctly
+remain diagnostic and fail closed instead of being promoted to provenance.

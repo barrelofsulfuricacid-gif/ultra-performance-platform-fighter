@@ -395,8 +395,14 @@ Implement one original placeholder fighter and one original test stage with:
 
 SSBM executable-oracle equivalence is a binding M4 gate. Every implemented M4
 movement or shared-simulation behavior with an SSBM counterpart must match the
-owner's `GALE01` NTSC 1.02 image in Dolphin, not merely resemble it or pass tests
-derived from this implementation. The only exclusions are explicitly original
+owner's `GALE01` NTSC 1.02 image in Dolphin with the provenance-pinned UCF 0.84
+gameplay patch active, not merely resemble it or pass tests derived from this
+implementation. Vanilla decomp is the base source; every UCF difference is
+implemented from the pinned UCF assembly and qualified against the runtime-
+verified hook policy. The canonical input/state contract must retain any raw
+controller samples, history, or independent timers that UCF actually consumes;
+normalized-stick approximations may remain a playable fallback but cannot be
+claimed as exact UCF evidence. The only exclusions are explicitly original
 mechanics with no intended SSBM counterpart. Work on fidelity continues until
 the complete applicable identical-input differential corpus agrees; unresolved
 divergences are not deferrable acceptance notes, and M4 work does not stop while
@@ -437,10 +443,11 @@ affected domain, while the complete pack periodically requalifies the whole
 manifest. No finite scenario proves the absence of every possible anomaly, so
 coverage is explicit and extensible rather than described as universal.
 In parallel, a continuously running differential-fuzz lane ingests
-provenance-recorded public Slippi replay files for supported NTSC 1.02 Falcon
-setups. It applies each recorded per-frame input stream to the source and
-production simulations, stops at the first semantic desynchronization, and
-minimizes the causal prefix. A confirmed divergence becomes a compact
+provenance-recorded public Slippi replay files for supported NTSC 1.02 plus
+UCF 0.84 Falcon setups. It applies each recorded per-frame input stream to the
+source and production simulations, stops at the first semantic
+desynchronization, and minimizes the causal prefix. A confirmed divergence
+becomes a compact
 source-qualified manifest domain and blocks M4; unsupported fighters, stages,
 items, revisions, or hidden engine state are reported explicitly rather than
 masked. This broad real-match corpus discovers gaps but does not replace the
@@ -928,9 +935,10 @@ all M4.4 techniques:
 
 - A complete local 1v1 match can be played from start to result with two supported inputs.
 - The selected M0 “Melee-feel” mechanics for the vertical slice are implemented and have invariant tests.
-- The pinned identical-input Dolphin differential corpus has no unresolved
-  divergence for any implemented movement or shared-simulation behavior with
-  an SSBM counterpart. A newly observed owner-playtest divergence adds a
+- The pinned NTSC 1.02 plus UCF 0.84 identical-input Dolphin differential
+  corpus has no unresolved divergence for any implemented movement or shared-
+  simulation behavior with an SSBM counterpart. A newly observed owner-
+  playtest divergence adds a
   reproducer to this corpus and blocks M4 acceptance until resolved.
 - Collision, knockback, hitlag, hitstun, DI, stocks, ledges, and recovery are deterministic and replayable.
 - Performance remains within the M0 1v1 budget with profiling evidence.

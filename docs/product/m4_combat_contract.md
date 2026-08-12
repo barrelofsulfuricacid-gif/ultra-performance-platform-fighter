@@ -71,8 +71,9 @@ Double jumps retain their separate stick-replacement rule.
 ## Attack, collision, and ownership
 
 The light or strong ground attack is entered by a rising edge on its separate
-input-schema-3 button while the fighter is grounded and outside a locked
-action. If both edges occur on one tick, strong attack takes priority. Neutral
+logical button while the fighter is grounded and outside a locked action. Those
+bits were introduced by input schema 3 and remain unchanged in current input
+schema 6. If both edges occur on one tick, strong attack takes priority. Neutral
 light remains the jab. Reduced directional light selects `FORWARD_ATTACK`,
 `UP_ATTACK`, or `DOWN_ATTACK`, using strict vertical dominance for up/down and
 horizontal priority for an equal diagonal. A full directional light edge from
@@ -1574,49 +1575,69 @@ resets the route, and a fresh quick motion can dash again. A direct fast
 reversal starts a new directional window. This is the pinned decomp's
 magnitude-plus-X-tilt-timer rule; it has no midpoint early-commit branch.
 
-`WALK` action ticks hold the bounded tilt age, so the timing is already part of
-canonical save/load, replay, rollback, and hashing without adding mutable
-state. Content schema 54/fighter schema 47 append, default, validate, and hash
-the immutable window. The native ground-control oracle covers a three-sample
-fast walk, a low-then-full two-sample controller dash, and a direct-snap dash;
-browser readiness repeats these paths in the production Wasm simulation.
+The per-player horizontal tilt age owns that timing and is part of canonical
+save/load, replay, rollback, and hashing. Current content schema 78/fighter
+schema 70 retain, validate, and hash the immutable window. Content schema 78
+also hashes the gameplay ruleset; default reference content selects GALE01
+NTSC 1.02 plus UCF 0.84, while explicit generic content remains a separate
+identity. The native ground-
+control oracle covers a three-sample fast walk, a low-then-full two-sample
+controller dash, and a direct-snap dash; the current browser gate covers input
+mapping and the manual recipe rather than duplicating those simulation cases.
 
-## Moonwalk contract
+## Dash input-age and emergent Moonwalk contract
 
-The original fighter authors `moonwalk_setup_ticks=2`. During `INITIAL_DASH`,
-a main-stick sweep through the lower half enters `MOONWALK_SETUP` without
-crouching, dropping through a platform, or leaving dash. Forward-down and
-straight-down traversal arm the setup at its authored two-tick threshold;
-continuing through lower-back and finishing at straight full back enters
-`MOONWALK`, retains the original facing and dash direction, and applies
-initial-dash speed in the opposite direction. This represents the continuous
-GameCube half-moon even when the browser's 60 Hz samples do not capture the
-instant at which horizontal input crossed neutral.
+Moonwalk is a player-named composition of ordinary Melee input history, Turn,
+Dash, and ground physics. The NTSC 1.02 decomp has no `MOONWALK_SETUP` or
+`MOONWALK` action and no authored Moonwalk duration or reverse-velocity
+shortcut. The simulation therefore must not invent those actions or a
+`moonwalk_setup_ticks` content field. Public action values 71 and 72 remain
+reserved invalid holes so later action values keep their stable numeric
+identity; save, replay, and hitlag-resume validation reject either hole rather
+than reinterpreting an old authored state.
 
-The direct route remains faithful: reduced back or the lower-back notch without
-an earlier lower-half traversal must be held for at least two ticks before
-straight full back. The diagonal route takes priority over crouch/platform-drop
-and dashback when down meets the authored crouch threshold, including when a
-browser adapter independently saturates both axes. Small vertical stick noise
-does not turn a straight dashback into setup. Releasing the input returns to
-`GROUND_IDLE` while normal traction preserves a decaying backward slide.
+The base game updates the signed horizontal tilt age from the current and prior
+stick samples: a new threshold-side crossing has age 0, a held sample on the
+same side increments and saturates at 254, and a sample inside the threshold
+sets the age to 254. `ftCo_Dash_CheckInput` accepts horizontal magnitude at the
+Dash threshold only while that age is inside the common Dash window. Every
+successful `ftCo_Dash_Enter`, including entry reached through Turn, immediately
+sets the age to 254. Production owns that reset once at the shared Dash-entry
+boundary rather than duplicating it in individual Wait, Walk, crouch, Turn, or
+redash callers.
 
-Full back immediately after the forward dash is the ordinary initial-dash
-reversal. Full back after only one shallow setup tick also falls back to that
-same dashback. Neutral or invalid input during setup cancels to grounded idle.
-The actions remain interruptible by the existing legal grounded routers and
-need no new per-player mutable field: action ID and action ticks carry the
-timing through save/load, rollback, replay, and hash.
+The fidelity target is the owner-provided GALE01 NTSC 1.02 image with pinned
+UCF 0.84 enabled. The vanilla decomp establishes the base callback and timer
+semantics, but does not by itself qualify the UCF raw-stick-history injection.
+The current live special-acquisition pack pins the UCF 0.84 oracle policy and
+adds explicit processed/raw histories for the 75/76 dashback boundaries and a
+delayed pending Turn-to-Dash route. Its 19 cases / 210 rows match source and
+production exactly at semantic SHA-256
+`6b50b9b36d47fb6a4b77bef5a951f03b311898fd88b481ff798909e05749f079`.
+In particular, a vanilla Turn-frame observation remains insufficient evidence
+for the configured target.
 
-`tests/sim/test_m4_movement.c` supplies focused invariants covering default and
-invalid authored timing, isolated content hashing, fully saturated
-forward-down, down, lower-back, and straight-back samples, exact minimum setup
-timing, entry/hold/release velocity and facing, both dashback controls, and a
-771-byte mid-sweep save/load with equal future hashes. Browser startup repeats
-the half-moon and both negative timing outcomes and exports an independent
-`moonwalk_probe` before readiness. Keyboard controls can reproduce the sweep
-with Down, Down plus opposite, then opposite; the existing Shift plus opposite
-reduced-horizontal route remains supported.
+Native movement checks own age saturation, the shared Dash-entry reset, and
+the ordinary Turn/Dash transitions. The special-acquisition lane requests a
+small input-memory probe for fighter offset `x670`; only cases that declare
+`tilt_x_age` in their per-case `serialized_fields` project that value. Input
+schema 6 can carry explicit signed raw PADStatus axes and per-axis validity for
+those exact lanes. Generic native, browser, and RL callers instead use the
+deterministic processed-axis fallback and are not raw UCF evidence. State
+schema 77 / save format 67 retain the prior processed main stick, UCF tilt
+ages, raw two-sample history, and pad-buffer count that affect later decisions.
+Inspection may expose the ordinary age as a diagnostic; that age itself is not
+a new canonical field because it has been serialized since state schema 51.
+
+No technique-only Moonwalk oracle or browser startup probe is required. The
+raw-history Dashback boundary and delayed-Turn primitives are directly
+live-qualified against the GALE01-plus-UCF target. The other seven UCF hook
+boundaries remain source-audited implementation work awaiting their own live
+domains, and a half-moon owner recipe remains the gate that their emergent
+composition is playable while the visible action labels stay ordinary source
+states. Until that owner qualification is recorded, the documentation must not
+replace the missing composition evidence with a special action label or a
+tuned two-tick shortcut.
 
 ## Teeter-cancel contract
 
@@ -2144,7 +2165,7 @@ renders the down phase prone, and gives vulnerable stun an orbiting-star
 
 ## Deterministic event journal
 
-Every successful ABI-4 tick returns a zero-initialized fixed-capacity journal
+Every successful ABI-5 tick returns a zero-initialized fixed-capacity journal
 of up to 16 typed events. Current combat and match producers emit:
 
 - hit, shield block, powershield, shield break, grab, grab escape, pummel, and
