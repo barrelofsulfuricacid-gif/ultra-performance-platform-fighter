@@ -1946,6 +1946,29 @@ static int run_ground_dodge_test(
     if (!expect_status(
             pf_sim_reset(sim, UINT64_C(0xd0d71)),
             PF_STATUS_OK,
+            "wait-direct-spot-dodge-reset") ||
+        !step_duel_trigger(
+            sim,
+            INT16_C(0),
+            INT16_MAX,
+            UINT64_C(0),
+            UINT16_MAX,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SPOT_DODGE)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=wait-direct-spot-dodge"
+            " action=%u ticks=%u\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks);
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0xd0d711)),
+            PF_STATUS_OK,
             "spot-dodge-priority-reset") ||
         !expect_status(
             pf_m4_inspect(sim, &inspection),
@@ -2053,7 +2076,7 @@ static int run_ground_dodge_test(
     if (!expect_status(
             pf_sim_reset(sim, UINT64_C(0xd0d72)),
             PF_STATUS_OK,
-            "held-down-negative-reset") ||
+            "crouch-direct-escape-negative-reset") ||
         !step_duel_trigger(
             sim,
             INT16_C(0),
@@ -2069,11 +2092,42 @@ static int run_ground_dodge_test(
             UINT16_MAX,
             &inspection) ||
         inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_SPOT_DODGE)
+            (uint8_t)PF_M4_ACTION_SHIELD)
     {
         (void)fprintf(
             stderr,
-            "m4-movement=fail operation=held-down-spot-dodge"
+            "m4-movement=fail operation=crouch-enters-guard-on"
+            " action=%u ticks=%u\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks);
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0xd0d721)),
+            PF_STATUS_OK,
+            "walk-direct-escape-negative-reset") ||
+        !step_duel(
+            sim,
+            INT16_C(12000),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_WALK ||
+        !step_duel_trigger(
+            sim,
+            INT16_C(0),
+            INT16_MAX,
+            UINT64_C(0),
+            UINT16_MAX,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=walk-enters-guard-on"
             " action=%u ticks=%u\n",
             (unsigned int)inspection.players[0].action_state,
             (unsigned int)inspection.players[0].action_ticks);

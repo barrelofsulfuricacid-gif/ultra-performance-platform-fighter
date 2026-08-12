@@ -3903,6 +3903,20 @@ static uint8_t pf_m4_falcon_ground_iasa_capabilities(
     }
 }
 
+static int pf_m4_reference_calls_direct_escape_n(
+    uint8_t source_action_state,
+    uint8_t ground_iasa_capabilities)
+{
+    /* Wait owns direct EscapeN. Released grounded Damage delegates to
+     * Wait_IASA, as do imported attacks with the Wait callback policy.
+     * Falcon's Appeal scripts never enable their nominal IASA callback. */
+    return source_action_state == (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
+           (pf_m4_action_is_ground_attack(source_action_state) &&
+           (ground_iasa_capabilities &
+             PF_M4_FALCON_IASA_ESCAPE) != UINT8_C(0)) ||
+           pf_m4_action_is_damage(source_action_state);
+}
+
 static int8_t pf_m4_source_forward_angle_band(
     int16_t stick_x,
     int16_t stick_y,
@@ -9682,9 +9696,9 @@ pf_status pf_m4_step_player(
         const int reference_escape_allowed =
             source_ground_input != NULL &&
             main_stick_spot_dodge_pressed != 0 &&
-            (!pf_m4_action_is_ground_attack(action_state) ||
-             (ground_iasa_capabilities &
-              PF_M4_FALCON_IASA_ESCAPE) != UINT8_C(0));
+            pf_m4_reference_calls_direct_escape_n(
+                world->action_state[player_index],
+                ground_iasa_capabilities);
 
         if (reference_escape_allowed != 0)
         {
