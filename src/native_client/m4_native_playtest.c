@@ -56,6 +56,8 @@ typedef struct pf_native_session
     int collision_inspector;
 } pf_native_session;
 
+static int pf_native_result_format_smoke(void);
+
 typedef struct pf_native_view
 {
     float x;
@@ -118,6 +120,244 @@ static uint16_t pf_native_normalize_gamepad_trigger(Sint16 raw)
         return UINT16_C(0);
     }
     return (uint16_t)((uint32_t)(uint16_t)raw * UINT32_C(2));
+}
+
+static void pf_native_apply_gamepad_button(
+    SDL_GamepadType type,
+    SDL_GamepadButton button,
+    pf_input_frame *input)
+{
+    const int gamecube = type == SDL_GAMEPAD_TYPE_GAMECUBE;
+
+    switch (button)
+    {
+    case SDL_GAMEPAD_BUTTON_DPAD_LEFT:
+        input->main_stick_x = INT16_MIN;
+        break;
+    case SDL_GAMEPAD_BUTTON_DPAD_RIGHT:
+        input->main_stick_x = INT16_MAX;
+        break;
+    case SDL_GAMEPAD_BUTTON_DPAD_UP:
+        input->main_stick_y = INT16_MIN;
+        break;
+    case SDL_GAMEPAD_BUTTON_DPAD_DOWN:
+        input->main_stick_y = INT16_MAX;
+        break;
+    case SDL_GAMEPAD_BUTTON_SOUTH:
+        input->buttons |= PF_INPUT_BUTTON_ATTACK;
+        break;
+    case SDL_GAMEPAD_BUTTON_EAST:
+        input->buttons |= gamecube != 0
+                              ? PF_INPUT_BUTTON_JUMP
+                              : PF_INPUT_BUTTON_STRONG_ATTACK;
+        break;
+    case SDL_GAMEPAD_BUTTON_WEST:
+        input->buttons |= gamecube != 0
+                              ? PF_INPUT_BUTTON_SPECIAL
+                              : PF_INPUT_BUTTON_JUMP;
+        break;
+    case SDL_GAMEPAD_BUTTON_NORTH:
+        input->buttons |= gamecube != 0
+                              ? PF_INPUT_BUTTON_JUMP
+                              : PF_INPUT_BUTTON_SPECIAL;
+        break;
+    case SDL_GAMEPAD_BUTTON_LEFT_SHOULDER:
+        if (gamecube == 0)
+        {
+            input->left_trigger = UINT16_MAX;
+        }
+        break;
+    case SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER:
+        if (gamecube != 0)
+        {
+            input->buttons |= PF_INPUT_BUTTON_ATTACK;
+            input->left_trigger = UINT16_MAX;
+        }
+        else
+        {
+            input->right_trigger = UINT16_MAX;
+        }
+        break;
+    case SDL_GAMEPAD_BUTTON_MISC3:
+        if (gamecube != 0)
+        {
+            input->left_trigger = UINT16_MAX;
+        }
+        break;
+    case SDL_GAMEPAD_BUTTON_MISC4:
+        if (gamecube != 0)
+        {
+            input->right_trigger = UINT16_MAX;
+        }
+        break;
+    case SDL_GAMEPAD_BUTTON_BACK:
+        if (gamecube == 0)
+        {
+            input->buttons |= PF_INPUT_BUTTON_TAUNT;
+        }
+        break;
+    case SDL_GAMEPAD_BUTTON_START:
+        if (gamecube != 0)
+        {
+            input->buttons |= PF_INPUT_BUTTON_TAUNT;
+        }
+        break;
+    default:
+        break;
+    }
+}
+
+int pf_m4_native_playtest_smoke(void)
+{
+    static const struct pf_native_mapping_case
+    {
+        SDL_GamepadType type;
+        SDL_GamepadButton button;
+        uint64_t buttons;
+        uint16_t left_trigger;
+        uint16_t right_trigger;
+    } cases[] = {
+        {SDL_GAMEPAD_TYPE_GAMECUBE,
+         SDL_GAMEPAD_BUTTON_SOUTH,
+         PF_INPUT_BUTTON_ATTACK,
+         0u,
+         0u},
+        {SDL_GAMEPAD_TYPE_GAMECUBE,
+         SDL_GAMEPAD_BUTTON_WEST,
+         PF_INPUT_BUTTON_SPECIAL,
+         0u,
+         0u},
+        {SDL_GAMEPAD_TYPE_GAMECUBE,
+         SDL_GAMEPAD_BUTTON_EAST,
+         PF_INPUT_BUTTON_JUMP,
+         0u,
+         0u},
+        {SDL_GAMEPAD_TYPE_GAMECUBE,
+         SDL_GAMEPAD_BUTTON_NORTH,
+         PF_INPUT_BUTTON_JUMP,
+         0u,
+         0u},
+        {SDL_GAMEPAD_TYPE_GAMECUBE,
+         SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER,
+         PF_INPUT_BUTTON_ATTACK,
+         UINT16_MAX,
+         0u},
+        {SDL_GAMEPAD_TYPE_GAMECUBE,
+         SDL_GAMEPAD_BUTTON_MISC3,
+         0u,
+         UINT16_MAX,
+         0u},
+        {SDL_GAMEPAD_TYPE_GAMECUBE,
+         SDL_GAMEPAD_BUTTON_MISC4,
+         0u,
+         0u,
+         UINT16_MAX},
+        {SDL_GAMEPAD_TYPE_GAMECUBE,
+         SDL_GAMEPAD_BUTTON_START,
+         PF_INPUT_BUTTON_TAUNT,
+         0u,
+         0u},
+        {SDL_GAMEPAD_TYPE_GAMECUBE,
+         SDL_GAMEPAD_BUTTON_LEFT_SHOULDER,
+         0u,
+         0u,
+         0u},
+        {SDL_GAMEPAD_TYPE_STANDARD,
+         SDL_GAMEPAD_BUTTON_SOUTH,
+         PF_INPUT_BUTTON_ATTACK,
+         0u,
+         0u},
+        {SDL_GAMEPAD_TYPE_STANDARD,
+         SDL_GAMEPAD_BUTTON_EAST,
+         PF_INPUT_BUTTON_STRONG_ATTACK,
+         0u,
+         0u},
+        {SDL_GAMEPAD_TYPE_STANDARD,
+         SDL_GAMEPAD_BUTTON_WEST,
+         PF_INPUT_BUTTON_JUMP,
+         0u,
+         0u},
+        {SDL_GAMEPAD_TYPE_STANDARD,
+         SDL_GAMEPAD_BUTTON_NORTH,
+         PF_INPUT_BUTTON_SPECIAL,
+         0u,
+         0u},
+        {SDL_GAMEPAD_TYPE_STANDARD,
+         SDL_GAMEPAD_BUTTON_LEFT_SHOULDER,
+         0u,
+         UINT16_MAX,
+         0u},
+        {SDL_GAMEPAD_TYPE_STANDARD,
+         SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER,
+         0u,
+         0u,
+         UINT16_MAX},
+        {SDL_GAMEPAD_TYPE_STANDARD,
+         SDL_GAMEPAD_BUTTON_BACK,
+         PF_INPUT_BUTTON_TAUNT,
+         0u,
+         0u},
+        {SDL_GAMEPAD_TYPE_STANDARD,
+         SDL_GAMEPAD_BUTTON_START,
+         0u,
+         0u,
+         0u}};
+    static const struct pf_native_dpad_case
+    {
+        SDL_GamepadButton button;
+        int16_t main_stick_x;
+        int16_t main_stick_y;
+    } dpad_cases[] = {
+        {SDL_GAMEPAD_BUTTON_DPAD_LEFT, INT16_MIN, INT16_C(0)},
+        {SDL_GAMEPAD_BUTTON_DPAD_RIGHT, INT16_MAX, INT16_C(0)},
+        {SDL_GAMEPAD_BUTTON_DPAD_UP, INT16_C(0), INT16_MIN},
+        {SDL_GAMEPAD_BUTTON_DPAD_DOWN, INT16_C(0), INT16_MAX}};
+    pf_input_frame input;
+    size_t index;
+
+    for (index = 0u; index < sizeof(cases) / sizeof(cases[0]); ++index)
+    {
+        (void)memset(&input, 0, sizeof(input));
+        pf_native_apply_gamepad_button(
+            cases[index].type,
+            cases[index].button,
+            &input);
+        if (input.buttons != cases[index].buttons ||
+            input.left_trigger != cases[index].left_trigger ||
+            input.right_trigger != cases[index].right_trigger)
+        {
+            return 0;
+        }
+    }
+    for (index = 0u;
+         index < sizeof(dpad_cases) / sizeof(dpad_cases[0]);
+         ++index)
+    {
+        (void)memset(&input, 0, sizeof(input));
+        pf_native_apply_gamepad_button(
+            SDL_GAMEPAD_TYPE_STANDARD,
+            dpad_cases[index].button,
+            &input);
+        if (input.main_stick_x != dpad_cases[index].main_stick_x ||
+            input.main_stick_y != dpad_cases[index].main_stick_y ||
+            input.buttons != UINT64_C(0) ||
+            input.left_trigger != UINT16_C(0) ||
+            input.right_trigger != UINT16_C(0))
+        {
+            return 0;
+        }
+    }
+    (void)memset(&input, 0, sizeof(input));
+    input.left_trigger = UINT16_C(1234);
+    input.right_trigger = UINT16_C(5678);
+    pf_native_apply_gamepad_button(
+        SDL_GAMEPAD_TYPE_GAMECUBE,
+        SDL_GAMEPAD_BUTTON_SOUTH,
+        &input);
+    return input.buttons == PF_INPUT_BUTTON_ATTACK &&
+           input.left_trigger == UINT16_C(1234) &&
+           input.right_trigger == UINT16_C(5678) &&
+           pf_native_result_format_smoke() != 0;
 }
 
 static void pf_native_close_devices(pf_native_session *session)
@@ -306,6 +546,9 @@ static void pf_native_read_gamepad(
     SDL_Gamepad *gamepad,
     pf_input_frame *input)
 {
+    const SDL_GamepadType type = SDL_GetGamepadType(gamepad);
+    int button;
+
     input->main_stick_x = pf_native_normalize_axis(
         SDL_GetGamepadAxis(gamepad, SDL_GAMEPAD_AXIS_LEFTX));
     input->main_stick_y = pf_native_normalize_axis(
@@ -318,50 +561,15 @@ static void pf_native_read_gamepad(
         SDL_GetGamepadAxis(gamepad, SDL_GAMEPAD_AXIS_LEFT_TRIGGER));
     input->right_trigger = pf_native_normalize_gamepad_trigger(
         SDL_GetGamepadAxis(gamepad, SDL_GAMEPAD_AXIS_RIGHT_TRIGGER));
-
-    if (SDL_GetGamepadButton(gamepad, SDL_GAMEPAD_BUTTON_DPAD_LEFT))
+    for (button = 0; button < (int)SDL_GAMEPAD_BUTTON_COUNT; ++button)
     {
-        input->main_stick_x = INT16_MIN;
-    }
-    if (SDL_GetGamepadButton(gamepad, SDL_GAMEPAD_BUTTON_DPAD_RIGHT))
-    {
-        input->main_stick_x = INT16_MAX;
-    }
-    if (SDL_GetGamepadButton(gamepad, SDL_GAMEPAD_BUTTON_DPAD_UP))
-    {
-        input->main_stick_y = INT16_MIN;
-    }
-    if (SDL_GetGamepadButton(gamepad, SDL_GAMEPAD_BUTTON_DPAD_DOWN))
-    {
-        input->main_stick_y = INT16_MAX;
-    }
-    if (SDL_GetGamepadButton(gamepad, SDL_GAMEPAD_BUTTON_SOUTH))
-    {
-        input->buttons |= PF_INPUT_BUTTON_ATTACK;
-    }
-    if (SDL_GetGamepadButton(gamepad, SDL_GAMEPAD_BUTTON_EAST))
-    {
-        input->buttons |= PF_INPUT_BUTTON_STRONG_ATTACK;
-    }
-    if (SDL_GetGamepadButton(gamepad, SDL_GAMEPAD_BUTTON_WEST))
-    {
-        input->buttons |= PF_INPUT_BUTTON_JUMP;
-    }
-    if (SDL_GetGamepadButton(gamepad, SDL_GAMEPAD_BUTTON_NORTH))
-    {
-        input->buttons |= PF_INPUT_BUTTON_SPECIAL;
-    }
-    if (SDL_GetGamepadButton(gamepad, SDL_GAMEPAD_BUTTON_LEFT_SHOULDER))
-    {
-        input->left_trigger = UINT16_MAX;
-    }
-    if (SDL_GetGamepadButton(gamepad, SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER))
-    {
-        input->right_trigger = UINT16_MAX;
-    }
-    if (SDL_GetGamepadButton(gamepad, SDL_GAMEPAD_BUTTON_BACK))
-    {
-        input->buttons |= PF_INPUT_BUTTON_TAUNT;
+        if (SDL_GetGamepadButton(gamepad, (SDL_GamepadButton)button))
+        {
+            pf_native_apply_gamepad_button(
+                type,
+                (SDL_GamepadButton)button,
+                input);
+        }
     }
 }
 
@@ -1050,6 +1258,152 @@ static void pf_native_draw_blast_inset(
     (void)SDL_RenderDebugText(renderer, left, top + inset_height + 3.0F, "BLAST ZONE");
 }
 
+static void pf_native_format_result(
+    const pf_m4_inspection *inspection,
+    char *text,
+    size_t text_size)
+{
+    char winners[48];
+    size_t used = 0u;
+    int winner_count = 0;
+    int player;
+
+    if (inspection->truncated != UINT8_C(0))
+    {
+        (void)snprintf(text, text_size, "TIME LIMIT");
+        return;
+    }
+
+    winners[0] = '\0';
+    for (player = 0; player < (int)inspection->player_count; ++player)
+    {
+        int written;
+
+        if ((inspection->winner_mask & (uint8_t)(UINT8_C(1) << player)) ==
+            UINT8_C(0))
+        {
+            continue;
+        }
+        written = snprintf(
+            winners + used,
+            sizeof(winners) - used,
+            "%sP%d",
+            winner_count == 0 ? "" : " + ",
+            player + 1);
+        if (written < 0 || (size_t)written >= sizeof(winners) - used)
+        {
+            break;
+        }
+        used += (size_t)written;
+        ++winner_count;
+    }
+
+    if (winner_count == 0)
+    {
+        (void)snprintf(text, text_size, "MATCH OVER - DRAW");
+    }
+    else
+    {
+        (void)snprintf(
+            text,
+            text_size,
+            "MATCH OVER - %s%s WINS",
+            winner_count == 1 ? "" : "TEAM ",
+            winners);
+    }
+}
+
+static int pf_native_result_format_smoke(void)
+{
+    static const struct pf_native_result_case
+    {
+        uint8_t player_count;
+        uint8_t terminated;
+        uint8_t truncated;
+        uint8_t winner_mask;
+        const char *expected;
+    } cases[] = {
+        {UINT8_C(2),
+         UINT8_C(1),
+         UINT8_C(0),
+         UINT8_C(2),
+         "MATCH OVER - P2 WINS"},
+        {UINT8_C(4),
+         UINT8_C(1),
+         UINT8_C(0),
+         UINT8_C(5),
+         "MATCH OVER - TEAM P1 + P3 WINS"},
+        {UINT8_C(2),
+         UINT8_C(1),
+         UINT8_C(0),
+         UINT8_C(0),
+         "MATCH OVER - DRAW"},
+        {UINT8_C(2),
+         UINT8_C(0),
+         UINT8_C(1),
+         UINT8_C(0),
+         "TIME LIMIT"}};
+    pf_m4_inspection inspection;
+    char result[96];
+    size_t index;
+
+    for (index = 0u; index < sizeof(cases) / sizeof(cases[0]); ++index)
+    {
+        (void)memset(&inspection, 0, sizeof(inspection));
+        inspection.player_count = cases[index].player_count;
+        inspection.terminated = cases[index].terminated;
+        inspection.truncated = cases[index].truncated;
+        inspection.winner_mask = cases[index].winner_mask;
+        pf_native_format_result(&inspection, result, sizeof(result));
+        if (strcmp(result, cases[index].expected) != 0)
+        {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+static void pf_native_draw_result_banner(
+    SDL_Renderer *renderer,
+    const pf_m4_inspection *inspection,
+    int width,
+    int height)
+{
+    const float banner_width =
+        width >= 560 ? 520.0F : (width >= 48 ? (float)width - 32.0F
+                                            : (float)width);
+    const float banner_height = 104.0F;
+    SDL_FRect banner = {
+        ((float)width - banner_width) * 0.5F,
+        ((float)height - banner_height) * 0.42F,
+        banner_width,
+        banner_height};
+    char result[96];
+    const char *rematch = "R - REMATCH";
+    float result_x;
+    float rematch_x;
+
+    pf_native_format_result(inspection, result, sizeof(result));
+    result_x = ((float)width - (float)strlen(result) * 8.0F) * 0.5F;
+    rematch_x = ((float)width - (float)strlen(rematch) * 8.0F) * 0.5F;
+
+    pf_native_set_color(renderer, 10u, 24u, 42u, 255u);
+    (void)SDL_RenderFillRect(renderer, &banner);
+    pf_native_set_color(renderer, 255u, 215u, 91u, 255u);
+    (void)SDL_RenderRect(renderer, &banner);
+    (void)SDL_RenderDebugText(
+        renderer,
+        result_x,
+        banner.y + 27.0F,
+        result);
+    pf_native_set_color(renderer, 93u, 227u, 222u, 255u);
+    (void)SDL_RenderDebugText(
+        renderer,
+        rematch_x,
+        banner.y + 59.0F,
+        rematch);
+}
+
 static int pf_native_render(
     SDL_Renderer *renderer,
     pf_native_session *session)
@@ -1111,7 +1465,10 @@ static int pf_native_render(
         (unsigned)session->stock_count,
         inspection.tick,
         pf_native_active_device_count(session),
-        session->paused != 0 ? "PAUSED" : "60 Hz",
+        inspection.terminated != UINT8_C(0) ||
+                inspection.truncated != UINT8_C(0)
+            ? "RESULT"
+            : (session->paused != 0 ? "PAUSED" : "60 Hz"),
         session->collision_inspector != 0 ? "ON" : "OFF");
     (void)SDL_RenderDebugText(
         renderer,
@@ -1119,6 +1476,15 @@ static int pf_native_render(
         (float)height - 18.0F,
         "Esc quit | P pause | . step | R reset | F1 collision | F2 duel/teams | F3 stocks");
     pf_native_draw_blast_inset(renderer, &inspection.stage, width);
+    if (inspection.terminated != UINT8_C(0) ||
+        inspection.truncated != UINT8_C(0))
+    {
+        pf_native_draw_result_banner(
+            renderer,
+            &inspection,
+            width,
+            height);
+    }
     return SDL_RenderPresent(renderer);
 }
 

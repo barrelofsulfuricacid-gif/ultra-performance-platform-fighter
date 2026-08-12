@@ -212,6 +212,12 @@ static int run_smoke(void)
         result = 1;
         goto cleanup;
     }
+    if (!pf_m4_native_playtest_smoke())
+    {
+        (void)puts("native-client-smoke=fail stage=playtest-contract");
+        result = 1;
+        goto cleanup;
+    }
 
     pf_render_packet_build_probe(&packet);
     if (!pf_render_packet_validate(&packet))
