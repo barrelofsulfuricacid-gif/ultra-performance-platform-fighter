@@ -17113,7 +17113,8 @@ static int run_reference_callback_owner_test(
     }
     sim->world.action_state[0] =
         (uint8_t)PF_M4_ACTION_RUN_TURNAROUND;
-    sim->world.action_ticks[0] = content->fighter.run_turnaround_ticks;
+    sim->world.action_ticks[0] =
+        (uint16_t)(content->fighter.run_turnaround_ticks - UINT16_C(1));
     sim->world.source_submotion[0] =
         (uint16_t)PF_M4_FALCON_SUBMOTION_TURN_RUN;
     sim->world.facing[0] = INT8_C(-1);
@@ -17183,6 +17184,40 @@ static int run_reference_callback_owner_test(
             " action=%u ticks=%u\n",
             (unsigned int)inspection.players[0].action_state,
             (unsigned int)inspection.players[0].action_ticks);
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0xca130003)),
+            PF_STATUS_OK,
+            "callback-owner-tech-roll-reset"))
+    {
+        return 0;
+    }
+    sim->world.action_state[0] = (uint8_t)PF_M4_ACTION_TECH_ROLL;
+    sim->world.action_ticks[0] =
+        content->fighter.tech_roll_ticks - UINT16_C(1);
+    sim->world.facing[0] = INT8_C(-1);
+    sim->world.tech_direction[0] = INT8_C(-1);
+    sim->world.previous_tilt_x_direction[0] = INT8_C(0);
+    sim->world.tilt_x_age[0] = UINT8_C(254);
+    if (!step_duel(
+            sim,
+            INT16_MAX,
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_STANDING_TURN ||
+        inspection.players[0].tech_direction != INT8_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=callback-owner-tech-roll"
+            " action=%u ticks=%u tech=%d\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks,
+            (int)inspection.players[0].tech_direction);
         return 0;
     }
 

@@ -136,7 +136,7 @@ static int test_startup_view_contract(void)
            test_dash_axis == 32767 &&
            test_aerial_landing_lag_ticks == 15 &&
            test_strong_aerial_landing_lag_ticks == 30 &&
-           test_view[TEST_VIEW_SCHEMA] == 48 &&
+           test_view[TEST_VIEW_SCHEMA] == 49 &&
            test_view[TEST_VIEW_TICK] == 0 &&
            test_view[TEST_STOCK_COUNT] == 4 &&
            test_view[TEST_PLAYER0_BASE + TEST_PLAYER_STOCKS] == 4 &&
@@ -301,29 +301,29 @@ static int test_dynamic_view_contract(void)
 
     (void)memset(&player, 0, sizeof(player));
     player.hitbox_active = UINT8_C(1);
-    player.hitbox_left_f32 = ((float)INT32_C(101) / 65536.0f);
-    player.hitbox_right_f32 = ((float)INT32_C(202) / 65536.0f);
-    player.hitbox_top_f32 = (-((float)INT32_C(303) / 65536.0f));
-    player.hitbox_bottom_f32 = ((float)INT32_C(404) / 65536.0f);
+    player.hitbox_left_f32 = 101.0f;
+    player.hitbox_right_f32 = 202.0f;
+    player.hitbox_top_f32 = -303.0f;
+    player.hitbox_bottom_f32 = 404.0f;
     player.hit_sphere_count = UINT8_C(2);
-    player.hit_spheres[0].center_x_f32 = ((float)INT32_C(1001) / 65536.0f);
-    player.hit_spheres[0].center_y_f32 = ((float)INT32_C(1002) / 65536.0f);
-    player.hit_spheres[0].radius_f32 = ((float)INT32_C(1003) / 65536.0f);
+    player.hit_spheres[0].center_x_f32 = 1001.0f;
+    player.hit_spheres[0].center_y_f32 = 1002.0f;
+    player.hit_spheres[0].radius_f32 = 1003.0f;
     player.hit_spheres[0].effect_index = UINT8_C(4);
     player.hit_spheres[0].hitbox_id = UINT8_C(5);
     player.hit_spheres[0].group_id = UINT8_C(6);
-    player.hit_spheres[1].center_x_f32 = ((float)INT32_C(2001) / 65536.0f);
-    player.hit_spheres[1].center_y_f32 = ((float)INT32_C(2002) / 65536.0f);
-    player.hit_spheres[1].radius_f32 = ((float)INT32_C(2003) / 65536.0f);
+    player.hit_spheres[1].center_x_f32 = 2001.0f;
+    player.hit_spheres[1].center_y_f32 = 2002.0f;
+    player.hit_spheres[1].radius_f32 = 2003.0f;
     player.hit_spheres[1].effect_index = UINT8_C(7);
     player.hit_spheres[1].hitbox_id = UINT8_C(8);
     player.hit_spheres[1].group_id = UINT8_C(9);
     player.shield_strength = UINT16_C(43210);
     player.shield_active = UINT8_C(1);
-    player.shield_left_f32 = (-((float)INT32_C(501) / 65536.0f));
-    player.shield_right_f32 = ((float)INT32_C(502) / 65536.0f);
-    player.shield_top_f32 = (-((float)INT32_C(503) / 65536.0f));
-    player.shield_bottom_f32 = ((float)INT32_C(504) / 65536.0f);
+    player.shield_left_f32 = -501.0f;
+    player.shield_right_f32 = 502.0f;
+    player.shield_top_f32 = -503.0f;
+    player.shield_bottom_f32 = 504.0f;
     player.shield_tilt_x = -INT16_C(505);
     player.shield_tilt_y = INT16_C(506);
 
@@ -427,7 +427,7 @@ int main(void)
     }
 
     (void)printf(
-        "m4-web-bridge=pass view_schema=48 endpoints=3 renders=%d\n",
+        "m4-web-bridge=pass view_schema=49 endpoints=3 renders=%d\n",
         test_render_count);
     return 0;
 }

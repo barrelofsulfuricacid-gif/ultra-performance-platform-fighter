@@ -553,7 +553,7 @@ static int run_stock_respawn_match_test(
         inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_REVIVAL_PLATFORM ||
         inspection.players[0].action_ticks != UINT16_C(0) ||
-        inspection.players[0].grounded != UINT8_C(1) ||
+        inspection.players[0].grounded != UINT8_C(0) ||
         inspection.players[0].support !=
             (uint8_t)PF_M4_SURFACE_REVIVAL_PLATFORM ||
         inspection.players[0].invulnerable != UINT8_C(1) ||
@@ -561,10 +561,16 @@ static int run_stock_respawn_match_test(
         inspection.players[0].position_x_f32 !=
             -(INT32_C(4) * 1.0f) / INT32_C(5) ||
         inspection.players[0].position_y_f32 !=
-            inspection.stage.revival_platform_start_y_f32 -
+            inspection.stage.revival_platform_start_y_f32 +
+                (inspection.stage.revival_platform_end_y_f32 -
+                 inspection.stage.revival_platform_start_y_f32) /
+                    (float)inspection.stage.revival_platform_descent_ticks -
                 (INT32_C(4) * 1.0f) / INT32_C(5) ||
         inspection.players[0].revival_platform_y_f32 !=
-            inspection.stage.revival_platform_start_y_f32 ||
+            inspection.stage.revival_platform_start_y_f32 +
+                (inspection.stage.revival_platform_end_y_f32 -
+                 inspection.stage.revival_platform_start_y_f32) /
+                    (float)inspection.stage.revival_platform_descent_ticks ||
         inspection.players[0].revival_platform_left_f32 !=
             inspection.players[0].position_x_f32 -
                 inspection.stage.revival_platform_half_width_f32 ||
@@ -583,19 +589,59 @@ static int run_stock_respawn_match_test(
         result.events[1].detail != UINT16_C(1) ||
         !events_equal(&result, &loaded_result))
     {
+        (void)fprintf(
+            stderr,
+            "m4-match=debug operation=respawn-delay-boundary"
+            " active=%u stocks=%u respawn=%u respawn_invuln=%u"
+            " damage=%.9g action=%u ticks=%u grounded=%u support=%u"
+            " invulnerable=%u platform_active=%u"
+            " position=(%.9g,%.9g) platform=(%.9g,%.9g,%.9g)"
+            " stage=(%.9g,%.9g,%.9g ticks=%u/%u)"
+            " events=%u types=(%u,%u) details=(%u,%u) equal=%d\n",
+            (unsigned int)inspection.players[0].active,
+            (unsigned int)inspection.players[0].stocks_remaining,
+            (unsigned int)inspection.players[0].respawn_ticks,
+            (unsigned int)inspection.players[0].respawn_invulnerability_ticks,
+            (double)inspection.players[0].damage_f32,
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks,
+            (unsigned int)inspection.players[0].grounded,
+            (unsigned int)inspection.players[0].support,
+            (unsigned int)inspection.players[0].invulnerable,
+            (unsigned int)inspection.players[0].revival_platform_active,
+            (double)inspection.players[0].position_x_f32,
+            (double)inspection.players[0].position_y_f32,
+            (double)inspection.players[0].revival_platform_y_f32,
+            (double)inspection.players[0].revival_platform_left_f32,
+            (double)inspection.players[0].revival_platform_right_f32,
+            (double)inspection.stage.revival_platform_start_y_f32,
+            (double)inspection.stage.revival_platform_end_y_f32,
+            (double)inspection.stage.revival_platform_half_width_f32,
+            (unsigned int)inspection.stage.revival_platform_descent_ticks,
+            (unsigned int)inspection.stage.revival_platform_hold_ticks,
+            (unsigned int)result.event_count,
+            (unsigned int)result.events[0].type,
+            (unsigned int)result.events[1].type,
+            (unsigned int)result.events[0].detail,
+            (unsigned int)result.events[1].detail,
+            events_equal(&result, &loaded_result));
         return fail("respawn-delay-boundary");
     }
 
     for (tick = UINT32_C(0); tick < UINT32_C(3); ++tick)
     {
         const uint16_t expected_action_ticks = (uint16_t)(tick + UINT32_C(1));
-        const int32_t expected_platform_y =
+        const uint16_t expected_platform_ticks =
+            expected_action_ticks + UINT16_C(1) <
+                    inspection.stage.revival_platform_descent_ticks
+                ? (uint16_t)(expected_action_ticks + UINT16_C(1))
+                : inspection.stage.revival_platform_descent_ticks;
+        const float expected_platform_y =
             inspection.stage.revival_platform_start_y_f32 +
-            (int32_t)(
-                ((int64_t)inspection.stage.revival_platform_end_y_f32 -
-                 (int64_t)inspection.stage.revival_platform_start_y_f32) *
-                (int64_t)expected_action_ticks /
-                (int64_t)inspection.stage.revival_platform_descent_ticks);
+            (inspection.stage.revival_platform_end_y_f32 -
+             inspection.stage.revival_platform_start_y_f32) *
+                (float)expected_platform_ticks /
+                (float)inspection.stage.revival_platform_descent_ticks;
         const uint64_t player0_buttons =
             tick == UINT32_C(0) ? PF_INPUT_BUTTON_ATTACK : UINT64_C(0);
 
@@ -637,6 +683,29 @@ static int run_stock_respawn_match_test(
             inspection.players[0].revival_platform_y_f32 !=
                 expected_platform_y)
         {
+            (void)fprintf(
+                stderr,
+                "m4-match=debug operation=revival-platform-deterministic-descent"
+                " loop=%" PRIu32 " action=%u ticks=%u expected_ticks=%u"
+                " position=(%.9g,%.9g) loaded=(%.9g,%.9g)"
+                " velocity=(%.9g,%.9g) platform=%u y=%.9g expected_y=%.9g"
+                " events=%u equal=%d hash_equal=%d\n",
+                tick,
+                (unsigned int)inspection.players[0].action_state,
+                (unsigned int)inspection.players[0].action_ticks,
+                (unsigned int)expected_action_ticks,
+                (double)inspection.players[0].position_x_f32,
+                (double)inspection.players[0].position_y_f32,
+                (double)loaded_inspection.players[0].position_x_f32,
+                (double)loaded_inspection.players[0].position_y_f32,
+                (double)inspection.players[0].velocity_x_f32,
+                (double)inspection.players[0].velocity_y_f32,
+                (unsigned int)inspection.players[0].revival_platform_active,
+                (double)inspection.players[0].revival_platform_y_f32,
+                (double)expected_platform_y,
+                (unsigned int)result.event_count,
+                events_equal(&result, &loaded_result),
+                hash_equal(&source_hash, &loaded_hash));
             return fail("revival-platform-deterministic-descent");
         }
         if (tick == UINT32_C(0))
@@ -884,7 +953,7 @@ static int run_stock_respawn_match_test(
             " stocks=%u active=%u action=%u terminated=(%u,%u)"
             " winner=(%u,%u) events=%u"
             " types=(%u,%u,%u) details=(%u,%u,%u)"
-            " transitions=(0x%08" PRIx32 ",0x%08" PRIx32 ")\n",
+            " transitions=(%.9g,%.9g)\n",
             (unsigned int)inspection.players[0].stocks_remaining,
             (unsigned int)inspection.players[0].active,
             (unsigned int)inspection.players[0].action_state,
@@ -899,8 +968,8 @@ static int run_stock_respawn_match_test(
             (unsigned int)result.events[0].detail,
             (unsigned int)result.events[1].detail,
             (unsigned int)result.events[2].detail,
-            (uint32_t)result.events[1].velocity_x_f32,
-            result.events[1].value_f32);
+            (double)result.events[1].velocity_x_f32,
+            (double)result.events[1].value_f32);
         return fail("final-stock-match-result");
     }
     return 1;
@@ -1079,7 +1148,7 @@ static int run_simultaneous_ko_sudden_death_test(
             "m4-match=debug operation=sudden-death-resolution"
             " tick=%" PRIu32 " winner=%u result_winner=%u"
             " stocks=(%u,%u) events=%u types=(%u,%u,%u,%u)"
-            " details=(%u,%u) x=(%" PRId32 ",%" PRId32 ")\n",
+            " details=(%u,%u) x=(%.9g,%.9g)\n",
             tick,
             (unsigned int)inspection.winner_mask,
             (unsigned int)result.winner_mask,
@@ -1092,8 +1161,8 @@ static int run_simultaneous_ko_sudden_death_test(
             (unsigned int)result.events[3].type,
             (unsigned int)result.events[2].detail,
             (unsigned int)result.events[3].detail,
-            inspection.players[0].position_x_f32,
-            inspection.players[1].position_x_f32);
+            (double)inspection.players[0].position_x_f32,
+            (double)inspection.players[1].position_x_f32);
         return fail("sudden-death-lowest-port-resolution");
     }
     return 1;

@@ -309,21 +309,21 @@ static int run_hit_and_reflection_contract(
         (void)fprintf(
             stderr,
             "m4-reflector=debug ground event=%d source=%u target=%u "
-            "detail=%u vy=%d damage=%u p0_action=%u p0_ticks=%u "
-            "hitbox=%u p0x=%d p1x=%d box=[%d,%d]\n",
+            "detail=%u vy=%.9g damage=%.9g p0_action=%u p0_ticks=%u "
+            "hitbox=%u p0x=%.9g p1x=%.9g box=[%.9g,%.9g]\n",
             event != NULL,
             event != NULL ? (unsigned int)event->source_player : 255U,
             event != NULL ? (unsigned int)event->target_player : 255U,
             event != NULL ? (unsigned int)event->detail : 65535U,
-            event != NULL ? event->velocity_y_f32 : 0,
-            inspection.players[1].damage_f32,
+            event != NULL ? (double)event->velocity_y_f32 : 0.0,
+            (double)inspection.players[1].damage_f32,
             (unsigned int)inspection.players[0].action_state,
             (unsigned int)inspection.players[0].action_ticks,
             (unsigned int)inspection.players[0].hitbox_active,
-            inspection.players[0].position_x_f32,
-            inspection.players[1].position_x_f32,
-            inspection.players[0].hitbox_left_f32,
-            inspection.players[0].hitbox_right_f32);
+            (double)inspection.players[0].position_x_f32,
+            (double)inspection.players[1].position_x_f32,
+            (double)inspection.players[0].hitbox_left_f32,
+            (double)inspection.players[0].hitbox_right_f32);
         return fail("ground-reflector-downward-hit");
     }
 
@@ -349,7 +349,7 @@ static int run_hit_and_reflection_contract(
         (void)fprintf(
             stderr,
             "m4-reflector=debug reflect event=%d source=%u target=%u "
-            "detail=%u state=%u owner=%u vx=%d p0_action=%u ticks=%u "
+            "detail=%u state=%u owner=%u vx=%.9g p0_action=%u ticks=%u "
             "hitbox=%u\n",
             event != NULL,
             event != NULL ? (unsigned int)event->source_player : 255U,
@@ -357,7 +357,7 @@ static int run_hit_and_reflection_contract(
             event != NULL ? (unsigned int)event->detail : 65535U,
             (unsigned int)inspection.projectile.state,
             (unsigned int)inspection.projectile.owner,
-            inspection.projectile.velocity_x_f32,
+            (double)inspection.projectile.velocity_x_f32,
             (unsigned int)inspection.players[0].action_state,
             (unsigned int)inspection.players[0].action_ticks,
             (unsigned int)inspection.players[0].hitbox_active);

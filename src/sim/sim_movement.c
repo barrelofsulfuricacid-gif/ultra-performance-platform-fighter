@@ -7482,7 +7482,8 @@ reference_project_callback_owner(
         owner.entered_this_tick = UINT8_C(1);
     }
     else if (action_state == (uint8_t)PF_M4_ACTION_RUN_TURNAROUND &&
-             action_ticks >= fighter->run_turnaround_ticks)
+             (uint32_t)action_ticks + UINT32_C(1) >=
+                 (uint32_t)fighter->run_turnaround_ticks)
     {
         const int target_held =
             axis_direction(
@@ -8517,6 +8518,13 @@ pf_status step_player(
             (uint8_t)PF_M4_ACTION_SHIELD_RELEASE)
         {
             scratch->powershield[player_index] = UINT8_C(0);
+        }
+        if (previous_action_state == (uint8_t)PF_M4_ACTION_TECH_ROLL)
+        {
+            /* PassiveStandF/B clears its direction-owned move variable when
+             * Anim installs Wait.  Wait IASA can consume the current sample
+             * immediately, so the late TechRoll state branch is skipped. */
+            scratch->tech_direction[player_index] = INT8_C(0);
         }
     }
     if (callback_owner.entered_this_tick != UINT8_C(0) &&
@@ -15353,7 +15361,8 @@ pf_status step_player(
             (float)action_ticks * source_animation_rate_f32;
     }
     else if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
-             action_is_aerial_landing(action_state))
+             falcon_landing_air_submotion(
+                 action_state, &source_submotion))
     {
         if (!falcon_landing_air_clock(
                 fighter,
@@ -16946,7 +16955,8 @@ pf_status step_player(
         source_animation_rate_f32 = 1.0f;
     }
     else if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
-             action_is_aerial_landing(action_state))
+             falcon_landing_air_submotion(
+                 action_state, &source_submotion))
     {
         if (!falcon_landing_air_clock(
                 fighter,

@@ -102,6 +102,14 @@ static uint32_t i32_bits(int32_t value)
     return result;
 }
 
+static int32_t f32_bits(float value)
+{
+    int32_t result;
+
+    (void)memcpy(&result, &value, sizeof(result));
+    return result;
+}
+
 static int hash_equal(
     const pf_state_hash *left,
     const pf_state_hash *right)
@@ -181,13 +189,13 @@ static int verify_transition_contract(
             (uint32_t)player->stale_move_ids[7] |
             ((uint32_t)player->stale_move_ids[8] << 8U);
         if (transition->compact_observation.values[
-                base + UINT16_C(2)] != player->position_x_f32 ||
+                base + UINT16_C(2)] != f32_bits(player->position_x_f32) ||
             transition->compact_observation.values[
-                base + UINT16_C(3)] != player->position_y_f32 ||
+                base + UINT16_C(3)] != f32_bits(player->position_y_f32) ||
             transition->compact_observation.values[
-                base + UINT16_C(4)] != player->velocity_x_f32 ||
+                base + UINT16_C(4)] != f32_bits(player->velocity_x_f32) ||
             transition->compact_observation.values[
-                base + UINT16_C(5)] != player->velocity_y_f32 ||
+                base + UINT16_C(5)] != f32_bits(player->velocity_y_f32) ||
             transition->compact_observation.values[
                 base + PF_RL_COMPACT_PLAYER_STOCKS_OFFSET] !=
                 (int32_t)player->stocks_remaining ||
@@ -213,7 +221,7 @@ static int verify_transition_contract(
             transition->compact_observation.values[
                 PF_RL_COMPACT_SHIELD_HEALTH_BASE +
                 (uint16_t)player_index] !=
-                (int32_t)player->shield_health_f32 ||
+                f32_bits(player->shield_health_f32) ||
             transition->compact_observation.values[
                 PF_RL_COMPACT_SHIELD_TILT_BASE +
                 (uint16_t)(UINT16_C(2) *
@@ -228,7 +236,7 @@ static int verify_transition_contract(
             transition->compact_observation.values[
                 stale_base +
                 PF_RL_COMPACT_STALE_MOVE_MULTIPLIER_OFFSET] !=
-                (int32_t)player->stale_move_multiplier_f32 ||
+                f32_bits(player->stale_move_multiplier_f32) ||
             i32_bits(transition->compact_observation.values[
                 stale_base +
                 PF_RL_COMPACT_STALE_MOVE_COUNT_IDS_0_2_OFFSET]) !=
@@ -362,8 +370,8 @@ static int run_duel_test(const pf_content_view *content)
             INT16_C(0) ||
         transition.compact_observation.values[
             PF_RL_COMPACT_SHIELD_HEALTH_BASE] !=
-            (int32_t)transition.structured_observation.players[0]
-                .shield_health_f32 ||
+            f32_bits(transition.structured_observation.players[0]
+                         .shield_health_f32) ||
         transition.compact_observation.values[
             PF_RL_COMPACT_SHIELD_TILT_BASE] !=
             (int32_t)transition.structured_observation.players[0]
@@ -387,7 +395,7 @@ static int run_duel_test(const pf_content_view *content)
         (void)fprintf(
             stderr,
             "rl-api=fail operation=duel-light-shield strength=%u"
-            " compact=%" PRId32 " tilt=(%d,%d) health=%" PRIu32
+            " compact=%" PRId32 " tilt=(%d,%d) health=%.9g"
             "\n",
             (unsigned int)transition.structured_observation.players[0]
                 .shield_strength,
@@ -397,7 +405,7 @@ static int run_duel_test(const pf_content_view *content)
                 .shield_tilt_x,
             (int)transition.structured_observation.players[0]
                 .shield_tilt_y,
-            transition.structured_observation.players[0]
+            (double)transition.structured_observation.players[0]
                 .shield_health_f32);
         return 0;
     }
@@ -491,14 +499,14 @@ static int run_duel_test(const pf_content_view *content)
         (void)fprintf(
             stderr,
             "rl-api=fail operation=duel-movement tick=%" PRIu64
-            " grounded=%u y=%" PRId32 " reward0=%" PRId32
-            " reward1=%" PRId32 "\n",
+            " grounded=%u y=%.9g reward0=%.9g"
+            " reward1=%.9g\n",
             transition.structured_observation.tick,
             (unsigned int)transition.structured_observation.players[0]
                 .grounded,
-            transition.structured_observation.players[0].position_y_f32,
-            transition.reward_f32[0],
-            transition.reward_f32[1]);
+            (double)transition.structured_observation.players[0].position_y_f32,
+            (double)transition.reward_f32[0],
+            (double)transition.reward_f32[1]);
         return 0;
     }
 
@@ -540,13 +548,13 @@ static int run_duel_test(const pf_content_view *content)
             stderr,
             "rl-api=fail operation=duel-terminal-reward"
             " completed=%" PRIu64 " terminated=%u winner=%u"
-            " reward=(%" PRId32 ",%" PRId32 ") legal=(%" PRIu64
+            " reward=(%.9g,%.9g) legal=(%" PRIu64
             ",%" PRIu64 ")\n",
             transition.tick_result.completed_tick,
             (unsigned int)transition.tick_result.terminated,
             (unsigned int)transition.tick_result.winner_mask,
-            transition.reward_f32[0],
-            transition.reward_f32[1],
+            (double)transition.reward_f32[0],
+            (double)transition.reward_f32[1],
             transition.legal_buttons[0],
             transition.legal_buttons[1]);
         return 0;
@@ -918,13 +926,13 @@ int main(void)
 
     (void)printf(
         "rl-api=pass compact_values=%u batch_environments=%u"
-        " reward_f32=%" PRId32
-        " engagement_limit_f32=%" PRId32
+        " reward_f32=%.9g"
+        " engagement_limit_f32=%.9g"
         " schema=%u\n",
         (unsigned int)PF_RL_COMPACT_VALUE_COUNT,
         (unsigned int)TEST_BATCH_ENVIRONMENTS,
-        1.0f,
-        PF_RL_ENGAGEMENT_POTENTIAL_LIMIT_F32,
+        1.0,
+        (double)PF_RL_ENGAGEMENT_POTENTIAL_LIMIT_F32,
         (unsigned int)PF_RL_SCHEMA_VERSION);
     return 0;
 }

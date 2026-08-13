@@ -22,6 +22,14 @@ typedef struct test_storage
     alignas(TEST_MEMORY_ALIGNMENT) uint8_t scratch[TEST_MEMORY_BYTES];
 } test_storage;
 
+static int32_t f32_bits(float value)
+{
+    int32_t result;
+
+    (void)memcpy(&result, &value, sizeof(result));
+    return result;
+}
+
 typedef struct test_command
 {
     int16_t x;
@@ -981,7 +989,7 @@ static int run_save_replay_rl_contract(
             content->projectile.speed_f32 ||
         transition.compact_observation.values[
             PF_RL_COMPACT_PROJECTILE_BASE + UINT16_C(2)] !=
-            content->projectile.speed_f32 ||
+            f32_bits(content->projectile.speed_f32) ||
         (uint32_t)transition.compact_observation.values[
             PF_RL_COMPACT_PROJECTILE_BASE +
             PF_RL_COMPACT_PROJECTILE_STATE_BITS_OFFSET] !=

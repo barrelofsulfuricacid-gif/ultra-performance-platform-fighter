@@ -20,6 +20,14 @@ typedef struct test_storage
     alignas(TEST_MEMORY_ALIGNMENT) uint8_t scratch[TEST_MEMORY_BYTES];
 } test_storage;
 
+static int32_t f32_bits(float value)
+{
+    int32_t result;
+
+    (void)memcpy(&result, &value, sizeof(result));
+    return result;
+}
+
 typedef struct test_command
 {
     int16_t x;
@@ -450,8 +458,8 @@ static int run_directional_throw_contract(
                 stderr,
                 "m4-item=debug direction_index=%" PRIu32
                 " event=%u detail=%u source=%u item_source=%u "
-                "holder=%u action=%u state=%u velocity_x=%" PRId32
-                " velocity_y=%" PRId32 "\n",
+                "holder=%u action=%u state=%u velocity_x=%.9g"
+                " velocity_y=%.9g\n",
                 direction_index,
                 event != NULL ? (unsigned int)event->type : 0U,
                 event != NULL ? (unsigned int)event->detail : 0U,
@@ -460,8 +468,8 @@ static int run_directional_throw_contract(
                 (unsigned int)inspection.item.holder,
                 (unsigned int)inspection.players[0].action_state,
                 (unsigned int)inspection.item.state,
-                inspection.item.velocity_x_f32,
-                inspection.item.velocity_y_f32);
+                (double)inspection.item.velocity_x_f32,
+                (double)inspection.item.velocity_y_f32);
             return fail("directional-throw");
         }
     }
@@ -604,7 +612,7 @@ static int run_glide_toss_contract(
         PF_INPUT_BUTTON_ATTACK,
         UINT16_C(0)};
     const test_command neutral = {0};
-    int32_t glide_velocity;
+    float glide_velocity;
 
     if (!initialize_sim(&storage, view, &sim) ||
         !reset_sim(sim) ||
@@ -622,7 +630,7 @@ static int run_glide_toss_contract(
     if (find_event(&result, PF_SIM_EVENT_ITEM_THROW) == NULL ||
         inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_ITEM_THROW ||
-        glide_velocity <= INT32_C(0) ||
+        glide_velocity <= 0.0f ||
         inspection.item.velocity_x_f32 <=
             content->item.forward_throw.velocity_x_f32)
     {
@@ -699,7 +707,7 @@ static int run_jump_cancel_throw_contract(
         PF_INPUT_BUTTON_ATTACK,
         UINT16_C(0)};
     const test_command neutral = {0};
-    int32_t jump_cancel_velocity;
+    float jump_cancel_velocity;
     uint32_t guard;
 
     if (!initialize_sim(&storage, view, &sim) ||
@@ -838,15 +846,15 @@ static int run_aerial_drop_contract(
     {
         (void)fprintf(
             stderr,
-            "m4-item=debug drop-hit=%d damage=%" PRIu32
-            " item_x=%" PRId32 " item_y=%" PRId32
-            " target_x=%" PRId32 " target_y=%" PRId32 "\n",
+            "m4-item=debug drop-hit=%d damage=%.9g"
+            " item_x=%.9g item_y=%.9g"
+            " target_x=%.9g target_y=%.9g\n",
             hit_seen,
-            inspection.players[1].damage_f32,
-            inspection.item.position_x_f32,
-            inspection.item.position_y_f32,
-            inspection.players[1].position_x_f32,
-            inspection.players[1].position_y_f32);
+            (double)inspection.players[1].damage_f32,
+            (double)inspection.item.position_x_f32,
+            (double)inspection.item.position_y_f32,
+            (double)inspection.players[1].position_x_f32,
+            (double)inspection.players[1].position_y_f32);
         return fail("aerial-drop-hit");
     }
 
@@ -1102,7 +1110,8 @@ static int run_save_replay_rl_contract(
         transition.structured_observation.item.position_x_f32 !=
             content->item.spawn_x_f32 ||
         transition.compact_observation.values[
-            PF_RL_COMPACT_ITEM_BASE] != content->item.spawn_x_f32 ||
+            PF_RL_COMPACT_ITEM_BASE] !=
+            f32_bits(content->item.spawn_x_f32) ||
         (uint32_t)transition.compact_observation.values[
             PF_RL_COMPACT_ITEM_BASE +
             PF_RL_COMPACT_ITEM_STATE_BITS_OFFSET] !=

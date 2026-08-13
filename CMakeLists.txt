@@ -300,7 +300,7 @@ function(pf_add_smoke_product target product_name render_probe)
         set_tests_properties(
             ${target}.smoke
             PROPERTIES PASS_REGULAR_EXPRESSION
-                       "${product_name}-smoke=pass sim_abi=5 tick_hz=60")
+                       "${product_name}-smoke=pass sim_abi=6 tick_hz=60")
     endif()
 endfunction()
 
@@ -326,7 +326,7 @@ if(PF_BUILD_NATIVE_CLIENT)
             set_tests_properties(
                 native_client.smoke
                 PROPERTIES PASS_REGULAR_EXPRESSION
-                           "native-client-smoke=pass sim_abi=5 tick_hz=60 sdl=3.4.12 event=pass gamepad=pass geometry=pass batch_draws=1")
+                           "native-client-smoke=pass sim_abi=6 tick_hz=60 sdl=3.4.12 event=pass gamepad=pass geometry=pass batch_draws=1")
         endif()
     else()
         pf_add_smoke_product(native_client "native-client" 0)
@@ -531,7 +531,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.contract
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "sim-contract=pass abi=5 tick_hz=60")
+                   "sim-contract=pass abi=6 tick_hz=60")
 
     add_executable(sim_world_test tests/sim/test_sim_world.c)
     target_link_libraries(sim_world_test PRIVATE sim)
@@ -864,7 +864,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.item
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-item=pass content_schema=78 state_schema=78 save_bytes=1800 item_invariants=44 bat_drop=1 glide_toss=1 jump_cancel_throw=1 directional_throws=4 replay=1 rl=1")
+                   "m4-item=pass content_schema=78 state_schema=82 save_bytes=1800 item_invariants=44 bat_drop=1 glide_toss=1 jump_cancel_throw=1 directional_throws=4 replay=1 rl=1")
 
     add_executable(
         projectile_test
@@ -881,7 +881,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.projectile
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-projectile=pass content_schema=78 state_schema=78 save_bytes=1800 projectile_invariants=46 short_hop_laser=1 powershield_reflect=1 replay=1 rl=1 emergent_technique_tests=skipped")
+                   "m4-projectile=pass content_schema=78 state_schema=82 save_bytes=1800 projectile_invariants=46 short_hop_laser=1 powershield_reflect=1 replay=1 rl=1 emergent_technique_tests=skipped")
 
     add_executable(
         reflector_test
@@ -898,7 +898,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.reflector
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-reflector=pass content_schema=78 state_schema=78 save_bytes=1800 reflector_invariants=32 shine_spike=1 projectile_reflect=1 replay=1 rl=1")
+                   "m4-reflector=pass content_schema=78 state_schema=82 save_bytes=1800 reflector_invariants=32 shine_spike=1 projectile_reflect=1 replay=1 rl=1")
 
     add_executable(
         charge_test
@@ -918,7 +918,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.charge
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-charge=pass content_schema=78 state_schema=78 save_bytes=1800 charge_invariants=28 charge_storage_cancel=1 resumed_release=1 replay=1 rl=1")
+                   "m4-charge=pass content_schema=78 state_schema=82 save_bytes=1800 charge_invariants=28 charge_storage_cancel=1 resumed_release=1 replay=1 rl=1")
 
     add_executable(match_test tests/sim/test_match.c)
     target_link_libraries(match_test PRIVATE sim)
@@ -955,7 +955,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         web.playtest
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-web-bridge=pass view_schema=48 endpoints=3 renders=[1-9][0-9]*")
+                   "m4-web-bridge=pass view_schema=49 endpoints=3 renders=[1-9][0-9]*")
 
     add_executable(rl_api_test tests/sim/test_rl_api.c)
     target_link_libraries(rl_api_test PRIVATE sim)
@@ -968,7 +968,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.rl_api
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "rl-api=pass compact_values=102 batch_environments=6 reward_f32=65536 engagement_limit_f32=16384 schema=14")
+                   "rl-api=pass compact_values=102 batch_environments=6 reward_f32=1 engagement_limit_f32=0.25 schema=14")
 
     if(PF_BUILD_DETERMINISM_CORPUS)
         add_test(NAME sim.replay_corpus COMMAND replay_corpus)
@@ -983,7 +983,7 @@ if(BUILD_TESTING)
         set_tests_properties(
             headless.smoke
             PROPERTIES PASS_REGULAR_EXPRESSION
-                       "headless-smoke=pass sim_abi=5 tick_hz=60")
+                       "headless-smoke=pass sim_abi=6 tick_hz=60")
 
         add_test(
             NAME headless.throughput_smoke
