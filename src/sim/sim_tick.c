@@ -3,7 +3,6 @@
 #include "sim_ssbm_stage_data.h"
 
 #include <stdint.h>
-#include <stdio.h>
 #include <string.h>
 
 static void pf_write_result(
@@ -866,18 +865,6 @@ pf_status pf_sim_tick_impl(
             &rng_state);
         if (status != PF_STATUS_OK)
         {
-            (void)fprintf(
-                stderr,
-                "sim-tick=diagnostic step-player-fail player=%u"
-                " action=%u ticks=%u source=%u frame=%.9g rate=%.9g"
-                " status=%u\n",
-                (unsigned int)player_index,
-                (unsigned int)world->action_state[player_index],
-                (unsigned int)world->action_ticks[player_index],
-                (unsigned int)world->source_submotion[player_index],
-                world->source_animation_frame_f32[player_index],
-                world->source_animation_rate_f32[player_index],
-                (unsigned int)status);
             pf_write_result(world, NULL, out_result);
             return status;
         }

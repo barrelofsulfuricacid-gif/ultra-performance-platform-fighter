@@ -117,7 +117,7 @@
     {
       "id": "guard_target",
       "path": "data/ssbm_falcon_guard_target_pose.json",
-      "sha256": "da78f31e12c2b5c70b844f6b8e320ca1366c5c42e02f4a08e594d1bc8bf5d7da"
+      "sha256": "fd911fde4a4bb07abae4b72383f64f23f2f6c23d808c684e435233673b80f2f6"
     }
   ],
   "wait_animation_table": {
@@ -155,11 +155,11 @@
     "source_joint_count": 63,
     "runtime_part_count": 63,
     "joint_count": 26,
-    "motion_count": 89,
+    "motion_count": 94,
     "wait_animation_count": 3,
     "compact_motion_count": 6,
-    "track_count": 5815,
-    "key_count": 55515,
+    "track_count": 6205,
+    "key_count": 58074,
     "capsule_count": 11,
     "rotation_joint_count": 19,
     "translation_joint_count": 6,
@@ -167,7 +167,7 @@
     "static_local_pose_count": 1,
     "joint_point_set_count": 2,
     "pose_branch_count": 1,
-    "data_sha256": "d036498f50548a5291fa2a43320db42fb7218b5b92c84b6750c2f49386115515"
+    "data_sha256": "a681a8bbb06d4bcbda475a5dc8bfcf81140c3c4afc69a9968bdcc9309601a79c"
   },
   "damage_pose_qualification": {
     "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",

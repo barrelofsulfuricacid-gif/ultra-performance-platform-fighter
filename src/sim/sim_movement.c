@@ -7,16 +7,7 @@
 #include <limits.h>
 #include <math.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <string.h>
-
-static pf_status movement_fault_status(int line)
-{
-    (void)fprintf(stderr, "sim-movement=diagnostic fault-line=%d\n", line);
-    return (pf_status)9;
-}
-
-#define PF_STATUS_DETERMINISTIC_FAULT movement_fault_status(__LINE__)
 
 static float approach(float value, float target, float amount)
 {
@@ -865,6 +856,34 @@ static int falcon_ground_blend_source_pose(
                 ? world->action_ticks[player_index] + UINT16_C(1)
                 : landing->animation_frame_count - UINT16_C(1)) *
             1.0f;
+    }
+    else if (falcon_landing_air_submotion(
+                 previous_action, &source_submotion))
+    {
+        const falcon_submotion_data *landing =
+            falcon_reference_submotion(source_submotion);
+        const float next_frame_f32 =
+            world->source_animation_frame_f32[player_index] +
+            world->source_animation_rate_f32[player_index];
+        float terminal_frame_f32;
+
+        if (landing == NULL ||
+            landing->animation_frame_count == UINT16_C(0) ||
+            world->source_submotion[player_index] != source_submotion ||
+            world->source_animation_rate_f32[player_index] <= 0.0f ||
+            !isfinite(next_frame_f32))
+        {
+            return 0;
+        }
+        /* LandingAir_Anim advances before installing Wait's IASA callback.
+         * The terminal GuardOn blend therefore starts from the just-advanced
+         * LandingAir pose, held at the last evaluable animation frame. */
+        terminal_frame_f32 =
+            (float)(landing->animation_frame_count - UINT16_C(1));
+        source_frame_f32 =
+            next_frame_f32 < terminal_frame_f32
+                ? next_frame_f32
+                : terminal_frame_f32;
     }
     else if (previous_action == (uint8_t)PF_M4_ACTION_CROUCH_START)
     {
@@ -5048,36 +5067,6 @@ static int action_can_enter_teeter(uint8_t action_state)
            action_state == (uint8_t)PF_M4_ACTION_LANDING;
 }
 
-static int action_is_aerial_landing(uint8_t action_state)
-{
-    return action_state == (uint8_t)PF_M4_ACTION_AERIAL_LANDING ||
-           action_state == (uint8_t)PF_M4_ACTION_L_CANCEL_LANDING ||
-           action_state ==
-               (uint8_t)PF_M4_ACTION_STRONG_AERIAL_LANDING ||
-           action_state ==
-               (uint8_t)PF_M4_ACTION_STRONG_L_CANCEL_LANDING ||
-           action_state ==
-               (uint8_t)PF_M4_ACTION_FORWARD_AERIAL_LANDING ||
-           action_state ==
-               (uint8_t)PF_M4_ACTION_BACK_AERIAL_LANDING ||
-           action_state ==
-               (uint8_t)PF_M4_ACTION_UP_AERIAL_LANDING ||
-           action_state ==
-               (uint8_t)PF_M4_ACTION_DOWN_AERIAL_LANDING ||
-           action_state ==
-               (uint8_t)
-                   PF_M4_ACTION_FORWARD_AERIAL_L_CANCEL_LANDING ||
-           action_state ==
-               (uint8_t)
-                   PF_M4_ACTION_BACK_AERIAL_L_CANCEL_LANDING ||
-           action_state ==
-               (uint8_t)
-                   PF_M4_ACTION_UP_AERIAL_L_CANCEL_LANDING ||
-           action_state ==
-               (uint8_t)
-                   PF_M4_ACTION_DOWN_AERIAL_L_CANCEL_LANDING;
-}
-
 static int action_is_grounded_landing(uint8_t action_state)
 {
     return action_state == (uint8_t)PF_M4_ACTION_LANDING ||
@@ -5209,6 +5198,45 @@ static uint16_t aerial_landing_ticks(
         }
     }
     return authored_ticks;
+}
+
+static int falcon_landing_air_clock(
+    const fighter_data *fighter,
+    uint8_t landing_action,
+    uint16_t action_ticks,
+    uint16_t *out_submotion,
+    float *out_frame_f32,
+    float *out_rate_f32)
+{
+    const falcon_submotion_data *motion;
+    uint16_t landing_ticks;
+    float rate_f32;
+
+    if (fighter == NULL || out_submotion == NULL ||
+        out_frame_f32 == NULL || out_rate_f32 == NULL ||
+        !falcon_landing_air_submotion(
+            landing_action, out_submotion))
+    {
+        return 0;
+    }
+    motion = falcon_reference_submotion(*out_submotion);
+    landing_ticks = aerial_landing_ticks(fighter, landing_action);
+    if (motion == NULL ||
+        motion->animation_frame_count == UINT16_C(0) ||
+        landing_ticks == UINT16_C(0))
+    {
+        return 0;
+    }
+    /* ftCo_LandingAir_EnterWithMsidLag sets
+     * (ftAnim_8006F484(gobj) + 0.1f) / lag.  L-canceling changes lag, not
+     * the source motion, so the same helper owns both public action rows. */
+    rate_f32 =
+        ((float)motion->animation_frame_count + 0.1f) /
+        (float)landing_ticks;
+    *out_frame_f32 = (float)action_ticks * rate_f32;
+    *out_rate_f32 = rate_f32;
+    return isfinite(rate_f32) && isfinite(*out_frame_f32) &&
+           rate_f32 > 0.0f;
 }
 
 static int action_is_recovery_invulnerable(
@@ -15325,6 +15353,20 @@ pf_status step_player(
             (float)action_ticks * source_animation_rate_f32;
     }
     else if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
+             action_is_aerial_landing(action_state))
+    {
+        if (!falcon_landing_air_clock(
+                fighter,
+                action_state,
+                action_ticks,
+                &source_submotion,
+                &source_animation_frame_f32,
+                &source_animation_rate_f32))
+        {
+            return PF_STATUS_DETERMINISTIC_FAULT;
+        }
+    }
+    else if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
              effective_action_state(
                  action_state,
                  scratch->hitlag_resume_action[player_index]) ==
@@ -16824,6 +16866,10 @@ pf_status step_player(
         {
             source_submotion =
                 (uint16_t)PF_M4_FALCON_SUBMOTION_FALL;
+            source_animation_frame_f32 = 0.0f;
+            source_animation_rate_f32 = 1.0f;
+            fall_animation_blend_f32 = 0.0f;
+            fall_animation_target_switched = UINT8_C(0);
             action_ticks = UINT16_C(0);
         }
     }
@@ -16898,6 +16944,20 @@ pf_status step_player(
             (uint16_t)PF_M4_FALCON_SUBMOTION_LANDING_FALL_SPECIAL;
         source_animation_frame_f32 = 0.0f;
         source_animation_rate_f32 = 1.0f;
+    }
+    else if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
+             action_is_aerial_landing(action_state))
+    {
+        if (!falcon_landing_air_clock(
+                fighter,
+                action_state,
+                action_ticks,
+                &source_submotion,
+                &source_animation_frame_f32,
+                &source_animation_rate_f32))
+        {
+            return PF_STATUS_DETERMINISTIC_FAULT;
+        }
     }
     else if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
              effective_action_state(

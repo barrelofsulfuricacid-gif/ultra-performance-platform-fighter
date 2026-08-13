@@ -2414,6 +2414,16 @@ static int snapshot_source_submotion_valid_for_action(
                    (uint16_t)
                        PF_M4_FALCON_SUBMOTION_LANDING_FALL_SPECIAL;
     }
+    else if (action_is_aerial_landing(effective_action))
+    {
+        uint16_t expected_submotion = UINT16_C(0);
+
+        return reference_frame_data_enabled != UINT8_C(0) &&
+               motion != NULL &&
+               falcon_landing_air_submotion(
+                   effective_action, &expected_submotion) &&
+               submotion == expected_submotion;
+    }
     else if (action_uses_fall_special_pose(effective_action))
     {
         if (reference_frame_data_enabled == UINT8_C(0))
@@ -2953,7 +2963,7 @@ static int snapshot_content_state_consistent(
                 resume_action,
                 source_submotion,
                 world->source_animation_frame_f32[player_index],
-                world->source_animation_rate_f32[player_index]))
+            world->source_animation_rate_f32[player_index]))
         {
             return 0;
         }

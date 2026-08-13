@@ -4849,6 +4849,8 @@ static pf_status resolve_grabs(
                 scratch->source_submotion[target_index] =
                     (uint16_t)
                         PF_M4_FALCON_SUBMOTION_CAPTURE_DAMAGE_HIGH;
+                scratch->source_animation_frame_f32[target_index] = 0.0f;
+                scratch->source_animation_rate_f32[target_index] = 1.0f;
                 if (scratch->hitlag_ticks[target_index] < hitlag_ticks)
                 {
                     scratch->hitlag_ticks[target_index] = hitlag_ticks;

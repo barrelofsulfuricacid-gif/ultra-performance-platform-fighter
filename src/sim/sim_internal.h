@@ -198,6 +198,71 @@ static inline int action_uses_fall_special_pose(uint8_t action_state)
            action_state == (uint8_t)PF_M4_ACTION_FALCON_DIVE_FALL;
 }
 
+static inline int action_is_aerial_landing(uint8_t action_state)
+{
+    return action_state == (uint8_t)PF_M4_ACTION_AERIAL_LANDING ||
+           action_state == (uint8_t)PF_M4_ACTION_L_CANCEL_LANDING ||
+           action_state ==
+               (uint8_t)PF_M4_ACTION_STRONG_AERIAL_LANDING ||
+           action_state ==
+               (uint8_t)PF_M4_ACTION_STRONG_L_CANCEL_LANDING ||
+           action_state ==
+               (uint8_t)PF_M4_ACTION_FORWARD_AERIAL_LANDING ||
+           action_state ==
+               (uint8_t)PF_M4_ACTION_BACK_AERIAL_LANDING ||
+           action_state ==
+               (uint8_t)PF_M4_ACTION_UP_AERIAL_LANDING ||
+           action_state ==
+               (uint8_t)PF_M4_ACTION_DOWN_AERIAL_LANDING ||
+           action_state ==
+               (uint8_t)
+                   PF_M4_ACTION_FORWARD_AERIAL_L_CANCEL_LANDING ||
+           action_state ==
+               (uint8_t)
+                   PF_M4_ACTION_BACK_AERIAL_L_CANCEL_LANDING ||
+           action_state ==
+               (uint8_t)
+                   PF_M4_ACTION_UP_AERIAL_L_CANCEL_LANDING ||
+           action_state ==
+               (uint8_t)
+                   PF_M4_ACTION_DOWN_AERIAL_L_CANCEL_LANDING;
+}
+
+static inline int falcon_landing_air_submotion(
+    uint8_t action_state,
+    uint16_t *out_submotion)
+{
+    if (out_submotion == NULL)
+    {
+        return 0;
+    }
+    switch ((enum action_state)action_state)
+    {
+        case PF_M4_ACTION_AERIAL_LANDING:
+        case PF_M4_ACTION_L_CANCEL_LANDING:
+            *out_submotion = UINT16_C(73);
+            return 1;
+        case PF_M4_ACTION_FORWARD_AERIAL_LANDING:
+        case PF_M4_ACTION_FORWARD_AERIAL_L_CANCEL_LANDING:
+            *out_submotion = UINT16_C(74);
+            return 1;
+        case PF_M4_ACTION_BACK_AERIAL_LANDING:
+        case PF_M4_ACTION_BACK_AERIAL_L_CANCEL_LANDING:
+            *out_submotion = UINT16_C(75);
+            return 1;
+        case PF_M4_ACTION_UP_AERIAL_LANDING:
+        case PF_M4_ACTION_UP_AERIAL_L_CANCEL_LANDING:
+            *out_submotion = UINT16_C(76);
+            return 1;
+        case PF_M4_ACTION_DOWN_AERIAL_LANDING:
+        case PF_M4_ACTION_DOWN_AERIAL_L_CANCEL_LANDING:
+            *out_submotion = UINT16_C(77);
+            return 1;
+        default:
+            return 0;
+    }
+}
+
 static inline int action_is_reference_throw(uint8_t action_state)
 {
     return action_state == (uint8_t)PF_M4_ACTION_THROW_FORWARD ||
@@ -221,6 +286,7 @@ static inline int action_retains_source_submotion(
         action_state == (uint8_t)PF_M4_ACTION_CROUCH ||
         action_state == (uint8_t)PF_M4_ACTION_CROUCH_END ||
         action_state == (uint8_t)PF_M4_ACTION_AIR_DODGE ||
+        action_is_aerial_landing(action_state) ||
         action_state == (uint8_t)PF_M4_ACTION_SPECIAL_LANDING ||
         action_state == (uint8_t)PF_M4_ACTION_TAUNT ||
         action_state == (uint8_t)PF_M4_ACTION_SHIELD ||
@@ -336,6 +402,7 @@ static inline int action_uses_source_animation_clock(
            effective_action == (uint8_t)PF_M4_ACTION_CROUCH_END ||
            effective_action == (uint8_t)PF_M4_ACTION_AIRBORNE ||
            effective_action == (uint8_t)PF_M4_ACTION_AIR_DODGE ||
+           action_is_aerial_landing(effective_action) ||
            effective_action ==
                (uint8_t)PF_M4_ACTION_SPECIAL_LANDING ||
            effective_action == (uint8_t)PF_M4_ACTION_SHIELD_STUN ||
