@@ -873,6 +873,7 @@ pf_status pf_sim_tick_impl(
          * tick that releases hitlag is still paused in Melee because the
          * hitlag flag is cleared later in the fighter callback pipeline. */
         if (world->last_hit_sequence[player_index] != UINT32_C(0) &&
+            scratch->last_hit_sequence[player_index] != UINT32_C(0) &&
             world->action_state[player_index] !=
                 (uint8_t)PF_M4_ACTION_HITLAG &&
             scratch->damage_time_since_hit_ticks[player_index] <

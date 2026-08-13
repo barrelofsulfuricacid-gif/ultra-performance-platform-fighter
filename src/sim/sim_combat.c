@@ -4201,6 +4201,10 @@ static pf_status apply_hit_reaction(
     scratch->attack_hit_mask[target_index] = UINT8_C(0);
     scratch->attack_stale_registered[target_index] = UINT8_C(0);
     scratch->rebound_duration_ticks[target_index] = UINT16_C(0);
+    scratch->jab_chain_buffered[target_index] = UINT8_C(0);
+    scratch->rapid_jab_input_count[target_index] = UINT8_C(0);
+    scratch->rapid_jab_continue[target_index] = UINT8_C(0);
+    scratch->down_tilt_repeat_buffered[target_index] = UINT8_C(0);
     scratch->sdi_pulse_count[target_index] = UINT8_C(0);
     scratch->sdi_direction_x[target_index] = INT8_C(0);
     scratch->sdi_direction_y[target_index] = INT8_C(0);
@@ -5094,8 +5098,18 @@ static pf_status resolve_grabs(
                     {
                         /* Fighter objects run in player order.  An earlier
                          * victim already completed its Anim/Phys/Map update
-                         * before the later thrower released it, so DamageFly
-                         * begins on the following update. */
+                         * before the later thrower released it. DamageFly is
+                         * entered immediately, but its newly installed
+                         * callbacks do not execute until the following
+                         * update. */
+                        scratch->hitlag_ticks[target_index] = UINT16_C(0);
+                        scratch->hitlag_resume_action[target_index] =
+                            UINT8_C(0);
+                        set_action_state(
+                            world,
+                            scratch,
+                            target_index,
+                            (uint8_t)PF_M4_ACTION_HITSTUN);
                     }
                     else
                     {
