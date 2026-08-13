@@ -11084,6 +11084,19 @@ static int grab_player0_right_ledge(
                 ? INT16_C(0)
                 : INT16_C(20000);
 
+        if (out_inspection->players[0].grounded == UINT8_C(0) &&
+            out_inspection->players[0].ledge ==
+                (uint8_t)PF_M4_LEDGE_NONE)
+        {
+            /* CliffCatch replaces any prior downed/roll ownership. Seed stale
+             * values during the natural approach so every ledge-grab fixture
+             * proves the transition clears both canonical fields. */
+            sim->world.prone_orientation[0] =
+                (uint8_t)PF_M4_PRONE_BACK;
+            sim->world.prone_roll_motion_orientation[0] =
+                (uint8_t)PF_M4_PRONE_STOMACH;
+        }
+
         if (!step_duel(
                 sim,
                 drift_x,
@@ -11103,7 +11116,11 @@ static int grab_player0_right_ledge(
         out_inspection->players[0].action_state !=
             (uint8_t)PF_M4_ACTION_LEDGE_HANG ||
         out_inspection->players[0].ledge !=
-            (uint8_t)PF_M4_LEDGE_RIGHT)
+            (uint8_t)PF_M4_LEDGE_RIGHT ||
+        sim->world.prone_orientation[0] !=
+            (uint8_t)PF_M4_PRONE_NONE ||
+        sim->world.prone_roll_motion_orientation[0] !=
+            (uint8_t)PF_M4_PRONE_NONE)
     {
         (void)fprintf(
             stderr,
@@ -17119,6 +17136,9 @@ static int run_reference_callback_owner_test(
         (uint16_t)PF_M4_FALCON_SUBMOTION_TURN_RUN;
     sim->world.facing[0] = INT8_C(-1);
     sim->world.dash_direction[0] = INT8_C(-1);
+    /* Hitstun duration remains canonical history after the fighter has left
+     * Damage. It must not suppress TurnRun's terminal Anim -> Run callback. */
+    sim->world.hitstun_ticks[0] = UINT16_C(12);
     if (!step_duel(
             sim,
             INT16_MIN,

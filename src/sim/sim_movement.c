@@ -7280,12 +7280,14 @@ reference_project_callback_owner(
     };
     falcon_move_index move_index;
     const struct reference_move *move;
+    const int hitstun_locked =
+        action_state == (uint8_t)PF_M4_ACTION_RESET_BOUND ||
+        ((action_is_damage(action_state) ||
+          action_is_surface_bounce(action_state)) &&
+         hitstun_ticks_value != UINT16_C(0));
 
     if (fighter->reference_frame_data_enabled == UINT8_C(0) ||
-        hitlag_ticks != UINT16_C(0) ||
-        (hitstun_ticks_value != UINT16_C(0) &&
-         action_state != (uint8_t)PF_M4_ACTION_TECH_IN_PLACE &&
-         action_state != (uint8_t)PF_M4_ACTION_TECH_ROLL))
+        hitlag_ticks != UINT16_C(0) || hitstun_locked != 0)
     {
         return owner;
     }
@@ -13718,7 +13720,8 @@ pf_status step_player(
                 horizontal_magnitude >=
                     fighter->run_continue_axis_threshold;
 
-            if (action_ticks >= fighter->run_turnaround_ticks)
+            if ((uint32_t)action_ticks + UINT32_C(1) >=
+                (uint32_t)fighter->run_turnaround_ticks)
             {
                 dash_direction = INT8_C(0);
                 action_ticks = UINT16_C(0);
@@ -16714,6 +16717,10 @@ pf_status step_player(
                     INT32_C(0);
                 scratch->tumble[player_index] = UINT8_C(0);
                 scratch->tech_direction[player_index] = INT8_C(0);
+                scratch->prone_orientation[player_index] =
+                    (uint8_t)PF_M4_PRONE_NONE;
+                scratch->prone_roll_motion_orientation[player_index] =
+                    (uint8_t)PF_M4_PRONE_NONE;
                 recovery_available = UINT8_C(1);
             }
         }
@@ -16801,6 +16808,8 @@ pf_status step_player(
         scratch->active[player_index] = UINT8_C(0);
         scratch->respawn_invulnerability_ticks[player_index] =
             UINT16_C(0);
+        scratch->ledge_invulnerability_ticks[player_index] = UINT16_C(0);
+        scratch->ledge_regrab_lockout_ticks[player_index] = UINT16_C(0);
         grounded = UINT8_C(0);
         support = (uint8_t)PF_M4_SURFACE_NONE;
         if (world->stock_count != UINT8_C(0) &&
