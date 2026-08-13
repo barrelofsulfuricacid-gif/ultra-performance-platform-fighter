@@ -298,9 +298,9 @@ static int make_jab_cancel_content(
     out_content->stage.platform_center_x_f32 =
         -INT32_C(20) * 1.0f;
     out_content->stage.platform_motion_amplitude_f32 = 0.0f;
-    out_content->fighter.jab_base_knockback_x_f32 = ((float)INT32_C(1) / 65536.0f);
-    out_content->fighter.jab_base_knockback_y_f32 = ((float)INT32_C(1) / 65536.0f);
-    out_content->fighter.jab_knockback_growth_f32 = ((float)INT32_C(1) / 65536.0f);
+    out_content->fighter.jab_base_knockback_x_f32 = 0.001f;
+    out_content->fighter.jab_base_knockback_y_f32 = 0.001f;
+    out_content->fighter.jab_knockback_growth_f32 = 0.001f;
     out_content->fighter.jab_melee_knockback.enabled = UINT8_C(0);
     out_content->fighter.reference_frame_data_enabled = UINT8_C(0);
     return expect_status(
@@ -25144,12 +25144,17 @@ static int run_grab_damage_escape_test(
     pf_sim *sim = NULL;
     struct inspection inspection;
     pf_sim_event grab_event;
-    const uint16_t expected_escape_ticks = (uint16_t)(
+    const uint32_t scaled_escape_ticks =
         (uint32_t)content->fighter.grab_escape_base_ticks +
-        (uint32_t)(((uint64_t)content->fighter.jab_damage_f32 *
-                    (uint64_t)(uint32_t)content->fighter
-                        .grab_escape_damage_ticks_f32) >>
-                   32U));
+        (uint32_t)(
+            content->fighter.jab_damage_f32 *
+            content->fighter.grab_escape_damage_ticks_f32);
+    const uint16_t expected_escape_ticks =
+        (uint16_t)(
+            scaled_escape_ticks >
+                    (uint32_t)content->fighter.grab_escape_max_ticks
+                ? content->fighter.grab_escape_max_ticks
+                : scaled_escape_ticks);
     uint32_t tick;
     int hit_seen = 0;
 
@@ -25754,7 +25759,10 @@ static int run_directional_throw_case(
     float resulting_damage_f32;
     float expected_velocity_x;
     float expected_velocity_y;
+    float expected_post_knockback_x;
+    float expected_post_knockback_y;
     float expected_resumed_velocity_y;
+    uint16_t expected_event_flags;
     uint32_t tick;
     int throw_seen = 0;
 
@@ -25794,11 +25802,28 @@ static int run_directional_throw_case(
                   throw_data->base_velocity_y_f32,
                   throw_data->velocity_growth_y_f32,
                   throw_data->damage_f32);
+    expected_post_knockback_x = expected_velocity_x;
+    expected_post_knockback_y = expected_velocity_y;
+    if (!expect_status(
+            ssbm_decay_air_knockback_f32(
+                content->fighter.air_knockback_decay_f32,
+                &expected_post_knockback_x,
+                &expected_post_knockback_y),
+            PF_STATUS_OK,
+            "directional-throw-air-knockback-decay"))
+    {
+        return 0;
+    }
     expected_resumed_velocity_y =
-        expected_velocity_y + content->fighter.gravity_f32 <
+        expected_post_knockback_y + content->fighter.gravity_f32 <
                 content->fighter.fall_speed_f32
-            ? expected_velocity_y + content->fighter.gravity_f32
+            ? expected_post_knockback_y + content->fighter.gravity_f32
             : content->fighter.fall_speed_f32;
+    expected_event_flags =
+        melee_result.hitstun_ticks >=
+                content->fighter.tumble_hitstun_threshold_ticks
+            ? (uint16_t)PF_SIM_EVENT_FLAG_TUMBLE
+            : UINT16_C(0);
 
     if (!initialize_sim(
             &storage,
@@ -25886,7 +25911,7 @@ static int run_directional_throw_case(
                  throw_event->value_f32 != throw_data->damage_f32 ||
                  throw_event->velocity_x_f32 != expected_velocity_x ||
                  throw_event->velocity_y_f32 != expected_velocity_y ||
-                 throw_event->flags != UINT16_C(0) ||
+                 throw_event->flags != expected_event_flags ||
                  throw_event->detail != (uint16_t)expected_action ||
                  inspection.players[0].action_state !=
                      (throw_data->hitlag_ticks != UINT16_C(0)
@@ -25911,6 +25936,37 @@ static int run_directional_throw_case(
                  inspection.players[1].last_hit_valid != UINT8_C(1) ||
                  inspection.players[1].last_hit_attacker != UINT8_C(0))
         {
+            (void)fprintf(
+                stderr,
+                "m4-combat=diagnostic directional-throw-release"
+                " expected_action=%u event=%u/%u value=%.9g/%.9g"
+                " velocity=(%.9g,%.9g)/(%.9g,%.9g) flags=%u detail=%u"
+                " actions=%u/%u hitlag=%u/%u/%u grab=%u/%u"
+                " damage=%.9g/%.9g facing=%d/%d last=%u/%u\n",
+                (unsigned int)expected_action,
+                (unsigned int)throw_event->source_player,
+                (unsigned int)throw_event->target_player,
+                throw_event->value_f32,
+                throw_data->damage_f32,
+                throw_event->velocity_x_f32,
+                throw_event->velocity_y_f32,
+                expected_velocity_x,
+                expected_velocity_y,
+                (unsigned int)throw_event->flags,
+                (unsigned int)throw_event->detail,
+                (unsigned int)inspection.players[0].action_state,
+                (unsigned int)inspection.players[1].action_state,
+                (unsigned int)inspection.players[0].hitlag_ticks,
+                (unsigned int)inspection.players[1].hitlag_ticks,
+                (unsigned int)throw_data->hitlag_ticks,
+                (unsigned int)inspection.players[0].grab_target,
+                (unsigned int)inspection.players[1].grab_owner,
+                inspection.players[1].damage_f32,
+                resulting_damage_f32,
+                (int)inspection.players[1].facing,
+                (int)-inspection.players[0].facing,
+                (unsigned int)inspection.players[1].last_hit_valid,
+                (unsigned int)inspection.players[1].last_hit_attacker);
             return fail("directional-throw-release");
         }
         throw_seen = 1;
@@ -25960,17 +26016,43 @@ static int run_directional_throw_case(
                      : UINT16_C(0))) ||
         inspection.players[1].action_state !=
             (uint8_t)PF_M4_ACTION_HITSTUN ||
-        inspection.players[1].velocity_x_f32 != expected_velocity_x ||
+        inspection.players[1].velocity_x_f32 !=
+            expected_post_knockback_x ||
         inspection.players[1].velocity_y_f32 !=
-            (throw_data->hitlag_ticks != UINT16_C(0)
-                 ? expected_resumed_velocity_y
-                 : expected_velocity_y) ||
+            expected_resumed_velocity_y ||
         inspection.players[1].facing !=
             (int8_t)-inspection.players[0].facing ||
         inspection.players[0].stale_move_count != UINT8_C(1) ||
         inspection.players[0].stale_move_ids[0] !=
             (uint8_t)expected_action)
     {
+        (void)fprintf(
+            stderr,
+            "m4-combat=diagnostic directional-throw-hitstun-entry"
+            " action=%u/%u ticks=%u/%u velocity=(%.9g,%.9g)/(%.9g,%.9g)"
+            " self=(%.9g,%.9g) kb=(%.9g,%.9g) grounded=%u"
+            " facing=%d/%d stale=%u id=%u\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)expected_action,
+            (unsigned int)inspection.players[0].action_ticks,
+            (unsigned int)(
+                throw_data->release_tick +
+                (throw_data->hitlag_ticks != UINT16_C(0)
+                     ? UINT16_C(1)
+                     : UINT16_C(0))),
+            inspection.players[1].velocity_x_f32,
+            inspection.players[1].velocity_y_f32,
+            expected_post_knockback_x,
+            expected_resumed_velocity_y,
+            inspection.players[1].self_velocity_x_f32,
+            inspection.players[1].self_velocity_y_f32,
+            inspection.players[1].knockback_velocity_x_f32,
+            inspection.players[1].knockback_velocity_y_f32,
+            (unsigned int)inspection.players[1].grounded,
+            (int)inspection.players[1].facing,
+            (int)-inspection.players[0].facing,
+            (unsigned int)inspection.players[0].stale_move_count,
+            (unsigned int)inspection.players[0].stale_move_ids[0]);
         return fail("directional-throw-hitstun-entry");
     }
 
@@ -26011,6 +26093,31 @@ static int run_directional_throw_case(
         else if (inspection.players[0].action_state !=
                  (uint8_t)PF_M4_ACTION_GROUND_IDLE)
         {
+            const falcon_submotion_data *motion =
+                falcon_reference_submotion(
+                    inspection.players[0].source_submotion);
+            (void)fprintf(
+                stderr,
+                "m4-combat=diagnostic directional-throw-exact-recovery"
+                " expected=%u actual=%u ticks=%u loop=%u recovery=%u"
+                " release=%u hitlag=%u source=%u frame=%.9g rate=%.9g"
+                " endpoint=%u gameplay=%u\n",
+                (unsigned int)PF_M4_ACTION_GROUND_IDLE,
+                (unsigned int)inspection.players[0].action_state,
+                (unsigned int)inspection.players[0].action_ticks,
+                (unsigned int)tick,
+                (unsigned int)throw_data->recovery_ticks,
+                (unsigned int)throw_data->release_tick,
+                (unsigned int)throw_data->hitlag_ticks,
+                (unsigned int)inspection.players[0].source_submotion,
+                inspection.players[0].source_animation_frame_f32,
+                inspection.players[0].source_animation_rate_f32,
+                motion != NULL
+                    ? (unsigned int)motion->animation_frame_count
+                    : 0U,
+                motion != NULL
+                    ? (unsigned int)motion->gameplay_frame_count
+                    : 0U);
             return fail("directional-throw-exact-recovery");
         }
     }
@@ -26570,8 +26677,7 @@ static int run_throw_collateral_test(void)
         inspection.players[1].damage_f32 !=
             content.fighter.back_throw.damage_f32 +
                 UINT32_C(5) * 1.0f ||
-        inspection.players[3].damage_f32 !=
-            7.6293945E-05f * 1.0f ||
+        inspection.players[3].damage_f32 != 5.0f ||
         inspection.players[2].stale_move_count != UINT8_C(1) ||
         inspection.players[2].stale_move_ids[0] !=
             (uint8_t)PF_M4_ACTION_THROW_BACK)
@@ -26660,6 +26766,72 @@ static int wait_for_thrower_idle(
     return fail("chain-grab-thrower-recovery");
 }
 
+static int wait_for_chain_grab_recovery(
+    pf_sim *sim,
+    struct inspection *out_inspection)
+{
+    uint32_t tick;
+
+    for (tick = UINT32_C(0); tick < UINT32_C(120); ++tick)
+    {
+        const float separation_f32 =
+            out_inspection->players[1].position_x_f32 -
+            out_inspection->players[0].position_x_f32;
+        const float absolute_separation_f32 =
+            separation_f32 < 0.0f ? -separation_f32 : separation_f32;
+        const int target_ready =
+            out_inspection->players[1].action_state ==
+                (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+        const int16_t approach_x =
+            target_ready != 0 && absolute_separation_f32 > 1.75f
+                ? (separation_f32 < 0.0f
+                       ? INT16_C(-16384)
+                       : INT16_C(16384))
+                : INT16_C(0);
+
+        if (target_ready != 0 && absolute_separation_f32 <= 1.75f)
+        {
+            return 1;
+        }
+        if (!step_reaction_duel(
+                sim,
+                approach_x,
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                out_inspection->players[1].action_state ==
+                        (uint8_t)PF_M4_ACTION_DOWN_WAIT
+                    ? INT16_C(-32767)
+                    : INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+    }
+    (void)fprintf(
+        stderr,
+        "m4-combat=diagnostic chain-grab-target-recovery"
+        " actions=%u/%u ticks=%u/%u grounded=%u/%u"
+        " positions=(%.9g,%.9g)/(%.9g,%.9g)"
+        " velocity=(%.9g,%.9g)\n",
+        (unsigned int)out_inspection->players[0].action_state,
+        (unsigned int)out_inspection->players[1].action_state,
+        (unsigned int)out_inspection->players[0].action_ticks,
+        (unsigned int)out_inspection->players[1].action_ticks,
+        (unsigned int)out_inspection->players[0].grounded,
+        (unsigned int)out_inspection->players[1].grounded,
+        out_inspection->players[0].position_x_f32,
+        out_inspection->players[0].position_y_f32,
+        out_inspection->players[1].position_x_f32,
+        out_inspection->players[1].position_y_f32,
+        out_inspection->players[1].velocity_x_f32,
+        out_inspection->players[1].velocity_y_f32);
+    return fail("chain-grab-target-recovery");
+}
+
 static int run_chain_grab_route(
     const struct content *content,
     const pf_content_view *view)
@@ -26688,9 +26860,37 @@ static int run_chain_grab_route(
                 sim,
                 &content->fighter.down_throw,
                 INT16_C(0),
-                &inspection) ||
-            !wait_for_thrower_idle(sim, INT16_C(0), &inspection) ||
-            !begin_close_grab(sim, 0, &inspection, &grab_event) ||
+                &inspection))
+        {
+            return fail("chain-grab-legal-regrab-throw");
+        }
+        if (!wait_for_chain_grab_recovery(sim, &inspection))
+        {
+            return fail("chain-grab-legal-regrab-wait");
+        }
+        if (!begin_close_grab(sim, 0, &inspection, &grab_event))
+        {
+            (void)fprintf(
+                stderr,
+                "m4-combat=diagnostic chain-grab-regrab"
+                " iteration=%u actions=%u/%u ticks=%u/%u"
+                " positions=(%.9g,%.9g)/(%.9g,%.9g)"
+                " velocity=(%.9g,%.9g) damage=%.9g\n",
+                (unsigned int)regrab,
+                (unsigned int)inspection.players[0].action_state,
+                (unsigned int)inspection.players[1].action_state,
+                (unsigned int)inspection.players[0].action_ticks,
+                (unsigned int)inspection.players[1].action_ticks,
+                inspection.players[0].position_x_f32,
+                inspection.players[0].position_y_f32,
+                inspection.players[1].position_x_f32,
+                inspection.players[1].position_y_f32,
+                inspection.players[1].velocity_x_f32,
+                inspection.players[1].velocity_y_f32,
+                inspection.players[1].damage_f32);
+            return fail("chain-grab-legal-regrab-acquire");
+        }
+        if (
             grab_event.type != (uint16_t)PF_SIM_EVENT_GRAB ||
             inspection.players[0].action_state !=
                 (uint8_t)PF_M4_ACTION_GRAB_HOLD ||
@@ -26745,6 +26945,7 @@ static int run_chain_grab_snapshot_test(
     uint32_t throws_started = UINT32_C(1);
     uint32_t throw_events = UINT32_C(0);
     uint32_t regrab_events = UINT32_C(0);
+    int regrab_walk_armed = 0;
 
     if (!initialize_sim(
             &source_storage,
@@ -26766,10 +26967,7 @@ static int run_chain_grab_snapshot_test(
             &content->fighter.down_throw,
             INT16_C(0),
             &source_inspection) ||
-        !wait_for_thrower_idle(
-            source,
-            INT16_C(0),
-            &source_inspection) ||
+        !wait_for_chain_grab_recovery(source, &source_inspection) ||
         !begin_close_grab(source, 0, &source_inspection, &grab_event) ||
         !step_reaction_duel(
             source,
@@ -26817,10 +27015,16 @@ static int run_chain_grab_snapshot_test(
     }
 
     for (future_tick = UINT32_C(0);
-         future_tick < UINT32_C(160);
+         future_tick < UINT32_C(240);
          ++future_tick)
     {
+        int16_t player0_x = INT16_C(0);
         int16_t player0_y = INT16_C(0);
+        int16_t player1_y =
+            source_inspection.players[1].action_state ==
+                    (uint8_t)PF_M4_ACTION_DOWN_WAIT
+                ? INT16_C(-32767)
+                : INT16_C(0);
         uint64_t player0_buttons = UINT64_C(0);
         uint16_t player0_trigger = UINT16_C(0);
         uint32_t event_index;
@@ -26833,22 +27037,48 @@ static int run_chain_grab_snapshot_test(
             player0_buttons = UINT64_C(0);
             ++throws_started;
         }
-        else if (source_inspection.players[0].action_state ==
+        else if (source_inspection.players[1].action_state ==
                      (uint8_t)PF_M4_ACTION_GROUND_IDLE &&
                  throws_started < UINT32_C(2))
         {
-            player0_buttons = PF_INPUT_BUTTON_ATTACK;
-            player0_trigger = UINT16_MAX;
+            const float separation_f32 =
+                source_inspection.players[1].position_x_f32 -
+                source_inspection.players[0].position_x_f32;
+            const float absolute_separation_f32 =
+                separation_f32 < 0.0f
+                    ? -separation_f32
+                    : separation_f32;
+
+            if (absolute_separation_f32 > 1.75f)
+            {
+                player0_x = separation_f32 < 0.0f
+                    ? INT16_C(-16384)
+                    : INT16_C(16384);
+            }
+            else if (regrab_walk_armed != 0)
+            {
+                player0_buttons = PF_INPUT_BUTTON_ATTACK;
+                player0_trigger = UINT16_MAX;
+                regrab_walk_armed = 0;
+            }
+            else if (source_inspection.players[0].action_state ==
+                     (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+            {
+                player0_x = separation_f32 < 0.0f
+                    ? INT16_C(-16384)
+                    : INT16_C(16384);
+                regrab_walk_armed = 1;
+            }
         }
 
         if (!step_reaction_duel(
                 source,
-                INT16_C(0),
+                player0_x,
                 player0_y,
                 player0_buttons,
                 player0_trigger,
                 INT16_C(0),
-                INT16_C(0),
+                player1_y,
                 UINT64_C(0),
                 UINT16_C(0),
                 &source_inspection))
@@ -26858,12 +27088,12 @@ static int run_chain_grab_snapshot_test(
         source_result = test_last_result;
         if (!step_reaction_duel(
                 loaded,
-                INT16_C(0),
+                player0_x,
                 player0_y,
                 player0_buttons,
                 player0_trigger,
                 INT16_C(0),
-                INT16_C(0),
+                player1_y,
                 UINT64_C(0),
                 UINT16_C(0),
                 &loaded_inspection) ||
@@ -26908,7 +27138,7 @@ static int run_chain_grab_snapshot_test(
             break;
         }
     }
-    if (future_tick == UINT32_C(160) ||
+    if (future_tick == UINT32_C(240) ||
         throw_events != UINT32_C(2) ||
         regrab_events < UINT32_C(1) ||
         source_inspection.players[1].damage_f32 !=
@@ -26917,6 +27147,27 @@ static int run_chain_grab_snapshot_test(
                 content->fighter.down_throw.damage_f32,
                 UINT32_C(3)))
     {
+        (void)fprintf(
+            stderr,
+            "m4-combat=diagnostic chain-grab-snapshot-future-route"
+            " tick=%u throws=%u regrabs=%u actions=%u/%u facing=%d/%d"
+            " positions=(%.9g,%.9g)/(%.9g,%.9g) damage=%.9g/%.9g\n",
+            (unsigned int)future_tick,
+            (unsigned int)throw_events,
+            (unsigned int)regrab_events,
+            (unsigned int)source_inspection.players[0].action_state,
+            (unsigned int)source_inspection.players[1].action_state,
+            (int)source_inspection.players[0].facing,
+            (int)source_inspection.players[1].facing,
+            source_inspection.players[0].position_x_f32,
+            source_inspection.players[0].position_y_f32,
+            source_inspection.players[1].position_x_f32,
+            source_inspection.players[1].position_y_f32,
+            source_inspection.players[1].damage_f32,
+            expected_repeated_move_damage_f32(
+                &content->fighter,
+                content->fighter.down_throw.damage_f32,
+                UINT32_C(3)));
         return fail("chain-grab-snapshot-future-route");
     }
     return 1;

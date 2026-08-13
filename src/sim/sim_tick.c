@@ -3,6 +3,7 @@
 #include "sim_ssbm_stage_data.h"
 
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 
 static void pf_write_result(
@@ -522,6 +523,28 @@ static void canonicalize_source_animation_state(
             scratch->ground_blend_progress_f32[player_index] = INT32_C(0);
             continue;
         }
+        if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
+            action_uses_direct_hsd_pose(
+                effective_action_state(
+                    scratch->action_state[player_index],
+                    scratch->hitlag_resume_action[player_index])))
+        {
+            uint16_t canonical_submotion = UINT16_C(0);
+            float ignored_frame_f32 = 0.0f;
+
+            if (falcon_reference_direct_hsd_pose(
+                    effective_action_state(
+                        scratch->action_state[player_index],
+                        scratch->hitlag_resume_action[player_index]),
+                    scratch->action_ticks[player_index],
+                    scratch->grounded[player_index],
+                    &canonical_submotion,
+                    &ignored_frame_f32))
+            {
+                scratch->source_submotion[player_index] =
+                    canonical_submotion;
+            }
+        }
         if ((fighter->reference_frame_data_enabled == UINT8_C(0) &&
              action_uses_source_animation_clock(
                  scratch->action_state[player_index],
@@ -843,6 +866,18 @@ pf_status pf_sim_tick_impl(
             &rng_state);
         if (status != PF_STATUS_OK)
         {
+            (void)fprintf(
+                stderr,
+                "sim-tick=diagnostic step-player-fail player=%u"
+                " action=%u ticks=%u source=%u frame=%.9g rate=%.9g"
+                " status=%u\n",
+                (unsigned int)player_index,
+                (unsigned int)world->action_state[player_index],
+                (unsigned int)world->action_ticks[player_index],
+                (unsigned int)world->source_submotion[player_index],
+                world->source_animation_frame_f32[player_index],
+                world->source_animation_rate_f32[player_index],
+                (unsigned int)status);
             pf_write_result(world, NULL, out_result);
             return status;
         }

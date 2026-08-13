@@ -7,7 +7,16 @@
 #include <limits.h>
 #include <math.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
+
+static pf_status movement_fault_status(int line)
+{
+    (void)fprintf(stderr, "sim-movement=diagnostic fault-line=%d\n", line);
+    return (pf_status)9;
+}
+
+#define PF_STATUS_DETERMINISTIC_FAULT movement_fault_status(__LINE__)
 
 static float approach(float value, float target, float amount)
 {

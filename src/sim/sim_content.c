@@ -491,14 +491,15 @@ static int apply_falcon_reference_throw(
     }
     /* Throw/Thrown enter at animation frame zero and immediately run
      * ftAnim_8006EBA4. Public action_ticks starts at zero on that already-
-     * advanced row, so script-event and terminal ticks are one less than the
-     * number of animation advances needed from frame zero. */
+     * advanced row, so a script event at displayed frame N occurs on tick
+     * N-1. move->total_frames is already the number of observable gameplay
+     * rows (raw FigaTree endpoint minus one), so it must not be decremented a
+     * second time. */
     if (release_tick == UINT32_C(0) || total_ticks == UINT32_C(0))
     {
         return 0;
     }
     --release_tick;
-    --total_ticks;
     if (release_tick == UINT32_C(0) || release_tick >= total_ticks ||
         total_ticks > UINT16_MAX)
     {
