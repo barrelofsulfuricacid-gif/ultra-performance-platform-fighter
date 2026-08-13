@@ -1085,13 +1085,26 @@ static pf_status evaluate_falcon_ground_blend_pose(
             if (!falcon_ground_blend_source_pose(
                     world, player_index, data, result))
             {
-                /* Squat and SquatWait are not yet present in the compact
-                 * full-joint corpus. GuardOn still owns this update, so use
-                 * its exact target pose rather than rejecting a valid input
-                 * transition or reconstructing an integerized source. */
+                /* Squat/SquatWait, terminal EscapeF/EscapeB/EscapeN, and the angled
+                 * S4 variants are not yet present in the compact full-joint
+                 * corpus. GuardOn still owns this update, so use its exact
+                 * target pose rather than rejecting a valid callback
+                 * transition or reconstructing an integerized source. The
+                 * missing entry blend remains an explicit pose-qualification
+                 * gap. */
                 if (previous_action !=
                         (uint8_t)PF_M4_ACTION_CROUCH_START &&
-                    previous_action != (uint8_t)PF_M4_ACTION_CROUCH)
+                    previous_action != (uint8_t)PF_M4_ACTION_CROUCH &&
+                    previous_action !=
+                        (uint8_t)PF_M4_ACTION_ROLL_FORWARD &&
+                    previous_action !=
+                        (uint8_t)PF_M4_ACTION_ROLL_BACKWARD &&
+                    previous_action !=
+                        (uint8_t)PF_M4_ACTION_SPOT_DODGE &&
+                    previous_action !=
+                        (uint8_t)PF_M4_ACTION_FORWARD_STRONG_ATTACK_HIGH &&
+                    previous_action !=
+                        (uint8_t)PF_M4_ACTION_FORWARD_STRONG_ATTACK_LOW)
                 {
                     return PF_STATUS_DETERMINISTIC_FAULT;
                 }

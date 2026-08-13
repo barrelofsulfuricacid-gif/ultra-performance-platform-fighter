@@ -17052,6 +17052,37 @@ static int run_reference_callback_owner_test(
     }
 
     if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0xca12000a)),
+            PF_STATUS_OK,
+            "callback-owner-roll-guard-reset"))
+    {
+        return 0;
+    }
+    sim->world.action_state[0] = (uint8_t)PF_M4_ACTION_ROLL_FORWARD;
+    sim->world.action_ticks[0] = content->fighter.forward_roll_ticks;
+    sim->world.source_submotion[0] =
+        (uint16_t)PF_M4_FALCON_SUBMOTION_ROLL_FORWARD;
+    sim->world.shield_held[0] = UINT8_C(0);
+    if (!step_duel_trigger(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=callback-owner-roll-guard"
+            " action=%u ticks=%u\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks);
+        return 0;
+    }
+
+    if (!expect_status(
             pf_sim_reset(sim, UINT64_C(0xca120100)),
             PF_STATUS_OK,
             "callback-owner-guard-reset"))

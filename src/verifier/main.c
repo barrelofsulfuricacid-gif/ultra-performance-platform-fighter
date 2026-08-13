@@ -1056,10 +1056,12 @@ static int run_action_layer_invariant(
     pf_state_hash left_hash;
     pf_state_hash right_hash;
     pf_sim_observation diagnostic;
+    struct inspection inspection;
     uint64_t random_state = UINT64_C(0x91e10da5c79e7b1d);
     uint64_t tick;
     int passed = 1;
 
+    (void)memset(&diagnostic, 0, sizeof(diagnostic));
     if (!initialize_sim(
             (size_t)0,
             &content,
@@ -1081,21 +1083,26 @@ static int run_action_layer_invariant(
     }
     for (tick = UINT64_C(0); passed != 0 && tick < UINT64_C(240); ++tick)
     {
+        pf_status left_status;
+        pf_status right_status;
+
         make_exploratory_actions(
             actions,
             UINT8_C(2),
             &random_state,
             tick);
-        if (pf_rl_step(
-                left,
-                actions,
-                (size_t)2,
-                &left_transition) != PF_STATUS_OK ||
-            pf_rl_step(
-                right,
-                actions,
-                (size_t)2,
-                &right_transition) != PF_STATUS_OK ||
+        left_status = pf_rl_step(
+            left,
+            actions,
+            (size_t)2,
+            &left_transition);
+        right_status = pf_rl_step(
+            right,
+            actions,
+            (size_t)2,
+            &right_transition);
+        if (left_status != PF_STATUS_OK ||
+            right_status != PF_STATUS_OK ||
             !transitions_equal(&left_transition, &right_transition) ||
             left_transition.structured_observation.seed != UINT64_C(0) ||
             left_transition.compact_observation.values[
@@ -1103,6 +1110,73 @@ static int run_action_layer_invariant(
             left_transition.compact_observation.values[
                 PF_RL_COMPACT_RESERVED_HIGH_INDEX] != INT32_C(0))
         {
+            (void)fprintf(
+                stderr,
+                "rl-action-layer-failure tick=%" PRIu64
+                " left=%s right=%s equal=%d seed=%" PRIu64
+                " reserved_low=%" PRId32 " reserved_high=%" PRId32 "\n",
+                tick,
+                pf_status_name(left_status),
+                pf_status_name(right_status),
+                transitions_equal(&left_transition, &right_transition),
+                left_transition.structured_observation.seed,
+                left_transition.compact_observation.values[
+                    PF_RL_COMPACT_RESERVED_LOW_INDEX],
+                left_transition.compact_observation.values[
+                    PF_RL_COMPACT_RESERVED_HIGH_INDEX]);
+            for (uint32_t player_index = UINT32_C(0);
+                 player_index < UINT32_C(2);
+                 ++player_index)
+            {
+                const pf_rl_action *action = &actions[player_index];
+
+                (void)fprintf(
+                    stderr,
+                    " rl-input=%" PRIu32 " buttons=%" PRIu64
+                    " main=(%d,%d) c=(%d,%d) triggers=(%u,%u)\n",
+                    player_index,
+                    action->buttons,
+                    (int)action->main_stick_x,
+                    (int)action->main_stick_y,
+                    (int)action->secondary_stick_x,
+                    (int)action->secondary_stick_y,
+                    (unsigned int)action->left_trigger,
+                    (unsigned int)action->right_trigger);
+            }
+            if (inspect(left, &inspection) == PF_STATUS_OK)
+            {
+                uint32_t player_index;
+
+                for (player_index = UINT32_C(0);
+                     player_index < UINT32_C(2);
+                     ++player_index)
+                {
+                    const player_inspection *player =
+                        &inspection.players[player_index];
+
+                    (void)fprintf(
+                        stderr,
+                        " rl-player=%" PRIu32 " active=%u action=%u"
+                        " resume=%u submotion=%u frame=%.9g ticks=%u"
+                        " hitlag=%u hitstun=%u grounded=%u support=%u"
+                        " x=%.9g y=%.9g vx=%.9g vy=%.9g\n",
+                        player_index,
+                        (unsigned int)player->active,
+                        (unsigned int)player->action_state,
+                        (unsigned int)player->hitlag_resume_action,
+                        (unsigned int)player->source_submotion,
+                        player->source_animation_frame_f32,
+                        (unsigned int)player->action_ticks,
+                        (unsigned int)player->hitlag_ticks,
+                        (unsigned int)player->hitstun_ticks,
+                        (unsigned int)player->grounded,
+                        (unsigned int)player->support,
+                        player->position_x_f32,
+                        player->position_y_f32,
+                        player->velocity_x_f32,
+                        player->velocity_y_f32);
+                }
+            }
             passed = 0;
         }
     }
@@ -1113,6 +1187,16 @@ static int run_action_layer_invariant(
          pf_sim_observe(left, &diagnostic) != PF_STATUS_OK ||
          diagnostic.seed != seed))
     {
+        (void)fprintf(
+            stderr,
+            "rl-action-layer-final-failure left_hash=%s right_hash=%s"
+            " equal=%d observe=%s seed=%" PRIu64 " expected=%" PRIu64 "\n",
+            pf_status_name(pf_sim_hash(left, &left_hash)),
+            pf_status_name(pf_sim_hash(right, &right_hash)),
+            state_hashes_equal(&left_hash, &right_hash),
+            pf_status_name(pf_sim_observe(left, &diagnostic)),
+            diagnostic.seed,
+            seed);
         passed = 0;
     }
     return add_check(
@@ -2198,6 +2282,24 @@ static int run_self_test(void)
             &menu,
             &determinism))
     {
+        size_t check_index;
+
+        for (check_index = (size_t)0;
+             check_index < checks.count;
+             ++check_index)
+        {
+            const pf_verifier_check *check = &checks.values[check_index];
+
+            if (strcmp(check->status, "fail") == 0)
+            {
+                (void)fprintf(
+                    stderr,
+                    "verifier-self-test-check=%s observed=%s evidence=%s\n",
+                    check->name,
+                    check->observed,
+                    check->evidence);
+            }
+        }
         (void)fprintf(
             stderr,
             "verifier-self-test=fail checks=%zu failures=%zu\n",
