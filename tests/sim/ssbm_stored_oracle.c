@@ -19,18 +19,6 @@ static void hash_u16_le(pf_sha256 *hash, uint16_t value)
     pf_sha256_update(hash, bytes, sizeof(bytes));
 }
 
-static void hash_i32_le(pf_sha256 *hash, int32_t value)
-{
-    const uint32_t bits = (uint32_t)value;
-    const uint8_t bytes[4] = {
-        (uint8_t)bits,
-        (uint8_t)(bits >> 8),
-        (uint8_t)(bits >> 16),
-        (uint8_t)(bits >> 24)};
-
-    pf_sha256_update(hash, bytes, sizeof(bytes));
-}
-
 static void hash_u32_le(pf_sha256 *hash, uint32_t value)
 {
     const uint8_t bytes[4] = {
@@ -40,6 +28,14 @@ static void hash_u32_le(pf_sha256 *hash, uint32_t value)
         (uint8_t)(value >> 24)};
 
     pf_sha256_update(hash, bytes, sizeof(bytes));
+}
+
+static void hash_f32_le(pf_sha256 *hash, float value)
+{
+    uint32_t bits;
+
+    (void)memcpy(&bits, &value, sizeof(bits));
+    hash_u32_le(hash, bits);
 }
 
 static void digest_hex(const uint8_t digest[32], char out_hex[65])
@@ -107,13 +103,13 @@ static int production_digest(
                 const pf_ssbm_stored_hurt_capsule *capsule =
                     &capsules[capsule_index];
 
-                hash_i32_le(&hash, capsule->endpoint_a_x_f32);
-                hash_i32_le(&hash, capsule->endpoint_a_y_f32);
-                hash_i32_le(&hash, capsule->endpoint_a_z_f32);
-                hash_i32_le(&hash, capsule->endpoint_b_x_f32);
-                hash_i32_le(&hash, capsule->endpoint_b_y_f32);
-                hash_i32_le(&hash, capsule->endpoint_b_z_f32);
-                hash_i32_le(&hash, capsule->radius_f32);
+                hash_f32_le(&hash, capsule->endpoint_a_x_f32);
+                hash_f32_le(&hash, capsule->endpoint_a_y_f32);
+                hash_f32_le(&hash, capsule->endpoint_a_z_f32);
+                hash_f32_le(&hash, capsule->endpoint_b_x_f32);
+                hash_f32_le(&hash, capsule->endpoint_b_y_f32);
+                hash_f32_le(&hash, capsule->endpoint_b_z_f32);
+                hash_f32_le(&hash, capsule->radius_f32);
                 hash_u8(&hash, capsule->hurtbox_id);
                 hash_u8(&hash, capsule->height);
                 hash_u8(&hash, capsule->grabbable);
@@ -353,30 +349,30 @@ int pf_ssbm_stored_trace_oracle_run(
     } while (0)
                 PF_HASH_TRACE_FIELD(
                     PF_SSBM_TRACE_POSITION_X,
-                    hash_i32_le(&hash, sample->position_x_f32));
+                    hash_f32_le(&hash, sample->position_x_f32));
                 PF_HASH_TRACE_FIELD(
                     PF_SSBM_TRACE_POSITION_Y,
-                    hash_i32_le(&hash, sample->position_y_f32));
+                    hash_f32_le(&hash, sample->position_y_f32));
                 PF_HASH_TRACE_FIELD(
                     PF_SSBM_TRACE_SELF_VELOCITY_X,
-                    hash_i32_le(&hash, sample->self_velocity_x_f32));
+                    hash_f32_le(&hash, sample->self_velocity_x_f32));
                 PF_HASH_TRACE_FIELD(
                     PF_SSBM_TRACE_SELF_VELOCITY_Y,
-                    hash_i32_le(&hash, sample->self_velocity_y_f32));
+                    hash_f32_le(&hash, sample->self_velocity_y_f32));
                 PF_HASH_TRACE_FIELD(
                     PF_SSBM_TRACE_KNOCKBACK_VELOCITY_X,
-                    hash_i32_le(&hash, sample->knockback_velocity_x_f32));
+                    hash_f32_le(&hash, sample->knockback_velocity_x_f32));
                 PF_HASH_TRACE_FIELD(
                     PF_SSBM_TRACE_KNOCKBACK_VELOCITY_Y,
-                    hash_i32_le(&hash, sample->knockback_velocity_y_f32));
+                    hash_f32_le(&hash, sample->knockback_velocity_y_f32));
                 PF_HASH_TRACE_FIELD(
                     PF_SSBM_TRACE_GROUND_KNOCKBACK_VELOCITY,
-                    hash_i32_le(
+                    hash_f32_le(
                         &hash,
                         sample->ground_knockback_velocity_f32));
                 PF_HASH_TRACE_FIELD(
                     PF_SSBM_TRACE_DAMAGE,
-                    hash_u32_le(&hash, sample->damage_f32));
+                    hash_f32_le(&hash, sample->damage_f32));
                 PF_HASH_TRACE_FIELD(
                     PF_SSBM_TRACE_ACTION_TICKS,
                     hash_u16_le(&hash, sample->action_ticks));

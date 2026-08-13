@@ -4,6 +4,7 @@
 #include "pf/sim.h"
 
 #include <inttypes.h>
+#include <float.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -13,7 +14,7 @@
 #define TEST_MEMORY_BYTES 8192U
 #define TEST_MEMORY_ALIGNMENT 64U
 #define TEST_REPLAY_TICKS UINT32_C(20)
-#define TEST_CAMPING_MINIMUM_SEPARATION_Q16 INT32_C(693712)
+#define TEST_CAMPING_MINIMUM_SEPARATION_F32 10.585205078125f
 
 typedef struct test_storage
 {
@@ -328,13 +329,13 @@ static int run_ground_hit_contract(
             (uint8_t)PF_M4_PROJECTILE_STATE_ACTIVE ||
         inspection.projectile.owner != UINT8_C(0) ||
         inspection.projectile.hitbox_active != UINT8_C(1) ||
-        inspection.projectile.velocity_x_f32 <= INT32_C(0))
+        inspection.projectile.velocity_x_f32 <= 0.0f)
     {
         (void)fprintf(
             stderr,
             "m4-projectile=debug fire=%d source=%u target=%u detail=%u "
             "count=%" PRIu32 " p0=%u p1=%u state=%u owner=%u "
-            "active=%u vx=%" PRId32 "\n",
+            "active=%u vx=%.9g\n",
             event != NULL,
             event != NULL ? (unsigned int)event->source_player : 999U,
             event != NULL ? (unsigned int)event->target_player : 999U,
@@ -447,7 +448,7 @@ static int run_reflect_contract(
     }
     for (guard = UINT32_C(0); guard < UINT32_C(32); ++guard)
     {
-        const int32_t target_left =
+        const float target_left =
             inspection.players[1].position_x_f32 -
             content->fighter.half_width_f32;
 
@@ -469,10 +470,10 @@ static int run_reflect_contract(
     event = find_event(&result, PF_SIM_EVENT_PROJECTILE_REFLECT);
     if (event == NULL || event->source_player != UINT8_C(1) ||
         event->target_player != UINT8_C(0) ||
-        inspection.players[1].damage_f32 != UINT32_C(0) ||
+        inspection.players[1].damage_f32 != 0.0f ||
         inspection.players[1].powershield != UINT8_C(1) ||
         inspection.projectile.owner != UINT8_C(1) ||
-        inspection.projectile.velocity_x_f32 >= INT32_C(0) ||
+        inspection.projectile.velocity_x_f32 >= 0.0f ||
         inspection.projectile.state !=
             (uint8_t)PF_M4_PROJECTILE_STATE_ACTIVE)
     {
@@ -603,7 +604,7 @@ static int run_camping_trace(
         return 0;
     }
     (void)memset(out_trace, 0, sizeof(*out_trace));
-    out_trace->minimum_separation_f32 = INT32_MAX;
+    out_trace->minimum_separation_f32 = FLT_MAX;
     for (tick = UINT32_C(0); tick < UINT32_C(180); ++tick)
     {
         const float separation_f32 =
@@ -720,16 +721,16 @@ static int run_camping_contract(void)
         camping.projectile_fires != UINT32_C(7) ||
         camping.projectile_hits != UINT32_C(6) ||
         camping.approach_hits != UINT32_C(0) ||
-        camping.camper_damage_f32 != UINT32_C(0) ||
+        camping.camper_damage_f32 != 0.0f ||
         camping.approacher_damage_f32 <
-            UINT32_C(18) * 1.0f ||
+            18.0f ||
         camping.minimum_separation_f32 !=
-            TEST_CAMPING_MINIMUM_SEPARATION_Q16 ||
+            TEST_CAMPING_MINIMUM_SEPARATION_F32 ||
         no_fire.completed_ticks != UINT64_C(180) ||
         no_fire.projectile_fires != UINT32_C(0) ||
         no_fire.projectile_hits != UINT32_C(0) ||
         no_fire.approach_hits != UINT32_C(3) ||
-        no_fire.camper_damage_f32 == UINT32_C(0) ||
+        no_fire.camper_damage_f32 == 0.0f ||
         no_fire.minimum_separation_f32 >=
             camping.minimum_separation_f32)
     {
@@ -739,12 +740,12 @@ static int run_camping_contract(void)
             " camping_fires=%" PRIu32
             " camping_hits=%" PRIu32
             " camping_counter_hits=%" PRIu32
-            " camping_damage=%" PRIu32
-            " camping_target_damage=%" PRIu32
-            " camping_min=%" PRId32
+            " camping_damage=%.9g"
+            " camping_target_damage=%.9g"
+            " camping_min=%.9g"
             " control_hits=%" PRIu32
-            " control_damage=%" PRIu32
-            " control_min=%" PRId32 "\n",
+            " control_damage=%.9g"
+            " control_min=%.9g\n",
             camping.projectile_fires,
             camping.projectile_hits,
             camping.approach_hits,
@@ -759,7 +760,7 @@ static int run_camping_contract(void)
     (void)printf(
         "m4-camping=pass ticks=180 fires=%" PRIu32
         " projectile_hits=%" PRIu32
-        " minimum_separation_f32=%" PRId32
+        " minimum_separation_f32=%.9g"
         " no_fire_approach_hits=%" PRIu32 "\n",
         camping.projectile_fires,
         camping.projectile_hits,

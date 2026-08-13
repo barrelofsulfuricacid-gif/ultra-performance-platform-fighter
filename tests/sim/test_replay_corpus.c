@@ -102,6 +102,14 @@ static void write_u32_le(uint8_t *bytes, uint32_t value)
     bytes[3] = (uint8_t)(value >> 24U);
 }
 
+static void write_f32_le(uint8_t *bytes, float value)
+{
+    uint32_t bits;
+
+    (void)memcpy(&bits, &value, sizeof(bits));
+    write_u32_le(bytes, bits);
+}
+
 static void write_u16_le(uint8_t *bytes, uint16_t value)
 {
     bytes[0] = (uint8_t)value;
@@ -174,11 +182,11 @@ static void hash_tick_events(
         pf_sha256_update(hash, bytes, (size_t)8);
         write_u32_le(bytes, event->sequence);
         pf_sha256_update(hash, bytes, (size_t)4);
-        write_u32_le(bytes, event->value_f32);
+        write_f32_le(bytes, event->value_f32);
         pf_sha256_update(hash, bytes, (size_t)4);
-        write_u32_le(bytes, (uint32_t)event->velocity_x_f32);
+        write_f32_le(bytes, event->velocity_x_f32);
         pf_sha256_update(hash, bytes, (size_t)4);
-        write_u32_le(bytes, (uint32_t)event->velocity_y_f32);
+        write_f32_le(bytes, event->velocity_y_f32);
         pf_sha256_update(hash, bytes, (size_t)4);
         write_u16_le(bytes, event->type);
         pf_sha256_update(hash, bytes, (size_t)2);

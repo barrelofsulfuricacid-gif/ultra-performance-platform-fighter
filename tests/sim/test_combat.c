@@ -12,6 +12,7 @@
 #include "ssbm_stored_oracle.h"
 
 #include <inttypes.h>
+#include <float.h>
 #include <math.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -1926,8 +1927,8 @@ static int run_one_way_hit_test(
     test_sim_storage storage;
     pf_sim *sim = NULL;
     struct inspection inspection;
-    int32_t frozen_x[2];
-    int32_t frozen_y[2];
+    float frozen_x[2];
+    float frozen_y[2];
     uint32_t freeze_tick;
 
     if (!initialize_sim(
@@ -2087,9 +2088,9 @@ typedef struct test_weight_reaction
     uint16_t hitlag_ticks;
 } test_weight_reaction;
 
-static int32_t test_abs_i32(int32_t value)
+static float test_abs_f32(float value)
 {
-    return value < INT32_C(0) ? -value : value;
+    return fabsf(value);
 }
 
 static int run_weight_reaction_case(
@@ -2207,13 +2208,13 @@ static int run_weight_test(
     }
 
     if (ordinary_reaction.velocity_x_f32 != 0.017990112f ||
-        ordinary_reaction.velocity_y_f32 != -INT32_C(11369) ||
+        ordinary_reaction.velocity_y_f32 != -0.1734771728515625f ||
         ordinary_reaction.hitstun_ticks != UINT16_C(13) ||
         ordinary_reaction.hitlag_ticks != UINT16_C(3) ||
-        test_abs_i32(heavy_reaction.velocity_x_f32) >=
-            test_abs_i32(ordinary_reaction.velocity_x_f32) ||
-        test_abs_i32(heavy_reaction.velocity_y_f32) >=
-            test_abs_i32(ordinary_reaction.velocity_y_f32) ||
+        test_abs_f32(heavy_reaction.velocity_x_f32) >=
+            test_abs_f32(ordinary_reaction.velocity_x_f32) ||
+        test_abs_f32(heavy_reaction.velocity_y_f32) >=
+            test_abs_f32(ordinary_reaction.velocity_y_f32) ||
         heavy_reaction.hitstun_ticks >=
             ordinary_reaction.hitstun_ticks ||
         ordinary_reaction.damage_f32 != content->fighter.jab_damage_f32 ||
@@ -4156,10 +4157,10 @@ static int run_v_cancel_test(
     test_v_cancel_result jump_cancelled;
     test_v_cancel_result fall_special_ordinary;
     test_v_cancel_result fall_special_cancelled;
-    int32_t expected_x;
-    int32_t expected_y;
-    int32_t fall_expected_x;
-    int32_t fall_expected_y;
+    float expected_x;
+    float expected_y;
+    float fall_expected_x;
+    float fall_expected_y;
 
     if (content->fighter.v_cancel_velocity_scale_f32 !=
             (INT32_C(95) * 1.0f) / INT32_C(100) ||
@@ -4203,22 +4204,14 @@ static int run_v_cancel_test(
     if (!run_v_cancel_fall_special_case(
             content, UINT32_C(0), &fall_special_cancelled))
         return fail("v-cancel-fall-special-trigger-route");
-    expected_x = (int32_t)(
-        ((int64_t)ordinary.velocity_x_f32 *
-         (int64_t)content->fighter.v_cancel_velocity_scale_f32) /
-        (int64_t)1.0f);
-    expected_y = (int32_t)(
-        ((int64_t)ordinary.velocity_y_f32 *
-         (int64_t)content->fighter.v_cancel_velocity_scale_f32) /
-        (int64_t)1.0f);
-    fall_expected_x = (int32_t)(
-        ((int64_t)fall_special_ordinary.velocity_x_f32 *
-         (int64_t)content->fighter.v_cancel_velocity_scale_f32) /
-        (int64_t)1.0f);
-    fall_expected_y = (int32_t)(
-        ((int64_t)fall_special_ordinary.velocity_y_f32 *
-         (int64_t)content->fighter.v_cancel_velocity_scale_f32) /
-        (int64_t)1.0f);
+    expected_x = ordinary.velocity_x_f32 *
+                 content->fighter.v_cancel_velocity_scale_f32;
+    expected_y = ordinary.velocity_y_f32 *
+                 content->fighter.v_cancel_velocity_scale_f32;
+    fall_expected_x = fall_special_ordinary.velocity_x_f32 *
+                      content->fighter.v_cancel_velocity_scale_f32;
+    fall_expected_y = fall_special_ordinary.velocity_y_f32 *
+                      content->fighter.v_cancel_velocity_scale_f32;
     if (ordinary.velocity_x_f32 <= 0.0f ||
         ordinary.velocity_y_f32 >= 0.0f ||
         age_zero.velocity_x_f32 != expected_x ||
@@ -4263,31 +4256,19 @@ static int run_v_cancel_test(
         jump_cancelled.trigger_input_age != UINT8_C(2) ||
         jump_cancelled.tech_lockout_ticks != UINT16_C(38) ||
         jump_cancelled.velocity_x_f32 !=
-            (int32_t)(
-                ((int64_t)jump_ordinary.velocity_x_f32 *
-                 (int64_t)content->fighter
-                     .v_cancel_velocity_scale_f32) /
-                (int64_t)1.0f) ||
+            jump_ordinary.velocity_x_f32 *
+                content->fighter.v_cancel_velocity_scale_f32 ||
         jump_cancelled.velocity_y_f32 !=
-            (int32_t)(
-                ((int64_t)jump_ordinary.velocity_y_f32 *
-                 (int64_t)content->fighter
-                     .v_cancel_velocity_scale_f32) /
-                (int64_t)1.0f) ||
+            jump_ordinary.velocity_y_f32 *
+                content->fighter.v_cancel_velocity_scale_f32 ||
         fall_special_cancelled.trigger_input_age != UINT8_C(0) ||
         fall_special_cancelled.tech_lockout_ticks != UINT16_C(40) ||
         fall_special_cancelled.velocity_x_f32 !=
-            (int32_t)(
-                ((int64_t)fall_special_ordinary.velocity_x_f32 *
-                 (int64_t)content->fighter
-                     .v_cancel_velocity_scale_f32) /
-                (int64_t)1.0f) ||
+            fall_special_ordinary.velocity_x_f32 *
+                content->fighter.v_cancel_velocity_scale_f32 ||
         fall_special_cancelled.velocity_y_f32 !=
-            (int32_t)(
-                ((int64_t)fall_special_ordinary.velocity_y_f32 *
-                 (int64_t)content->fighter
-                     .v_cancel_velocity_scale_f32) /
-                (int64_t)1.0f) ||
+            fall_special_ordinary.velocity_y_f32 *
+                content->fighter.v_cancel_velocity_scale_f32 ||
         jump_cancelled.hitstun_ticks != jump_ordinary.hitstun_ticks ||
         fall_special_cancelled.hitstun_ticks !=
             fall_special_ordinary.hitstun_ticks)
@@ -4639,8 +4620,8 @@ static int run_crouch_cancel_test(
     pf_mut_bytes destination;
     pf_bytes save;
     size_t save_size = (size_t)0;
-    int32_t expected_x;
-    int32_t expected_y;
+    float expected_x;
+    float expected_y;
     uint32_t expected_hitstun;
     uint32_t tick;
     const float boundary_damage_f32 =
@@ -4650,9 +4631,9 @@ static int run_crouch_cancel_test(
         content->fighter.crouch_cancel_max_damage_f32 !=
             PF_SIM_MAX_DAMAGE_F32 ||
         content->fighter.crouch_cancel_velocity_scale_f32 !=
-            (int32_t)damage_response->crouch_knockback_scale_f32 ||
+            damage_response->crouch_knockback_scale_f32 ||
         content->fighter.crouch_cancel_hitstun_scale_f32 !=
-            (int32_t)damage_response->crouch_knockback_scale_f32)
+            damage_response->crouch_knockback_scale_f32)
     {
         return fail("crouch-cancel-default-data");
     }
@@ -4662,8 +4643,9 @@ static int run_crouch_cancel_test(
         0.0f;
     invalid_damage.fighter.crouch_cancel_max_damage_f32 =
         0.0f;
-    hash_content.fighter.crouch_cancel_velocity_scale_f32 -=
-        INT32_C(1);
+    hash_content.fighter.crouch_cancel_velocity_scale_f32 = nextafterf(
+        hash_content.fighter.crouch_cancel_velocity_scale_f32,
+        0.0f);
     exact_content.fighter.jab_damage_f32 =
         boundary_damage_f32;
     exact_content.fighter.crouch_cancel_max_damage_f32 =
@@ -4671,7 +4653,7 @@ static int run_crouch_cancel_test(
     below_content.fighter.jab_damage_f32 =
         boundary_damage_f32;
     below_content.fighter.crouch_cancel_max_damage_f32 =
-        boundary_damage_f32 - UINT32_C(1);
+        nextafterf(boundary_damage_f32, 0.0f);
     if (!expect_status(
             validate_content(&invalid_velocity),
             PF_STATUS_INVALID_CONFIG,
@@ -4709,21 +4691,13 @@ static int run_crouch_cancel_test(
         return fail("crouch-cancel-case-setup");
     }
 
-    expected_x = (int32_t)(
-        ((int64_t)ordinary.event.velocity_x_f32 *
-         (int64_t)content->fighter
-             .crouch_cancel_velocity_scale_f32) /
-        (int64_t)1.0f);
-    expected_y = (int32_t)(
-        ((int64_t)ordinary.event.velocity_y_f32 *
-         (int64_t)content->fighter
-             .crouch_cancel_velocity_scale_f32) /
-        (int64_t)1.0f);
-    expected_hitstun =
-        ((uint32_t)ordinary.hitstun_ticks *
-         (uint32_t)content->fighter
-             .crouch_cancel_hitstun_scale_f32) /
-        (uint32_t)1.0f;
+    expected_x = ordinary.event.velocity_x_f32 *
+                 content->fighter.crouch_cancel_velocity_scale_f32;
+    expected_y = ordinary.event.velocity_y_f32 *
+                 content->fighter.crouch_cancel_velocity_scale_f32;
+    expected_hitstun = (uint32_t)(
+        (float)ordinary.hitstun_ticks *
+        content->fighter.crouch_cancel_hitstun_scale_f32);
     if (ordinary.hitstun_ticks != UINT16_C(0) &&
         expected_hitstun == UINT32_C(0))
     {
@@ -5228,10 +5202,10 @@ static int run_double_jump_cancel_counter_test(
     pf_mut_bytes destination;
     pf_bytes save;
     size_t save_size = (size_t)0;
-    int32_t frozen_position_x;
-    int32_t frozen_position_y;
-    int32_t frozen_velocity_x;
-    int32_t frozen_velocity_y;
+    float frozen_position_x;
+    float frozen_position_y;
+    float frozen_velocity_x;
+    float frozen_velocity_y;
     uint32_t tick;
 
     if (content->fighter.double_jump_armor_max_hitstun_ticks !=
@@ -5707,8 +5681,8 @@ static int run_aerial_hit_test(
     test_sim_storage storage;
     pf_sim *sim = NULL;
     struct inspection inspection;
-    int32_t frozen_x[2];
-    int32_t frozen_y[2];
+    float frozen_x[2];
+    float frozen_y[2];
     uint32_t tick;
     uint32_t hit_sequence;
 
@@ -6205,7 +6179,7 @@ static int run_small_step_forward_smash_test(
     pf_mut_bytes destination;
     pf_bytes source_bytes;
     size_t save_size = (size_t)0;
-    int32_t standing_x;
+    float standing_x;
     float standing_smash_motion_x_f32;
     float expected_damage_f32;
     uint32_t tick;
@@ -7635,7 +7609,7 @@ static int prepare_cross_up_aerial(
     {
         for (tick = UINT32_C(0); tick < UINT32_C(64); ++tick)
         {
-            const int32_t vertical_gap =
+            const float vertical_gap =
                 out_inspection->players[1].position_y_f32 -
                 out_inspection->players[0].position_y_f32;
             const int reached_attack_position =
@@ -7937,7 +7911,7 @@ static int run_cross_up_test(
 static int16_t juggling_chase_axis(
     const struct inspection *inspection)
 {
-    const int32_t delta =
+    const float delta =
         inspection->players[1].position_x_f32 -
         inspection->players[0].position_x_f32;
 
@@ -8082,7 +8056,7 @@ static int run_juggling_route(
         int16_t target_y = INT16_C(0);
         uint64_t attacker_buttons = UINT64_C(0);
         uint16_t target_trigger = UINT16_C(0);
-        int32_t horizontal_gap =
+        float horizontal_gap =
             inspection.players[1].position_x_f32 -
             inspection.players[0].position_x_f32;
 
@@ -8267,7 +8241,7 @@ static int wait_for_kill_confirm_neutral(
 
     for (tick = UINT32_C(0); tick < UINT32_C(320); ++tick)
     {
-        const int32_t gap =
+        const float gap =
             out_inspection->players[1].position_x_f32 -
             out_inspection->players[0].position_x_f32;
         const int16_t attacker_axis =
@@ -8721,7 +8695,7 @@ static int run_kill_confirm_route(
     {
         const uint32_t previous_sequence =
             inspection.players[1].last_hit_sequence;
-        const uint32_t expected_damage =
+        const float expected_damage =
             expected_repeated_move_damage_f32(
                 &content->fighter,
                 content->fighter.jab_damage_f32,
@@ -9311,7 +9285,7 @@ static int run_ladder_route(
     uint32_t hit_count = UINT32_C(0);
     uint32_t light_attack_starts = UINT32_C(0);
     uint32_t tick;
-    float first_hit_y_f32 = INT32_MAX;
+    float first_hit_y_f32 = FLT_MAX;
     int chain_started = 0;
     int chain_broken = 0;
     int double_jump_used = 0;
@@ -9794,8 +9768,8 @@ static int run_surface_tech_test(
     pf_sim *ceiling = NULL;
     pf_sim *ceiling_bounce = NULL;
     struct inspection inspection;
-    int32_t bounce_x;
-    int32_t bounce_y;
+    float bounce_x;
+    float bounce_y;
     uint32_t tick;
 
     if (!initialize_sim(
@@ -11304,8 +11278,8 @@ static int run_shield_state_test(
     test_sim_storage storage;
     pf_sim *sim = NULL;
     struct inspection inspection;
-    int32_t run_velocity;
-    uint32_t shield_health;
+    float run_velocity;
+    float shield_health;
     uint32_t tick;
 
     if (!initialize_sim(
@@ -11374,7 +11348,7 @@ static int run_shield_state_test(
     run_velocity = inspection.players[0].velocity_x_f32;
     if (inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_RUN ||
-        run_velocity <= INT32_C(0) ||
+        run_velocity <= 0.0f ||
         !step_reaction_duel(
             sim,
             INT16_C(0),
@@ -11492,12 +11466,9 @@ static float expected_shield_depletion_f32(
     uint16_t shield_strength)
 {
     return fighter->light_shield_hold_depletion_f32 +
-           (uint32_t)(
-               ((uint64_t)(
-                    fighter->shield_hold_depletion_f32 -
-                    fighter->light_shield_hold_depletion_f32) *
-                (uint64_t)shield_strength) /
-               (uint64_t)UINT16_MAX);
+           (fighter->shield_hold_depletion_f32 -
+            fighter->light_shield_hold_depletion_f32) *
+               (float)shield_strength / (float)UINT16_MAX;
 }
 
 typedef struct test_shield_box
@@ -11559,7 +11530,7 @@ static int run_light_shield_state_test(
             (uint32_t)UINT16_MAX /
             ((uint32_t)UINT16_MAX -
              ((uint32_t)light_input - UINT32_C(1))));
-    const uint32_t middle_depletion =
+    const float middle_depletion =
         expected_shield_depletion_f32(&content->fighter, middle);
     const int16_t tilt_x =
         (int16_t)(content->fighter.axis_dead_zone + UINT16_C(1));
@@ -11812,7 +11783,7 @@ static int run_dashing_shield_test(
     pf_mut_bytes destination;
     pf_bytes save;
     size_t save_size = (size_t)0;
-    int32_t run_start_x;
+    float run_start_x;
     uint32_t tick;
 
     if (!initialize_sim(
@@ -12116,14 +12087,14 @@ static int spacing_distance_matches(
     int expect_jab_range,
     int expect_strong_range)
 {
-    const int32_t distance =
+    const float distance =
         inspection->players[1].position_x_f32 -
         inspection->players[0].position_x_f32;
-    const int32_t jab_reach =
+    const float jab_reach =
         content->fighter.jab_hitbox_offset_x_f32 +
         content->fighter.jab_hitbox_half_width_f32 +
         content->fighter.half_width_f32;
-    const int32_t strong_reach =
+    const float strong_reach =
         content->fighter.strong_hitbox_offset_x_f32 +
         content->fighter.strong_hitbox_half_width_f32 +
         content->fighter.half_width_f32;
@@ -12503,20 +12474,20 @@ static int walk_to_approach_distance(
     int close_distance,
     struct inspection *out_inspection)
 {
-    const int32_t jab_reach =
+    const float jab_reach =
         content->fighter.jab_hitbox_offset_x_f32 +
         content->fighter.jab_hitbox_half_width_f32 +
         content->fighter.half_width_f32;
-    const int32_t strong_reach =
+    const float strong_reach =
         content->fighter.strong_hitbox_offset_x_f32 +
         content->fighter.strong_hitbox_half_width_f32 +
         content->fighter.half_width_f32;
-    const int32_t target_distance =
+    const float target_distance =
         close_distance != 0
             ? jab_reach - 1.0f / INT32_C(5)
             : jab_reach +
                   (strong_reach - jab_reach) / INT32_C(2);
-    const int32_t brake_distance =
+    const float brake_distance =
         target_distance + content->fighter.walk_speed_f32;
     uint32_t tick;
     int saw_walk = 0;
@@ -12575,7 +12546,7 @@ static int run_approach_test(
     test_sim_storage storage;
     pf_sim *sim = NULL;
     struct inspection inspection;
-    int32_t start_x;
+    float start_x;
     uint32_t tick;
 
     if (!initialize_sim(
@@ -12689,22 +12660,22 @@ static int run_shield_block_test(
     uint8_t save_bytes[TEST_SAVE_CAPACITY];
     pf_mut_bytes destination;
     pf_bytes save;
-    const uint32_t shield_damage =
+    const float shield_damage =
         expected_shield_damage_f32(
             &content->fighter,
             content->fighter.jab_damage_f32,
             UINT16_MAX);
-    const uint32_t normal_expected_health =
+    const float normal_expected_health =
         content->fighter.shield_health_f32 -
-        UINT32_C(7) *
+        7.0f *
             content->fighter.shield_hold_depletion_f32 -
         shield_damage;
-    const uint32_t power_expected_health =
+    const float power_expected_health =
         content->fighter.shield_health_f32;
-    int32_t normal_pushback;
-    int32_t normal_initial_recoil;
-    int32_t normal_expected_resumed_recoil;
-    int32_t normal_attacker_start_x;
+    float normal_pushback;
+    float normal_initial_recoil;
+    float normal_expected_resumed_recoil;
+    float normal_attacker_start_x;
     uint16_t normal_shield_stun;
     int8_t normal_facing;
     uint32_t tick;
@@ -12774,13 +12745,11 @@ static int run_shield_block_test(
         normal_inspection.players[0].shield_recoil_x_f32;
     normal_expected_resumed_recoil =
         normal_initial_recoil +
-        (int32_t)(((int64_t)content->fighter.traction_f32 *
-                   (int64_t)content->fighter
-                       .shield_attacker_pushback_ground_friction_scale_f32) >>
-                  16U);
-    if (normal_expected_resumed_recoil > INT32_C(0))
+        content->fighter.traction_f32 *
+            content->fighter.shield_attacker_pushback_ground_friction_scale_f32;
+    if (normal_expected_resumed_recoil > 0.0f)
     {
-        normal_expected_resumed_recoil = INT32_C(0);
+        normal_expected_resumed_recoil = 0.0f;
     }
     normal_attacker_start_x =
         normal_inspection.players[0].position_x_f32;
@@ -13036,22 +13005,18 @@ static int run_shield_sdi_test(
     pf_content_view edge_view;
     pf_content_view invalid_view;
     const float shield_sdi_distance_f32 =
-        (int32_t)(
-            ((int64_t)content->fighter.sdi_distance_x_f32 *
-             (int64_t)content->fighter.shield_sdi_scale_f32) /
-            (int64_t)1.0f);
+        content->fighter.sdi_distance_x_f32 *
+        content->fighter.shield_sdi_scale_f32;
     const float shield_asdi_distance_f32 =
-        (int32_t)(
-            ((int64_t)content->fighter.asdi_distance_x_f32 *
-             (int64_t)content->fighter.shield_sdi_scale_f32) /
-            (int64_t)1.0f);
-    int32_t horizontal_start_x;
-    int32_t horizontal_start_y;
-    int32_t first_pulse_x;
-    int32_t vertical_start_x;
-    int32_t vertical_start_y;
-    int32_t reentry_start_x;
-    int32_t reentry_start_y;
+        content->fighter.asdi_distance_x_f32 *
+        content->fighter.shield_sdi_scale_f32;
+    float horizontal_start_x;
+    float horizontal_start_y;
+    float first_pulse_x;
+    float vertical_start_x;
+    float vertical_start_y;
+    float reentry_start_x;
+    float reentry_start_y;
     uint32_t tick;
 
     if (source_damage_response == NULL ||
@@ -13473,37 +13438,37 @@ static int run_light_shield_block_test(
             (uint32_t)UINT16_MAX /
             ((uint32_t)UINT16_MAX -
              ((uint32_t)light_input - UINT32_C(1))));
-    const uint32_t light_shield_damage =
+    const float light_shield_damage =
         expected_shield_damage_f32(
             &content->fighter,
             content->fighter.jab_damage_f32,
             light_strength);
-    const uint32_t dense_shield_damage =
+    const float dense_shield_damage =
         expected_shield_damage_f32(
             &content->fighter,
             content->fighter.jab_damage_f32,
             dense_strength);
-    const uint32_t midpoint_shield_damage =
+    const float midpoint_shield_damage =
         expected_shield_damage_f32(
             &content->fighter,
             content->fighter.jab_damage_f32,
             midpoint_strength);
-    const uint32_t light_expected_health =
+    const float light_expected_health =
         content->fighter.shield_health_f32 -
-        UINT32_C(7) *
+        7.0f *
             content->fighter.light_shield_hold_depletion_f32 -
         light_shield_damage;
-    const uint32_t dense_expected_health =
+    const float dense_expected_health =
         content->fighter.shield_health_f32 -
-        UINT32_C(7) * content->fighter.shield_hold_depletion_f32 -
+        7.0f * content->fighter.shield_hold_depletion_f32 -
         dense_shield_damage;
-    const uint32_t midpoint_expected_health =
+    const float midpoint_expected_health =
         content->fighter.shield_health_f32 -
-        UINT32_C(7) * expected_shield_depletion_f32(
+        7.0f * expected_shield_depletion_f32(
                              &content->fighter,
                              midpoint_strength) -
         midpoint_shield_damage;
-    const uint32_t window_expected_health =
+    const float window_expected_health =
         content->fighter.shield_health_f32 - light_shield_damage;
     const uint16_t expected_light_stun =
         expected_shield_stun_ticks(
@@ -13520,50 +13485,50 @@ static int run_light_shield_block_test(
             &content->fighter,
             content->fighter.jab_damage_f32,
             midpoint_strength);
-    const int32_t expected_light_guard_setoff_rate =
+    const float expected_light_guard_setoff_rate =
         expected_guard_setoff_animation_rate_f32(
             &content->fighter,
             content->fighter.jab_damage_f32,
             light_strength);
-    const int32_t expected_midpoint_guard_setoff_rate =
+    const float expected_midpoint_guard_setoff_rate =
         expected_guard_setoff_animation_rate_f32(
             &content->fighter,
             content->fighter.jab_damage_f32,
             midpoint_strength);
-    const int32_t expected_dense_guard_setoff_rate =
+    const float expected_dense_guard_setoff_rate =
         expected_guard_setoff_animation_rate_f32(
             &content->fighter,
             content->fighter.jab_damage_f32,
             dense_strength);
-    const int32_t expected_light_defender_pushback =
+    const float expected_light_defender_pushback =
         expected_shield_defender_pushback_f32(
             &content->fighter,
             content->fighter.jab_damage_f32,
             light_strength,
             0);
-    const int32_t expected_dense_defender_pushback =
+    const float expected_dense_defender_pushback =
         expected_shield_defender_pushback_f32(
             &content->fighter,
             content->fighter.jab_damage_f32,
             dense_strength,
             0);
-    const int32_t expected_midpoint_defender_pushback =
+    const float expected_midpoint_defender_pushback =
         expected_shield_defender_pushback_f32(
             &content->fighter,
             content->fighter.jab_damage_f32,
             midpoint_strength,
             0);
-    const int32_t expected_light_attacker_pushback =
+    const float expected_light_attacker_pushback =
         expected_shield_attacker_pushback_f32(
             &content->fighter,
             content->fighter.jab_damage_f32,
             light_strength);
-    const int32_t expected_dense_attacker_pushback =
+    const float expected_dense_attacker_pushback =
         expected_shield_attacker_pushback_f32(
             &content->fighter,
             content->fighter.jab_damage_f32,
             dense_strength);
-    const int32_t expected_midpoint_attacker_pushback =
+    const float expected_midpoint_attacker_pushback =
         expected_shield_attacker_pushback_f32(
             &content->fighter,
             content->fighter.jab_damage_f32,
@@ -13747,7 +13712,7 @@ static int run_shield_geometry_and_poke_test(
     float attack_right_f32;
     float attack_top_f32;
     float attack_bottom_f32;
-    uint32_t control_health_before;
+    float control_health_before;
     uint32_t tick;
 
     if (!initialize_sim(
@@ -13947,13 +13912,8 @@ static int run_shield_geometry_and_poke_test(
 static float melee_distance_hundredths_to_sim_f32(
     uint32_t melee_distance_hundredths)
 {
-    const int64_t numerator =
-        (int64_t)melee_distance_hundredths *
-        (int64_t)1.0f * INT64_C(12);
-    const int64_t denominator = INT64_C(100) * INT64_C(115);
-
-    return (int32_t)(
-        (numerator + denominator / INT64_C(2)) / denominator);
+    return (float)melee_distance_hundredths * 12.0f /
+           (100.0f * 115.0f);
 }
 
 static int run_reference_shield_boundary_case(
@@ -14448,17 +14408,13 @@ static int reference_hit_geometry_overlap_pose(
          ++hit_index)
     {
         const collision_capsule3_f32 hit = {
-            (int64_t)attacker_facing *
-                (int64_t)hit_spheres[hit_index].offset_x_f32,
-            (int64_t)hit_spheres[hit_index].offset_y_f32,
-            (int64_t)attacker_facing *
-                (int64_t)hit_spheres[hit_index].offset_z_f32,
-            (int64_t)attacker_facing *
-                (int64_t)hit_spheres[hit_index].offset_x_f32,
-            (int64_t)hit_spheres[hit_index].offset_y_f32,
-            (int64_t)attacker_facing *
-                (int64_t)hit_spheres[hit_index].offset_z_f32,
-            (int64_t)hit_spheres[hit_index].radius_f32};
+            (float)attacker_facing * hit_spheres[hit_index].offset_x_f32,
+            hit_spheres[hit_index].offset_y_f32,
+            (float)attacker_facing * hit_spheres[hit_index].offset_z_f32,
+            (float)attacker_facing * hit_spheres[hit_index].offset_x_f32,
+            hit_spheres[hit_index].offset_y_f32,
+            (float)attacker_facing * hit_spheres[hit_index].offset_z_f32,
+            hit_spheres[hit_index].radius_f32};
         uint8_t hurt_index;
 
         for (hurt_index = UINT8_C(0);
@@ -14471,21 +14427,21 @@ static int reference_hit_geometry_overlap_pose(
                 continue;
             }
             const collision_capsule3_f32 hurt = {
-                (int64_t)target_offset_x_f32 +
-                    (int64_t)target_facing *
-                        (int64_t)hurt_capsules[hurt_index].endpoint_a_x_f32,
-                (int64_t)target_offset_y_f32 +
-                    (int64_t)hurt_capsules[hurt_index].endpoint_a_y_f32,
-                (int64_t)target_facing *
-                    (int64_t)hurt_capsules[hurt_index].endpoint_a_z_f32,
-                (int64_t)target_offset_x_f32 +
-                    (int64_t)target_facing *
-                        (int64_t)hurt_capsules[hurt_index].endpoint_b_x_f32,
-                (int64_t)target_offset_y_f32 +
-                    (int64_t)hurt_capsules[hurt_index].endpoint_b_y_f32,
-                (int64_t)target_facing *
-                    (int64_t)hurt_capsules[hurt_index].endpoint_b_z_f32,
-                (int64_t)hurt_capsules[hurt_index].radius_f32};
+                target_offset_x_f32 +
+                    (float)target_facing *
+                        hurt_capsules[hurt_index].endpoint_a_x_f32,
+                target_offset_y_f32 +
+                    hurt_capsules[hurt_index].endpoint_a_y_f32,
+                (float)target_facing *
+                    hurt_capsules[hurt_index].endpoint_a_z_f32,
+                target_offset_x_f32 +
+                    (float)target_facing *
+                        hurt_capsules[hurt_index].endpoint_b_x_f32,
+                target_offset_y_f32 +
+                    hurt_capsules[hurt_index].endpoint_b_y_f32,
+                (float)target_facing *
+                    hurt_capsules[hurt_index].endpoint_b_z_f32,
+                hurt_capsules[hurt_index].radius_f32};
 
             if (collision_capsule_capsule_overlap_f32(
                     &hit,

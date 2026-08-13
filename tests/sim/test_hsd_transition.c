@@ -5,6 +5,7 @@
 #include "sim_internal.h"
 
 #include <inttypes.h>
+#include <math.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -14,7 +15,7 @@
 #include "generated/ssbm_falcon_ground_loop_transition_oracle.inc"
 
 #define TEST_ROTATION_TOLERANCE_Q15 INT32_C(8)
-#define TEST_TRANSLATION_TOLERANCE_Q16 INT32_C(4)
+#define TEST_TRANSLATION_TOLERANCE_F32 0.0001f
 #define TEST_MEMORY_BYTES 4096U
 #define TEST_MEMORY_ALIGNMENT 64U
 
@@ -93,7 +94,7 @@ static int run_qualified_action_ecb_cases(uint32_t *out_pose_count)
                     &actual) ||
                 !falcon_reference_hsd_ecb_pose(
                     test_case->source_submotion,
-                    source_frame * (int32_t)1.0f,
+                    (float)source_frame,
                     1,
                     PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_F32,
                     &expected) ||
@@ -159,19 +160,19 @@ static int run_production_common_air_entry_ecb_lock(void)
     {
         return 0;
     }
-    sim->world.velocity_x_f32[0] = INT32_C(0);
-    sim->world.velocity_y_f32[0] = INT32_C(0);
+    sim->world.velocity_x_f32[0] = 0.0f;
+    sim->world.velocity_y_f32[0] = 0.0f;
     sim->world.grounded[0] = UINT8_C(0);
     sim->world.support[0] = (uint8_t)PF_M4_SURFACE_NONE;
     sim->world.action_state[0] = (uint8_t)PF_M4_ACTION_AIRBORNE;
     sim->world.action_ticks[0] = UINT16_C(0);
     sim->world.source_submotion[0] =
         (uint16_t)PF_M4_FALCON_SUBMOTION_FALL;
-    sim->world.source_animation_frame_f32[0] = INT32_C(0);
-    sim->world.source_animation_rate_f32[0] = (int32_t)1.0f;
+    sim->world.source_animation_frame_f32[0] = 0.0f;
+    sim->world.source_animation_rate_f32[0] = 1.0f;
     sim->world.air_jumps_remaining[0] = UINT8_C(1);
     sim->world.ecb_bottom_lock_ticks[0] = UINT8_C(3);
-    sim->world.ecb_locked_bottom_y_f32[0] = INT32_C(0);
+    sim->world.ecb_locked_bottom_y_f32[0] = 0.0f;
 
     (void)memset(inputs, 0, sizeof(inputs));
     inputs[0].tick = sim->world.tick;
@@ -183,14 +184,14 @@ static int run_production_common_air_entry_ecb_lock(void)
     inputs[1].player_slot = UINT8_C(1);
     if (pf_sim_tick(sim, inputs, (size_t)2, &result) != PF_STATUS_OK ||
         sim->world.ecb_bottom_lock_ticks[0] != UINT8_C(9) ||
-        sim->world.ecb_locked_bottom_y_f32[0] != INT32_C(0) ||
+        sim->world.ecb_locked_bottom_y_f32[0] != 0.0f ||
         sim->world.source_submotion[0] !=
             (uint16_t)PF_M4_FALCON_SUBMOTION_JUMP_AERIAL_FORWARD)
     {
         (void)fprintf(
             stderr,
             "m4-hsd-transition=fail operation=common-ecb-lock-entry"
-            " ticks=%u bottom=%" PRId32 " submotion=%u action=%u"
+            " ticks=%u bottom=%.9g submotion=%u action=%u"
             " grounded=%u active=%u jumps=%u\n",
             (unsigned int)sim->world.ecb_bottom_lock_ticks[0],
             sim->world.ecb_locked_bottom_y_f32[0],
@@ -220,12 +221,12 @@ static int run_production_common_air_entry_ecb_lock(void)
                 (uint8_t)PF_M4_ACTION_AERIAL_ATTACK ||
             (tick < UINT32_C(8) &&
              inspection.players[0].ecb_bottom_y_from_origin_f32 !=
-                 INT32_C(0)))
+                 0.0f))
         {
             (void)fprintf(
                 stderr,
                 "m4-hsd-transition=fail operation=common-ecb-lock-hold"
-                " tick=%" PRIu32 " action=%u bottom=%" PRId32 "\n",
+                " tick=%" PRIu32 " action=%u bottom=%.9g\n",
                 tick,
                 (unsigned int)inspection.players[0].action_state,
                 inspection.players[0].ecb_bottom_y_from_origin_f32);
@@ -245,7 +246,7 @@ static int run_production_common_air_entry_ecb_lock(void)
         (void)fprintf(
             stderr,
             "m4-hsd-transition=fail operation=common-ecb-lock-release"
-            " ticks=%u expected=%" PRId32 " actual=%" PRId32 "\n",
+            " ticks=%u expected=%.9g actual=%.9g\n",
             (unsigned int)sim->world.ecb_bottom_lock_ticks[0],
             unlocked_frame_9.bottom_y_from_origin_f32,
             inspection.players[0].ecb_bottom_y_from_origin_f32);
@@ -261,6 +262,11 @@ static int32_t absolute_difference_i32(int32_t left, int32_t right)
     return (int32_t)(difference < INT64_C(0) ? -difference : difference);
 }
 
+static float absolute_difference_f32(float left, float right)
+{
+    return fabsf(left - right);
+}
+
 static int compare_compact_pose(
     const hsd_pose_data *data,
     const hsd_compact_pose *actual,
@@ -269,9 +275,9 @@ static int compare_compact_pose(
     uint32_t trace_frame,
     const char *operation,
     int32_t rotation_tolerance,
-    int32_t translation_tolerance,
+    float translation_tolerance,
     int32_t *maximum_rotation_difference,
-    int32_t *maximum_translation_difference)
+    float *maximum_translation_difference)
 {
     uint8_t index;
 
@@ -315,7 +321,7 @@ static int compare_compact_pose(
 
         for (component = UINT8_C(0); component < UINT8_C(3); ++component)
         {
-            const int32_t difference = absolute_difference_i32(
+            const float difference = absolute_difference_f32(
                 actual->translation_f32[index][component],
                 expected->translation_f32[index][component]);
 
@@ -329,8 +335,8 @@ static int compare_compact_pose(
                     stderr,
                     "m4-hsd-transition=fail operation=%s-translation"
                     " case=%" PRIu32 " trace_frame=%" PRIu32
-                    " joint=%u component=%u expected=%" PRId32
-                    " actual=%" PRId32 " difference=%" PRId32 "\n",
+                    " joint=%u component=%u expected=%.9g"
+                    " actual=%.9g difference=%.9g\n",
                     operation,
                     case_index,
                     trace_frame,
@@ -349,7 +355,7 @@ static int compare_compact_pose(
 static int run_production_transition_cases(
     const hsd_pose_data *data,
     int32_t *production_maximum_rotation_difference,
-    int32_t *production_maximum_translation_difference)
+    float *production_maximum_translation_difference)
 {
     test_sim_storage storage;
     struct content content;
@@ -389,7 +395,7 @@ static int run_production_transition_cases(
         hsd_local_pose target_local[PF_M4_HSD_POSE_MAX_JOINTS];
         hsd_compact_pose target_compact;
         int32_t reference_maximum_rotation_difference = INT32_C(0);
-        int32_t reference_maximum_translation_difference = INT32_C(0);
+        float reference_maximum_translation_difference = 0.0f;
 
         if (pf_sim_reset(sim, UINT64_C(0x4853445452414e53)) != PF_STATUS_OK)
         {
@@ -419,7 +425,7 @@ static int run_production_transition_cases(
         inputs[1].tick = world->tick;
         inputs[1].schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
         inputs[1].player_slot = UINT8_C(1);
-        if (oracle->previous_progress_f32 == INT32_C(0) &&
+        if (oracle->previous_progress_f32 == 0.0f &&
             (!hsd_evaluate_local_pose_f32(
                 data,
                 oracle->previous_submotion,
@@ -435,7 +441,7 @@ static int run_production_transition_cases(
                 oracle->trace_frame,
                 "production-source",
                 TEST_ROTATION_TOLERANCE_Q15,
-                INT32_C(8),
+                0.0001220703125f,
                 &reference_maximum_rotation_difference,
                 &reference_maximum_translation_difference)))
         {
@@ -456,7 +462,7 @@ static int run_production_transition_cases(
                 oracle->trace_frame,
                 "production-target",
                 TEST_ROTATION_TOLERANCE_Q15,
-                TEST_TRANSLATION_TOLERANCE_Q16,
+                TEST_TRANSLATION_TOLERANCE_F32,
                 &reference_maximum_rotation_difference,
                 &reference_maximum_translation_difference))
         {
@@ -465,19 +471,19 @@ static int run_production_transition_cases(
         if (pf_sim_tick(sim, inputs, (size_t)2, &result) != PF_STATUS_OK ||
             world->action_state[0] != oracle->expected_action ||
             world->source_submotion[0] != oracle->expected_submotion ||
-            absolute_difference_i32(
+            absolute_difference_f32(
                 world->source_animation_frame_f32[0],
-                oracle->expected_frame_f32) > INT32_C(2) ||
-            absolute_difference_i32(
+                oracle->expected_frame_f32) > 0.000030517578125f ||
+            absolute_difference_f32(
                 world->ground_blend_progress_f32[0],
-                oracle->expected_progress_f32) > INT32_C(2))
+                oracle->expected_progress_f32) > 0.000030517578125f)
         {
             (void)fprintf(
                 stderr,
                 "m4-hsd-transition=fail operation=production-state"
                 " case=%" PRIu32 " trace_frame=%" PRIu32
-                " action=%u/%u submotion=%u/%u frame=%" PRId32
-                "/%" PRId32 " progress=%" PRId32 "/%" PRId32 "\n",
+                " action=%u/%u submotion=%u/%u frame=%.9g"
+                "/%.9g progress=%.9g/%.9g\n",
                 case_index,
                 oracle->trace_frame,
                 (unsigned int)world->action_state[0],
@@ -498,7 +504,7 @@ static int run_production_transition_cases(
                 oracle->trace_frame,
                 "production",
                 TEST_ROTATION_TOLERANCE_Q15,
-                TEST_TRANSLATION_TOLERANCE_Q16,
+                TEST_TRANSLATION_TOLERANCE_F32,
                 production_maximum_rotation_difference,
                 production_maximum_translation_difference))
         {
@@ -516,9 +522,9 @@ int main(void)
     uint32_t case_index;
     uint32_t qualified_action_pose_count = UINT32_C(0);
     int32_t maximum_rotation_difference = INT32_C(0);
-    int32_t maximum_translation_difference = INT32_C(0);
+    float maximum_translation_difference = 0.0f;
     int32_t production_maximum_rotation_difference = INT32_C(0);
-    int32_t production_maximum_translation_difference = INT32_C(0);
+    float production_maximum_translation_difference = 0.0f;
     falcon_ecb_pose_f32 raptor_ground_start = {0};
     falcon_ecb_pose_f32 raptor_air_start = {0};
     falcon_ecb_pose_f32 raptor_ground_hit = {0};
@@ -570,7 +576,7 @@ int main(void)
             PF_M4_FALCON_SUBMOTION_FALCON_DIVE_START_AIR,
             INT32_C(14) * 1.0f,
             0,
-            INT32_C(25250),
+            0.385284423828125f,
             &dive_air_start_relocked) ||
         !falcon_reference_hsd_ecb_pose(
             PF_M4_FALCON_SUBMOTION_FALCON_DIVE_START_GROUND,
@@ -588,92 +594,91 @@ int main(void)
             PF_M4_FALCON_SUBMOTION_FALCON_DIVE_THROW,
             INT32_C(45) * 1.0f,
             0,
-            INT32_C(92238),
+            1.407440185546875f,
             &dive_throw_relocked) ||
         !falcon_reference_hsd_fall_ecb_pose(
             PF_M4_FALCON_SUBMOTION_FALL_SPECIAL,
-            INT32_C(0),
-            INT32_C(0),
+            0.0f,
+            0.0f,
             UINT8_C(0),
             PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_F32,
             &fall_special_entry) ||
         !falcon_reference_hsd_fall_ecb_pose(
             PF_M4_FALCON_SUBMOTION_FALL_SPECIAL_FORWARD,
             1.0f,
-            INT32_C(8547),
+            0.1304168701171875f,
             UINT8_C(1),
             PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_F32,
             &fall_special_direction_switch) ||
         !falcon_reference_hsd_fall_ecb_pose(
             PF_M4_FALCON_SUBMOTION_FALL_SPECIAL_FORWARD,
             INT32_C(2) * 1.0f,
-            INT32_C(12497),
+            0.1906890869140625f,
             UINT8_C(0),
             PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_F32,
             &fall_special_direction_steady) ||
-        absolute_difference_i32(
+        absolute_difference_f32(
             raptor_ground_start.top_y_from_origin_f32,
-            INT32_C(146354)) > INT32_C(32) ||
-        absolute_difference_i32(
+            2.233184814453125f) > 0.00048828125f ||
+        absolute_difference_f32(
             raptor_ground_start.right_x_from_origin_f32,
-            INT32_C(35880)) > INT32_C(32) ||
-        absolute_difference_i32(
+            0.5474853515625f) > 0.00048828125f ||
+        absolute_difference_f32(
             raptor_ground_start.left_x_from_origin_f32,
-            -INT32_C(51798)) > INT32_C(32) ||
-        absolute_difference_i32(
+            -0.790374755859375f) > 0.00048828125f ||
+        absolute_difference_f32(
             raptor_air_start.bottom_y_from_origin_f32,
-            INT32_C(0)) > INT32_C(32) ||
-        absolute_difference_i32(
+            0.0f) > 0.00048828125f ||
+        absolute_difference_f32(
             raptor_air_start.right_y_from_origin_f32,
-            INT32_C(93519)) > INT32_C(32) ||
-        absolute_difference_i32(
+            1.4269866943359375f) > 0.00048828125f ||
+        absolute_difference_f32(
             raptor_ground_hit.right_x_from_origin_f32,
-            INT32_C(62391)) > INT32_C(32) ||
-        absolute_difference_i32(
+            0.9520111083984375f) > 0.00048828125f ||
+        absolute_difference_f32(
             raptor_air_hit.bottom_y_from_origin_f32,
-            INT32_C(19452)) > INT32_C(32) ||
-        absolute_difference_i32(
+            0.29681396484375f) > 0.00048828125f ||
+        absolute_difference_f32(
             dive_ground_start_airborne.top_y_from_origin_f32,
-            INT32_C(223674)) > INT32_C(64) ||
-        absolute_difference_i32(
+            3.412994384765625f) > 0.0009765625f ||
+        absolute_difference_f32(
             dive_ground_start_airborne.right_y_from_origin_f32,
-            INT32_C(122505)) > INT32_C(64) ||
-        absolute_difference_i32(
+            1.8692779541015625f) > 0.0009765625f ||
+        absolute_difference_f32(
             dive_air_start_relocked.bottom_y_from_origin_f32,
-            INT32_C(25250)) > INT32_C(64) ||
-        absolute_difference_i32(
+            0.385284423828125f) > 0.0009765625f ||
+        absolute_difference_f32(
             dive_air_start_relocked.right_y_from_origin_f32,
-            INT32_C(80774)) > INT32_C(64) ||
-        absolute_difference_i32(
+            1.232513427734375f) > 0.0009765625f ||
+        absolute_difference_f32(
             dive_ground_catch_entry.top_y_from_origin_f32,
-            INT32_C(121441)) > INT32_C(64) ||
-        absolute_difference_i32(
+            1.8530426025390625f) > 0.0009765625f ||
+        absolute_difference_f32(
             dive_air_catch.bottom_y_from_origin_f32,
-            INT32_C(91620)) > INT32_C(64) ||
-        absolute_difference_i32(
+            1.39801025390625f) > 0.0009765625f ||
+        absolute_difference_f32(
             dive_throw_relocked.top_y_from_origin_f32,
-            INT32_C(107511)) > INT32_C(64) ||
-        absolute_difference_i32(
+            1.6404876708984375f) > 0.0009765625f ||
+        absolute_difference_f32(
             dive_throw_relocked.right_y_from_origin_f32,
-            INT32_C(99874)) > INT32_C(64) ||
-        absolute_difference_i32(
+            1.523956298828125f) > 0.0009765625f ||
+        absolute_difference_f32(
             fall_special_entry.bottom_y_from_origin_f32,
-            INT32_C(26815)) > INT32_C(64) ||
-        absolute_difference_i32(
+            0.4091644287109375f) > 0.0009765625f ||
+        absolute_difference_f32(
             fall_special_direction_switch.bottom_y_from_origin_f32,
-            INT32_C(21771)) > INT32_C(64) ||
-        absolute_difference_i32(
+            0.3321990966796875f) > 0.0009765625f ||
+        absolute_difference_f32(
             fall_special_direction_steady.bottom_y_from_origin_f32,
-            INT32_C(26863)) > INT32_C(64))
+            0.4098968505859375f) > 0.0009765625f)
     {
         (void)fprintf(
             stderr,
             "m4-hsd-transition=fail operation=data"
-            " ground_start=%" PRId32 "/%" PRId32 "/%" PRId32
-            " air_start=%" PRId32 "/%" PRId32
-            " ground_hit=%" PRId32 " air_hit_bottom=%" PRId32
-            " dive=%" PRId32 "/%" PRId32 "/%" PRId32
-            "/%" PRId32 "/%" PRId32 "\n",
+            " ground_start=%.9g/%.9g/%.9g"
+            " air_start=%.9g/%.9g"
+            " ground_hit=%.9g air_hit_bottom=%.9g"
+            " dive=%.9g/%.9g/%.9g/%.9g/%.9g\n",
             raptor_ground_start.top_y_from_origin_f32,
             raptor_ground_start.right_x_from_origin_f32,
             raptor_ground_start.left_x_from_origin_f32,
@@ -740,7 +745,7 @@ int main(void)
                 oracle->trace_frame,
                 "recurrence",
                 TEST_ROTATION_TOLERANCE_Q15,
-                TEST_TRANSLATION_TOLERANCE_Q16,
+                TEST_TRANSLATION_TOLERANCE_F32,
                 &maximum_rotation_difference,
                 &maximum_translation_difference))
         {
@@ -758,12 +763,12 @@ int main(void)
     (void)printf(
         "m4-hsd-transition=pass cases=%" PRIu32
         " production_cases=%" PRIu32
-        " action_ecb_cases=9 action_ecb_tolerance_f32=64"
+        " action_ecb_cases=9"
         " qualified_action_ecb_cases=%zu qualified_action_ecb_poses=%" PRIu32
         " fall_animation_ecb_cases=3"
-        " rotation_max_q15=%" PRId32 " translation_max_f32=%" PRId32
+        " rotation_max_q15=%" PRId32 " translation_max_f32=%.9g"
         " production_rotation_max_q15=%" PRId32
-        " production_translation_max_f32=%" PRId32
+        " production_translation_max_f32=%.9g"
         " semantic_sha256=%s\n",
         PF_M4_HSD_TRANSITION_ORACLE_CASE_COUNT,
         PF_M4_HSD_TRANSITION_PRODUCTION_CASE_COUNT,
