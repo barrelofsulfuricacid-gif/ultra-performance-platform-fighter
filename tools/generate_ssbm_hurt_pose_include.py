@@ -6,11 +6,13 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import re
 from pathlib import Path
 from typing import Any
 
 from ssbm_collision import (
+    binary32,
     canonical_json_sha256,
     hurt_pose_tracks_semantic_payload,
 )
@@ -29,10 +31,10 @@ def require_identifier(value: object, label: str) -> str:
     return value
 
 
-def float_from_legacy_grid(value: int) -> str:
-    if not -(1 << 31) <= value < (1 << 31):
-        raise ValueError(f"hurt-pose coordinate is outside source grid: {value}")
-    literal = f"{value / 65536.0:.9g}"
+def c_float32(value: float) -> str:
+    if not math.isfinite(value):
+        raise ValueError(f"hurt-pose coordinate is non-finite: {value}")
+    literal = f"{binary32(value):.9g}"
     if "." not in literal and "e" not in literal:
         literal += ".0"
     return literal + "f"
@@ -91,7 +93,7 @@ def load_and_validate(
         )
 
     pose_count = 0
-    unique_poses: set[tuple[tuple[int, ...], ...]] = set()
+    unique_poses: set[tuple[tuple[float | int, ...], ...]] = set()
     for track_index, (track, declared) in enumerate(
         zip(tracks, declared_tracks, strict=True)
     ):
@@ -126,14 +128,20 @@ def load_and_validate(
                     f"invalid pose boundary in track {track.get('id')!r} "
                     f"frame {displayed_frame}"
                 )
-            pose: list[tuple[int, ...]] = []
+            pose: list[tuple[float | int, ...]] = []
             for capsule_index, capsule in enumerate(capsules):
                 if (
                     not isinstance(capsule, list)
                     or len(capsule) != 10
                     or any(
+                        not isinstance(value, (int, float))
+                        or isinstance(value, bool)
+                        or not math.isfinite(float(value))
+                        for value in capsule[:7]
+                    )
+                    or any(
                         not isinstance(value, int) or isinstance(value, bool)
-                        for value in capsule
+                        for value in capsule[7:]
                     )
                     or capsule[7] != capsule_index
                 ):
@@ -141,7 +149,12 @@ def load_and_validate(
                         f"invalid capsule in track {track.get('id')!r} "
                         f"frame {displayed_frame}"
                     )
-                pose.append(tuple(capsule))
+                pose.append(
+                    (
+                        *(binary32(float(value)) for value in capsule[:7]),
+                        *(int(value) for value in capsule[7:]),
+                    )
+                )
             unique_poses.add(tuple(pose))
             pose_count += 1
 
@@ -170,13 +183,19 @@ def generate(manifest: dict[str, Any], profile: dict[str, Any]) -> str:
     declared_tracks = manifest["tracks"]
     moves: list[tuple[int, int, int]] = []
     frames: list[tuple[int, int]] = []
-    capsules: list[tuple[int, ...]] = []
-    pose_offsets: dict[tuple[tuple[int, ...], ...], int] = {}
+    capsules: list[tuple[float | int, ...]] = []
+    pose_offsets: dict[tuple[tuple[float | int, ...], ...], int] = {}
 
     for track in tracks:
         frame_offset = len(frames)
         for frame in track["frames"]:
-            pose = tuple(tuple(capsule) for capsule in frame["capsules_f32"])
+            pose = tuple(
+                (
+                    *(binary32(float(value)) for value in capsule[:7]),
+                    *(int(value) for value in capsule[7:]),
+                )
+                for capsule in frame["capsules_f32"]
+            )
             capsule_offset = pose_offsets.get(pose)
             if capsule_offset is None:
                 capsule_offset = len(capsules)
@@ -241,7 +260,7 @@ def generate(manifest: dict[str, Any], profile: dict[str, Any]) -> str:
         lines.append(
             "    { "
             + ", ".join(
-                [*(float_from_legacy_grid(value) for value in capsule[:7]),
+                [*(c_float32(float(value)) for value in capsule[:7]),
                  *(uint8(value) for value in capsule[7:]),
                  "UINT8_C(0)"]
             )

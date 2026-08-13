@@ -227,8 +227,8 @@
           "invulnerable",
           "facing"
         ],
-        "q16_fields": ["root_velocity_x", "root_velocity_y"],
-        "q16_tolerance": 12,
+        "float32_fields": ["root_velocity_x", "root_velocity_y"],
+        "float32_tolerance": 0.00018310546875,
         "excluded_fields": [
           "position",
           "incoming_attack_velocity",
@@ -249,7 +249,7 @@
           "invulnerable",
           "facing"
         ],
-        "q16_fields": [
+        "float32_fields": [
           "position_x",
           "position_y",
           "self_velocity_x",
@@ -257,8 +257,8 @@
           "knockback_velocity_x",
           "knockback_velocity_y"
         ],
-        "velocity_tolerance_f32": 32,
-        "position_tolerance_f32": 192,
+        "velocity_tolerance_f32": 0.00048828125,
+        "position_tolerance_f32": 0.0029296875,
         "excluded_fields": [
           "post_wall_contact_position_x",
           "standing_loop_animation_clock"
@@ -278,7 +278,7 @@
           "invulnerable",
           "facing"
         ],
-        "q16_fields": [
+        "float32_fields": [
           "position_x",
           "position_y",
           "self_velocity_x",
@@ -286,9 +286,9 @@
           "knockback_velocity_x",
           "knockback_velocity_y"
         ],
-        "velocity_tolerance_f32": 32,
-        "position_tolerance_f32": 0,
-        "position_drift_per_tick_f32": 32,
+        "velocity_tolerance_f32": 0.00048828125,
+        "position_tolerance_f32": 0.0,
+        "position_drift_per_tick_f32": 0.00048828125,
         "excluded_fields": [],
         "exclusion_reason": "The nearest controller sample above x480 enters all seven CliffCatch frames and CliffWait."
       },
@@ -304,7 +304,7 @@
           "invulnerable",
           "facing"
         ],
-        "q16_fields": [
+        "float32_fields": [
           "position_x",
           "position_y",
           "self_velocity_x",
@@ -312,9 +312,9 @@
           "knockback_velocity_x",
           "knockback_velocity_y"
         ],
-        "velocity_tolerance_f32": 32,
-        "position_tolerance_f32": 0,
-        "position_drift_per_tick_f32": 32,
+        "velocity_tolerance_f32": 0.00048828125,
+        "position_tolerance_f32": 0.0,
+        "position_drift_per_tick_f32": 0.00048828125,
         "excluded_fields": [],
         "exclusion_reason": "The nearest controller sample at or below x480 remains in Fall without acquiring the ledge."
       }

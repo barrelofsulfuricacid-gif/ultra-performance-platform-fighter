@@ -627,7 +627,7 @@
   ],
   "domain": "falcon-common-ucf084-cardinal-input",
   "kind": "native-csv-trace-v1",
-  "production_trace_sha256": "4a553ba57522d4347188cb227357157fbb4f1a7246dd638fba68019e9166fd63",
+  "production_trace_sha256": "fab4042d69004af7d2793d41aff935392349139eb39e7e11ac37a2b097249cdb",
   "schema": 1,
-  "source_trace_sha256": "4a553ba57522d4347188cb227357157fbb4f1a7246dd638fba68019e9166fd63"
+  "source_trace_sha256": "05e8482b8414edf745ce404294cb2c6c648e1acd44325f782e82a95af6e2ca89"
 }

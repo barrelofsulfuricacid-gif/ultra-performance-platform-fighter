@@ -3,9 +3,9 @@
   "scope": "ssbm-hurt-pose-import",
   "fighter": "CPTFALCON",
   "profile": "tools/data/ssbm_falcon_ledge_hurt.json",
-  "profile_sha256": "2630b5be93c7f55b869ac1da64aaa4e4716b35e601ec6e8a47fc5d8e4ef91ff7",
+  "profile_sha256": "e77bec3e622ab9f9b254a8d908dd68ca90f8a25ed4723fec5ec1caf0621b5fa9",
   "capture_sha256": "3055455eb02949e15c240f563a49648578b6c5affa4dc5dd7ca62f2c7b19c1e3",
-  "semantic_sha256": "9125200e3e162822131fd8805ae1551371c4ebf0abc2256bba9a167cc181103a",
+  "semantic_sha256": "51c53a8d58f17086c28ce7decd3f900b6ff3f8825124e96cc28de723b4fbc152",
   "symbol_prefix": "falcon_ledge_hurt",
   "enum_prefix": "PF_M4_FALCON_LEDGE_HURT",
   "expected_pose_count": 434,
@@ -13,7 +13,7 @@
   "expected_capsule_count": 4774,
   "live_collision_qualification": {
     "capture_sha256": "f31de47e694e46bf2269945747c97238ce443ddf88cbadc0a8e4214026f2785d",
-    "semantic_sha256": "fbe0cf877402bf82aba10d8ae3dceecb4e431caa87d9b75b5844bfb7b132af2d",
+    "semantic_sha256": "a597cf58895de782bbd4d885fd01a7b9969f87e6b1d47579623084e71e7efcbe",
     "case_ids": [
       "quick_climb_collision_hit",
       "quick_climb_collision_miss"
@@ -23,9 +23,9 @@
     "attacker_action": "NEUTRAL_ATTACK_1",
     "attacker_displayed_frame": 4,
     "attacker_hitboxes_f32": [
-      [0, 3, 131072, 24040, 80, 100, 20, 0, 0, 72548, 73843, 0, 72548, 73843, 0],
-      [0, 3, 131072, 24040, 80, 100, 20, 0, 0, 36274, 82912, 0, 36274, 82912, 0],
-      [0, 3, 131072, 16027, 80, 100, 20, 0, 0, 12955, 73843, 0, 12955, 73843, 0]
+      [0, 3, 2.0, 0.36682432889938354, 80, 100, 20, 0, 0, 1.106993556022644, 1.1267621517181396, -6.160984611369713e-08, 1.106993556022644, 1.1267621517181396, -6.160984611369713e-08],
+      [0, 3, 2.0, 0.36682432889938354, 80, 100, 20, 0, 0, 0.5534975528717041, 1.265136480331421, -3.0804923056848565e-08, 0.5534975528717041, 1.265136480331421, -3.0804923056848565e-08],
+      [0, 3, 2.0, 0.24454957246780396, 80, 100, 20, 0, 0, 0.19767747819423676, 1.1267621517181396, -1.1001757727058248e-08, 0.19767747819423676, 1.1267621517181396, -1.1001757727058248e-08]
     ],
     "positive_damage_action": "DAMAGE_NEUTRAL_2",
     "expected_rows": 143,

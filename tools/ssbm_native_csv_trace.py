@@ -12,6 +12,7 @@ import subprocess
 from typing import Any
 
 from ssbm_natural_movement_domain import selected_trace_fields
+from ssbm_live_trace import binary32
 
 
 class NativeCsvTraceError(RuntimeError):
@@ -109,7 +110,11 @@ def canonical_runner_trace(
         try:
             samples = [
                 {
-                    field: int(row[field])
+                    field: (
+                        binary32(float(row[field]))
+                        if "_f32" in field
+                        else int(row[field])
+                    )
                     for field in selected_trace_fields(
                         fields,
                         exclusions,

@@ -18,9 +18,9 @@
     "row_count": 500
   },
   "comparison_policy": {
-    "position_tolerance_f32": 640,
-    "velocity_tolerance_f32": 32,
-    "shield_health_tolerance_f32": 64,
+    "position_tolerance_f32": 0.009765625,
+    "velocity_tolerance_f32": 0.00048828125,
+    "shield_health_tolerance_f32": 0.0009765625,
     "strict_fields": [
       "action_state",
       "action_ticks",

@@ -113,9 +113,9 @@
   },
   "stored_oracle": {
     "kind": "native-csv-trace-v1",
-    "source_trace_sha256": "4a553ba57522d4347188cb227357157fbb4f1a7246dd638fba68019e9166fd63",
-    "production_trace_sha256": "4a553ba57522d4347188cb227357157fbb4f1a7246dd638fba68019e9166fd63",
-    "require_exact_source_match": true,
+    "source_trace_sha256": "05e8482b8414edf745ce404294cb2c6c648e1acd44325f782e82a95af6e2ca89",
+    "production_trace_sha256": "fab4042d69004af7d2793d41aff935392349139eb39e7e11ac37a2b097249cdb",
+    "require_exact_source_match": false,
     "serialized_fields": ["effective_main_x_q15","effective_main_y_q15","effective_c_x_q15","effective_c_y_q15","action_state","action_ticks","facing","grounded","velocity_x_f32","velocity_y_f32"],
     "action_mapping": {
       "TURNING": {"action_state":103,"action_tick_offset":0},

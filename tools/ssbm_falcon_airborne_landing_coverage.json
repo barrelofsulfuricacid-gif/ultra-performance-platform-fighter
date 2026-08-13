@@ -15,7 +15,7 @@
     "dolphin_version": "3.5.1",
     "libmelee_version": "0.47.2",
     "row_count": 520,
-    "position_tolerance_f32": 640
+    "position_tolerance_f32": 0.009765625
   },
   "checkpoint_pack": {
     "capture_plan": {
@@ -46,8 +46,8 @@
   },
   "stored_oracle": {
     "kind": "native-csv-trace-v1",
-    "source_trace_sha256": "4b36cab9936996b419d526c5923525c48c766aa2a8408f3e9c7798cc65af80bb",
-    "production_trace_sha256": "9b3c14c53cc4eb7ca9832cae1741baa553b21f464af5350bfad6b367088faf21",
+    "source_trace_sha256": "783d7da132280a760356557bb10116fed9b8d8d987ff0934a5a0424b4552158c",
+    "production_trace_sha256": "6b0b82a66d0897c84636bb5f1beec2df0cfe0b3fe5b55f466d77dbc09fed5086",
     "serialized_fields": [
       "action_state",
       "action_ticks",

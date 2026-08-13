@@ -11,8 +11,6 @@ from typing import Any
 
 MELEE_X_TO_SIM_F32 = 12.0 / 115.0
 MELEE_Y_TO_SIM_F32 = 11.0 / 62.0
-MELEE_X_TO_SIM_Q16 = 65536.0 * 12.0 / 115.0
-MELEE_Y_TO_SIM_Q16 = 65536.0 * 11.0 / 62.0
 
 
 def binary32(value: float) -> float:
@@ -54,26 +52,26 @@ def selected_trace_fields(
     ]
 
 
-def parse_integer_observations(
+def parse_numeric_observations(
     path: Path,
     prefix: str,
     group_field: str = "case",
-) -> dict[str, list[dict[str, int]]]:
+) -> dict[str, list[dict[str, int | float]]]:
     """Parse allocation-free C runner key/value diagnostics by case."""
 
-    return parse_integer_observations_text(
+    return parse_numeric_observations_text(
         path.read_text(encoding="utf-8-sig"), prefix, group_field
     )
 
 
-def parse_integer_observations_text(
+def parse_numeric_observations_text(
     text: str,
     prefix: str,
     group_field: str = "case",
-) -> dict[str, list[dict[str, int]]]:
+) -> dict[str, list[dict[str, int | float]]]:
     """Parse allocation-free C runner diagnostics already held in memory."""
 
-    groups: dict[str, list[dict[str, int]]] = {}
+    groups: dict[str, list[dict[str, int | float]]] = {}
     for line in text.lstrip("\ufeff").splitlines():
         if not line.startswith(prefix):
             continue
@@ -82,7 +80,14 @@ def parse_integer_observations_text(
         )
         group = fields.pop(group_field)
         groups.setdefault(group, []).append(
-            {key: int(value) for key, value in fields.items()}
+            {
+                key: (
+                    float(value)
+                    if any(marker in value for marker in ".eE")
+                    else int(value)
+                )
+                for key, value in fields.items()
+            }
         )
     return groups
 
@@ -126,14 +131,14 @@ def require_f32_close(
         )
 
 
-def source_x_to_sim_f32(value: float) -> int:
-    return round(value * MELEE_X_TO_SIM_Q16)
+def source_x_to_sim_f32(value: float) -> float:
+    return binary32(value * MELEE_X_TO_SIM_F32)
 
 
-def source_y_to_sim_f32(value: float) -> int:
+def source_y_to_sim_f32(value: float) -> float:
     """Convert a source-up displacement/vector to simulation-down float32."""
 
-    return round(-value * MELEE_Y_TO_SIM_Q16)
+    return binary32(-value * MELEE_Y_TO_SIM_F32)
 
 
 def source_axis_to_sim_q15(value: float, *, invert: bool = False) -> int:
@@ -159,13 +164,13 @@ def common_movement_source_sample(
     action_ticks: int,
     origin_x: float = 0.0,
     origin_y: float = 0.0,
-) -> dict[str, int]:
+) -> dict[str, int | float]:
     """Project one ordinary movement row into the native CSV field contract."""
 
     grounded = int(bool(row["grounded"]))
     support = 0
-    normal_x_f32 = 0
-    normal_y_f32 = 0
+    normal_x_f32 = 0.0
+    normal_y_f32 = 0.0
     if grounded != 0:
         collision = row.get("surface_collision_memory")
         surfaces = collision.get("surfaces") if isinstance(collision, dict) else None
@@ -180,8 +185,8 @@ def common_movement_source_sample(
             ):
                 support = line_index + 1
             if isinstance(normal, list) and len(normal) >= 2:
-                normal_x_f32 = round(float(normal[0]) * 65536.0)
-                normal_y_f32 = round(float(normal[1]) * 65536.0)
+                normal_x_f32 = binary32(float(normal[0]))
+                normal_y_f32 = binary32(float(normal[1]))
     velocity_x_key = "ground_velocity_x" if grounded != 0 else "air_velocity_x"
     sample = {
         "action_state": action_state,

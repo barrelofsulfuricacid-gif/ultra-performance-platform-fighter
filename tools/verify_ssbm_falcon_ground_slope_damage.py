@@ -12,7 +12,7 @@ from typing import Any
 from ssbm_live_trace import (
     canonical_sha256,
     normalized_sha256,
-    parse_integer_observations,
+    parse_numeric_observations,
     require_equal,
     require_f32_close,
     source_x_to_sim_f32,
@@ -237,17 +237,21 @@ def compare_sim(
     output: Path,
     manifest: dict[str, Any],
 ) -> None:
-    produced = parse_integer_observations(
+    produced = parse_numeric_observations(
         output,
         "m4-ssbm-ground-slope-damage-observation ",
     )
     require_equal(set(produced), set(cases), "simulation case set")
     policy = manifest["stored_oracle"]["live_comparison"]
-    velocity_tolerance = int(policy["velocity_tolerance_f32"])
-    position_tolerance = int(policy["position_tolerance_f32"])
-    drift = int(policy["position_drift_per_tick_f32"])
-    if velocity_tolerance > 32 or position_tolerance > 192 or drift > 32:
-        raise SystemExit("live tolerance exceeds the qualified Q16 envelope")
+    velocity_tolerance = float(policy["velocity_tolerance_f32"])
+    position_tolerance = float(policy["position_tolerance_f32"])
+    drift = float(policy["position_drift_per_tick_f32"])
+    if (
+        velocity_tolerance > 0.00048828125
+        or position_tolerance > 0.0029296875
+        or drift > 0.00048828125
+    ):
+        raise SystemExit("live tolerance exceeds the qualified float32 envelope")
 
     for case_id, source in cases.items():
         actual_rows = produced[case_id]

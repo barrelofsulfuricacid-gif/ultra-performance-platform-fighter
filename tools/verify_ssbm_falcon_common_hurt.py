@@ -12,11 +12,12 @@ from pathlib import Path
 from typing import Any
 
 from ssbm_collision import (
+    binary32,
     canonical_json_sha256,
     canonical_hurt_pose_f32,
     captured_collision_margin,
+    hurt_poses_equivalent,
     hurt_pose_tracks_semantic_payload,
-    q16_hurt_poses_equivalent,
 )
 from ssbm_checkpoint_manifest import projected_manifest
 
@@ -58,7 +59,7 @@ EXPECTED_DECOMP_REVISION = "9509dc04406fb2028bfab01243841ba4787c0fb7"
 EXPECTED_EXIAI_SHA256 = (
     "87e9ef6d80ed03354a1647d0616016dbc91399aa9e86a69ae5a398edd0a0c2bd"
 )
-MELEE_TO_SIM_Q16 = 65536.0 * 12.0 / 115.0
+MELEE_TO_SIM_F32 = 12.0 / 115.0
 
 
 def sha256(path: Path) -> str:
@@ -284,16 +285,16 @@ def verify_captured_pose(
         "fighter_hurtboxes",
         "fighter_position",
         int(source_row["facing"]),
-        MELEE_TO_SIM_Q16,
+        MELEE_TO_SIM_F32,
     )
     observed_pose = canonical_hurt_pose_f32(
         dict(observed_row["hitbox_memory"]),
         observed_hurtbox_key,
         observed_position_key,
         int(observed_row[observed_facing_key]),
-        MELEE_TO_SIM_Q16,
+        MELEE_TO_SIM_F32,
     )
-    if not q16_hurt_poses_equivalent(source_pose, observed_pose):
+    if not hurt_poses_equivalent(source_pose, observed_pose):
         raise SystemExit(f"{label} pose does not match captured Falcon pose")
 
 
@@ -408,7 +409,7 @@ def active_hitbox_signature_f32(
     hitbox_key: str,
     position_key: str,
     facing_key: str,
-) -> tuple[tuple[int, ...], ...]:
+) -> tuple[tuple[float | int, ...], ...]:
     """Return facing-right local executable hit geometry and effect data."""
 
     memory = dict(row["hitbox_memory"])
@@ -417,13 +418,17 @@ def active_hitbox_signature_f32(
     if facing not in (-1, 1):
         raise SystemExit("collision attacker facing is invalid")
 
-    def local_f32(position: object) -> tuple[int, int, int]:
+    def local_f32(position: object) -> tuple[float, float, float]:
         if not isinstance(position, list) or len(position) != 3:
             raise SystemExit("collision hitbox position is invalid")
         return (
-            round(facing * (float(position[0]) - root[0]) * MELEE_TO_SIM_Q16),
-            round((float(position[1]) - root[1]) * MELEE_TO_SIM_Q16),
-            round(facing * (float(position[2]) - root[2]) * MELEE_TO_SIM_Q16),
+            binary32(
+                facing * (float(position[0]) - root[0]) * MELEE_TO_SIM_F32
+            ),
+            binary32((float(position[1]) - root[1]) * MELEE_TO_SIM_F32),
+            binary32(
+                facing * (float(position[2]) - root[2]) * MELEE_TO_SIM_F32
+            ),
         )
 
     signatures = []
@@ -436,8 +441,8 @@ def active_hitbox_signature_f32(
             (
                 int(hitbox["hit_id"]),
                 int(hitbox["state"]),
-                round(float(hitbox["damage"]) * 65536.0),
-                round(float(hitbox["radius"]) * MELEE_TO_SIM_Q16),
+                binary32(float(hitbox["damage"])),
+                binary32(float(hitbox["radius"]) * MELEE_TO_SIM_F32),
                 int(hitbox["angle"]),
                 int(hitbox["knockback_growth"]),
                 int(hitbox["weight_set_knockback"]),
@@ -452,7 +457,7 @@ def active_hitbox_signature_f32(
 
 def profile_hurt_pose(
     profile: dict[str, Any], track_id: str, displayed_frame: int
-) -> tuple[tuple[int, ...], ...]:
+) -> tuple[tuple[float | int, ...], ...]:
     tracks = [track for track in profile["tracks"] if track.get("id") == track_id]
     if len(tracks) != 1:
         raise SystemExit(f"expected one hurt-pose track {track_id!r}")
@@ -466,7 +471,10 @@ def profile_hurt_pose(
             f"expected one {track_id} displayed frame {displayed_frame}"
         )
     return tuple(
-        tuple(int(value) for value in capsule)
+        (
+            *(binary32(float(value)) for value in capsule[:7]),
+            *(int(value) for value in capsule[7:]),
+        )
         for capsule in frames[0]["capsules_f32"]
     )
 
@@ -566,13 +574,13 @@ def verify_ledge_collision_discriminator(
         "fighter_hurtboxes",
         "fighter_position",
         int(miss_frame["facing"]),
-        MELEE_TO_SIM_Q16,
+        MELEE_TO_SIM_F32,
     )
-    if not q16_hurt_poses_equivalent(expected_target_pose, observed_target_pose):
+    if not hurt_poses_equivalent(expected_target_pose, observed_target_pose):
         raise SystemExit("ledge collision target does not match imported frame 29")
 
     expected_hitboxes = tuple(
-        tuple(int(value) for value in hitbox)
+        tuple(hitbox)
         for hitbox in qualification.get("attacker_hitboxes_f32", [])
     )
     observed_hitboxes = active_hitbox_signature_f32(
@@ -621,8 +629,8 @@ def verify_ledge_collision_discriminator(
     semantic_payload = {
         "schema": 1,
         "case_ids": case_ids,
-        "initial_damage_f32": round(60.0 * 65536.0),
-        "positive_damage_f32": round(62.0 * 65536.0),
+        "initial_damage_f32": binary32(60.0),
+        "positive_damage_f32": binary32(62.0),
         "positive_action": "DAMAGE_NEUTRAL_2",
         "negative_action": "EDGE_GETUP_QUICK",
         "target_action": "EDGE_GETUP_QUICK",
@@ -630,7 +638,7 @@ def verify_ledge_collision_discriminator(
         "attacker_action": "NEUTRAL_ATTACK_1",
         "attacker_displayed_frame": 4,
         "attacker_positions_f32": [
-            round(requested_positions[case_id] * MELEE_TO_SIM_Q16)
+            binary32(requested_positions[case_id] * MELEE_TO_SIM_F32)
             for case_id in case_ids
         ],
         "target_pose_f32": expected_target_pose,
@@ -982,7 +990,7 @@ def main() -> int:
                         "fighter_hurtboxes",
                         "fighter_position",
                         int(row["facing"]),
-                        MELEE_TO_SIM_Q16,
+                        MELEE_TO_SIM_F32,
                     ),
                 )
                 for row in action_rows
@@ -995,7 +1003,13 @@ def main() -> int:
                         action,
                         int(frame["displayed_frame"]),
                         tuple(
-                            tuple(int(value) for value in capsule)
+                            (
+                                *(
+                                    binary32(float(value))
+                                    for value in capsule[:7]
+                                ),
+                                *(int(value) for value in capsule[7:]),
+                            )
                             for capsule in frame["capsules_f32"]
                         ),
                     )

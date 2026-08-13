@@ -199,9 +199,9 @@
       }
     ],
     "live_comparison": {
-      "velocity_tolerance_f32": 32,
-      "position_tolerance_f32": 192,
-      "position_drift_per_tick_f32": 32
+      "velocity_tolerance_f32": 0.00048828125,
+      "position_tolerance_f32": 0.0029296875,
+      "position_drift_per_tick_f32": 0.00048828125
     },
     "c": {
       "symbol_prefix": "ssbm_falcon_ground_slope_damage",

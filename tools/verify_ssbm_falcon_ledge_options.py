@@ -12,7 +12,7 @@ from typing import Any
 from ssbm_live_trace import (
     canonical_sha256,
     normalized_sha256,
-    parse_integer_observations,
+    parse_numeric_observations,
     require_equal,
     require_f32_close,
     source_x_to_sim_f32,
@@ -223,11 +223,13 @@ def compare_sim(
     sim_output: Path,
     comparison_policy: dict[str, Any],
 ) -> None:
-    velocity_tolerance = int(comparison_policy.get("velocity_tolerance_f32", 0))
-    position_tolerance = int(comparison_policy.get("position_tolerance_f32", 0))
-    if velocity_tolerance > 32 or position_tolerance > 288:
-        raise SystemExit("ledge-option live tolerance exceeds the qualified Q16 envelope")
-    produced = parse_integer_observations(
+    velocity_tolerance = float(comparison_policy.get("velocity_tolerance_f32", 0.0))
+    position_tolerance = float(comparison_policy.get("position_tolerance_f32", 0.0))
+    if velocity_tolerance > 0.00048828125 or position_tolerance > 0.00439453125:
+        raise SystemExit(
+            "ledge-option live tolerance exceeds the qualified float32 envelope"
+        )
+    produced = parse_numeric_observations(
         sim_output,
         "m4-ssbm-ledge-options-observation ",
     )

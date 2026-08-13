@@ -16,8 +16,8 @@
     "libmelee_version": "0.47.2",
     "execution_mode": "exiai-headless-null-unlimited",
     "row_count": 685,
-    "position_tolerance_f32": 640,
-    "velocity_tolerance_f32": 32
+    "position_tolerance_f32": 0.009765625,
+    "velocity_tolerance_f32": 0.00048828125
   },
   "checkpoint_pack": {
     "capture_plan": {

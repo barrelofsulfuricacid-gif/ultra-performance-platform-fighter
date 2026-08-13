@@ -1786,10 +1786,10 @@ def main() -> int:
                 float(oracle.get("opponent_hitlag_left", 0.0))
             )
             actual_opponent_hitlag = int(native["opponent_hitlag_ticks"])
-            expected_opponent_damage_f32 = round(
-                float(oracle.get("opponent_damage_percent", 0.0)) * 65536.0
+            expected_opponent_damage_f32 = binary32(
+                float(oracle.get("opponent_damage_percent", 0.0))
             )
-            actual_opponent_damage_f32 = int(native["opponent_damage_f32"])
+            actual_opponent_damage_f32 = float(native["opponent_damage_f32"])
             if actual_opponent_hitlag != expected_opponent_hitlag:
                 differences.append(
                     "opponent_hitlag "
@@ -1853,8 +1853,12 @@ def main() -> int:
                 expected_opponent_velocity_y = scaled_y_f32(
                     float(oracle["opponent_velocity_y"])
                 )
-                actual_opponent_velocity_x = int(native["opponent_velocity_x_f32"])
-                actual_opponent_velocity_y = int(native["opponent_velocity_y_f32"])
+                actual_opponent_velocity_x = float(
+                    native["opponent_velocity_x_f32"]
+                )
+                actual_opponent_velocity_y = float(
+                    native["opponent_velocity_y_f32"]
+                )
                 if (
                     abs(actual_opponent_velocity_x - expected_opponent_velocity_x)
                     > args.velocity_tolerance_f32
@@ -1884,9 +1888,12 @@ def main() -> int:
                     # unrelated percent at throw frame 25. Compare the source
                     # catch and throw damage through the last pre-magnifier row.
                     if expected_damage <= 15.93:
-                        expected_damage_f32 = round(expected_damage * 65536.0)
-                        actual_damage_f32 = int(native["opponent_damage_f32"])
-                        if abs(actual_damage_f32 - expected_damage_f32) > 4:
+                        expected_damage_f32 = binary32(expected_damage)
+                        actual_damage_f32 = float(native["opponent_damage_f32"])
+                        if (
+                            abs(actual_damage_f32 - expected_damage_f32)
+                            > 0.00006103515625
+                        ):
                             differences.append(
                                 "falcon_dive_opponent_damage_f32 "
                                 f"expected={expected_damage_f32} "
@@ -1918,7 +1925,7 @@ def main() -> int:
                 float(oracle["opponent_position_x_from_origin"])
                 - oracle_opponent_anchor_x
             )
-            actual_opponent_position = int(
+            actual_opponent_position = float(
                 native["opponent_position_x_f32_from_origin"]
             ) - native_opponent_anchor_x
             expected_opponent_grounded = 1 if bool(oracle["opponent_grounded"]) else 0
@@ -1926,7 +1933,7 @@ def main() -> int:
             expected_opponent_velocity = scaled_f32(
                 float(oracle["opponent_ground_velocity_x"])
             )
-            actual_opponent_velocity = int(native["opponent_velocity_x_f32"])
+            actual_opponent_velocity = float(native["opponent_velocity_x_f32"])
             opponent_hitlag = float(oracle.get("opponent_hitlag_left", 0.0))
             if shield_hit_mode and opponent_hitlag > 0.0:
                 shield_contact_seen = True
@@ -2000,7 +2007,9 @@ def main() -> int:
                     - float(previous_oracle["opponent_position_x_from_origin"])
                     - float(oracle["opponent_ground_velocity_x"])
                 )
-                actual_opponent_recoil = int(native["opponent_shield_recoil_x_f32"])
+                actual_opponent_recoil = float(
+                    native["opponent_shield_recoil_x_f32"]
+                )
                 if (
                     abs(actual_opponent_recoil - expected_opponent_recoil)
                     > args.velocity_tolerance_f32

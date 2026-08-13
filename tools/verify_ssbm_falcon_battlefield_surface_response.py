@@ -12,7 +12,7 @@ from import_ssbm_stage_collision import compact_capture
 from ssbm_live_trace import (
     canonical_sha256,
     normalized_sha256,
-    parse_integer_observations,
+    parse_numeric_observations,
     require_equal,
     require_f32_close,
     source_x_to_sim_f32,
@@ -180,7 +180,7 @@ def compare_sim(
     coverage: dict[str, Any],
     sim_output: Path,
 ) -> None:
-    produced_cases = parse_integer_observations(sim_output, SIM_PREFIX)
+    produced_cases = parse_numeric_observations(sim_output, SIM_PREFIX)
     require_equal(set(produced_cases), set(source_cases), "simulation case coverage")
     for case_id, source_rows in source_cases.items():
         produced_rows = produced_cases[case_id]
@@ -202,15 +202,15 @@ def compare_sim(
             )
             for actual, expected, label in exact:
                 require_equal(actual, expected, f"{case_id} frame {index} {label}")
-            q16_values = (
-                (produced["position_x"], source_x_to_sim_f32(float(source["position_x"]) - source_origin_x), "position x", 640),
-                (produced["position_y"], source_y_to_sim_f32(float(source["position_y"]) - source_origin_y), "position y", 640),
-                (produced["self_vx"], source_x_to_sim_f32(float(source["air_velocity_x"])), "self velocity x", 16),
-                (produced["self_vy"], source_y_to_sim_f32(float(source["velocity_y"])), "self velocity y", 16),
-                (produced["kb_vx"], source_x_to_sim_f32(float(source["attack_velocity_x"])), "knockback velocity x", 16),
-                (produced["kb_vy"], source_y_to_sim_f32(float(source["attack_velocity_y"])), "knockback velocity y", 16),
+            float32_values = (
+                (produced["position_x"], source_x_to_sim_f32(float(source["position_x"]) - source_origin_x), "position x", 0.009765625),
+                (produced["position_y"], source_y_to_sim_f32(float(source["position_y"]) - source_origin_y), "position y", 0.009765625),
+                (produced["self_vx"], source_x_to_sim_f32(float(source["air_velocity_x"])), "self velocity x", 0.000244140625),
+                (produced["self_vy"], source_y_to_sim_f32(float(source["velocity_y"])), "self velocity y", 0.000244140625),
+                (produced["kb_vx"], source_x_to_sim_f32(float(source["attack_velocity_x"])), "knockback velocity x", 0.000244140625),
+                (produced["kb_vy"], source_y_to_sim_f32(float(source["attack_velocity_y"])), "knockback velocity y", 0.000244140625),
             )
-            for actual, expected, label, tolerance in q16_values:
+            for actual, expected, label, tolerance in float32_values:
                 require_f32_close(
                     actual,
                     expected,

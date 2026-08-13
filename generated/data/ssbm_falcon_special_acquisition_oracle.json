@@ -1354,7 +1354,7 @@
   ],
   "domain": "falcon-common-special-acquisition",
   "kind": "native-csv-trace-v1",
-  "production_trace_sha256": "dfdf53934818d7436fa02fc265e3febb129e97f34b1573d0b670cfc66075a6c6",
+  "production_trace_sha256": "71f2101411bc667addf4f7b47d53183f942463245c647857d4c6ffbc2d7179ad",
   "schema": 1,
-  "source_trace_sha256": "c68d3bc9cd830283648f98b210502a471ca0724fc3b5197caea5b71aaa29a07b"
+  "source_trace_sha256": "02889bfbd3ed1b5284cae684b9a07f86f52fd02f8b0a121ada6517502b06ec29"
 }

@@ -11,7 +11,7 @@ from typing import Any
 from ssbm_live_trace import (
     canonical_sha256,
     normalized_sha256,
-    parse_integer_observations,
+    parse_numeric_observations,
     require_equal,
     validate_capture_provenance,
 )
@@ -159,7 +159,7 @@ def semantic_source_digest(cases: dict[str, list[dict[str, Any]]]) -> str:
 
 
 def compare_sim(cases: dict[str, list[dict[str, Any]]], output: Path) -> None:
-    produced = parse_integer_observations(output, SIM_PREFIX)
+    produced = parse_numeric_observations(output, SIM_PREFIX)
     require_equal(set(produced), set(cases), "simulation case coverage")
 
     expected = {

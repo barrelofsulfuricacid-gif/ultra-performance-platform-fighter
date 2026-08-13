@@ -13,7 +13,7 @@ from import_ssbm_stage_collision import compact_capture
 from ssbm_live_trace import (
     canonical_sha256,
     normalized_sha256,
-    parse_integer_observations,
+    parse_numeric_observations,
     require_equal,
     require_f32_close,
     select_labeled_rows,
@@ -391,21 +391,28 @@ def mapped_source_support(row: dict[str, Any]) -> int:
 def compare_case(
     case_id: str,
     source: list[dict[str, Any]],
-    produced: list[dict[str, int]],
+    produced: list[dict[str, int | float]],
     policy: dict[str, Any],
 ) -> None:
     require_equal(len(produced), SAMPLES_PER_CASE, f"{case_id} simulation samples")
-    velocity_tolerance = int(
-        policy.get("velocity_tolerance_f32", policy.get("q16_tolerance", 0))
+    velocity_tolerance = float(
+        policy.get(
+            "velocity_tolerance_f32",
+            policy.get("float32_tolerance", 0.0),
+        )
     )
-    position_tolerance = int(policy.get("position_tolerance_f32", 0))
-    position_drift_per_tick = int(policy.get("position_drift_per_tick_f32", 0))
+    position_tolerance = float(policy.get("position_tolerance_f32", 0.0))
+    position_drift_per_tick = float(
+        policy.get("position_drift_per_tick_f32", 0.0)
+    )
     if (
-        velocity_tolerance > 32
-        or position_tolerance > 192
+        velocity_tolerance > 0.00048828125
+        or position_tolerance > 0.0029296875
         or position_drift_per_tick > velocity_tolerance
     ):
-        raise SystemExit(f"{case_id}: live tolerance exceeds the qualified Q16 envelope")
+        raise SystemExit(
+            f"{case_id}: live tolerance exceeds the qualified float32 envelope"
+        )
 
     origin_x = float(source[0]["position_x"])
     origin_y = float(source[0]["position_y"])
@@ -493,7 +500,7 @@ def compare_sim(
     sim_path: Path,
     coverage: dict[str, Any],
 ) -> None:
-    produced = parse_integer_observations(
+    produced = parse_numeric_observations(
         sim_path,
         "m4-ssbm-slope-ledge-response-observation ",
     )
