@@ -1829,7 +1829,7 @@ static int run_v_cancel_fall_special_case(
     (void)fprintf(
         stderr,
         "m4-combat=fail operation=v-cancel-fall-special-hit"
-        " target_action=%u target_x=%" PRId32 " target_y=%" PRId32 "\n",
+        " target_action=%u target_x=%.9g" " target_y=%.9g" "\n",
         (unsigned int)inspection.players[1].action_state,
         inspection.players[1].position_x_f32,
         inspection.players[1].position_y_f32);
@@ -2394,7 +2394,7 @@ static int directional_attack_reaction_matches_effect(
         (void)fprintf(
             stderr,
             "m4-combat=detail operation=reference-hit-response"
-            " angle=%u actual_v=(%d,%d) expected_v=(%d,%d)"
+            " angle=%u actual_v=(%.9g,%.9g) expected_v=(%.9g,%.9g)"
             " actual_timers=(%u,%u) expected_timers=(%u,%u)\n",
             (unsigned int)effect->angle_degrees,
             reaction->velocity_x_f32,
@@ -3082,10 +3082,10 @@ static int run_directional_ground_attack_test(
         (void)fprintf(
             stderr,
             "m4-combat=diagnostic directional"
-            " up=%u/%u/%u/%u down=%u/%u/%u/%u"
-            " forward=%u/%u/%u/%u fsmash=%u/%u/%u/%u"
-            " usmash=%u/%u/%u/%u dsmash=%u/%u/%u/%u"
-            " charge_bonus=%u charge_max=%u hash_equal=%d\n",
+            " up=%.9g/%u/%u/%u down=%.9g/%u/%u/%u"
+            " forward=%.9g/%u/%u/%u fsmash=%.9g/%u/%u/%u"
+            " usmash=%.9g/%u/%u/%u dsmash=%.9g/%u/%u/%u"
+            " charge_bonus=%.9g charge_max=%u hash_equal=%d\n",
             content->fighter.up_attack.damage_f32 / 1.0f,
             (unsigned int)content->fighter.up_attack.startup_ticks,
             (unsigned int)content->fighter.up_attack.active_ticks,
@@ -3720,8 +3720,8 @@ static int run_directional_aerial_hit_case(
             (void)fprintf(
                 stderr,
                 "m4-combat=diagnostic aerial-hit expected=%u"
-                " event=%u/%u/%u/%u attacker=%u/%u"
-                " target_damage=%u target_hitlag=%u expected_hitlag=%u\n",
+                " event=%u/%u/%u/%.9g attacker=%u/%u"
+                " target_damage=%.9g target_hitlag=%u expected_hitlag=%u\n",
                 (unsigned int)expected_action,
                 (unsigned int)event->source_player,
                 (unsigned int)event->target_player,
@@ -3749,7 +3749,7 @@ static int run_directional_aerial_hit_case(
     (void)fprintf(
         stderr,
         "m4-combat=fail operation=directional-aerial-hit-missing"
-        " expected_action=%u attacker=(%d,%d) target=(%d,%d)\n",
+        " expected_action=%u attacker=(%.9g,%.9g) target=(%.9g,%.9g)\n",
         (unsigned int)expected_action,
         inspection.players[0].position_x_f32,
         inspection.players[0].position_y_f32,
@@ -4433,7 +4433,7 @@ static int run_v_cancel_snapshot_test(
                 stderr,
                 "m4-combat=diagnostic v-cancel world_status=%u"
                 " p0=%u/%u/%u/%u/%u p1=%u/%u/%u/%u/%u"
-                " hitlag=%u/%u hitstun=%u/%u velocity=(%d,%d)/(%d,%d)\n",
+                " hitlag=%u/%u hitstun=%u/%u velocity=(%.9g,%.9g)/(%.9g,%.9g)\n",
                 (unsigned int)pf_sim_snapshot_validate_world(
                     &source->world),
                 (unsigned int)source->world.action_state[0],
@@ -4729,7 +4729,7 @@ static int run_crouch_cancel_test(
         (void)fprintf(
             stderr,
             "m4-combat=diagnostic crouch-scaled flags=%u/%u"
-            " velocity=(%d,%d)/(%d,%d) expected=(%d,%d)"
+            " velocity=(%.9g,%.9g)/(%.9g,%.9g) expected=(%.9g,%.9g)"
             " hitlag=%u/%u hitstun=%u/%u expected=%u tumble=%u\n",
             (unsigned int)ordinary.event.flags,
             (unsigned int)crouched.event.flags,
@@ -4771,8 +4771,8 @@ static int run_crouch_cancel_test(
         (void)fprintf(
             stderr,
             "m4-combat=diagnostic crouch-boundary flags=%u/%u"
-            " damage=%u/%u hitlag=%u/%u velocity=(%d,%d)/(%d,%d)"
-            " hitstun=%u/%u boundary=%u\n",
+            " damage=%.9g/%.9g hitlag=%u/%u velocity=(%.9g,%.9g)/(%.9g,%.9g)"
+            " hitstun=%u/%u boundary=%.9g\n",
             (unsigned int)exact.event.flags,
             (unsigned int)below.event.flags,
             exact.damage_f32,
@@ -4892,9 +4892,9 @@ static int run_crouch_cancel_test(
                 "m4-combat=debug operation=crouch-cancel-continuation"
                 " tick=%" PRIu32
                 " p0=(action=%u ticks=%u grounded=%u dash=%d"
-                " velocity=%" PRId32 "/%" PRId32 ")"
+                " velocity=%.9g" "/%.9g" ")"
                 " p1=(action=%u ticks=%u grounded=%u dash=%d"
-                " velocity=%" PRId32 "/%" PRId32
+                " velocity=%.9g" "/%.9g"
                 " hitstun=%u hitlag=%u tumble=%u)\n",
                 tick,
                 (unsigned int)source_inspection.players[0].action_state,
@@ -6270,7 +6270,7 @@ static int run_small_step_forward_smash_test(
         (void)fprintf(
             stderr,
             "m4-combat=diagnostic small-step-standing action=%u ticks=%u"
-            " facing=%d position=%d/%d charge=%u\n",
+            " facing=%d position=%.9g/%.9g charge=%u\n",
             (unsigned int)standing_inspection.players[0].action_state,
             (unsigned int)standing_inspection.players[0].action_ticks,
             (int)standing_inspection.players[0].facing,
@@ -6437,7 +6437,7 @@ static int run_small_step_forward_smash_test(
         (void)fprintf(
             stderr,
             "m4-combat=diagnostic small-step-late action=%u ticks=%u"
-            " dash_direction=%d position=%d\n",
+            " dash_direction=%d position=%.9g\n",
             (unsigned int)negative_inspection.players[0].action_state,
             (unsigned int)negative_inspection.players[0].action_ticks,
             (int)negative_inspection.players[0].dash_direction,
@@ -6864,8 +6864,8 @@ static int run_drop_cancel_test(
             stderr,
             "m4-combat=fail operation=drop-cancel-hitlag-platform-return"
             " hit=%d snap=%d landing=%d action=%u action_ticks=%u"
-            " drop_ticks=%u grounded=%u support=%u damage=%" PRIu32
-            " y=%" PRId32 " platform_y=%" PRId32 "\n",
+            " drop_ticks=%u grounded=%u support=%u damage=%.9g"
+            " y=%.9g" " platform_y=%.9g" "\n",
             saw_hit,
             saw_platform_snap,
             saw_landing,
@@ -8955,8 +8955,8 @@ static int run_kill_confirm_route(
     (void)fprintf(
         stderr,
         "m4-combat=debug kill-confirm expect_ko=%d buildup=%" PRIu32
-        " finisher=%d escaped=%d action=%u grounded=%u damage=%" PRIu32
-        " x=%" PRId32 " y=%" PRId32 " vx=%" PRId32 " vy=%" PRId32
+        " finisher=%d escaped=%d action=%u grounded=%u damage=%.9g"
+        " x=%.9g" " y=%.9g" " vx=%.9g" " vy=%.9g"
         " respawns=%u\n",
         expect_ko,
         buildup_jabs,
@@ -9549,9 +9549,9 @@ static int run_ladder_route(
                     stderr,
                     "m4-combat=debug ladder expect_ko=%d strong=%d "
                     "hits=%" PRIu32 " double_jump=%d saved=%d above=%d "
-                    "vertical=%d damage=%" PRIu32 " events=%u type=%u "
-                    "source=%u target=%u value=%" PRIu32
-                    " expected_value=%" PRIu32 "\n",
+                    "vertical=%d damage=%.9g" " events=%u type=%u "
+                    "source=%u target=%u value=%.9g"
+                    " expected_value=%.9g" "\n",
                     expect_ko,
                     strong_started,
                     hit_count,
@@ -9738,7 +9738,7 @@ static int drive_strong_to_surface(
         stderr,
         "m4-surface-route=detail expected_action=%u action=%u tick=%u"
         " hitstun=%u tumble=%u tech_window=%u tech_lockout=%u"
-        " x=%" PRId32 " y=%" PRId32 "\n",
+        " x=%.9g" " y=%.9g" "\n",
         (unsigned int)expected_action,
         (unsigned int)inspection.players[1].action_state,
         (unsigned int)inspection.players[1].action_ticks,
@@ -9960,8 +9960,8 @@ static int run_surface_tech_test(
     {
         (void)fprintf(
             stderr,
-            "m4-ceiling-tech-control actual_vx=%" PRId32
-            " expected_vx=%" PRId32 " hitstun=%u invulnerable=%u"
+            "m4-ceiling-tech-control actual_vx=%.9g"
+            " expected_vx=%.9g" " hitstun=%u invulnerable=%u"
             " action=%u tick=%u\n",
             inspection.players[1].velocity_x_f32,
             ceiling_content->fighter.ceiling_tech_speed_f32 -
@@ -10102,7 +10102,7 @@ static int run_whiff_and_trade_test(
     {
         (void)fprintf(
             stderr,
-            "m4-combat=diagnostic simultaneous damage=%u/%u action=%u/%u"
+            "m4-combat=diagnostic simultaneous damage=%.9g/%.9g action=%u/%u"
             " attacker=%u/%u sequence=%u/%u\n",
             inspection.players[0].damage_f32,
             inspection.players[1].damage_f32,
@@ -13325,8 +13325,8 @@ static int run_shield_sdi_test(
         (void)fprintf(
             stderr,
             "m4-combat=trace operation=shield-sdi-edge-fall"
-            " action=%u grounded=%u support=%u x=%" PRId32
-            " floor_right=%" PRId32 " y=%" PRId32
+            " action=%u grounded=%u support=%u x=%.9g"
+            " floor_right=%.9g" " y=%.9g"
             " pulses=%u\n",
             (unsigned int)edge_inspection.players[1].action_state,
             (unsigned int)edge_inspection.players[1].grounded,
@@ -15135,7 +15135,7 @@ static int advance_shield_break_to_stun(
             (void)fprintf(
                 stderr,
                 "m4-combat=diagnostic shield-break-health tick=%u"
-                " action=%u action_ticks=%u health=%u grounded=%u\n",
+                " action=%u action_ticks=%u health=%.9g grounded=%u\n",
                 tick,
                 (unsigned int)out_inspection->players[1].action_state,
                 (unsigned int)out_inspection->players[1].action_ticks,
@@ -15970,9 +15970,9 @@ static int run_ssbm_damage_source_test(const struct content *content)
         (void)fprintf(
             stderr,
             "m4-combat=detail operation=ssbm-damage-fly-roll-ecb"
-            " top=%" PRId32 " bottom=%" PRId32
-            " right=(%" PRId32 ",%" PRId32 ")"
-            " left=(%" PRId32 ",%" PRId32 ")\n",
+            " top=%.9g" " bottom=%.9g"
+            " right=(%.9g" ",%.9g" ")"
+            " left=(%.9g" ",%.9g" ")\n",
             roll_ecb.top_y_from_origin_f32,
             roll_ecb.bottom_y_from_origin_f32,
             roll_ecb.right_x_from_origin_f32,
@@ -16293,8 +16293,8 @@ static uint8_t run_ssbm_falcon_punch_trace_case(
             (void)printf(
                 "m4-ssbm-falcon-punch-observation case=%s frame=%u"
                 " action=%u action_tick=%u grounded=%u facing=%d"
-                " x=%" PRId32 " y=%" PRId32 " vx=%" PRId32
-                " vy=%" PRId32 "\n",
+                " x=%.9g" " y=%.9g" " vx=%.9g"
+                " vy=%.9g" "\n",
                 stored_case->id,
                 (unsigned int)sample_index + 1U,
                 (unsigned int)sample->action_state,
@@ -16421,8 +16421,8 @@ static uint8_t run_ssbm_player_push_trace_case(
     pf_content_view view;
     struct inspection inspection;
     pf_sim *sim = NULL;
-    int32_t origin_x[2] = {INT32_C(0), INT32_C(0)};
-    int32_t origin_y[2] = {INT32_C(0), INT32_C(0)};
+    float origin_x[2] = {0.0f, 0.0f};
+    float origin_y[2] = {0.0f, 0.0f};
     uint8_t sample_index;
 
     if (stored_case == NULL || stored_case->inputs == NULL ||
@@ -16482,7 +16482,7 @@ static uint8_t run_ssbm_player_push_trace_case(
                 (void)printf(
                     "m4-ssbm-player-push-observation case=%s sample=%u lane=%u"
                     " action=%u action_tick=%u facing=%d grounded=%u"
-                    " dx=%" PRId32 " self_vx=%" PRId32 "\n",
+                    " dx=%.9g" " self_vx=%.9g" "\n",
                     stored_case->id,
                     (unsigned int)sample_index + 1U,
                     (unsigned int)lane,
@@ -16553,8 +16553,8 @@ static uint8_t run_ssbm_damage_trace_case(
     pf_content_view view;
     struct inspection inspection;
     pf_sim *sim = NULL;
-    int32_t hit_x;
-    int32_t hit_y;
+    float hit_x;
+    float hit_y;
     uint32_t tick;
 
     if (stored_case == NULL || stored_case->inputs == NULL ||
@@ -16663,10 +16663,10 @@ static uint8_t run_ssbm_damage_trace_case(
 
             (void)printf(
                 "m4-ssbm-damage-observation case=%s frame=%u"
-                " hitlag=%u hitstun=%u dx=%" PRId32
-                " dy=%" PRId32
-                " self_vx=%" PRId32 " self_vy=%" PRId32
-                " kb_vx=%" PRId32 " kb_vy=%" PRId32 "\n",
+                " hitlag=%u hitstun=%u dx=%.9g"
+                " dy=%.9g"
+                " self_vx=%.9g" " self_vy=%.9g"
+                " kb_vx=%.9g" " kb_vy=%.9g" "\n",
                 stored_case->id,
                 (unsigned int)sample_index + 1U,
                 (unsigned int)sample->hitlag_ticks,
@@ -16738,14 +16738,13 @@ static int prepare_ssbm_damage_iasa_release(
     {
         return 0;
     }
-    sim->world.position_x_f32[player_index] = INT32_C(0);
-    sim->world.position_y_f32[player_index] =
-        INT32_C(16) * 1.0f;
-    sim->world.velocity_x_f32[player_index] = INT32_C(0);
-    sim->world.velocity_y_f32[player_index] = INT32_C(0);
-    sim->world.knockback_velocity_x_f32[player_index] = INT32_C(0);
-    sim->world.knockback_velocity_y_f32[player_index] = INT32_C(0);
-    sim->world.ground_knockback_velocity_f32[player_index] = INT32_C(0);
+    sim->world.position_x_f32[player_index] = 0.0f;
+    sim->world.position_y_f32[player_index] = 16.0f;
+    sim->world.velocity_x_f32[player_index] = 0.0f;
+    sim->world.velocity_y_f32[player_index] = 0.0f;
+    sim->world.knockback_velocity_x_f32[player_index] = 0.0f;
+    sim->world.knockback_velocity_y_f32[player_index] = 0.0f;
+    sim->world.ground_knockback_velocity_f32[player_index] = 0.0f;
     sim->world.action_state[player_index] =
         (uint8_t)PF_M4_ACTION_HITSTUN;
     sim->world.action_ticks[player_index] = UINT16_C(0);
@@ -16753,14 +16752,13 @@ static int prepare_ssbm_damage_iasa_release(
         state_variant == UINT8_C(0)
             ? (uint16_t)PF_M4_FALCON_SUBMOTION_DAMAGE_NEUTRAL_2
             : (uint16_t)PF_M4_FALCON_SUBMOTION_DAMAGE_FLY_NEUTRAL;
-    sim->world.source_animation_frame_f32[player_index] = INT32_C(0);
+    sim->world.source_animation_frame_f32[player_index] = 0.0f;
     sim->world.source_animation_rate_f32[player_index] = 1.0f;
     sim->world.grounded[player_index] = UINT8_C(0);
     sim->world.support[player_index] = (uint8_t)PF_M4_SURFACE_NONE;
     sim->world.fast_fall[player_index] = UINT8_C(0);
     sim->world.damage_f32[player_index] =
-        (state_variant == UINT8_C(0) ? UINT32_C(2) : UINT32_C(61)) *
-        (uint32_t)1.0f;
+        state_variant == UINT8_C(0) ? 2.0f : 61.0f;
     sim->world.hitlag_ticks[player_index] = UINT16_C(0);
     sim->world.hitstun_ticks[player_index] = UINT16_C(1);
     sim->world.hitlag_resume_action[player_index] =
@@ -16911,8 +16909,8 @@ static uint8_t run_ssbm_ground_knockback_trace_case(
     pf_sim *sim = NULL;
     pf_sim *loaded = NULL;
     const pf_sim_event *hit = NULL;
-    int32_t hit_x;
-    int32_t hit_y;
+    float hit_x;
+    float hit_y;
     uint32_t tick;
     uint8_t sample_index;
 
@@ -17030,10 +17028,8 @@ static uint8_t run_ssbm_ground_knockback_trace_case(
             (uint8_t)PF_M4_ACTION_DAMAGE_LOW_1 ||
         inspection.players[1].source_submotion !=
             (uint16_t)PF_M4_FALCON_SUBMOTION_DAMAGE_LOW_1 ||
-        inspection.players[1].source_animation_frame_f32 !=
-            (int32_t)1.0f ||
-        inspection.players[1].source_animation_rate_f32 !=
-            (int32_t)1.0f ||
+        inspection.players[1].source_animation_frame_f32 != 1.0f ||
+        inspection.players[1].source_animation_rate_f32 != 1.0f ||
         !retained_hsd_hurt_pose_matches_source(
             &content.fighter,
             &inspection.players[1]))
@@ -17043,7 +17039,7 @@ static uint8_t run_ssbm_ground_knockback_trace_case(
             "m4-ssbm-ground-knockback=fail operation=route"
             " hit=%d attacker_action=%u attacker_tick=%u"
             " target_action=%u resume=%u damage=%u hitlag=%u hitstun=%u"
-            " source=%u source_frame=%" PRId32 " source_rate=%" PRId32
+            " source=%u source_frame=%.9g" " source_rate=%.9g"
             " hurt_pose=%d\n",
             hit != NULL,
             (unsigned int)inspection.players[0].action_state,
@@ -17072,10 +17068,9 @@ static uint8_t run_ssbm_ground_knockback_trace_case(
         pf_ssbm_stored_trace_sample *sample =
             &out_samples[sample_index];
         const float expected_source_frame_f32 =
-            (sample_index < UINT8_C(5)
-                 ? INT32_C(1)
-                 : (int32_t)sample_index - INT32_C(3)) *
-            (int32_t)1.0f;
+            sample_index < UINT8_C(5)
+                ? 1.0f
+                : (float)sample_index - 3.0f;
 
         if (sample_index != UINT8_C(0))
         {
@@ -17103,8 +17098,7 @@ static uint8_t run_ssbm_ground_knockback_trace_case(
                 (uint16_t)PF_M4_FALCON_SUBMOTION_DAMAGE_LOW_1 ||
             inspection.players[1].source_animation_frame_f32 !=
                 expected_source_frame_f32 ||
-            inspection.players[1].source_animation_rate_f32 !=
-                (int32_t)1.0f ||
+            inspection.players[1].source_animation_rate_f32 != 1.0f ||
             !retained_hsd_hurt_pose_matches_source(
                 &content.fighter,
                 &inspection.players[1]))
@@ -17116,12 +17110,12 @@ static uint8_t run_ssbm_ground_knockback_trace_case(
             (void)printf(
                 "m4-ssbm-ground-knockback-observation case=%s frame=%u"
                 " action=%u resume=%u action_tick=%u grounded=%u tumble=%u"
-                " damage=%u hitlag=%u hitstun=%u dx=%" PRId32
-                " dy=%" PRId32 " self_vx=%" PRId32
-                " self_vy=%" PRId32 " kb_vx=%" PRId32
-                " kb_vy=%" PRId32 " ground_kb=%" PRId32
-                " source=%u source_frame=%" PRId32
-                " source_rate=%" PRId32 "\n",
+                " damage=%u hitlag=%u hitstun=%u dx=%.9g"
+                " dy=%.9g" " self_vx=%.9g"
+                " self_vy=%.9g" " kb_vx=%.9g"
+                " kb_vy=%.9g" " ground_kb=%.9g"
+                " source=%u source_frame=%.9g"
+                " source_rate=%.9g" "\n",
                 stored_case->id,
                 (unsigned int)sample_index + 1U,
                 (unsigned int)sample->action_state,
@@ -17334,9 +17328,9 @@ static uint8_t run_ssbm_surface_response_trace_case(
             (void)printf(
                 "m4-ssbm-surface-response-observation case=%s frame=%u"
                 " action=%u action_tick=%u grounded=%u tumble=%u"
-                " hitstun=%u invulnerable=%u self_vx=%" PRId32
-                " self_vy=%" PRId32 " kb_vx=%" PRId32
-                " kb_vy=%" PRId32 "\n",
+                " hitstun=%u invulnerable=%u self_vx=%.9g"
+                " self_vy=%.9g" " kb_vx=%.9g"
+                " kb_vy=%.9g" "\n",
                 stored_case->id,
                 (unsigned int)sample_index + 1U,
                 (unsigned int)sample->action_state,
@@ -17411,17 +17405,17 @@ static int run_di_and_sdi_test(
     struct inspection inspection;
     struct inspection neutral_inspection;
     struct inspection di_inspection;
-    int32_t hit_x;
-    int32_t hit_y;
-    int32_t first_pulse_x;
+    float hit_x;
+    float hit_y;
+    float first_pulse_x;
     uint32_t freeze_tick;
-    int64_t neutral_speed_squared;
-    int64_t di_speed_squared;
-    int64_t speed_difference;
-    int64_t neutral_source_x;
-    int64_t neutral_source_y;
-    int64_t di_source_x;
-    int64_t di_source_y;
+    float neutral_speed_squared;
+    float di_speed_squared;
+    float speed_difference;
+    float neutral_source_x;
+    float neutral_source_y;
+    float di_source_x;
+    float di_source_y;
 
     if (!initialize_sim(
             &sdi_storage,
@@ -17544,17 +17538,13 @@ static int run_di_and_sdi_test(
     }
 
     neutral_source_x =
-        (int64_t)neutral_inspection.players[1].velocity_x_f32 *
-        INT64_C(115) / INT64_C(12);
+        neutral_inspection.players[1].velocity_x_f32 * (115.0f / 12.0f);
     neutral_source_y =
-        (int64_t)neutral_inspection.players[1].velocity_y_f32 *
-        INT64_C(62) / INT64_C(11);
+        neutral_inspection.players[1].velocity_y_f32 * (62.0f / 11.0f);
     di_source_x =
-        (int64_t)di_inspection.players[1].velocity_x_f32 *
-        INT64_C(115) / INT64_C(12);
+        di_inspection.players[1].velocity_x_f32 * (115.0f / 12.0f);
     di_source_y =
-        (int64_t)di_inspection.players[1].velocity_y_f32 *
-        INT64_C(62) / INT64_C(11);
+        di_inspection.players[1].velocity_y_f32 * (62.0f / 11.0f);
     neutral_speed_squared =
         neutral_source_x * neutral_source_x +
         neutral_source_y * neutral_source_y;
@@ -17575,16 +17565,16 @@ static int run_di_and_sdi_test(
             neutral_inspection.players[1].velocity_x_f32 ||
         /* DI preserves magnitude in Melee coordinates. X and Y are scaled
          * differently when represented in the simulation world. */
-        speed_difference > neutral_speed_squared / INT64_C(50))
+        speed_difference > neutral_speed_squared * 0.02f)
     {
         (void)fprintf(
             stderr,
             "m4-combat=detail operation=trajectory-di-angle-and-magnitude"
-            " neutral=(%" PRId32 ",%" PRId32 ")"
-            " di=(%" PRId32 ",%" PRId32 ")"
-            " neutral_source_speed_sq=%" PRId64
-            " di_source_speed_sq=%" PRId64
-            " difference=%" PRId64 "\n",
+            " neutral=(%.9g" ",%.9g" ")"
+            " di=(%.9g" ",%.9g" ")"
+            " neutral_source_speed_sq=%.9g"
+            " di_source_speed_sq=%.9g"
+            " difference=%.9g\n",
             neutral_inspection.players[1].velocity_x_f32,
             neutral_inspection.players[1].velocity_y_f32,
             di_inspection.players[1].velocity_x_f32,
@@ -17665,7 +17655,7 @@ static int run_until_reaction_landing(
     (void)fprintf(
         stderr,
         "m4-combat=diagnostic reaction-landing mode=%d action=%u ticks=%u"
-        " position=(%d,%d) velocity=(%d,%d) trigger=%d tech=%u/%u\n",
+        " position=(%.9g,%.9g) velocity=(%.9g,%.9g) trigger=%d tech=%u/%u\n",
         tech_mode,
         (unsigned int)out_inspection->players[1].action_state,
         (unsigned int)out_inspection->players[1].action_ticks,
@@ -17940,7 +17930,7 @@ static int run_prone_getup_roll_timing_test(
             (void)fprintf(
                 stderr,
                 "m4-combat=debug prone-route=%u action=%u ticks=%u "
-                "facing=%d orientation=%u direction=%d velocity=%d "
+                "facing=%d orientation=%u direction=%d velocity=%.9g "
                 "invulnerable=%u\n",
                 (unsigned int)route,
                 (unsigned int)inspection[route].players[1].action_state,
@@ -18183,7 +18173,7 @@ static int run_knockdown_and_tech_test(
         (void)fprintf(
             stderr,
             "m4-combat=diagnostic tech-results missed=%u/%u/%u"
-            " in_place=%u/%d/%u/%u/%u roll=%u/%d/%d/%u/%u\n",
+            " in_place=%u/%d/%u/%u/%u roll=%u/%d/%.9g/%u/%u\n",
             (unsigned int)missed_inspection.players[1].action_state,
             (unsigned int)missed_inspection.players[1].grounded,
             (unsigned int)missed_inspection.players[1].invulnerable,
@@ -18335,7 +18325,7 @@ static uint8_t run_ssbm_floor_response_trace_case(
      * This matters because DamageFly turns the victim toward the attacker and
      * PassiveStand chooses F/B from stick direction relative to that facing. */
     {
-        const int32_t attacker_x = sim->world.position_x_f32[0];
+        const float attacker_x = sim->world.position_x_f32[0];
 
         sim->world.position_x_f32[0] = sim->world.position_x_f32[1];
         sim->world.position_x_f32[1] = attacker_x;
@@ -18382,9 +18372,9 @@ static uint8_t run_ssbm_floor_response_trace_case(
                 "m4-ssbm-floor-response-observation case=%s frame=%u"
                 " action=%u action_tick=%u grounded=%u tumble=%u"
                 " hitstun=%u invulnerable=%u facing=%d tech_direction=%d"
-                " self_vx=%" PRId32
-                " self_vy=%" PRId32 " kb_vx=%" PRId32
-                " kb_vy=%" PRId32 " ground_kb=%" PRId32 "\n",
+                " self_vx=%.9g"
+                " self_vy=%.9g" " kb_vx=%.9g"
+                " kb_vy=%.9g" " ground_kb=%.9g" "\n",
                 stored_case->id,
                 (unsigned int)sample_index + 1U,
                 (unsigned int)sample->action_state,
@@ -18513,7 +18503,7 @@ static uint8_t run_ssbm_prone_response_trace_case(
                 "m4-ssbm-prone-response-observation case=%s sample=%u"
                 " action=%u action_tick=%u grounded=%u"
                 " hitstun_memory=%u invulnerable=%u"
-                " self_vx=%" PRId32 " self_vy=%" PRId32
+                " self_vx=%.9g" " self_vy=%.9g"
                 " tech_direction=%d prone_orientation=%u\n",
                 stored_case->id,
                 (unsigned int)sample_index + 1U,
@@ -18575,30 +18565,12 @@ static int run_ssbm_prone_response_observation_oracle(void)
 
 static float ssbm_source_x_hundredths_to_sim_f32(int32_t value)
 {
-    const int64_t numerator =
-        (int64_t)value * INT64_C(12) * (int64_t)1.0f;
-    const int64_t denominator = INT64_C(11500);
-
-    return numerator < INT64_C(0)
-               ? (int32_t)(
-                     -((-numerator + denominator / INT64_C(2)) /
-                       denominator))
-               : (int32_t)(
-                     (numerator + denominator / INT64_C(2)) /
-                     denominator);
+    return (float)value * (12.0f / 11500.0f);
 }
 
 static float ssbm_source_y_hundredths_to_sim_f32(int32_t value)
 {
-    const int64_t numerator =
-        (int64_t)value * INT64_C(11) * (int64_t)1.0f;
-    const int64_t denominator = INT64_C(6200);
-    const int64_t scaled =
-        numerator < INT64_C(0)
-            ? -((-numerator + denominator / INT64_C(2)) / denominator)
-            : (numerator + denominator / INT64_C(2)) / denominator;
-
-    return INT32_C(20) * 1.0f - (int32_t)scaled;
+    return 20.0f - (float)value * (11.0f / 6200.0f);
 }
 
 static float ssbm_source_velocity_f32_to_sim_f32(
@@ -18606,14 +18578,7 @@ static float ssbm_source_velocity_f32_to_sim_f32(
     int32_t numerator,
     int32_t denominator)
 {
-    const int64_t product = (int64_t)value_f32 * (int64_t)numerator;
-    const int64_t magnitude =
-        product < INT64_C(0) ? -product : product;
-    const int64_t scaled =
-        (magnitude + (int64_t)denominator / INT64_C(2)) /
-        (int64_t)denominator;
-
-    return product < INT64_C(0) ? -(int32_t)scaled : (int32_t)scaled;
+    return value_f32 * (float)numerator / (float)denominator;
 }
 
 static int prepare_battlefield_surface_response(
@@ -18730,8 +18695,8 @@ static uint8_t run_ssbm_battlefield_surface_response_trace_case(
         (void)fprintf(
             stderr,
             "m4-battlefield-surface-response=detail case=%s "
-            "expected_action=%u action=%u action_tick=%u x=%" PRId32
-            " y=%" PRId32 " kb_vx=%" PRId32 " kb_vy=%" PRId32 "\n",
+            "expected_action=%u action=%u action_tick=%u x=%.9g"
+            " y=%.9g" " kb_vx=%.9g" " kb_vy=%.9g" "\n",
             stored_case->id,
             (unsigned int)expected_action,
             (unsigned int)inspection.players[1].action_state,
@@ -18771,9 +18736,9 @@ static uint8_t run_ssbm_battlefield_surface_response_trace_case(
             (void)printf(
                 "m4-ssbm-battlefield-surface-response-observation "
                 "case=%s frame=%u action=%u action_tick=%u grounded=%u "
-                "tumble=%u hitstun=%u invulnerable=%u self_vx=%" PRId32
-                " self_vy=%" PRId32 " kb_vx=%" PRId32 " kb_vy=%" PRId32
-                " position_x=%" PRId32 " position_y=%" PRId32 "\n",
+                "tumble=%u hitstun=%u invulnerable=%u self_vx=%.9g"
+                " self_vy=%.9g" " kb_vx=%.9g" " kb_vy=%.9g"
+                " position_x=%.9g" " position_y=%.9g" "\n",
                 stored_case->id,
                 (unsigned int)sample_index + 1U,
                 (unsigned int)sample->action_state,
@@ -18958,9 +18923,9 @@ static uint8_t run_ssbm_battlefield_bounce_recontact_trace_case(
                 "m4-ssbm-battlefield-bounce-recontact-observation "
                 "case=%s frame=%u action=%u action_tick=%u grounded=%u "
                 "support=%u tumble=%u hitstun=%u invulnerable=%u "
-                "facing=%d self_vx=%" PRId32 " self_vy=%" PRId32
-                " kb_vx=%" PRId32 " kb_vy=%" PRId32
-                " position_x=%" PRId32 " position_y=%" PRId32 "\n",
+                "facing=%d self_vx=%.9g" " self_vy=%.9g"
+                " kb_vx=%.9g" " kb_vy=%.9g"
+                " position_x=%.9g" " position_y=%.9g" "\n",
                 stored_case->id,
                 (unsigned int)sample_index + 1U,
                 (unsigned int)sample->action_state,
@@ -19115,8 +19080,8 @@ static int place_player_on_reference_floor(
         ssbm_reference_stage_collision(
             sim->content.stage.reference_collision_profile);
     const ssbm_stage_collision_line *line;
-    int32_t left;
-    int32_t right;
+    float left;
+    float right;
 
     if (profile == NULL || player_index >= sim->world.player_count ||
         line_index >= profile->line_count)
@@ -19139,11 +19104,11 @@ static int place_player_on_reference_floor(
     sim->world.position_y_f32[player_index] =
         ssbm_stage_line_y_f32(line, position_x_f32) -
         sim->content.fighter.half_height_f32;
-    sim->world.velocity_x_f32[player_index] = INT32_C(0);
-    sim->world.velocity_y_f32[player_index] = INT32_C(0);
-    sim->world.knockback_velocity_x_f32[player_index] = INT32_C(0);
-    sim->world.knockback_velocity_y_f32[player_index] = INT32_C(0);
-    sim->world.ground_knockback_velocity_f32[player_index] = INT32_C(0);
+    sim->world.velocity_x_f32[player_index] = 0.0f;
+    sim->world.velocity_y_f32[player_index] = 0.0f;
+    sim->world.knockback_velocity_x_f32[player_index] = 0.0f;
+    sim->world.knockback_velocity_y_f32[player_index] = 0.0f;
+    sim->world.ground_knockback_velocity_f32[player_index] = 0.0f;
     sim->world.action_state[player_index] =
         (uint8_t)PF_M4_ACTION_GROUND_IDLE;
     sim->world.action_ticks[player_index] = UINT16_C(0);
@@ -19369,10 +19334,10 @@ static uint8_t run_ssbm_ground_slope_damage_trace_case(
                 "m4-ssbm-ground-slope-damage-observation case=%s"
                 " sample=%u action=%u resume=%u action_tick=%u"
                 " grounded=%u tumble=%u hitlag=%u hitstun=%u facing=%d"
-                " dx=%" PRId32 " dy=%" PRId32
-                " self_vx=%" PRId32 " self_vy=%" PRId32
-                " kb_vx=%" PRId32 " kb_vy=%" PRId32
-                " ground_kb=%" PRId32 "\n",
+                " dx=%.9g" " dy=%.9g"
+                " self_vx=%.9g" " self_vy=%.9g"
+                " kb_vx=%.9g" " kb_vy=%.9g"
+                " ground_kb=%.9g" "\n",
                 stored_case->id,
                 (unsigned int)sample_index + 1U,
                 (unsigned int)sample->action_state,
@@ -19478,8 +19443,8 @@ static int prepare_hyrule_slope_roll(
         (void)fprintf(
             stderr,
             "m4-ssbm-slope-ledge-response=fail operation=slope-setup"
-            " action=%u tick=%u support=%u facing=%d prone=%u x=%" PRId32
-            " y=%" PRId32 " grounded=%u\n",
+            " action=%u tick=%u support=%u facing=%d prone=%u x=%.9g"
+            " y=%.9g" " grounded=%u\n",
             (unsigned int)out_inspection->players[1].action_state,
             (unsigned int)out_inspection->players[1].action_ticks,
             (unsigned int)out_inspection->players[1].support,
@@ -19669,10 +19634,10 @@ static uint8_t run_ssbm_slope_ledge_response_trace_case(
                 "m4-ssbm-slope-ledge-response-observation case=%s"
                 " sample=%u action=%u resume=%u action_tick=%u"
                 " grounded=%u support=%u tumble=%u hitlag=%u hitstun=%u"
-                " invulnerable=%u tech=%d prone=%u facing=%d dx=%" PRId32
-                " dy=%" PRId32 " self_vx=%" PRId32
-                " self_vy=%" PRId32 " kb_vx=%" PRId32
-                " kb_vy=%" PRId32 " ground_kb=%" PRId32 "\n",
+                " invulnerable=%u tech=%d prone=%u facing=%d dx=%.9g"
+                " dy=%.9g" " self_vx=%.9g"
+                " self_vy=%.9g" " kb_vx=%.9g"
+                " kb_vy=%.9g" " ground_kb=%.9g" "\n",
                 stored_case->id,
                 (unsigned int)sample_index + 1U,
                 (unsigned int)sample->action_state,
@@ -19777,8 +19742,7 @@ static int prepare_hyrule_ledge_wait(
         (uint8_t)PF_M4_SURFACE_NONE;
     sim->world.facing[player_index] = INT8_C(-1);
     sim->world.damage_f32[player_index] =
-        (setup_variant == UINT8_C(1) ? UINT32_C(100) : UINT32_C(60)) *
-        (uint32_t)1.0f;
+        setup_variant == UINT8_C(1) ? 100.0f : 60.0f;
     sim->world.ledge_invulnerability_ticks[player_index] =
         ledge_response->wait_invulnerability_ticks;
     sim->world.ledge_regrab_lockout_ticks[player_index] = UINT16_C(0);
@@ -19868,10 +19832,10 @@ static uint8_t run_ssbm_ledge_options_trace_case(
         const falcon_ledge_root_positions *roots =
             falcon_reference_ledge_root_positions();
         (void)printf(
-            "m4-ssbm-ledge-options-meta case=%s x=%" PRId32
-            " y=%" PRId32 " edge=%" PRId32 " floor=%" PRId32
-            " root_x=%" PRId32 " root_y=%" PRId32
-            " half_height=%" PRId32 " blast_top=%" PRId32 "\n",
+            "m4-ssbm-ledge-options-meta case=%s x=%.9g"
+            " y=%.9g" " edge=%.9g" " floor=%.9g"
+            " root_x=%.9g" " root_y=%.9g"
+            " half_height=%.9g" " blast_top=%.9g" "\n",
             stored_case->id,
             origin_x_f32,
             origin_y_f32,
@@ -19916,8 +19880,8 @@ static uint8_t run_ssbm_ledge_options_trace_case(
                 "m4-ssbm-ledge-options-observation case=%s sample=%u"
                 " action=%u action_tick=%u facing=%d grounded=%u"
                 " tumble=%u invulnerable=%u ledge_regrab_cooldown=%u ready=%u"
-                " input_x=%d dx=%" PRId32 " dy=%" PRId32
-                " self_vx=%" PRId32 " self_vy=%" PRId32 "\n",
+                " input_x=%d dx=%.9g" " dy=%.9g"
+                " self_vx=%.9g" " self_vy=%.9g" "\n",
                 stored_case->id,
                 (unsigned int)sample_index + 1U,
                 (unsigned int)sample->action_state,
@@ -19988,7 +19952,7 @@ static int16_t tech_chase_axis(
     const struct content *content,
     const struct inspection *inspection)
 {
-    const int32_t delta =
+    const float delta =
         inspection->players[1].position_x_f32 -
         inspection->players[0].position_x_f32;
     const int aged_walk =
@@ -20006,31 +19970,29 @@ static int16_t tech_chase_axis(
         {
             return INT16_C(0);
         }
-        if (delta > INT32_C(0))
+        if (delta > 0.0f)
         {
             return INT16_MAX;
         }
-        if (delta < INT32_C(0))
+        if (delta < 0.0f)
         {
             return -INT16_MAX;
         }
     }
 
-    if (delta >
-        (INT32_C(3) * 1.0f) / INT32_C(2))
+    if (delta > 1.5f)
     {
         return aged_walk != 0 ? INT16_C(0) : INT16_MAX;
     }
-    if (delta > 1.0f / INT32_C(2))
+    if (delta > 0.5f)
     {
         return INT16_C(13500);
     }
-    if (delta <
-        -(INT32_C(3) * 1.0f) / INT32_C(2))
+    if (delta < -1.5f)
     {
         return aged_walk != 0 ? INT16_C(0) : -INT16_MAX;
     }
-    if (delta < -1.0f / INT32_C(2))
+    if (delta < -0.5f)
     {
         return -INT16_C(13500);
     }
@@ -20045,19 +20007,17 @@ static int tech_chase_jab_in_range(
         &inspection->players[0];
     const player_inspection *target =
         &inspection->players[1];
-    const int64_t delta =
-        (int64_t)target->position_x_f32 -
-        (int64_t)attacker->position_x_f32;
+    const float delta =
+        target->position_x_f32 - attacker->position_x_f32;
     const int8_t direction =
-        delta > INT64_C(0) ? INT8_C(1) : INT8_C(-1);
-    const int64_t distance =
-        delta >= INT64_C(0) ? delta : -delta;
-    const int64_t reach =
-        (int64_t)content->fighter.jab_hitbox_offset_x_f32 +
-        (int64_t)content->fighter.jab_hitbox_half_width_f32 +
-        (int64_t)content->fighter.half_width_f32;
+        delta > 0.0f ? INT8_C(1) : INT8_C(-1);
+    const float distance = fabsf(delta);
+    const float reach =
+        content->fighter.jab_hitbox_offset_x_f32 +
+        content->fighter.jab_hitbox_half_width_f32 +
+        content->fighter.half_width_f32;
 
-    return delta != INT64_C(0) &&
+    return delta != 0.0f &&
            attacker->facing == direction &&
            distance <= reach;
 }
@@ -20146,7 +20106,7 @@ static int run_tech_chase_test(
     pf_mut_bytes destination;
     pf_bytes save;
     size_t save_size = (size_t)0;
-    uint32_t initial_damage;
+    float initial_damage;
     uint32_t initial_hit_sequence;
     uint32_t tick;
     uint16_t attack_action_tick = UINT16_MAX;
@@ -21130,7 +21090,7 @@ static int run_tech_invulnerability_hit_test(
     test_sim_storage storage;
     pf_sim *sim = NULL;
     struct inspection inspection;
-    const uint32_t initial_damage =
+    const float initial_damage =
         content->fighter.jab_damage_f32;
 
     if (!initialize_sim(
@@ -21172,10 +21132,10 @@ static int run_tech_invulnerability_hit_test(
         (void)fprintf(
             stderr,
             "m4-combat=debug tech-invulnerability "
-            "p0_action=%u p0_hitbox=%u p0_x=%" PRId32
+            "p0_action=%u p0_hitbox=%u p0_x=%.9g"
             " p1_action=%u p1_ticks=%u p1_invulnerable=%u "
-            "p1_damage=%" PRIu32 " p1_x=%" PRId32
-            " p1_y=%" PRId32 " p1_vy=%" PRId32
+            "p1_damage=%.9g" " p1_x=%.9g"
+            " p1_y=%.9g" " p1_vy=%.9g"
             " tech_window=%u tech_lockout=%u\n",
             (unsigned int)inspection.players[0].action_state,
             (unsigned int)inspection.players[0].hitbox_active,
@@ -21361,9 +21321,9 @@ static int run_air_dodge_invulnerability_hit_test(
             stderr,
             "m4-combat=debug air-dodge-invulnerability"
             " p0_action=%u p0_ticks=%u p0_hitbox=%u"
-            " p0_y=%" PRId32 " p1_action=%u p1_ticks=%u"
-            " p1_invulnerable=%u p1_damage=%" PRIu32
-            " p1_y=%" PRId32 "\n",
+            " p0_y=%.9g" " p1_action=%u p1_ticks=%u"
+            " p1_invulnerable=%u p1_damage=%.9g"
+            " p1_y=%.9g" "\n",
             (unsigned int)inspection.players[0].action_state,
             (unsigned int)inspection.players[0].action_ticks,
             (unsigned int)inspection.players[0].hitbox_active,
@@ -21450,7 +21410,7 @@ static int run_air_dodge_invulnerability_hit_test(
             "m4-combat=debug air-dodge-expired"
             " p0_action=%u p0_ticks=%u p0_hitbox=%u"
             " p1_action=%u p1_ticks=%u p1_invulnerable=%u"
-            " p1_damage=%" PRIu32 "\n",
+            " p1_damage=%.9g" "\n",
             (unsigned int)inspection.players[0].action_state,
             (unsigned int)inspection.players[0].action_ticks,
             (unsigned int)inspection.players[0].hitbox_active,
@@ -21535,7 +21495,7 @@ static int run_ground_dodge_invulnerability_hit_test(
         (void)fprintf(
             stderr,
             "m4-combat=diagnostic spot-begin action=%u ticks=%u"
-            " invulnerable=%u damage=%u expected_begin=%u\n",
+            " invulnerable=%u damage=%.9g expected_begin=%u\n",
             (unsigned int)inspection.players[1].action_state,
             (unsigned int)inspection.players[1].action_ticks,
             (unsigned int)inspection.players[1].invulnerable,
@@ -21696,7 +21656,7 @@ static int run_ground_dodge_invulnerability_hit_test(
         (void)fprintf(
             stderr,
             "m4-combat=debug spot-dodge-expired"
-            " action=%u ticks=%u invulnerable=%u damage=%" PRIu32 "\n",
+            " action=%u ticks=%u invulnerable=%u damage=%.9g" "\n",
             (unsigned int)inspection.players[1].action_state,
             (unsigned int)inspection.players[1].action_ticks,
             (unsigned int)inspection.players[1].invulnerable,
@@ -21778,7 +21738,7 @@ static int run_ground_dodge_invulnerability_hit_test(
             "m4-combat=diagnostic roll-invulnerability"
             " attacker_action=%u attacker_ticks=%u active=%u"
             " target_action=%u target_ticks=%u invulnerable=%u"
-            " damage=%" PRIu32 " expected_begin=%u\n",
+            " damage=%.9g" " expected_begin=%u\n",
             (unsigned int)inspection.players[0].action_state,
             (unsigned int)inspection.players[0].action_ticks,
             (unsigned int)inspection.players[0].hitbox_active,
@@ -22175,9 +22135,9 @@ static int run_deterministic_trace(const pf_content_view *view)
                 (void)fprintf(
                     stderr,
                     " player=%" PRIu32 " action=%u resume=%u ticks=%u"
-                    " hitlag=%u hitstun=%u grounded=%u shield=%" PRIu32
+                    " hitlag=%u hitstun=%u grounded=%u shield=%.9g"
                     " dash=%d facing=%d tumble=%u tech=%d"
-                    " velocity=(%" PRId32 ",%" PRId32 ") support=%u"
+                    " velocity=(%.9g" ",%.9g" ") support=%u"
                     " recovery=%u target=%u owner=%u escape=%u\n",
                     player_index,
                     (unsigned int)inspection.players[player_index]
@@ -22211,11 +22171,11 @@ static int run_deterministic_trace(const pf_content_view *view)
                     stderr,
                     "  flags=%u source_motion=%u short_hop=%u"
                     " platform_drop=%u attack_mask=%u stale_registered=%u"
-                    " kb=(%" PRId32 ",%" PRId32 ") ground_kb=%" PRId32
+                    " kb=(%.9g" ",%.9g" ") ground_kb=%.9g"
                     " damage_jump=%u shield_held=%u shield_strength=%u"
                     " powershield=%u sdi=(%d,%d) prone=%u/%u"
-                    " source_clock=(%" PRId32 ",%" PRId32 ")"
-                    " ecb_lock=%u/%" PRId32 "\n",
+                    " source_clock=(%.9g" ",%.9g" ")"
+                    " ecb_lock=%u/%.9g" "\n",
                     (unsigned int)left->world
                         .previous_directional_input_flags[player_index],
                     (unsigned int)left->world.source_submotion[player_index],
@@ -23572,9 +23532,9 @@ static int run_boost_grab_test(
     pf_mut_bytes destination;
     pf_bytes source_bytes;
     size_t save_size = (size_t)0;
-    int32_t ordinary_velocity;
-    int32_t ordinary_active_position = INT32_MIN;
-    int32_t boost_active_position = INT32_MIN;
+    float ordinary_velocity;
+    float ordinary_active_position = -FLT_MAX;
+    float boost_active_position = -FLT_MAX;
     uint16_t hit_entry_tick = UINT16_C(0);
     uint32_t tick;
     int ordinary_capture_seen = 0;
@@ -23789,7 +23749,7 @@ static int run_boost_grab_test(
         }
     }
     if (ordinary_capture_seen != 0 ||
-        ordinary_active_position == INT32_MIN ||
+        ordinary_active_position == -FLT_MAX ||
         inspection.players[0].grab_target != PF_SIM_EVENT_NO_PLAYER)
     {
         return fail("boost-grab-ordinary-range-whiff");
@@ -25101,8 +25061,8 @@ static int run_jump_cancelling_test(
     {
         (void)fprintf(
             stderr,
-            "m4-combat=debug jump_cancel_hit=%d action=%u damage=%" PRIu32
-            " expected=%" PRIu32 "\n",
+            "m4-combat=debug jump_cancel_hit=%d action=%u damage=%.9g"
+            " expected=%.9g" "\n",
             hit_seen,
             (unsigned int)inspection.players[0].action_state,
             inspection.players[1].damage_f32,
@@ -25702,14 +25662,12 @@ static int run_grab_team_resolution_test(
     return 1;
 }
 
-static int32_t expected_throw_velocity(
+static float expected_throw_velocity(
     float base_f32,
     float growth_f32,
     float damage_f32)
 {
-    return (int32_t)(
-        (int64_t)base_f32 +
-        (((int64_t)growth_f32 * (int64_t)damage_f32) >> 16U));
+    return base_f32 + growth_f32 * damage_f32;
 }
 
 static int run_directional_throw_case(
@@ -25730,9 +25688,9 @@ static int run_directional_throw_case(
     melee_knockback_result melee_result;
     float collateral_damage_f32;
     float resulting_damage_f32;
-    int32_t expected_velocity_x;
-    int32_t expected_velocity_y;
-    int32_t expected_resumed_velocity_y;
+    float expected_velocity_x;
+    float expected_velocity_y;
+    float expected_resumed_velocity_y;
     uint32_t tick;
     int throw_seen = 0;
 
@@ -25746,8 +25704,8 @@ static int run_directional_throw_case(
         falcon_reference_primary_effect(move_index);
     collateral_damage_f32 =
         collateral_effect != NULL
-            ? (uint32_t)collateral_effect->damage * 1.0f
-            : UINT32_C(0);
+            ? (float)collateral_effect->damage
+            : 0.0f;
     resulting_damage_f32 =
         collateral_damage_f32 + throw_data->damage_f32;
     melee_result =
@@ -26197,7 +26155,7 @@ static int run_pummel_test(
                 stderr,
                 "m4-combat=diagnostic pummel-snapshot future_tick=%" PRIu32
                 " source_action=%u source_ticks=%u target_action=%u"
-                " target_ticks=%u target_damage=%" PRIu32 "\n",
+                " target_ticks=%u target_damage=%.9g" "\n",
                 future_tick,
                 (unsigned int)source_inspection.players[0].action_state,
                 (unsigned int)source_inspection.players[0].action_ticks,
@@ -26232,7 +26190,7 @@ static int run_pummel_test(
                     stderr,
                     "m4-combat=diagnostic pummel-event"
                     " future_tick=%" PRIu32 " source=%u target=%u"
-                    " value=%" PRIu32 " vx=%" PRId32 " vy=%" PRId32
+                    " value=%.9g" " vx=%.9g" " vy=%.9g"
                     " flags=%u detail=%u action=%u resume=%u ticks=%u"
                     " expected_hit_tick=%u stale_count=%u stale0=%u"
                     " stale_registered=%u\n",
@@ -26285,8 +26243,8 @@ static int run_pummel_test(
             stderr,
             "m4-combat=diagnostic pummel-return"
             " events=%" PRIu32 " source_action=%u source_ticks=%u"
-            " target_action=%u target_damage=%" PRIu32
-            " last_hit=%u last_damage=%" PRIu32
+            " target_action=%u target_damage=%.9g"
+            " last_hit=%u last_damage=%.9g"
             " source_stale=%u/%u loaded_stale=%u/%u\n",
             pummel_events,
             (unsigned int)source_inspection.players[0].action_state,
@@ -27246,7 +27204,7 @@ static int prepare_player0_right_ledge(
         (void)fprintf(
             stderr,
             "m4-combat=fail operation=ledge-attack-hang-target"
-            " attacker_x=%" PRId32 " target_x=%" PRId32 "\n",
+            " attacker_x=%.9g" " target_x=%.9g" "\n",
             out_inspection->players[0].position_x_f32,
             out_inspection->players[1].position_x_f32);
         return 0;
@@ -27444,7 +27402,7 @@ static int run_ledge_attack_test(
         (void)fprintf(
             stderr,
             "m4-combat=debug operation=ledge-attack-input-arbitration"
-            " action=%u tick=%u ledge=%u damage=%" PRIu32 "\n",
+            " action=%u tick=%u ledge=%u damage=%.9g" "\n",
             (unsigned int)inspection.players[0].action_state,
             (unsigned int)inspection.players[0].action_ticks,
             (unsigned int)inspection.players[0].ledge,
@@ -27501,12 +27459,12 @@ static int run_ledge_attack_test(
         (void)fprintf(
             stderr,
             "m4-combat=fail operation=ledge-attack-hit-detail"
-            " event=%u source=%u target=%u value=%" PRIu32
+            " event=%u source=%u target=%u value=%.9g"
             " attacker_action=%u target_action=%u"
-            " target_damage=%" PRIu32
-            " attacker_damage=%" PRIu32 " invulnerable=%u"
-            " attacker_x=%" PRId32 " target_x=%" PRId32
-            " action_ticks=%u hitbox=(%" PRId32 ",%" PRId32
+            " target_damage=%.9g"
+            " attacker_damage=%.9g" " invulnerable=%u"
+            " attacker_x=%.9g" " target_x=%.9g"
+            " action_ticks=%u hitbox=(%.9g" ",%.9g"
             ")\n",
             hit_event != NULL ? UINT32_C(1) : UINT32_C(0),
             hit_event != NULL
@@ -28527,7 +28485,7 @@ static int run_falcon_reference_table_test(void)
                 event->byte_count == UINT8_C(4))
             {
                 const uint32_t frame_argument =
-                    (uint32_t)event_bytes[1] * 1.0f +
+                    (uint32_t)event_bytes[1] * UINT32_C(65536) +
                     (uint32_t)event_bytes[2] * UINT32_C(256) +
                     (uint32_t)event_bytes[3];
 
@@ -30000,14 +29958,14 @@ static int run_battlefield_stage_catalog_test(void)
         profile->source_grkind != UINT16_C(36) ||
         profile->spawn_point_count != UINT8_C(4) ||
         profile->spawn_points == NULL ||
-        profile->camera_left_f32 != -INT32_C(1094166) ||
-        profile->camera_right_f32 != 16.695648f ||
-        profile->camera_top_f32 != -INT32_C(270600) ||
-        profile->camera_bottom_f32 != 28.374191f ||
-        profile->blast_left_f32 != -INT32_C(1531833) ||
-        profile->blast_right_f32 != 23.373917f ||
-        profile->blast_top_f32 != -INT32_C(1014751) ||
-        profile->blast_bottom_f32 != 39.303223f)
+        profile->camera_left_f32 != -16.695652f ||
+        profile->camera_right_f32 != 16.695652f ||
+        profile->camera_top_f32 != -4.12903309f ||
+        profile->camera_bottom_f32 != 28.3741932f ||
+        profile->blast_left_f32 != -23.3739128f ||
+        profile->blast_right_f32 != 23.3739128f ||
+        profile->blast_top_f32 != -15.4838715f ||
+        profile->blast_bottom_f32 != 39.3032265f)
     {
         return fail("battlefield-stage-catalog-shape");
     }
@@ -30030,17 +29988,16 @@ static int run_battlefield_stage_catalog_test(void)
     {
         const ssbm_stage_collision_line *line =
             &profile->lines[line_index];
-        const float midpoint_x_f32 = (int32_t)(
-            ((int64_t)line->start_x_f32 + (int64_t)line->end_x_f32) /
-            INT64_C(2));
+        const float midpoint_x_f32 =
+            (line->start_x_f32 + line->end_x_f32) * 0.5f;
         const float midpoint_y_f32 =
             ssbm_stage_line_y_f32(line, midpoint_x_f32);
 
         if (!ssbm_reference_stage_find_ceiling_contact(
                 profile_id,
                 midpoint_x_f32,
-                midpoint_y_f32 + INT32_C(1),
-                midpoint_y_f32 - INT32_C(1),
+                midpoint_y_f32 + 1.0f,
+                midpoint_y_f32 - 1.0f,
                 &ceiling_y_f32,
                 &ceiling_support) ||
             ceiling_y_f32 != midpoint_y_f32 ||
@@ -30055,20 +30012,18 @@ static int run_battlefield_stage_catalog_test(void)
     {
         const ssbm_stage_collision_line *line =
             &profile->lines[line_index];
-        const float midpoint_x_f32 = (int32_t)(
-            ((int64_t)line->start_x_f32 + (int64_t)line->end_x_f32) /
-            INT64_C(2));
-        const float midpoint_y_f32 = (int32_t)(
-            ((int64_t)line->start_y_f32 + (int64_t)line->end_y_f32) /
-            INT64_C(2));
+        const float midpoint_x_f32 =
+            (line->start_x_f32 + line->end_x_f32) * 0.5f;
+        const float midpoint_y_f32 =
+            (line->start_y_f32 + line->end_y_f32) * 0.5f;
 
         if (!ssbm_reference_stage_find_wall_contact(
                 profile_id,
-                midpoint_x_f32 + INT32_C(1),
-                midpoint_x_f32 - INT32_C(1),
-                (int64_t)midpoint_y_f32 - INT64_C(1),
-                (int64_t)midpoint_y_f32 + INT64_C(1),
-                INT32_C(0),
+                midpoint_x_f32 + 1.0f,
+                midpoint_x_f32 - 1.0f,
+                midpoint_y_f32 - 1.0f,
+                midpoint_y_f32 + 1.0f,
+                0.0f,
                 &wall_x_f32,
                 &wall_support,
                 &wall_away_direction) ||
@@ -30084,20 +30039,18 @@ static int run_battlefield_stage_catalog_test(void)
     {
         const ssbm_stage_collision_line *line =
             &profile->lines[line_index];
-        const float midpoint_x_f32 = (int32_t)(
-            ((int64_t)line->start_x_f32 + (int64_t)line->end_x_f32) /
-            INT64_C(2));
-        const float midpoint_y_f32 = (int32_t)(
-            ((int64_t)line->start_y_f32 + (int64_t)line->end_y_f32) /
-            INT64_C(2));
+        const float midpoint_x_f32 =
+            (line->start_x_f32 + line->end_x_f32) * 0.5f;
+        const float midpoint_y_f32 =
+            (line->start_y_f32 + line->end_y_f32) * 0.5f;
 
         if (!ssbm_reference_stage_find_wall_contact(
                 profile_id,
-                midpoint_x_f32 - INT32_C(1),
-                midpoint_x_f32 + INT32_C(1),
-                (int64_t)midpoint_y_f32 - INT64_C(1),
-                (int64_t)midpoint_y_f32 + INT64_C(1),
-                INT32_C(0),
+                midpoint_x_f32 - 1.0f,
+                midpoint_x_f32 + 1.0f,
+                midpoint_y_f32 - 1.0f,
+                midpoint_y_f32 + 1.0f,
+                0.0f,
                 &wall_x_f32,
                 &wall_support,
                 &wall_away_direction) ||
@@ -30109,25 +30062,25 @@ static int run_battlefield_stage_catalog_test(void)
     }
     if (!ssbm_reference_stage_find_ceiling_contact(
             profile_id,
-            INT32_C(0),
-            INT32_C(1800000),
-            INT32_C(1500000),
+            0.0f,
+            27.4658203f,
+            22.8881836f,
             &ceiling_y_f32,
             &ceiling_support) ||
         ceiling_y_f32 != profile->lines[8].start_y_f32 ||
         ceiling_support != UINT8_C(9) ||
         ssbm_reference_stage_find_ceiling_contact(
             profile_id,
-            INT32_C(0),
-            INT32_C(1500000),
-            INT32_C(1800000),
+            0.0f,
+            22.8881836f,
+            27.4658203f,
             &ceiling_y_f32,
             &ceiling_support) ||
         ssbm_reference_stage_find_ceiling_contact(
             profile_id,
-            INT32_C(600000),
-            INT32_C(1800000),
-            INT32_C(1500000),
+            9.15527344f,
+            27.4658203f,
+            22.8881836f,
             &ceiling_y_f32,
             &ceiling_support))
     {
@@ -30256,10 +30209,10 @@ static int run_battlefield_stage_catalog_test(void)
     }
     if (!ssbm_reference_stage_find_wall_contact(
             profile_id,
-            INT32_C(0),
-            INT32_C(90000),
-            INT64_C(1675000),
-            INT64_C(1770000),
+            0.0f,
+            1.37329102f,
+            25.5584717f,
+            27.0080566f,
             content.fighter.half_width_f32,
             &wall_x_f32,
             &wall_support,
@@ -30268,10 +30221,10 @@ static int run_battlefield_stage_catalog_test(void)
         wall_away_direction != INT8_C(-1) ||
         ssbm_reference_stage_find_wall_contact(
             profile_id,
-            INT32_C(0),
-            INT32_C(90000),
-            INT64_C(1200000),
-            INT64_C(1300000),
+            0.0f,
+            1.37329102f,
+            18.3105469f,
+            19.8364258f,
             content.fighter.half_width_f32,
             &wall_x_f32,
             &wall_support,
@@ -30324,11 +30277,11 @@ static int run_battlefield_stage_catalog_test(void)
         }
     }
     ceiling_y_f32 = profile->lines[8].start_y_f32;
-    sim->world.position_x_f32[0] = INT32_C(0);
+    sim->world.position_x_f32[0] = 0.0f;
     sim->world.position_y_f32[0] =
         ceiling_y_f32 + fall_entry_pose->top_y_from_origin_f32 +
-        1.0f / INT32_C(2);
-    sim->world.velocity_x_f32[0] = INT32_C(0);
+        0.5f;
+    sim->world.velocity_x_f32[0] = 0.0f;
     sim->world.velocity_y_f32[0] = -1.0f;
     sim->world.grounded[0] = UINT8_C(0);
     sim->world.support[0] = (uint8_t)PF_M4_SURFACE_NONE;
@@ -30354,13 +30307,10 @@ static int run_battlefield_stage_catalog_test(void)
     }
     if (!ssbm_reference_stage_find_wall_contact(
             profile_id,
-            INT32_C(0),
+            0.0f,
             1.0f,
-            (int64_t)INT32_C(1722500) -
-                (int64_t)content.fighter.half_height_f32,
-            (int64_t)INT32_C(1722500) +
-                (int64_t)content.fighter.half_height_f32 +
-                (int64_t)1.0f,
+            26.2832642f - content.fighter.half_height_f32,
+            26.2832642f + content.fighter.half_height_f32 + 1.0f,
             content.fighter.half_width_f32,
             &wall_x_f32,
             &wall_support,
@@ -30368,22 +30318,22 @@ static int run_battlefield_stage_catalog_test(void)
     {
         return fail("battlefield-stage-wall-production-setup");
     }
-    sim->world.position_x_f32[0] = INT32_C(0);
+    sim->world.position_x_f32[0] = 0.0f;
     /* Exercise the imported FallSpecial side point against the wall segment,
      * rather than the wider authored body box used by the catalog query
      * above. */
-    sim->world.position_y_f32[0] = INT32_C(1782500);
-    sim->world.velocity_x_f32[0] = INT32_C(2) * 1.0f;
-    sim->world.velocity_y_f32[0] = INT32_C(0);
+    sim->world.position_y_f32[0] = 27.1987915f;
+    sim->world.velocity_x_f32[0] = 2.0f;
+    sim->world.velocity_y_f32[0] = 0.0f;
     sim->world.grounded[0] = UINT8_C(0);
     sim->world.support[0] = (uint8_t)PF_M4_SURFACE_NONE;
     sim->world.action_state[0] = (uint8_t)PF_M4_ACTION_FALL_SPECIAL;
     sim->world.action_ticks[0] = UINT16_C(0);
     sim->world.source_submotion[0] =
         (uint16_t)PF_M4_FALCON_SUBMOTION_FALL_SPECIAL;
-    sim->world.source_animation_frame_f32[0] = INT32_C(0);
+    sim->world.source_animation_frame_f32[0] = 0.0f;
     sim->world.source_animation_rate_f32[0] = 1.0f;
-    sim->world.fall_animation_blend_f32[0] = INT32_C(0);
+    sim->world.fall_animation_blend_f32[0] = 0.0f;
     if (!step_duel(
             sim,
             INT16_C(0),
@@ -30401,9 +30351,9 @@ static int run_battlefield_stage_catalog_test(void)
     {
         (void)fprintf(
             stderr,
-            "battlefield-wall expected_x=%" PRId32
-            " actual_x=%" PRId32 " vx=%" PRId32
-            " y=%" PRId32 " action=%u support=%u away=%d\n",
+            "battlefield-wall expected_x=%.9g"
+            " actual_x=%.9g" " vx=%.9g"
+            " y=%.9g" " action=%u support=%u away=%d\n",
             wall_x_f32,
             inspection.players[0].position_x_f32,
             inspection.players[0].velocity_x_f32,
@@ -30416,21 +30366,20 @@ static int run_battlefield_stage_catalog_test(void)
     {
         const ssbm_stage_collision_line *platform_line =
             &profile->lines[2];
-        const float platform_midpoint_x_f32 = (int32_t)(
-            ((int64_t)platform_line->start_x_f32 +
-             (int64_t)platform_line->end_x_f32) /
-            INT64_C(2));
+        const float platform_midpoint_x_f32 =
+            (platform_line->start_x_f32 +
+             platform_line->end_x_f32) * 0.5f;
         const float platform_y_f32 =
             ssbm_stage_line_y_f32(
                 platform_line,
                 platform_midpoint_x_f32);
         const float starting_y_f32 =
-            platform_y_f32 + INT32_C(2) * 1.0f;
+            platform_y_f32 + 2.0f;
 
         sim->world.position_x_f32[0] = platform_midpoint_x_f32;
         sim->world.position_y_f32[0] = starting_y_f32;
-        sim->world.velocity_x_f32[0] = INT32_C(0);
-        sim->world.velocity_y_f32[0] = 1.0f / INT32_C(8);
+        sim->world.velocity_x_f32[0] = 0.0f;
+        sim->world.velocity_y_f32[0] = 0.125f;
         sim->world.grounded[0] = UINT8_C(0);
         sim->world.support[0] = (uint8_t)PF_M4_SURFACE_NONE;
         sim->world.action_state[0] = (uint8_t)PF_M4_ACTION_AIRBORNE;
@@ -30520,7 +30469,7 @@ static int run_hsd_hurt_pose_oracle(
                 &actual[capsule_index];
             const reference_hurt_capsule *right =
                 &oracle->capsules[capsule_index];
-            const int32_t left_values[7] = {
+            const float left_values[7] = {
                 left->endpoint_a_x_f32,
                 left->endpoint_a_y_f32,
                 left->endpoint_a_z_f32,
@@ -30528,7 +30477,7 @@ static int run_hsd_hurt_pose_oracle(
                 left->endpoint_b_y_f32,
                 left->endpoint_b_z_f32,
                 left->radius_f32};
-            const int32_t right_values[7] = {
+            const float right_values[7] = {
                 right->endpoint_a_x_f32,
                 right->endpoint_a_y_f32,
                 right->endpoint_a_z_f32,
@@ -30548,21 +30497,16 @@ static int run_hsd_hurt_pose_oracle(
                  field_index < UINT8_C(7);
                  ++field_index)
             {
-                int64_t difference =
-                    (int64_t)left_values[field_index] -
-                    (int64_t)right_values[field_index];
+                const float difference = fabsf(
+                    left_values[field_index] -
+                    right_values[field_index]);
 
-                if (difference < INT64_C(0))
-                {
-                    difference = -difference;
-                }
-                if (difference >
-                    (int64_t)coordinate_tolerance_f32)
+                if (difference > coordinate_tolerance_f32)
                 {
                     (void)fprintf(
                         stderr,
-                        "case=%s capsule=%u field=%u expected=%" PRId32
-                        " actual=%" PRId32 " difference=%" PRId64 "\n",
+                        "case=%s capsule=%u field=%u expected=%.9g"
+                        " actual=%.9g difference=%.9g\n",
                         oracle->id,
                         (unsigned int)capsule_index,
                         (unsigned int)field_index,
@@ -30575,8 +30519,8 @@ static int run_hsd_hurt_pose_oracle(
         }
         {
             falcon_ecb_pose_f32 actual_ecb;
-            int32_t actual_values[8];
-            int32_t expected_values[8];
+            float actual_values[8];
+            float expected_values[8];
             uint8_t field_index;
 
             if (!falcon_reference_hsd_ecb_pose(
@@ -30608,20 +30552,16 @@ static int run_hsd_hurt_pose_oracle(
                  field_index < UINT8_C(8);
                  ++field_index)
             {
-                int64_t difference =
-                    (int64_t)actual_values[field_index] -
-                    (int64_t)expected_values[field_index];
+                const float difference = fabsf(
+                    actual_values[field_index] -
+                    expected_values[field_index]);
 
-                if (difference < INT64_C(0))
-                {
-                    difference = -difference;
-                }
-                if (difference > (int64_t)coordinate_tolerance_f32)
+                if (difference > coordinate_tolerance_f32)
                 {
                     (void)fprintf(
                         stderr,
-                        "case=%s ecb-field=%u expected=%" PRId32
-                        " actual=%" PRId32 " difference=%" PRId64 "\n",
+                        "case=%s ecb-field=%u expected=%.9g"
+                        " actual=%.9g difference=%.9g\n",
                         oracle->id,
                         (unsigned int)field_index,
                         expected_values[field_index],
@@ -30661,7 +30601,7 @@ static int wait_inspection_matches_oracle(
             &player->hurt_capsules[capsule_index];
         const float origin_y_f32 =
             player->position_y_f32 + content->fighter.half_height_f32;
-        const int32_t expected_values[7] = {
+        const float expected_values[7] = {
             player->position_x_f32 +
                 player->facing * expected->endpoint_a_x_f32,
             origin_y_f32 + expected->endpoint_a_y_f32,
@@ -30671,7 +30611,7 @@ static int wait_inspection_matches_oracle(
             origin_y_f32 + expected->endpoint_b_y_f32,
             player->facing * expected->endpoint_b_z_f32,
             expected->radius_f32};
-        const int32_t actual_values[7] = {
+        const float actual_values[7] = {
             actual->endpoint_a_x_f32,
             actual->endpoint_a_y_f32,
             actual->endpoint_a_z_f32,
@@ -30691,20 +30631,16 @@ static int wait_inspection_matches_oracle(
              field_index < UINT8_C(7);
              ++field_index)
         {
-            int64_t difference =
-                (int64_t)actual_values[field_index] -
-                (int64_t)expected_values[field_index];
+            const float difference = fabsf(
+                actual_values[field_index] -
+                expected_values[field_index]);
 
-            if (difference < INT64_C(0))
-            {
-                difference = -difference;
-            }
-            if (difference > (int64_t)tolerance_f32)
+            if (difference > tolerance_f32)
             {
                 (void)fprintf(
                     stderr,
-                    "case=%s capsule=%u field=%u expected=%" PRId32
-                    " actual=%" PRId32 " difference=%" PRId64 "\n",
+                    "case=%s capsule=%u field=%u expected=%.9g"
+                    " actual=%.9g difference=%.9g\n",
                     oracle->id,
                     (unsigned int)capsule_index,
                     (unsigned int)field_index,
@@ -30716,15 +30652,11 @@ static int wait_inspection_matches_oracle(
         }
     }
     {
-        int64_t difference =
-            (int64_t)player->ecb_bottom_y_from_origin_f32 -
-            (int64_t)oracle->ecb.bottom_y_from_origin_f32;
+        const float difference = fabsf(
+            player->ecb_bottom_y_from_origin_f32 -
+            oracle->ecb.bottom_y_from_origin_f32);
 
-        if (difference < INT64_C(0))
-        {
-            difference = -difference;
-        }
-        return difference <= (int64_t)tolerance_f32
+        return difference <= tolerance_f32
                    ? 1
                    : fail("wait-oracle-ecb-bottom");
     }
