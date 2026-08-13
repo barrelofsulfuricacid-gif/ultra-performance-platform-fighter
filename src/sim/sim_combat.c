@@ -1566,7 +1566,7 @@ static float guard_setoff_animation_rate_f32(
     }
     /* ftCo_80092F2C sets (lbGetJObjEndFrame() + 0.1) / shield_stun.
      * The animation endpoint is imported per fighter; the 0.1 bias belongs
-     * to the common callback and is converted once to deterministic Q16. */
+     * to the common callback and is rounded once to binary32. */
     endpoint_f32 = (float)motion->animation_frame_count + 0.1f;
     return endpoint_f32 / stun_duration_f32;
 }

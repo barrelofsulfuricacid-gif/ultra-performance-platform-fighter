@@ -581,30 +581,30 @@ def main() -> int:
     parser.add_argument("capture", type=Path)
     parser.add_argument("runner", type=Path)
     parser.add_argument(
-        "--position-tolerance-q16",
-        type=int,
-        default=640,
-        help="allowed float-to-fixed position quantization difference",
+        "--position-tolerance-f32",
+        type=float,
+        default=0.009765625,
+        help="allowed binary32 position difference",
     )
     parser.add_argument(
-        "--velocity-tolerance-q16",
-        type=int,
-        default=32,
-        help="allowed float-to-fixed velocity quantization difference",
+        "--velocity-tolerance-f32",
+        type=float,
+        default=0.00048828125,
+        help="allowed binary32 velocity difference",
     )
     parser.add_argument(
-        "--shield-health-tolerance-q16",
-        type=int,
+        "--shield-health-tolerance-f32",
+        type=float,
         help=(
-            "fixed shield-health conversion envelope; defaults to the "
-            "legacy accumulated-float bound"
+            "binary32 shield-health envelope; defaults to the qualified "
+            "accumulated-rounding bound"
         ),
     )
     parser.add_argument(
-        "--animation-clock-tolerance-q16",
-        type=int,
-        default=1,
-        help="allowed float-to-fixed source animation clock difference",
+        "--animation-clock-tolerance-f32",
+        type=float,
+        default=0.0000152587890625,
+        help="allowed binary32 source-animation clock difference",
     )
     parser.add_argument(
         "--native-output",
@@ -629,7 +629,7 @@ def main() -> int:
     )
     args = parser.parse_args()
     if args.animation_clock_tolerance_f32 < 0:
-        parser.error("--animation-clock-tolerance-q16 must be non-negative")
+        parser.error("--animation-clock-tolerance-f32 must be non-negative")
 
     capture = json.loads(args.capture.read_text(encoding="utf-8"))
     disc = capture.get("disc")
@@ -1179,17 +1179,17 @@ def main() -> int:
     ):
         oracle_anchor_x = float(oracle_rows[0]["position_x_from_origin"])
         oracle_anchor_y = float(oracle_rows[0]["position_y"])
-    native_anchor_x = 0
-    native_anchor_y = 0
+    native_anchor_x = 0.0
+    native_anchor_y = 0.0
     oracle_opponent_anchor_x = 0.0
-    native_opponent_anchor_x = 0
+    native_opponent_anchor_x = 0.0
     if shield_hit_mode and shield_placement_index is not None:
         oracle_anchor_x = float(oracle_rows[0]["position_x_from_origin"])
-        native_anchor_x = int(native_rows[0]["position_x_f32_from_origin"])
+        native_anchor_x = float(native_rows[0]["position_x_f32_from_origin"])
         oracle_opponent_anchor_x = float(
             oracle_rows[0]["opponent_position_x_from_origin"]
         )
-        native_opponent_anchor_x = int(
+        native_opponent_anchor_x = float(
             native_rows[0]["opponent_position_x_f32_from_origin"]
         )
     horizontal_mirror = -1 if falcon_punch_air_mode or falcon_kick_air_mode else 1
@@ -1220,8 +1220,8 @@ def main() -> int:
         if entering_anchor:
             oracle_anchor_x = float(previous_oracle["position_x_from_origin"])
             oracle_anchor_y = float(previous_oracle["position_y"])
-            native_anchor_x = int(previous_native["position_x_f32_from_origin"])
-            native_anchor_y = int(previous_native["position_y_f32_from_origin"])
+            native_anchor_x = float(previous_native["position_x_f32_from_origin"])
+            native_anchor_y = float(previous_native["position_y_f32_from_origin"])
         if (
             (falcon_dive_ground_catch_mode or falcon_dive_air_catch_mode)
             and str(oracle.get("action", "")) == "SWORD_DANCE_4_HIGH"
@@ -1233,8 +1233,8 @@ def main() -> int:
         ):
             oracle_anchor_x = float(oracle["position_x_from_origin"])
             oracle_anchor_y = float(oracle["position_y"])
-            native_anchor_x = int(native["position_x_f32_from_origin"])
-            native_anchor_y = int(native["position_y_f32_from_origin"])
+            native_anchor_x = float(native["position_x_f32_from_origin"])
+            native_anchor_y = float(native["position_y_f32_from_origin"])
         action_name = str(oracle["action"])
         action_frame = round(float(oracle["action_frame"]))
         source_action_elapsed_ticks = (
@@ -1257,8 +1257,8 @@ def main() -> int:
             # unrelated stage topology.
             oracle_anchor_x = float(oracle["position_x_from_origin"])
             oracle_anchor_y = float(oracle["position_y"])
-            native_anchor_x = int(native["position_x_f32_from_origin"])
-            native_anchor_y = int(native["position_y_f32_from_origin"])
+            native_anchor_x = float(native["position_x_f32_from_origin"])
+            native_anchor_y = float(native["position_y_f32_from_origin"])
         if (
             falcon_punch_air_mode
             and action_name == "NEUTRAL_B_FULL_CHARGE_AIR"
@@ -1266,8 +1266,8 @@ def main() -> int:
         ):
             oracle_anchor_x = float(oracle["position_x_from_origin"])
             oracle_anchor_y = float(oracle["position_y"])
-            native_anchor_x = int(native["position_x_f32_from_origin"])
-            native_anchor_y = int(native["position_y_f32_from_origin"])
+            native_anchor_x = float(native["position_x_f32_from_origin"])
+            native_anchor_y = float(native["position_y_f32_from_origin"])
         expected_action = CONTENT_ROUTE_ENTRY_ACTIONS.get(label)
         if expected_action is None:
             expected_action = expected_action_state(
@@ -1399,11 +1399,11 @@ def main() -> int:
         expected_position = horizontal_mirror * scaled_f32(
             float(oracle["position_x_from_origin"]) - oracle_anchor_x
         )
-        actual_position = int(native["position_x_f32_from_origin"]) - native_anchor_x
+        actual_position = float(native["position_x_f32_from_origin"]) - native_anchor_x
         expected_position_y = scaled_y_f32(
             float(oracle["position_y"]) - oracle_anchor_y
         )
-        actual_position_y = int(native["position_y_f32_from_origin"]) - native_anchor_y
+        actual_position_y = float(native["position_y_f32_from_origin"]) - native_anchor_y
         expected_velocity_key = (
             "air_velocity_x"
             if (
@@ -1433,9 +1433,9 @@ def main() -> int:
         expected_velocity = horizontal_mirror * scaled_f32(
             float(oracle[expected_velocity_key])
         )
-        actual_velocity = int(native["velocity_x_f32"])
+        actual_velocity = float(native["velocity_x_f32"])
         expected_velocity_y = scaled_y_f32(float(oracle["velocity_y"]))
-        actual_velocity_y = int(native["velocity_y_f32"])
+        actual_velocity_y = float(native["velocity_y_f32"])
         landing_transition_velocity_stale = (
             action_name
             in CHARACTER_AERIAL_LANDING_ACTIONS
@@ -1471,7 +1471,7 @@ def main() -> int:
         expected_grounded = 1 if bool(oracle["grounded"]) else 0
         actual_grounded = int(native["grounded"])
         expected_support: int | None = None
-        expected_surface_normal: tuple[int, int] | None = None
+        expected_surface_normal: tuple[float, float] | None = None
         if str(capture.get("stage", "")) == "BATTLEFIELD" and expected_grounded:
             collision_memory = oracle.get("surface_collision_memory")
             if isinstance(collision_memory, dict):
@@ -1484,16 +1484,16 @@ def main() -> int:
                         normal = floor.get("normal")
                         if isinstance(normal, list) and len(normal) >= 2:
                             expected_surface_normal = (
-                                round(float(normal[0]) * 65536.0),
-                                round(float(normal[1]) * 65536.0),
+                                binary32(float(normal[0])),
+                                binary32(float(normal[1])),
                             )
         actual_support = int(native["support"])
         actual_surface_normal = (
-            int(native["surface_normal_source_x_f32"]),
-            int(native["surface_normal_source_y_f32"]),
+            float(native["surface_normal_source_x_f32"]),
+            float(native["surface_normal_source_y_f32"]),
         )
-        expected_shield_health = round(float(oracle["shield_health"]) * 65536.0)
-        actual_shield_health = int(native["shield_health_f32"])
+        expected_shield_health = binary32(float(oracle["shield_health"]))
+        actual_shield_health = float(native["shield_health_f32"])
         expected_shield_strength = normalized_shield_strength(
             oracle, expected_shield_strength
         )
@@ -1512,27 +1512,27 @@ def main() -> int:
             if not isinstance(memory, dict):
                 differences.append("missing_shield_hitbox_memory")
             else:
-                expected_source_frame_f32 = round(
-                    float(memory["fighter_animation_frame"]) * 65536.0
+                expected_source_frame_f32 = binary32(
+                    float(memory["fighter_animation_frame"])
                 )
-                expected_source_rate_f32 = round(
-                    float(memory["fighter_animation_rate"]) * 65536.0
+                expected_source_rate_f32 = binary32(
+                    float(memory["fighter_animation_rate"])
                 )
-                actual_source_frame_f32 = int(
+                actual_source_frame_f32 = float(
                     native["source_animation_frame_f32"]
                 )
-                actual_source_rate_f32 = int(
+                actual_source_rate_f32 = float(
                     native["source_animation_rate_f32"]
                 )
-                rate_magnitude_f32 = max(1, abs(expected_source_rate_f32))
+                rate_magnitude_f32 = max(
+                    0.0000152587890625,
+                    abs(expected_source_rate_f32),
+                )
                 clock_updates = max(
                     1,
-                    (
-                        abs(expected_source_frame_f32)
-                        + rate_magnitude_f32
-                        - 1
-                    )
-                    // rate_magnitude_f32,
+                    math.ceil(
+                        abs(expected_source_frame_f32) / rate_magnitude_f32
+                    ),
                 )
                 frame_tolerance_f32 = (
                     args.animation_clock_tolerance_f32 * clock_updates
@@ -1668,7 +1668,10 @@ def main() -> int:
         ):
             shield_numeric_ticks += 1
         shield_health_tolerance_f32 = (
-            max(64, shield_numeric_ticks * 2)
+            max(
+                0.0009765625,
+                shield_numeric_ticks * 0.000030517578125,
+            )
             if args.shield_health_tolerance_f32 is None
             else args.shield_health_tolerance_f32
         )
@@ -1722,9 +1725,11 @@ def main() -> int:
             expected_center_offset_x = scaled_f32(
                 float(shield_matrix[3]) - float(fighter_position[0])
             )
-            expected_center_offset_y = scaled_y_f32(
-                float(shield_matrix[7]) - float(fighter_position[1])
-            ) + round(0.8 * 65536.0)
+            expected_center_offset_y = binary32(
+                scaled_y_f32(
+                    float(shield_matrix[7]) - float(fighter_position[1])
+                ) + 0.8
+            )
             size_matrix = shield_memory["shield_joint_matrix"]
             shield_world_radius = (
                 float(size_matrix[0]) ** 2
@@ -1739,15 +1744,15 @@ def main() -> int:
                 (
                     "shield_center_offset_x_f32",
                     expected_center_offset_x,
-                    96,
+                    0.00146484375,
                 ),
                 (
                     "shield_center_offset_y_f32",
                     expected_center_offset_y,
-                    96,
+                    0.00146484375,
                 ),
-                ("shield_radius_x_f32", expected_radius_x, 96),
-                ("shield_radius_y_f32", expected_radius_y, 96),
+                ("shield_radius_x_f32", expected_radius_x, 0.00146484375),
+                ("shield_radius_y_f32", expected_radius_y, 0.00146484375),
             )
             if abs(actual_guard_magnitude - expected_guard_magnitude) > 64:
                 differences.append(
@@ -1763,7 +1768,7 @@ def main() -> int:
                     f"delta={guard_angle_delta}"
                 )
             for field, expected_geometry, tolerance in geometry_pairs:
-                actual_geometry = int(native[field])
+                actual_geometry = float(native[field])
                 if abs(actual_geometry - expected_geometry) > tolerance:
                     differences.append(
                         f"{field} expected={expected_geometry} "

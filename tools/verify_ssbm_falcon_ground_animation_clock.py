@@ -15,7 +15,7 @@ from ssbm_live_trace import canonical_sha256, require_equal, require_f32_close
 
 
 def best_alignment(
-    actual: list[dict[str, str]], expected: list[dict[str, int]]
+    actual: list[dict[str, str]], expected: list[dict[str, float]]
 ) -> int:
     if len(actual) < len(expected):
         raise SystemExit(
@@ -25,7 +25,7 @@ def best_alignment(
         range(len(actual) - len(expected) + 1),
         key=lambda start: sum(
             abs(
-                int(actual[start + index]["source_animation_frame_f32"])
+                float(actual[start + index]["source_animation_frame_f32"])
                 - sample["frame_f32"]
             )
             for index, sample in enumerate(expected)
@@ -36,7 +36,7 @@ def best_alignment(
 def replay_case(
     runner: Path,
     case: dict[str, Any],
-    tolerances: dict[str, int],
+    tolerances: dict[str, float],
 ) -> int:
     expected = case["samples"]
     input_line = f"{case['input_x']},0,0,0,0,0,0,0\n"
@@ -66,19 +66,19 @@ def replay_case(
         native = candidates[start + sample_index]
         prefix = f"{case['id']}[{sample_index}]"
         require_f32_close(
-            int(native["source_animation_frame_f32"]),
+            float(native["source_animation_frame_f32"]),
             oracle["frame_f32"],
             tolerances["frame"],
             f"{prefix} source frame",
         )
         require_f32_close(
-            int(native["source_animation_rate_f32"]),
+            float(native["source_animation_rate_f32"]),
             oracle["rate_f32"],
             tolerances["rate"],
             f"{prefix} source rate",
         )
         require_f32_close(
-            int(native["velocity_x_f32"]),
+            float(native["velocity_x_f32"]),
             oracle["velocity_x_f32"],
             tolerances["velocity_x"],
             f"{prefix} ground velocity",
@@ -93,7 +93,7 @@ def main() -> int:
     args = parser.parse_args()
 
     oracle = json.loads(args.oracle.read_text(encoding="utf-8"))
-    require_equal(oracle.get("schema"), 1, "stored oracle schema")
+    require_equal(oracle.get("schema"), 2, "stored oracle schema")
     require_equal(
         oracle.get("semantic_sha256"),
         canonical_sha256(
@@ -101,7 +101,7 @@ def main() -> int:
         ),
         "stored oracle semantic digest",
     )
-    tolerances = oracle.get("q16_tolerances")
+    tolerances = oracle.get("float32_tolerances")
     cases = oracle.get("cases")
     if not isinstance(tolerances, dict) or not isinstance(cases, list):
         raise SystemExit("invalid stored gait-clock oracle")

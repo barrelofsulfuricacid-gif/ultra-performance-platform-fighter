@@ -15976,8 +15976,9 @@ pf_status step_player(
         {
             /* ftCa_SpecialN_Coll uses ft_800827A0, whose mode-2 floor
              * callback snaps the ECB bottom to the crossed floor endpoint
-             * and remains grounded. This also prevents one-Q16 root motion
-             * from spuriously cascading into SpecialAirN at a ledge. */
+             * and remains grounded. This also prevents a minimal float32
+             * root-motion residual from spuriously cascading into SpecialAirN
+             * at a ledge. */
             position_x = position_x < surface_left
                              ? surface_left
                              : surface_right;

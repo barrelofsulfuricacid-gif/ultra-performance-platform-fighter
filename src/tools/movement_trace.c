@@ -904,9 +904,7 @@ int main(int argc, char **argv)
     {
         /* The source fixture places the victim 12 Melee units from Falcon. */
         content.stage.spawn_spacing_f32 =
-            (int32_t)(
-                (INT64_C(6) * INT64_C(12) * 1.0f) /
-                INT64_C(115));
+            (6.0f * 12.0f) / 115.0f;
     }
     else if (ucf_tumble_mode != 0)
     {
@@ -927,7 +925,7 @@ int main(int argc, char **argv)
     {
         /* Final Destination starts ports one and two at -60/+60. */
         content.stage.spawn_spacing_f32 =
-            (int32_t)((INT64_C(144) * 1.0f) / INT64_C(23));
+            144.0f / 23.0f;
     }
     else if (shield_hit_place_mode != 0)
     {
@@ -935,9 +933,7 @@ int main(int argc, char **argv)
          * attacker at x=22 Melee units.  Spawn spacing is the symmetric
          * half-separation, translated through the comparison scale. */
         content.stage.spawn_spacing_f32 =
-            (int32_t)(
-                (INT64_C(11) * INT64_C(12) * 1.0f) /
-                INT64_C(115));
+            (11.0f * 12.0f) / 115.0f;
     }
     else if (falcon_punch_air_mode != 0 || falcon_kick_air_mode != 0 ||
              falcon_dive_air_miss_mode != 0)
@@ -958,9 +954,7 @@ int main(int argc, char **argv)
          * stationary target. Translate that symmetric half-spacing through
          * the repository's exact horizontal world scale. */
         content.stage.spawn_spacing_f32 =
-            (int32_t)(
-                (INT64_C(5) * INT64_C(12) * 1.0f) /
-                INT64_C(115));
+            (5.0f * 12.0f) / 115.0f;
     }
     else if (raptor_boost_ground_edge_mode != 0)
     {
@@ -1006,22 +1000,21 @@ int main(int argc, char **argv)
          * symmetric half-separation is 14 + 4/256 Melee units, translated
          * through the repository's exact horizontal world scale. */
         content.stage.spawn_spacing_f32 =
-            (int32_t)(
-                (INT64_C(3588) * INT64_C(12) * 1.0f) /
-                (INT64_C(256) * INT64_C(115)));
+            (3588.0f * 12.0f) / (256.0f * 115.0f);
         content.fighter.player_push_half_width_f32 = INT32_C(1);
     }
     else if (falcon_kick_ground_wall_mode != 0)
     {
         /* Hyrule exposes action 363 one post-frame after its displayed-frame
-         * 22 wall-hug sample. Place the fixture one Q16 unit beyond the exact
-         * imported frame-22 endpoint (201289) so its crossing is exposed on
-         * that same next row. The wall is deliberately tall so only the
+         * 22 wall-hug sample. Place the fixture at the source-qualified
+         * float32 boundary immediately beyond the imported frame-22 endpoint
+         * so its crossing is exposed on that same next row. The wall is
+         * deliberately tall so only the
          * Falcon Kick callback, rather than unrelated stage topology, is
          * under comparison. */
         content.stage.solid_left_f32 =
             -content.stage.spawn_spacing_f32 +
-            content.fighter.half_width_f32 + INT32_C(201290);
+            content.fighter.half_width_f32 + 3.071441650390625f;
         content.stage.solid_right_f32 =
             content.stage.solid_left_f32 + 1.0f;
         content.stage.solid_bottom_f32 =
@@ -1032,25 +1025,21 @@ int main(int argc, char **argv)
         /* The pinned catch trace starts Falcon and the victim 6.2 Melee
          * units apart. Spawn spacing is the symmetric half-separation. */
         content.stage.spawn_spacing_f32 =
-            (int32_t)(
-                (INT64_C(31) * INT64_C(12) * 1.0f) /
-                (INT64_C(10) * INT64_C(115)));
+            (31.0f * 12.0f) / (10.0f * 115.0f);
     }
     else if (falcon_dive_air_catch_mode != 0)
     {
         /* The pinned aerial capture starts Falcon five Melee units from the
          * airborne victim. Spawn spacing is the symmetric half-separation. */
         content.stage.spawn_spacing_f32 =
-            (int32_t)(
-                (INT64_C(5) * INT64_C(12) * 1.0f) /
-                (INT64_C(2) * INT64_C(115)));
+            (5.0f * 12.0f) / (2.0f * 115.0f);
     }
     else if (falcon_dive_air_ledge_mode != 0)
     {
         /* Final Destination's left enum ledge and the controller route's safe
          * on-stage start, transformed through the comparison scale. */
-        content.stage.floor_left_f32 = -INT32_C(585144);
-        content.stage.floor_right_f32 = INT32_C(585144);
+        content.stage.floor_left_f32 = -8.9285888671875f;
+        content.stage.floor_right_f32 = 8.9285888671875f;
         content.stage.spawn_spacing_f32 = INT32_C(2) * 1.0f;
         content.stage.platform_center_x_f32 = INT32_C(0);
         content.stage.platform_half_width_f32 = 1.0f;
@@ -1526,7 +1515,7 @@ int main(int argc, char **argv)
     {
         uint32_t pre_roll_tick;
         int setup_ready = 0;
-        const float setup_target_x_f32 = -INT32_C(302203);
+        const float setup_target_x_f32 = -4.6112518310546875f;
 
         /* Walk to the capture's safe on-stage start without mutating fighter
          * state, settle, and face inward. The content validator deliberately

@@ -15555,8 +15555,8 @@ static int run_falcon_dive_behind_ledge_test(
     uint32_t tick;
 
     content.item.enabled = UINT8_C(0);
-    content.stage.floor_left_f32 = (-((float)INT32_C(585144) / 65536.0f));
-    content.stage.floor_right_f32 = ((float)INT32_C(585144) / 65536.0f);
+    content.stage.floor_left_f32 = -8.9285888671875f;
+    content.stage.floor_right_f32 = 8.9285888671875f;
     content.stage.spawn_spacing_f32 = INT32_C(2) * 1.0f;
     content.stage.platform_center_x_f32 = 0.0f;
     content.stage.platform_half_width_f32 = 1.0f;

@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from ssbm_live_trace import MELEE_X_TO_SIM_Q16, canonical_sha256
+from ssbm_live_trace import MELEE_X_TO_SIM_F32, binary32, canonical_sha256
 
 
 SOURCE_CAPTURE_SHA256 = (
@@ -63,7 +63,7 @@ def generate(capture: dict[str, Any], source_digest: str) -> str:
             len(selected) == expected_count,
             f"{case_id}: expected {expected_count} rows, got {len(selected)}",
         )
-        samples: list[dict[str, int]] = []
+        samples: list[dict[str, float]] = []
         for sample_index, row in enumerate(selected):
             memory = row.get("hitbox_memory")
             require(
@@ -79,10 +79,10 @@ def generate(capture: dict[str, Any], source_digest: str) -> str:
             )
             samples.append(
                 {
-                    "frame_f32": round(float(frame) * 65536.0),
-                    "rate_f32": round(float(rate) * 65536.0),
-                    "velocity_x_f32": round(
-                        float(velocity) * MELEE_X_TO_SIM_Q16
+                    "frame_f32": binary32(float(frame)),
+                    "rate_f32": binary32(float(rate)),
+                    "velocity_x_f32": binary32(
+                        float(velocity) * MELEE_X_TO_SIM_F32
                     ),
                 }
             )
@@ -102,17 +102,17 @@ def generate(capture: dict[str, Any], source_digest: str) -> str:
         "cases": cases,
     }
     output = {
-        "schema": 1,
+        "schema": 2,
         "domain": semantic_payload["domain"],
         "fighter": "CPTFALCON",
         "disc_sha256": DISC_SHA256,
         "dolphin_release_artifact_sha256": EXIAI_SHA256,
         "source_capture_sha256": source_digest,
         "semantic_sha256": canonical_sha256(semantic_payload),
-        "q16_tolerances": {
-            "frame": 1200,
-            "rate": 128,
-            "velocity_x": 4,
+        "float32_tolerances": {
+            "frame": 0.018310546875,
+            "rate": 0.001953125,
+            "velocity_x": 0.00006103515625,
         },
         "cases": cases,
     }

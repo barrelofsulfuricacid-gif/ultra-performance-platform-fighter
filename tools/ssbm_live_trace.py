@@ -5,11 +5,20 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
+import struct
 from typing import Any
 
 
+MELEE_X_TO_SIM_F32 = 12.0 / 115.0
+MELEE_Y_TO_SIM_F32 = 11.0 / 62.0
 MELEE_X_TO_SIM_Q16 = 65536.0 * 12.0 / 115.0
 MELEE_Y_TO_SIM_Q16 = 65536.0 * 11.0 / 62.0
+
+
+def binary32(value: float) -> float:
+    """Round one offline numeric value to the production binary32 domain."""
+
+    return struct.unpack(">f", struct.pack(">f", float(value)))[0]
 
 
 def normalized_sha256(path: Path) -> str:
@@ -106,9 +115,9 @@ def require_equal(actual: object, expected: object, label: str) -> None:
 
 
 def require_f32_close(
-    actual: int,
-    expected: int,
-    tolerance: int,
+    actual: float,
+    expected: float,
+    tolerance: float,
     label: str,
 ) -> None:
     if abs(actual - expected) > tolerance:

@@ -2,7 +2,7 @@
 
 These floating-point routines mirror Melee's finite segment geometry for
 qualification and diagnostics only. Production simulation owns the portable
-deterministic fixed-point specialization.
+binary32 implementation.
 """
 
 from __future__ import annotations

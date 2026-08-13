@@ -16,7 +16,12 @@ from import_ssbm_falcon_frame_data import (
     canonical_sha256,
     command_variable_assignments,
 )
-from ssbm_collision import canonical_hurt_pose_f32
+from ssbm_collision import (
+    DEFAULT_HURT_POSE_TOLERANCE_F32,
+    binary32,
+    canonical_hurt_pose_f32,
+    hurt_poses_equivalent,
+)
 
 
 EXPECTED_FULL_SOURCE_SHA256 = (
@@ -89,9 +94,6 @@ def c_float(value: float) -> str:
         literal += ".0"
     return literal + "f"
 
-
-def c_float_from_source_grid(value: int) -> str:
-    return c_float(value / 65536.0)
 
 COMMON_HURT_ACTIONS = (
     ("DASHING", tuple(range(1, 16))),
@@ -301,13 +303,13 @@ def captured_collision_key(memory: dict[str, Any]) -> tuple[object, ...]:
             index,
             float(hitbox["damage"]),
             tuple(
-                round(
+                binary32(
                     (float(hitbox["position"][axis]) - fighter_position[axis])
-                    * MELEE_TO_SIM_Q16
+                    * MELEE_TO_SIM_SCALE
                 )
                 for axis in range(3)
             ),
-            round(float(hitbox["radius"]) * MELEE_TO_SIM_Q16),
+            binary32(float(hitbox["radius"]) * MELEE_TO_SIM_SCALE),
             int(hitbox["angle"]),
             int(hitbox["knockback_growth"]),
             int(hitbox["weight_set_knockback"]),
@@ -321,7 +323,7 @@ def captured_collision_key(memory: dict[str, Any]) -> tuple[object, ...]:
 
 def captured_search_spheres(
     memory: dict[str, Any], facing: int
-) -> tuple[tuple[int, ...], ...]:
+) -> tuple[tuple[float | int, ...], ...]:
     """Canonicalize live zero-damage SpecialS searches into facing-right space."""
 
     fighter_position = [float(value) for value in memory["fighter_position"]]
@@ -337,18 +339,20 @@ def captured_search_spheres(
         position = [float(value) for value in hitbox["position"]]
         spheres.append(
             (
-                round(
+                binary32(
                     facing
                     * (position[0] - fighter_position[0])
-                    * MELEE_TO_SIM_Q16
+                    * MELEE_TO_SIM_SCALE
                 ),
-                round(-(position[1] - fighter_position[1]) * MELEE_TO_SIM_Q16),
-                round(
+                binary32(
+                    -(position[1] - fighter_position[1]) * MELEE_TO_SIM_SCALE
+                ),
+                binary32(
                     facing
                     * (position[2] - fighter_position[2])
-                    * MELEE_TO_SIM_Q16
+                    * MELEE_TO_SIM_SCALE
                 ),
-                round(float(hitbox["radius"]) * MELEE_TO_SIM_Q16),
+                binary32(float(hitbox["radius"]) * MELEE_TO_SIM_SCALE),
                 hitbox_id,
             )
         )
@@ -367,7 +371,8 @@ def collision_keys_f32_equivalent(
             left_values[:2] != right_values[:2]
             or left_values[3:] != right_values[3:]
             or any(
-                abs(left_axis - right_axis) > 1
+                abs(float(left_axis) - float(right_axis)) >
+                    DEFAULT_HURT_POSE_TOLERANCE_F32
                 for left_axis, right_axis in zip(
                     left_values[2], right_values[2], strict=True
                 )
@@ -381,13 +386,13 @@ def captured_positions_f32_equivalent(
     left: object, right: object
 ) -> bool:
     left_position = tuple(
-        round(float(value) * MELEE_TO_SIM_Q16) for value in list(left)
+        binary32(float(value) * MELEE_TO_SIM_SCALE) for value in list(left)
     )
     right_position = tuple(
-        round(float(value) * MELEE_TO_SIM_Q16) for value in list(right)
+        binary32(float(value) * MELEE_TO_SIM_SCALE) for value in list(right)
     )
     return all(
-        abs(left_axis - right_axis) <= 1
+        abs(left_axis - right_axis) <= DEFAULT_HURT_POSE_TOLERANCE_F32
         for left_axis, right_axis in zip(
             left_position, right_position, strict=True
         )
@@ -406,11 +411,11 @@ def captured_hurt_capsules(
         hurtbox_key,
         fighter_position_key,
         facing,
-        MELEE_TO_SIM_Q16,
+        MELEE_TO_SIM_SCALE,
     )
 
 
-hurt_poses_f32_equivalent = q16_hurt_poses_equivalent
+hurt_poses_f32_equivalent = hurt_poses_equivalent
 
 
 def validate_capture(
@@ -649,20 +654,20 @@ def generate(
     capture_facing = int(capture_anchor["facing"])
     if capture_facing not in (-1, 1):
         raise ValueError("invalid pummel capture-anchor facing")
-    capture_offset_x_f32 = round(
+    capture_offset_x_f32 = binary32(
         (
             float(capture_anchor["opponent_position_x"])
             - float(capture_anchor["position_x"])
         )
         * capture_facing
-        * MELEE_TO_SIM_Q16
+        * MELEE_TO_SIM_SCALE
     )
-    capture_offset_y_f32 = round(
+    capture_offset_y_f32 = binary32(
         (
             float(capture_anchor["opponent_position_y"])
             - float(capture_anchor["position_y"])
         )
-        * MELEE_TO_SIM_Q16
+        * MELEE_TO_SIM_SCALE
     )
 
     for move_key in MOVE_KEYS:
@@ -920,17 +925,17 @@ def generate(
                     position = [float(value) for value in captured["position"]]
                     spheres.append(
                         {
-                            "offset_x": round(
-                                (position[0] - fighter_position[0]) * MELEE_TO_SIM_Q16
+                            "offset_x": binary32(
+                                (position[0] - fighter_position[0]) * MELEE_TO_SIM_SCALE
                             ),
-                            "offset_y": round(
-                                -(position[1] - fighter_position[1]) * MELEE_TO_SIM_Q16
+                            "offset_y": binary32(
+                                -(position[1] - fighter_position[1]) * MELEE_TO_SIM_SCALE
                             ),
-                            "offset_z": round(
-                                (position[2] - fighter_position[2]) * MELEE_TO_SIM_Q16
+                            "offset_z": binary32(
+                                (position[2] - fighter_position[2]) * MELEE_TO_SIM_SCALE
                             ),
-                            "radius": round(
-                                float(captured["radius"]) * MELEE_TO_SIM_Q16
+                            "radius": binary32(
+                                float(captured["radius"]) * MELEE_TO_SIM_SCALE
                             ),
                             "effect_index": effect_index,
                             "hitbox_id": hitbox_id,
@@ -1091,9 +1096,9 @@ def generate(
         "};",
         "",
         "static const float falcon_capture_offset_x_f32 = "
-        f"{c_float_from_source_grid(capture_offset_x_f32)};",
+        f"{c_float(capture_offset_x_f32)};",
         "static const float falcon_capture_offset_y_f32 = "
-        f"{c_float_from_source_grid(capture_offset_y_f32)};",
+        f"{c_float(capture_offset_y_f32)};",
         "",
         "static const uint16_t falcon_side_special_ground_search_offset = "
         f"UINT16_C({search_offsets[0]});",
@@ -1108,10 +1113,10 @@ def generate(
     ]
     lines.extend(
         "    { "
-        f"{c_float_from_source_grid(sphere[0])}, "
-        f"{c_float_from_source_grid(sphere[1])}, "
-        f"{c_float_from_source_grid(sphere[2])}, "
-        f"{c_float_from_source_grid(sphere[3])} "
+        f"{c_float(float(sphere[0]))}, "
+        f"{c_float(float(sphere[1]))}, "
+        f"{c_float(float(sphere[2]))}, "
+        f"{c_float(float(sphere[3]))} "
         "},"
         for sphere in search_spheres
     )
@@ -1154,10 +1159,10 @@ def generate(
     )
     lines.extend(
         "    { "
-        f"{c_float_from_source_grid(sphere['offset_x'])}, "
-        f"{c_float_from_source_grid(sphere['offset_y'])}, "
-        f"{c_float_from_source_grid(sphere['offset_z'])}, "
-        f"{c_float_from_source_grid(sphere['radius'])}, "
+        f"{c_float(sphere['offset_x'])}, "
+        f"{c_float(sphere['offset_y'])}, "
+        f"{c_float(sphere['offset_z'])}, "
+        f"{c_float(sphere['radius'])}, "
         f"UINT8_C({sphere['effect_index']}), "
         f"UINT8_C({sphere['hitbox_id']}), "
         f"UINT8_C({sphere['group_id']}), "
@@ -1238,13 +1243,13 @@ def generate(
     )
     lines.extend(
         "    { "
-        f"{c_float_from_source_grid(hurtbox[0])}, "
-        f"{c_float_from_source_grid(hurtbox[1])}, "
-        f"{c_float_from_source_grid(hurtbox[2])}, "
-        f"{c_float_from_source_grid(hurtbox[3])}, "
-        f"{c_float_from_source_grid(hurtbox[4])}, "
-        f"{c_float_from_source_grid(hurtbox[5])}, "
-        f"{c_float_from_source_grid(hurtbox[6])}, "
+        f"{c_float(float(hurtbox[0]))}, "
+        f"{c_float(float(hurtbox[1]))}, "
+        f"{c_float(float(hurtbox[2]))}, "
+        f"{c_float(float(hurtbox[3]))}, "
+        f"{c_float(float(hurtbox[4]))}, "
+        f"{c_float(float(hurtbox[5]))}, "
+        f"{c_float(float(hurtbox[6]))}, "
         f"UINT8_C({hurtbox[7]}), "
         f"UINT8_C({hurtbox[8]}), "
         f"UINT8_C({hurtbox[9]}), UINT8_C(0) "
@@ -1262,13 +1267,13 @@ def generate(
     )
     lines.extend(
         "    { "
-        f"{c_float_from_source_grid(hurtbox[0])}, "
-        f"{c_float_from_source_grid(hurtbox[1])}, "
-        f"{c_float_from_source_grid(hurtbox[2])}, "
-        f"{c_float_from_source_grid(hurtbox[3])}, "
-        f"{c_float_from_source_grid(hurtbox[4])}, "
-        f"{c_float_from_source_grid(hurtbox[5])}, "
-        f"{c_float_from_source_grid(hurtbox[6])}, "
+        f"{c_float(float(hurtbox[0]))}, "
+        f"{c_float(float(hurtbox[1]))}, "
+        f"{c_float(float(hurtbox[2]))}, "
+        f"{c_float(float(hurtbox[3]))}, "
+        f"{c_float(float(hurtbox[4]))}, "
+        f"{c_float(float(hurtbox[5]))}, "
+        f"{c_float(float(hurtbox[6]))}, "
         f"UINT8_C({hurtbox[7]}), "
         f"UINT8_C({hurtbox[8]}), "
         f"UINT8_C({hurtbox[9]}), UINT8_C(0) "
