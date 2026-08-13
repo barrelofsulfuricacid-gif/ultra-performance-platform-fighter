@@ -10,6 +10,7 @@ import json
 import math
 from pathlib import Path
 import re
+import struct
 from typing import Any
 
 from hsd_figatree import FigaTree, decode_figatree
@@ -27,27 +28,32 @@ from hsd_joint_pose import (
 from ssbm_dat import fighter_wait_animations, read_hsd_archive
 
 
-Q16_ONE = 65536
 ROTATION_TRACKS = frozenset({1, 2, 3})
 
 
-def q16(value: float) -> int:
-    result = round(value * Q16_ONE)
-    if not -(1 << 31) <= result < (1 << 31):
-        raise ValueError("Q16 value is out of range")
-    return result
+def binary32(value: float) -> float:
+    value = float(value)
+    if not math.isfinite(value):
+        raise ValueError("float32 value must be finite")
+    try:
+        return struct.unpack(">f", struct.pack(">f", value))[0]
+    except OverflowError as error:
+        raise ValueError("float32 value is out of range") from error
 
 
-def rotation_turns_f32(radians: float) -> int:
-    return q16(radians / (2.0 * math.pi))
+def rotation_turns_f32(radians: float) -> float:
+    return binary32(radians / (2.0 * math.pi))
 
 
 def sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def c_i32(value: int) -> str:
-    return f"INT32_C({value})" if value >= 0 else f"-INT32_C({-value})"
+def c_f32(value: float) -> str:
+    rendered = format(binary32(value), ".9g")
+    if "e" not in rendered.lower() and "." not in rendered:
+        rendered += ".0"
+    return rendered + "f"
 
 
 def load_manifest(path: Path) -> dict[str, Any]:
@@ -165,8 +171,8 @@ def build_payload(
     root_index = int(capture_constraint["fighter_root_source_joint_index"])
     offset_index = int(capture_constraint["model_offset_source_joint_index"])
     capture_root_offset_source_f32 = [
-        q16(base_matrices[root_index][axis][3] -
-            base_matrices[offset_index][axis][3])
+        binary32(base_matrices[root_index][axis][3] -
+                 base_matrices[offset_index][axis][3])
         for axis in range(3)
     ]
 
@@ -177,13 +183,13 @@ def build_payload(
         while parent >= 0 and parent not in compact_by_source:
             parent = joints[parent].parent_index
         rotation = [rotation_turns_f32(value) for value in source.rotation]
-        scale = [q16(value) for value in source.scale]
+        scale = [binary32(value) for value in source.scale]
         if compact_index == 0:
             rotation = [
-                value + q16(float(root_rotation_turns[axis]))
+                binary32(value + float(root_rotation_turns[axis]))
                 for axis, value in enumerate(rotation)
             ]
-            scale = [q16(model_scale)] * 3
+            scale = [binary32(model_scale)] * 3
         joint_rows.append(
             {
                 "source_index": source_index,
@@ -191,7 +197,9 @@ def build_payload(
                 "classical_scale": bool(source.flags & JOBJ_CLASSICAL_SCALE),
                 "rotation": rotation,
                 "scale": scale,
-                "translation": [q16(value) for value in source.translation],
+                "translation": [
+                    binary32(value) for value in source.translation
+                ],
             }
         )
 
@@ -244,9 +252,12 @@ def build_payload(
                         rotation_turns_f32(float(value))
                         for value in source["rotation"]
                     ] + [0],
-                    "scale": [q16(float(value)) for value in source["scale"]],
+                    "scale": [
+                        binary32(float(value)) for value in source["scale"]
+                    ],
                     "translation": [
-                        q16(float(value)) for value in source["translation"]
+                        binary32(float(value))
+                        for value in source["translation"]
                     ],
                     "use_quaternion": 0,
                 }
@@ -291,11 +302,11 @@ def build_payload(
                     convert = (
                         rotation_turns_f32
                         if track.track_type in ROTATION_TRACKS
-                        else q16
+                        else binary32
                     )
                     key_rows.append(
                         {
-                            "frame": q16(key.frame),
+                            "frame": binary32(key.frame),
                             "value": convert(key.value),
                             "tangent": convert(key.tangent),
                             "interpolation": key.interpolation,
@@ -382,9 +393,9 @@ def build_payload(
                 "hurtbox_id": hurtbox_id,
                 "height": capsule.height,
                 "grabbable": capsule.grabbable,
-                "offset_a": [q16(value) for value in capsule.offset_a],
-                "offset_b": [q16(value) for value in capsule.offset_b],
-                "radius": q16(capsule.radius),
+                "offset_a": [binary32(value) for value in capsule.offset_a],
+                "offset_b": [binary32(value) for value in capsule.offset_b],
+                "radius": binary32(capsule.radius),
             }
         )
     point_set_rows = [
@@ -453,14 +464,14 @@ def build_payload(
         component = evaluate_joint_matrices(
             converted_joint_tuple, tree, frame
         )[source_joint][matrix_row][matrix_column]
-        component_f32 = q16(component)
+        component_f32 = binary32(component)
         branch_rows.append(
             {
                 "id": branch_id,
                 "submotion_index": submotion,
                 "runtime_part_index": runtime_part,
                 "source_joint_index": source_joint,
-                "frame_f32": q16(frame),
+                "frame_f32": binary32(frame),
                 "matrix_row": matrix_row,
                 "matrix_column": matrix_column,
                 "component_f32": component_f32,
@@ -470,7 +481,7 @@ def build_payload(
     return {
         "source_joint_count": len(joints),
         "runtime_part_count": len(layout.source_joint_by_runtime_part),
-        "model_scale_f32": q16(model_scale),
+        "model_scale_f32": binary32(model_scale),
         "source_to_sim_numerator": numerator,
         "source_to_sim_denominator": denominator,
         "capture_root_offset_source_f32": capture_root_offset_source_f32,
@@ -552,9 +563,9 @@ def render(manifest: dict[str, Any], payload: dict[str, Any], digest: str) -> st
         "/* Generated by tools/generate_ssbm_dynamic_hurt_pose_include.py. */",
         f"/* Canonical decoded data SHA-256: {digest} */",
         "",
-        f"static const int32_t {prefix}_capture_root_offset_source_f32[3] = {{",
+        f"static const float {prefix}_capture_root_offset_source_f32[3] = {{",
         "    " + ", ".join(
-            c_i32(value) for value in payload["capture_root_offset_source_f32"]
+            c_f32(value) for value in payload["capture_root_offset_source_f32"]
         ),
         "};",
         f"#define {prefix}_capture_world_y_source_to_sim_numerator \\",
@@ -566,9 +577,9 @@ def render(manifest: dict[str, Any], payload: dict[str, Any], digest: str) -> st
     ]
     for row in payload["joints"]:
         lines.append(
-            "    { { " + ", ".join(c_i32(v) for v in row["rotation"]) +
-            " }, { " + ", ".join(c_i32(v) for v in row["scale"]) +
-            " }, { " + ", ".join(c_i32(v) for v in row["translation"]) +
+            "    { { " + ", ".join(c_f32(v) for v in row["rotation"]) +
+            " }, { " + ", ".join(c_f32(v) for v in row["scale"]) +
+            " }, { " + ", ".join(c_f32(v) for v in row["translation"]) +
             f" }}, INT8_C({row['parent_index']}), UINT8_C({int(row['classical_scale'])}), "
             "{ UINT8_C(0), UINT8_C(0) } },"
         )
@@ -634,7 +645,7 @@ def render(manifest: dict[str, Any], payload: dict[str, Any], digest: str) -> st
     lines.extend(["};", "", f"static const hsd_key {prefix}_keys[] = {{"])
     for row in payload["keys"]:
         lines.append(
-            "    { " + ", ".join(c_i32(row[name]) for name in ("frame", "value", "tangent")) +
+            "    { " + ", ".join(c_f32(row[name]) for name in ("frame", "value", "tangent")) +
             f", UINT8_C({row['interpolation']}), "
             "{ UINT8_C(0), UINT8_C(0), UINT8_C(0) } },"
         )
@@ -643,9 +654,9 @@ def render(manifest: dict[str, Any], payload: dict[str, Any], digest: str) -> st
     )
     for row in payload["capsules"]:
         lines.append(
-            "    { { " + ", ".join(c_i32(v) for v in row["offset_a"]) +
-            " }, { " + ", ".join(c_i32(v) for v in row["offset_b"]) +
-            f" }}, {c_i32(row['radius'])}, UINT8_C({row['joint_index']}), "
+            "    { { " + ", ".join(c_f32(v) for v in row["offset_a"]) +
+            " }, { " + ", ".join(c_f32(v) for v in row["offset_b"]) +
+            f" }}, {c_f32(row['radius'])}, UINT8_C({row['joint_index']}), "
             f"UINT8_C({row['hurtbox_id']}), UINT8_C({row['height']}), "
             f"UINT8_C({row['grabbable']}) }},"
     )
@@ -657,11 +668,11 @@ def render(manifest: dict[str, Any], payload: dict[str, Any], digest: str) -> st
         for row in pose["joints"]:
             lines.append(
                 "    { { "
-                + ", ".join(c_i32(value) for value in row["rotation"])
+                + ", ".join(c_f32(value) for value in row["rotation"])
                 + " }, { "
-                + ", ".join(c_i32(value) for value in row["scale"])
+                + ", ".join(c_f32(value) for value in row["scale"])
                 + " }, { "
-                + ", ".join(c_i32(value) for value in row["translation"])
+                + ", ".join(c_f32(value) for value in row["translation"])
                 + f" }}, UINT8_C({row['use_quaternion']}), "
                 "{ UINT8_C(0), UINT8_C(0), UINT8_C(0) } },"
             )
@@ -723,7 +734,7 @@ def render(manifest: dict[str, Any], payload: dict[str, Any], digest: str) -> st
         lines.extend(
             [
                 f"#define {branch_prefix}_component_f32 \\",
-                f"    {c_i32(row['component_f32'])}",
+                f"    {c_f32(row['component_f32'])}",
                 f"#define {branch_prefix} \\",
                 f"    UINT8_C({int(row['positive'])})",
                 "",
