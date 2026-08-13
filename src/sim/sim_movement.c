@@ -13701,8 +13701,7 @@ pf_status step_player(
                  * facing flip occurs one physics tick after the crossing.
                  */
                 if (facing != target_direction &&
-                    (int64_t)velocity_x * (int64_t)facing <=
-                        INT64_C(68))
+                    velocity_x * (float)facing <= 0.01f)
                 {
                     facing = target_direction;
                 }

@@ -2401,6 +2401,11 @@ static int snapshot_source_submotion_valid_for_action(
                submotion ==
                    (uint16_t)PF_M4_FALCON_SUBMOTION_SQUAT_REVERSE;
     }
+    else if (effective_action == (uint8_t)PF_M4_ACTION_AIR_DODGE)
+    {
+        identity_valid =
+            submotion == (uint16_t)PF_M4_FALCON_SUBMOTION_AIR_DODGE;
+    }
     else if (effective_action ==
              (uint8_t)PF_M4_ACTION_SPECIAL_LANDING)
     {

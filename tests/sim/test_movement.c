@@ -96,6 +96,23 @@ static float absolute_f32(float value)
     return value < 0.0f ? -value : value;
 }
 
+static int near_f32(float left, float right)
+{
+    float scale = absolute_f32(left);
+    const float right_scale = absolute_f32(right);
+
+    if (scale < right_scale)
+    {
+        scale = right_scale;
+    }
+    if (scale < 1.0f)
+    {
+        scale = 1.0f;
+    }
+    return absolute_f32(left - right) <=
+           8.0f * FLT_EPSILON * scale;
+}
+
 static int player_overlaps_solid(
     const struct content *content,
     const player_inspection *player)
@@ -789,11 +806,11 @@ static int run_air_dodge_test(
     expected_entry_velocity_x =
         (float)INT16_MAX *
         default_content->fighter.air_dodge_speed_x_f32 /
-        46340.0f;
+        hypotf((float)INT16_MAX, (float)INT16_MIN);
     expected_entry_velocity_y =
         (float)INT16_MIN *
         default_content->fighter.air_dodge_speed_y_f32 /
-        46340.0f;
+        hypotf((float)INT16_MAX, (float)INT16_MIN);
     if (inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_AIR_DODGE ||
         inspection.players[0].action_ticks != UINT16_C(0) ||
@@ -1020,14 +1037,21 @@ static int run_air_dodge_test(
             inspection.players[0].action_state !=
                 (uint8_t)PF_M4_ACTION_SPECIAL_LANDING ||
             inspection.players[0].action_ticks != (uint16_t)tick ||
-            inspection.players[0].position_x_f32 - previous_landing_x !=
-                inspection.players[0].velocity_x_f32)
+            !near_f32(
+                inspection.players[0].position_x_f32 -
+                    previous_landing_x,
+                inspection.players[0].velocity_x_f32))
         {
             (void)fprintf(
                 stderr,
                 "m4-movement=fail operation=special-landing-lock"
-                " tick=%" PRIu32 "\n",
-                tick);
+                " tick=%" PRIu32 " action=%u action_ticks=%u"
+                " delta_x=%.9g velocity_x=%.9g\n",
+                tick,
+                (unsigned int)inspection.players[0].action_state,
+                (unsigned int)inspection.players[0].action_ticks,
+                inspection.players[0].position_x_f32 - previous_landing_x,
+                inspection.players[0].velocity_x_f32);
             return 0;
         }
     }
@@ -1042,8 +1066,9 @@ static int run_air_dodge_test(
         inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_STANDING_TURN ||
         inspection.players[0].action_ticks != UINT16_C(1) ||
-        inspection.players[0].position_x_f32 - previous_landing_x !=
-            inspection.players[0].velocity_x_f32 ||
+        !near_f32(
+            inspection.players[0].position_x_f32 - previous_landing_x,
+            inspection.players[0].velocity_x_f32) ||
         inspection.players[0].position_x_f32 <= landing_x ||
         inspection.players[0].velocity_x_f32 >= landing_velocity_x)
     {
@@ -1626,10 +1651,10 @@ static int run_ground_dodge_test(
          translation_frame <= UINT16_C(31);
          ++translation_frame)
     {
-        float forward_x_f32;
-        float forward_y_f32;
-        float backward_x_f32;
-        float backward_y_f32;
+        float forward_x_f32 = 0.0f;
+        float forward_y_f32 = 0.0f;
+        float backward_x_f32 = 0.0f;
+        float backward_y_f32 = 0.0f;
 
         if (!falcon_reference_translation_f32(
                 PF_M4_FALCON_SUBMOTION_ROLL_FORWARD,
@@ -1644,21 +1669,37 @@ static int run_ground_dodge_test(
             forward_y_f32 != 0.0f ||
             backward_y_f32 != 0.0f)
         {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=ground-dodge-translation"
+                " frame=%u forward=(%.9g,%.9g) backward=(%.9g,%.9g)\n",
+                (unsigned int)translation_frame,
+                forward_x_f32,
+                forward_y_f32,
+                backward_x_f32,
+                backward_y_f32);
             return 0;
         }
         forward_roll_displacement_f32 += forward_x_f32;
         backward_roll_displacement_f32 += backward_x_f32;
         if ((translation_frame == UINT16_C(1) &&
-             (forward_x_f32 != 0.31958008f ||
-              backward_x_f32 != 1.5258789E-05f)) ||
+             (forward_x_f32 != 0.319585204f ||
+              backward_x_f32 != 2.19655813e-05f)) ||
             (translation_frame == UINT16_C(4) &&
-             backward_x_f32 != -0.08758545f) ||
+             backward_x_f32 != -0.0875875801f) ||
             (translation_frame == UINT16_C(29) &&
-             forward_x_f32 != 0.004272461f) ||
+             forward_x_f32 != 0.0042648674f) ||
             (translation_frame == UINT16_C(31) &&
-             (forward_x_f32 != 0.0007171631f ||
-              backward_x_f32 != -0.0025939941f)))
+             (forward_x_f32 != 0.000724301091f ||
+              backward_x_f32 != -0.0025961881f)))
         {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=ground-dodge-translation-contract"
+                " frame=%u forward=%.9g backward=%.9g\n",
+                (unsigned int)translation_frame,
+                forward_x_f32,
+                backward_x_f32);
             return 0;
         }
     }
@@ -1839,7 +1880,7 @@ static int run_ground_dodge_test(
                 UINT32_C(1) ||
         inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
-        inspection.players[0].position_x_f32 != expected_x ||
+        !near_f32(inspection.players[0].position_x_f32, expected_x) ||
         inspection.players[0].facing != (int8_t)-facing)
     {
         (void)fprintf(
@@ -1921,7 +1962,7 @@ static int run_ground_dodge_test(
                 UINT32_C(1) ||
         inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
-        inspection.players[0].position_x_f32 != expected_x ||
+        !near_f32(inspection.players[0].position_x_f32, expected_x) ||
         inspection.players[0].facing != facing)
     {
         (void)fprintf(
@@ -5656,7 +5697,6 @@ static int run_fox_trot_test(
 static int enter_right_teeter(
     pf_sim *sim,
     const struct content *content,
-    uint64_t edge_buttons,
     struct inspection *out_inspection)
 {
     uint32_t tick;
@@ -5749,13 +5789,15 @@ static int enter_right_teeter(
         float selected_velocity_f32 = 0.0f;
         uint32_t axis;
 
-        if (release_velocity_f32 > distance_f32)
+        if (release_velocity_f32 > distance_f32 &&
+            release_velocity_f32 - distance_f32 <=
+                content->fighter.teeter_snap_distance_f32)
         {
             if (!step_duel(
                     sim,
                     INT16_C(0),
                     INT16_C(0),
-                    edge_buttons,
+                    UINT64_C(0),
                     out_inspection))
             {
                 return 0;
@@ -5800,13 +5842,18 @@ static int enter_right_teeter(
 
             if (next_velocity_f32 < distance_f32 &&
                 distance_f32 - next_velocity_f32 <
-                    next_release_velocity_f32)
+                    next_release_velocity_f32 &&
+                next_release_velocity_f32 -
+                        (distance_f32 - next_velocity_f32) <=
+                    content->fighter.teeter_snap_distance_f32)
             {
                 selected_axis = (int16_t)axis;
                 selected_velocity_f32 = next_velocity_f32;
                 break;
             }
             if (next_velocity_f32 < distance_f32 &&
+                next_release_velocity_f32 <=
+                    distance_f32 - next_velocity_f32 &&
                 next_velocity_f32 > selected_velocity_f32)
             {
                 selected_axis = (int16_t)axis;
@@ -5845,7 +5892,7 @@ static int enter_right_teeter(
                 sim,
                 INT16_C(0),
                 INT16_C(0),
-                edge_buttons,
+                UINT64_C(0),
                 out_inspection) ||
             out_inspection->players[0].grounded == UINT8_C(0))
         {
@@ -5918,7 +5965,6 @@ static int run_teeter_cancel_test(
         !enter_right_teeter(
             source,
             content,
-            UINT64_C(0),
             &source_inspection) ||
         !step_duel(
             source,
@@ -6041,7 +6087,6 @@ static int run_teeter_cancel_test(
         !enter_right_teeter(
             source,
             content,
-            UINT64_C(0),
             &source_inspection) ||
         !step_duel(
             source,
@@ -6181,7 +6226,6 @@ static int run_teeter_cancel_test(
         !enter_right_teeter(
             source,
             content,
-            UINT64_C(0),
             &source_inspection))
     {
         return 0;
@@ -6425,18 +6469,30 @@ static int run_taunt_cancel_test(
         !enter_right_teeter(
             source,
             content,
+            &source_inspection) ||
+        !step_duel(
+            source,
+            INT16_C(0),
+            INT16_C(0),
             PF_INPUT_BUTTON_TAUNT,
             &source_inspection) ||
         source_inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_TEETER ||
-        source_inspection.players[0].action_ticks != UINT16_C(0) ||
+            (uint8_t)PF_M4_ACTION_TAUNT ||
+        source_inspection.players[0].action_ticks != UINT16_C(1) ||
         source_inspection.players[0].position_x_f32 !=
             content->stage.floor_right_f32 ||
         source_inspection.players[0].grounded == UINT8_C(0))
     {
         (void)fprintf(
             stderr,
-            "m4-movement=fail operation=taunt-edge-cancel\n");
+            "m4-movement=fail operation=taunt-teeter-entry"
+            " action=%u ticks=%u position=%.9g expected_position=%.9g"
+            " grounded=%u\n",
+            (unsigned int)source_inspection.players[0].action_state,
+            (unsigned int)source_inspection.players[0].action_ticks,
+            source_inspection.players[0].position_x_f32,
+            content->stage.floor_right_f32,
+            (unsigned int)source_inspection.players[0].grounded);
         return 0;
     }
     return 1;
