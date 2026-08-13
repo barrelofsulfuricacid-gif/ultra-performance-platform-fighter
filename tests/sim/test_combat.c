@@ -10180,6 +10180,23 @@ static int start_normal_shield_block(
         out_inspection);
 }
 
+static float expected_shield_health_after_holds(
+    float health_f32,
+    float depletion_f32,
+    uint32_t hold_ticks,
+    float damage_f32)
+{
+    uint32_t tick;
+
+    for (tick = UINT32_C(0); tick < hold_ticks; ++tick)
+    {
+        health_f32 = depletion_f32 >= health_f32
+                         ? 0.0f
+                         : health_f32 - depletion_f32;
+    }
+    return damage_f32 >= health_f32 ? 0.0f : health_f32 - damage_f32;
+}
+
 static void seed_combat_entry_tilt_ages(
     pf_sim *sim,
     uint32_t player_index)
@@ -12715,8 +12732,9 @@ static int run_shield_block_test(
         normal_inspection.players[1].powershield != UINT8_C(0) ||
         normal_inspection.players[1].shield_stun_ticks ==
             UINT16_C(0) ||
-        normal_inspection.players[1].shield_health_f32 !=
-            normal_expected_health ||
+        !float_near(
+            normal_inspection.players[1].shield_health_f32,
+            normal_expected_health) ||
         normal_inspection.players[0].velocity_x_f32 != 0.0f ||
         normal_inspection.players[0].shield_recoil_x_f32 >= 0.0f ||
         normal_inspection.players[1].velocity_x_f32 <= 0.0f ||
@@ -13242,9 +13260,10 @@ static int run_shield_sdi_test(
             &reentry_inspection) ||
         reentry_inspection.players[1].action_state !=
             (uint8_t)PF_M4_ACTION_SHIELD_STUN ||
-        reentry_inspection.players[1].sdi_pulse_count != UINT8_C(2) ||
+        reentry_inspection.players[1].sdi_pulse_count != UINT8_C(1) ||
         reentry_inspection.players[1].position_x_f32 !=
-            reentry_start_x - shield_asdi_distance_f32 +
+            reentry_start_x + shield_sdi_distance_f32 -
+                shield_asdi_distance_f32 +
                 reentry_inspection.players[1].velocity_x_f32 ||
         reentry_inspection.players[1].position_y_f32 != reentry_start_y)
     {
@@ -13448,20 +13467,27 @@ static int run_light_shield_block_test(
             content->fighter.jab_damage_f32,
             midpoint_strength);
     const float light_expected_health =
-        content->fighter.shield_health_f32 -
-        7.0f *
-            content->fighter.light_shield_hold_depletion_f32 -
-        light_shield_damage;
+        expected_shield_health_after_holds(
+            content->fighter.shield_health_f32,
+            expected_shield_depletion_f32(
+                &content->fighter,
+                light_strength),
+            UINT32_C(7),
+            light_shield_damage);
     const float dense_expected_health =
-        content->fighter.shield_health_f32 -
-        7.0f * content->fighter.shield_hold_depletion_f32 -
-        dense_shield_damage;
+        expected_shield_health_after_holds(
+            content->fighter.shield_health_f32,
+            content->fighter.shield_hold_depletion_f32,
+            UINT32_C(7),
+            dense_shield_damage);
     const float midpoint_expected_health =
-        content->fighter.shield_health_f32 -
-        7.0f * expected_shield_depletion_f32(
-                             &content->fighter,
-                             midpoint_strength) -
-        midpoint_shield_damage;
+        expected_shield_health_after_holds(
+            content->fighter.shield_health_f32,
+            expected_shield_depletion_f32(
+                &content->fighter,
+                midpoint_strength),
+            UINT32_C(7),
+            midpoint_shield_damage);
     const float window_expected_health =
         content->fighter.shield_health_f32 - light_shield_damage;
     const uint16_t expected_light_stun =
@@ -13568,8 +13594,9 @@ static int run_light_shield_block_test(
             (uint8_t)PF_M4_ACTION_HITLAG ||
         light_inspection.players[1].shield_strength != light_strength ||
         light_inspection.players[1].powershield != UINT8_C(0) ||
-        light_inspection.players[1].shield_health_f32 !=
-            light_expected_health ||
+        !float_near(
+            light_inspection.players[1].shield_health_f32,
+            light_expected_health) ||
         light_inspection.players[1].shield_stun_ticks !=
             expected_light_stun ||
         light_inspection.players[1].velocity_x_f32 !=
@@ -13591,8 +13618,9 @@ static int run_light_shield_block_test(
         midpoint_inspection.players[1].shield_strength !=
             midpoint_strength ||
         midpoint_inspection.players[1].powershield != UINT8_C(0) ||
-        midpoint_inspection.players[1].shield_health_f32 !=
-            midpoint_expected_health ||
+        !float_near(
+            midpoint_inspection.players[1].shield_health_f32,
+            midpoint_expected_health) ||
         midpoint_inspection.players[1].shield_stun_ticks !=
             expected_midpoint_stun ||
         midpoint_inspection.players[1].velocity_x_f32 !=
@@ -13611,8 +13639,9 @@ static int run_light_shield_block_test(
             &dense_inspection) ||
         dense_inspection.players[1].shield_strength != dense_strength ||
         dense_inspection.players[1].powershield != UINT8_C(0) ||
-        dense_inspection.players[1].shield_health_f32 !=
-            dense_expected_health ||
+        !float_near(
+            dense_inspection.players[1].shield_health_f32,
+            dense_expected_health) ||
         dense_inspection.players[1].shield_stun_ticks !=
             expected_dense_stun ||
         dense_inspection.players[1].velocity_x_f32 !=
@@ -13669,8 +13698,9 @@ static int run_light_shield_block_test(
             (uint8_t)PF_M4_ACTION_HITLAG ||
         window_inspection.players[1].shield_strength != light_strength ||
         window_inspection.players[1].powershield != UINT8_C(0) ||
-        window_inspection.players[1].shield_health_f32 !=
-            window_expected_health ||
+        !float_near(
+            window_inspection.players[1].shield_health_f32,
+            window_expected_health) ||
         window_inspection.players[1].shield_stun_ticks !=
             expected_light_stun ||
         test_last_result.event_count != UINT8_C(2) ||

@@ -9095,8 +9095,8 @@ pf_status step_player(
                 fresh_sdi_tilt == 0 &&
                 (shield_sdi != 0
                      ? scratch->ucf_tilt_x_age[player_index] <= UINT8_C(1) &&
-                           (previous_sdi_stick_active != 0 ||
-                            ucf_raw_delta_x * ucf_raw_delta_x > 62 * 62)
+                           previous_sdi_stick_active == 0 &&
+                           ucf_raw_delta_x * ucf_raw_delta_x > 62 * 62
                      : (scratch->ucf_tilt_x_age[player_index] <= UINT8_C(1) ||
                         scratch->ucf_tilt_y_age[player_index] <= UINT8_C(1)) &&
                            previous_sdi_stick_active == 0 &&
@@ -11156,7 +11156,7 @@ pf_status step_player(
         velocity_x = approach(
             velocity_x,
             INT32_C(0),
-            fighter->traction_f32);
+            stationary_ground_friction(fighter, velocity_x));
         if (was_shielding)
         {
             scratch->shield_health_f32[player_index] =
