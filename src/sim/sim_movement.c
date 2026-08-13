@@ -15280,7 +15280,11 @@ pf_status step_player(
     }
 
     if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
-        action_state == (uint8_t)PF_M4_ACTION_SPECIAL_LANDING)
+        action_state == (uint8_t)PF_M4_ACTION_SPECIAL_LANDING &&
+        effective_action_state(
+            previous_action_state,
+            previous_hitlag_resume_action) ==
+            (uint8_t)PF_M4_ACTION_SPECIAL_LANDING)
     {
         const falcon_submotion_data *landing =
             falcon_reference_submotion(
@@ -16862,11 +16866,23 @@ pf_status step_player(
     }
 
     if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
-        action_state == (uint8_t)PF_M4_ACTION_SPECIAL_LANDING)
+        action_state == (uint8_t)PF_M4_ACTION_SPECIAL_LANDING &&
+        effective_action_state(
+            previous_action_state,
+            previous_hitlag_resume_action) ==
+            (uint8_t)PF_M4_ACTION_SPECIAL_LANDING)
     {
         /* LandingFallSpecial's rate/frame were advanced before collision so
          * that its exact HSD pose owns the sweep and any terminal GuardOn
          * blend. Preserve that clock through the final source-state pass. */
+    }
+    else if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
+             action_state == (uint8_t)PF_M4_ACTION_SPECIAL_LANDING)
+    {
+        source_submotion =
+            (uint16_t)PF_M4_FALCON_SUBMOTION_LANDING_FALL_SPECIAL;
+        source_animation_frame_f32 = 0.0f;
+        source_animation_rate_f32 = 1.0f;
     }
     else if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
              effective_action_state(

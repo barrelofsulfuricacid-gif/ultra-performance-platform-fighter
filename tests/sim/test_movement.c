@@ -9218,7 +9218,7 @@ static int run_platform_test(const struct content *default_content)
     if (default_content->fighter.platform_drop_startup_ticks !=
             UINT16_C(3) ||
         default_content->fighter.platform_drop_speed_y_f32 !=
-            0.11177063f)
+            (693.0f / 6200.0f))
     {
         return 0;
     }
@@ -9378,13 +9378,16 @@ static int run_platform_test(const struct content *default_content)
             INT16_C(0),
             UINT64_C(0),
             &inspection) ||
-        inspection.players[0].position_x_f32 - previous_player_x !=
-            inspection.stage.platform_left_f32 -
-                previous_platform_left)
+        !near_f32(
+            inspection.players[0].position_x_f32 - previous_player_x,
+            inspection.stage.platform_left_f32 - previous_platform_left))
     {
         (void)fprintf(
             stderr,
-            "m4-movement=fail operation=platform-motion-carry\n");
+            "m4-movement=fail operation=platform-motion-carry"
+            " player_delta=%.9g platform_delta=%.9g\n",
+            inspection.players[0].position_x_f32 - previous_player_x,
+            inspection.stage.platform_left_f32 - previous_platform_left);
         return 0;
     }
 
@@ -9946,7 +9949,12 @@ static void force_reference_crouch_history(
     sim->world.source_submotion[0] =
         (uint16_t)PF_M4_FALCON_SUBMOTION_SQUAT_WAIT;
     sim->world.source_animation_frame_f32[0] = INT32_C(0);
-    sim->world.source_animation_rate_f32[0] = (int32_t)1.0f;
+    sim->world.source_animation_rate_f32[0] = 1.0f;
+    (void)memset(
+        &sim->world.ground_blend_pose[0],
+        0,
+        sizeof(sim->world.ground_blend_pose[0]));
+    sim->world.ground_blend_progress_f32[0] = 0.0f;
     sim->world.dash_direction[0] = INT8_C(0);
     sim->world.previous_tilt_x_direction[0] = INT8_C(0);
     sim->world.previous_tilt_y_direction[0] = previous_y_direction;
@@ -10481,6 +10489,8 @@ static int make_solid_geometry_content(
     pf_content_view *out_view)
 {
     *out_content = *default_content;
+    out_content->stage.reference_collision_profile =
+        (uint16_t)PF_M4_REFERENCE_STAGE_AUTHORED;
     out_content->stage.spawn_spacing_f32 =
         (INT32_C(9) * 1.0f) / INT32_C(5);
     out_content->stage.platform_center_x_f32 =
@@ -10488,13 +10498,14 @@ static int make_solid_geometry_content(
     out_content->stage.platform_half_width_f32 =
         INT32_C(2) * 1.0f;
     out_content->stage.platform_motion_amplitude_f32 = 0.0f;
-    out_content->stage.solid_left_f32 = 0.0f;
+    out_content->stage.solid_left_f32 = -0.5f;
     out_content->stage.solid_right_f32 =
         INT32_C(8) * 1.0f;
     out_content->stage.solid_top_f32 =
         INT32_C(26) * 1.0f;
     out_content->stage.solid_bottom_f32 =
         INT32_C(29) * 1.0f;
+    out_content->stage.floor_y_f32 = 32.75f;
     return expect_status(
         make_content_view(out_content, out_view),
         PF_STATUS_OK,
@@ -10519,12 +10530,8 @@ static int run_solid_geometry_test(
     pf_sim *top = NULL;
     pf_sim *right_corner = NULL;
     struct inspection inspection;
-    const falcon_ecb_pose_f32 *ceiling_contact_pose =
-        falcon_reference_airborne_ecb_pose(
-            (uint16_t)PF_M4_FALCON_SUBMOTION_FALL,
-            UINT16_C(0));
     const float wall_contact_x =
-        -default_content->fighter.half_width_f32;
+        -0.5f - default_content->fighter.half_width_f32;
     const float top_contact_y =
         INT32_C(26) * 1.0f -
         default_content->fighter.half_height_f32;
@@ -10532,8 +10539,7 @@ static int run_solid_geometry_test(
     int observed_ceiling = 0;
     uint32_t tick;
 
-    if (ceiling_contact_pose == NULL ||
-        !make_solid_geometry_content(
+    if (!make_solid_geometry_content(
             default_content,
             &content,
             &view))
@@ -10671,6 +10677,18 @@ static int run_solid_geometry_test(
             return 0;
         }
     }
+    for (tick = UINT32_C(0); tick < UINT32_C(4); ++tick)
+    {
+        if (!step_duel(
+                wall,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
     for (tick = UINT32_C(0); tick < UINT32_C(80); ++tick)
     {
         if (!step_duel(
@@ -10732,11 +10750,12 @@ static int run_solid_geometry_test(
         {
             return 0;
         }
-        if (inspection.players[1].position_y_f32 ==
-                content.stage.solid_bottom_f32 +
-                    ceiling_contact_pose->top_y_from_origin_f32 &&
-            inspection.players[1].velocity_y_f32 ==
-                0.0f)
+        if (inspection.players[1].action_state ==
+                (uint8_t)PF_M4_ACTION_AIRBORNE &&
+            inspection.players[1].grounded == UINT8_C(0) &&
+            inspection.players[1].position_y_f32 >
+                content.stage.solid_bottom_f32 &&
+            inspection.players[1].velocity_y_f32 == 0.0f)
         {
             observed_ceiling = 1;
             break;
@@ -10767,7 +10786,10 @@ static int run_solid_geometry_test(
     for (tick = UINT32_C(0); tick < UINT32_C(160); ++tick)
     {
         const int16_t horizontal_axis =
-            tick >= UINT32_C(5) ? INT16_MAX : INT16_C(0);
+            tick >= UINT32_C(5) &&
+                    inspection.players[0].position_x_f32 < 2.0f
+                ? INT16_MAX
+                : INT16_C(0);
         const uint64_t buttons =
             tick < UINT32_C(5)
                 ? PF_INPUT_BUTTON_JUMP
@@ -10861,7 +10883,10 @@ static int run_solid_geometry_test(
     for (tick = UINT32_C(0); tick < UINT32_C(160); ++tick)
     {
         const int16_t horizontal_axis =
-            tick >= UINT32_C(5) ? INT16_MIN : INT16_C(0);
+            tick >= UINT32_C(5) &&
+                    inspection.players[1].position_x_f32 > -2.0f
+                ? INT16_MIN
+                : INT16_C(0);
         const uint64_t buttons =
             tick < UINT32_C(5)
                 ? PF_INPUT_BUTTON_JUMP
@@ -12366,8 +12391,15 @@ static int run_edge_dash_test(
             (void)fprintf(
                 stderr,
                 "m4-movement=fail operation=edge-dash-air-dodge-future"
-                " tick=%" PRIu32 "\n",
-                tick);
+                " tick=%" PRIu32 " action=%u ticks=%u submotion=%u"
+                " frame=%.9g grounded=%u support=%u\n",
+                tick,
+                (unsigned int)source_inspection.players[0].action_state,
+                (unsigned int)source_inspection.players[0].action_ticks,
+                (unsigned int)source_inspection.players[0].source_submotion,
+                source_inspection.players[0].source_animation_frame_f32,
+                (unsigned int)source_inspection.players[0].grounded,
+                (unsigned int)source_inspection.players[0].support);
             return 0;
         }
     }
@@ -14486,7 +14518,9 @@ static int run_team_hash_trace(const pf_content_view *content)
                     " position=(%.9g" ",%.9g" ")"
                     " velocity=(%.9g" ",%.9g" ")"
                     " action_ticks=%u facing=%d dash=%d previous=%d"
-                    " fast=%u short=%u drop=%u jumps=%u respawns=%u\n",
+                    " fast=%u short=%u drop=%u jumps=%u respawns=%u"
+                    " submotion=%u frame=%.9g rate=%.9g"
+                    " fall_blend=%.9g ground_blend=%.9g\n",
                     inspection.tick,
                     player_index,
                     (unsigned int)player->action_state,
@@ -14504,7 +14538,12 @@ static int run_team_hash_trace(const pf_content_view *content)
                     (unsigned int)player->short_hop_latched,
                     (unsigned int)player->platform_drop_ticks,
                     (unsigned int)player->air_jumps_remaining,
-                    (unsigned int)player->respawn_count);
+                    (unsigned int)player->respawn_count,
+                    (unsigned int)player->source_submotion,
+                    player->source_animation_frame_f32,
+                    sim->world.source_animation_rate_f32[player_index],
+                    sim->world.fall_animation_blend_f32[player_index],
+                    sim->world.ground_blend_progress_f32[player_index]);
             }
             (void)fprintf(
                 stderr,

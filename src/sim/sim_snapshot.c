@@ -2685,11 +2685,9 @@ static int snapshot_source_animation_clock_valid(
     motion = falcon_reference_submotion(submotion);
     return motion != NULL &&
            motion->animation_frame_count != UINT16_C(0) &&
-           frame_f32 >= INT32_C(0) &&
-           rate_f32 >= INT32_C(0) &&
-           (int64_t)frame_f32 <
-               (int64_t)motion->animation_frame_count *
-                   (int64_t)1.0f;
+           frame_f32 >= 0.0f &&
+           rate_f32 >= 0.0f &&
+           frame_f32 < (float)motion->animation_frame_count;
 }
 
 static int snapshot_ground_blend_valid(
@@ -2846,15 +2844,23 @@ static int snapshot_fall_animation_blend_valid(
     {
         return target_switched == UINT8_C(0);
     }
-    return fighter->reference_frame_data_enabled != UINT8_C(0) &&
-           world->active[player_index] != UINT8_C(0) &&
-           action_uses_fall_special_pose(effective_action) &&
-           (world->source_submotion[player_index] ==
-                (uint16_t)PF_M4_FALCON_SUBMOTION_FALL_SPECIAL_FORWARD ||
-            world->source_submotion[player_index] ==
-                (uint16_t)PF_M4_FALCON_SUBMOTION_FALL_SPECIAL_BACKWARD ||
-            world->source_submotion[player_index] ==
-                (uint16_t)PF_M4_FALCON_SUBMOTION_FALL_SPECIAL);
+    if (fighter->reference_frame_data_enabled == UINT8_C(0) ||
+        world->active[player_index] == UINT8_C(0))
+    {
+        return 0;
+    }
+    if (action_uses_fall_special_pose(effective_action))
+    {
+        return world->source_submotion[player_index] >=
+                   (uint16_t)PF_M4_FALCON_SUBMOTION_FALL_SPECIAL &&
+               world->source_submotion[player_index] <=
+                   (uint16_t)PF_M4_FALCON_SUBMOTION_FALL_SPECIAL_BACKWARD;
+    }
+    return effective_action == (uint8_t)PF_M4_ACTION_AIRBORNE &&
+           world->source_submotion[player_index] >=
+               (uint16_t)PF_M4_FALCON_SUBMOTION_FALL &&
+           world->source_submotion[player_index] <=
+               (uint16_t)PF_M4_FALCON_SUBMOTION_FALL_AERIAL_BACKWARD;
 }
 
 static uint32_t snapshot_ledge_attack_ticks(
