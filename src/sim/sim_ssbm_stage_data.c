@@ -147,7 +147,7 @@ float ssbm_stage_line_y_f32(
                          (line->end_y_f32 - line->start_y_f32) / dx;
 }
 
-static float ssbm_stage_line_x_f32(
+float ssbm_stage_line_x_f32(
     const ssbm_stage_collision_line *line,
     float position_y_f32)
 {

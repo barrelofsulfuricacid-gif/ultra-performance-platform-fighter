@@ -91,6 +91,10 @@ float ssbm_stage_line_y_f32(
     const ssbm_stage_collision_line *line,
     float position_x_f32);
 
+float ssbm_stage_line_x_f32(
+    const ssbm_stage_collision_line *line,
+    float position_y_f32);
+
 int ssbm_reference_stage_find_ceiling_contact(
     uint16_t profile_id,
     float position_x_f32,
