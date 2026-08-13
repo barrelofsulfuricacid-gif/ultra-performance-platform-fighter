@@ -6,11 +6,13 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 from pathlib import Path
 import re
 from typing import Any
 
 from ssbm_collision import (
+    binary32,
     canonical_json_sha256,
     hurt_pose_tracks_semantic_payload,
 )
@@ -28,6 +30,22 @@ def require_int(value: Any, name: str, low: int, high: int) -> int:
     if not low <= value <= high:
         raise ValueError(f"{name} must be in [{low}, {high}]")
     return value
+
+
+def require_f32(value: Any, name: str) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError(f"{name} must be a number")
+    result = binary32(float(value))
+    if not math.isfinite(result):
+        raise ValueError(f"{name} must be finite binary32")
+    return result
+
+
+def c_f32(value: float) -> str:
+    rendered = format(binary32(value), ".9g")
+    if "." not in rendered and "e" not in rendered.lower():
+        rendered += ".0"
+    return rendered + "f"
 
 
 def c_identifier(value: Any, name: str) -> str:
@@ -393,7 +411,7 @@ def generate(
             raise ValueError(
                 f"{case_id}.target_source_submotion is unsupported"
             )
-        geometry_values: tuple[Any, ...] = (0, 0, 0, 0, 0, 0, 0, 0)
+        geometry_values: tuple[Any, ...] = (0, 0, 0.0, 0.0, 0, 0, 0, 0)
         pose_facing_values: tuple[Any, ...] = (0, 0, 0, 0, 0)
         if mode == "runtime":
             distance = require_int(
@@ -502,17 +520,13 @@ def generate(
                     raise ValueError(
                         f"{case_id}.geometry_f32.target_offset_f32 must have two values"
                     )
-                offset_x = require_int(
+                offset_x = require_f32(
                     offset[0],
                     f"{case_id}.geometry_f32.target_offset_f32[0]",
-                    -(1 << 31),
-                    (1 << 31) - 1,
                 )
-                offset_y = require_int(
+                offset_y = require_f32(
                     offset[1],
                     f"{case_id}.geometry_f32.target_offset_f32[1]",
-                    -(1 << 31),
-                    (1 << 31) - 1,
                 )
                 attacker_facing = require_int(
                     geometry.get("attacker_facing"),
@@ -631,8 +645,8 @@ def generate(
             "{ "
             f"(uint16_t){geometry_values[0]}, "
             f"UINT16_C({geometry_values[1]}), "
-            f"INT32_C({geometry_values[2]}), "
-            f"INT32_C({geometry_values[3]}), "
+            f"{c_f32(geometry_values[2])}, "
+            f"{c_f32(geometry_values[3])}, "
             f"INT8_C({geometry_values[4]}), "
             f"INT8_C({geometry_values[5]}), "
             f"UINT8_C({geometry_values[6]}), "

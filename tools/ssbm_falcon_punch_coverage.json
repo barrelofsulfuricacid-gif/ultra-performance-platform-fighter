@@ -41,8 +41,8 @@
   },
   "stored_oracle": {
     "kind": "numeric-trace-v1",
-    "source_trace_sha256": "defbb9746b3784c6e1aae2b7d176344fadcb9a1ba0c51ac4b8c097e1765a16f1",
-    "production_trace_sha256": "eec11ed8d9050fe51196b9241e326c3e189be8a56dad82e64b5ee28a7c5b527e",
+    "source_trace_sha256": "c2cd612246842716476d1dbab84ded6998956fd932fef1a5bf8f0eaa8a5e59f0",
+    "production_trace_sha256": "09a2227817b596cbfe0a9e1e074f23d5b77ee6df62a75f8a5a28335bb9f0fa65",
     "samples_per_case": 100,
     "serialized_fields": [
       "position_x",

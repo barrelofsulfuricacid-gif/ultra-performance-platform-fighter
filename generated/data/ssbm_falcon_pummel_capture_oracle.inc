@@ -11,19 +11,19 @@ ssbm_falcon_pummel_capture_pose_tracks[] = {
 
 static const pf_ssbm_stored_case
 ssbm_falcon_pummel_capture_cases[] = {
-    { "pummel-live-capture-overlap", PF_SSBM_STORED_GEOMETRY, (uint8_t)PF_M4_ACTION_GRABBED, (uint16_t)PF_M4_FALCON_SUBMOTION_CAPTURE_WAIT_HIGH, UINT32_C(0), UINT32_C(0), UINT16_C(9), UINT16_C(9), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT8_C(1), { (uint16_t)PF_M4_FALCON_PUMMEL, UINT16_C(4), INT32_C(53806), INT32_C(0), INT8_C(1), INT8_C(-1), UINT8_C(0), UINT8_C(1) }, { UINT16_C(0), INT8_C(0), INT8_C(0), INT8_C(0), UINT8_C(0) } },
-    { "pummel-translated-capture-miss", PF_SSBM_STORED_GEOMETRY, (uint8_t)PF_M4_ACTION_GRABBED, (uint16_t)PF_M4_FALCON_SUBMOTION_CAPTURE_WAIT_HIGH, UINT32_C(0), UINT32_C(0), UINT16_C(9), UINT16_C(9), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT8_C(0), { (uint16_t)PF_M4_FALCON_PUMMEL, UINT16_C(4), INT32_C(709166), INT32_C(0), INT8_C(1), INT8_C(-1), UINT8_C(0), UINT8_C(1) }, { UINT16_C(0), INT8_C(0), INT8_C(0), INT8_C(0), UINT8_C(0) } },
+    { "pummel-live-capture-overlap", PF_SSBM_STORED_GEOMETRY, (uint8_t)PF_M4_ACTION_GRABBED, (uint16_t)PF_M4_FALCON_SUBMOTION_CAPTURE_WAIT_HIGH, UINT32_C(0), UINT32_C(0), UINT16_C(9), UINT16_C(9), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT8_C(1), { (uint16_t)PF_M4_FALCON_PUMMEL, UINT16_C(4), 0.821014404f, 0.0f, INT8_C(1), INT8_C(-1), UINT8_C(0), UINT8_C(1) }, { UINT16_C(0), INT8_C(0), INT8_C(0), INT8_C(0), UINT8_C(0) } },
+    { "pummel-translated-capture-miss", PF_SSBM_STORED_GEOMETRY, (uint8_t)PF_M4_ACTION_GRABBED, (uint16_t)PF_M4_FALCON_SUBMOTION_CAPTURE_WAIT_HIGH, UINT32_C(0), UINT32_C(0), UINT16_C(9), UINT16_C(9), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT8_C(0), { (uint16_t)PF_M4_FALCON_PUMMEL, UINT16_C(4), 10.8210144f, 0.0f, INT8_C(1), INT8_C(-1), UINT8_C(0), UINT8_C(1) }, { UINT16_C(0), INT8_C(0), INT8_C(0), INT8_C(0), UINT8_C(0) } },
 };
 
 #define PF_M4_SSBM_FALCON_PUMMEL_CAPTURE_POSE_COUNT UINT16_C(79)
 #define PF_M4_SSBM_FALCON_PUMMEL_CAPTURE_CASE_COUNT UINT16_C(2)
 #define PF_M4_SSBM_FALCON_PUMMEL_CAPTURE_CAPSULES_PER_POSE UINT8_C(11)
 #define PF_M4_SSBM_FALCON_PUMMEL_CAPTURE_PRODUCTION_SERIALIZATION \
-    "action-name-nul,source-frame-u16le,capsule-count-u8,capsules-seven-i32le-four-u8-v1"
+    "action-name-nul,source-frame-u16le,capsule-count-u8,capsules-seven-f32le-four-u8-v2"
 #define PF_M4_SSBM_FALCON_PUMMEL_CAPTURE_SOURCE_POSE_SHA256 \
     "e1ba78ad8a537c192849a295d9db896e0d165e70a13bbe7488bdd85e3885fead"
 #define PF_M4_SSBM_FALCON_PUMMEL_CAPTURE_PRODUCTION_POSE_SHA256 \
-    "7b13e659fa8be4e22ef2d390dc029463cbc712547801b4c63e7f1db0068fa2a7"
+    "e2c6bca11dfcb422972e7163792b5f8c34af63fb204f0efa83a0b33a87a6c281"
 
 _Static_assert(
     sizeof(ssbm_falcon_pummel_capture_pose_tracks) /

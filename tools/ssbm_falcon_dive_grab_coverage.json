@@ -16,8 +16,8 @@
     "target_result_action": "CAPTURE_CAPTAIN",
     "target_collision_hurtbox_id": 0,
     "attacker_hit_spheres_f32": [
-      [39798, -57002, 0, 18698],
-      [88431, -57002, 0, 29382]
+      [0.607269287109375, -0.869781494140625, 0.0, 0.285308837890625],
+      [1.3493499755859375, -0.869781494140625, 0.0, 0.448333740234375]
     ]
   },
   "selection": {
@@ -61,7 +61,7 @@
     ],
     "source_pose_sha256": "de89004396090825835ef3e8606d852fc3d1f41414f4c61c4fe139ed45079b4f",
     "production_pose_serialization": "action-name-nul,source-frame-u16le,capsule-count-u8,capsules-seven-f32le-four-u8-v2",
-    "production_pose_sha256": "13763a74d044b686b5ae065e7120ac984d823cb8e31f7bf15597c16268277a72",
+    "production_pose_sha256": "5668cc3c4a9f1367a9a78a091a6a99c772316d236484277cdfe2afe966e3c83f",
     "expected_pose_count": 186,
     "expected_capsules_per_pose": 11,
     "c": {
@@ -111,7 +111,7 @@
         "geometry_f32": {
           "attacker_move": "UP_SPECIAL_AIR",
           "attacker_action_frame": 13,
-          "target_offset_f32": [34193, -4271],
+          "target_offset_f32": [0.5217437744140625, -0.0651702880859375],
           "attacker_facing": 1,
           "target_facing": -1,
           "grabbable_only": true
@@ -128,7 +128,7 @@
         "geometry_f32": {
           "attacker_move": "UP_SPECIAL_AIR",
           "attacker_action_frame": 13,
-          "target_offset_f32": [-6838, -4271],
+          "target_offset_f32": [-0.104339599609375, -0.0651702880859375],
           "attacker_facing": 1,
           "target_facing": -1,
           "grabbable_only": true

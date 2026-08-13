@@ -23,11 +23,11 @@ ssbm_falcon_grounded_loop_hurt_cases[] = {
 #define PF_M4_SSBM_FALCON_GROUNDED_LOOP_HURT_CASE_COUNT UINT16_C(6)
 #define PF_M4_SSBM_FALCON_GROUNDED_LOOP_HURT_CAPSULES_PER_POSE UINT8_C(11)
 #define PF_M4_SSBM_FALCON_GROUNDED_LOOP_HURT_PRODUCTION_SERIALIZATION \
-    "action-name-nul,source-frame-u16le,capsule-count-u8,capsules-seven-i32le-four-u8-v1"
+    "action-name-nul,source-frame-u16le,capsule-count-u8,capsules-seven-f32le-four-u8-v2"
 #define PF_M4_SSBM_FALCON_GROUNDED_LOOP_HURT_SOURCE_POSE_SHA256 \
     "f3c9ca8bfa7fc3d85acf2a0b74eeb6ab2452159cd7c8c7dbb3f66bd870cf84e6"
 #define PF_M4_SSBM_FALCON_GROUNDED_LOOP_HURT_PRODUCTION_POSE_SHA256 \
-    "1a83c02e310c097ad609dd2e18787bec2b6589fc76f5daa039578b8e04f6a81f"
+    "378be645146f802a2fc34181cc96175d6a9ea6b0a9695e6c4f8281425f4b197f"
 
 _Static_assert(
     sizeof(ssbm_falcon_grounded_loop_hurt_pose_tracks) /

@@ -12,6 +12,8 @@ from pathlib import Path
 import subprocess
 import sys
 
+from ssbm_collision import binary32
+
 
 SSBM_TO_M4_ACTION = {
     "STANDING": 0,
@@ -186,8 +188,8 @@ CONTENT_ROUTE_ENTRY_ACTIONS = {
 
 # M4's Falcon movement values use a 12/115 world-unit scale relative to
 # GALE01's Falcon attributes (for example, 2.0 becomes 24/115).
-SSBM_TO_M4_Q16 = 65536.0 * 12.0 / 115.0
-SSBM_TO_M4_Y_Q16 = 65536.0 * 11.0 / 62.0
+SSBM_TO_M4_F32 = 12.0 / 115.0
+SSBM_TO_M4_Y_F32 = 11.0 / 62.0
 GALE01_NTSC102_SHA256 = (
     "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464"
 )
@@ -201,12 +203,12 @@ def controller_axis_y(value: float) -> int:
     return round((0.5 - value) * 65534.0)
 
 
-def scaled_f32(value: float) -> int:
-    return round(value * SSBM_TO_M4_Q16)
+def scaled_f32(value: float) -> float:
+    return binary32(value * SSBM_TO_M4_F32)
 
 
-def scaled_y_f32(value: float) -> int:
-    return -round(value * SSBM_TO_M4_Y_Q16)
+def scaled_y_f32(value: float) -> float:
+    return binary32(-value * SSBM_TO_M4_Y_F32)
 
 
 def controller_trigger(value: float) -> int:
@@ -1730,7 +1732,9 @@ def main() -> int:
                 + float(size_matrix[8]) ** 2
             ) ** 0.5
             expected_radius_x = scaled_f32(shield_world_radius)
-            expected_radius_y = round(shield_world_radius * SSBM_TO_M4_Y_Q16)
+            expected_radius_y = binary32(
+                shield_world_radius * SSBM_TO_M4_Y_F32
+            )
             geometry_pairs = (
                 (
                     "shield_center_offset_x_f32",

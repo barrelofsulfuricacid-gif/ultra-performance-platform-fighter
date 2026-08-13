@@ -160,7 +160,7 @@
     ],
     "source_pose_sha256": "f3c9ca8bfa7fc3d85acf2a0b74eeb6ab2452159cd7c8c7dbb3f66bd870cf84e6",
     "production_pose_serialization": "action-name-nul,source-frame-u16le,capsule-count-u8,capsules-seven-f32le-four-u8-v2",
-    "production_pose_sha256": "1a83c02e310c097ad609dd2e18787bec2b6589fc76f5daa039578b8e04f6a81f",
+    "production_pose_sha256": "378be645146f802a2fc34181cc96175d6a9ea6b0a9695e6c4f8281425f4b197f",
     "expected_pose_count": 278,
     "expected_capsules_per_pose": 11,
     "c": {

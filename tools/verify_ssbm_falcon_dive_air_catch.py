@@ -12,14 +12,15 @@ from typing import Any
 
 from extract_ssbm_hurt_pose_tracks import extract_track
 from ssbm_collision import (
+    binary32,
     canonical_json_sha256,
     captured_collision_margin,
+    hurt_poses_equivalent,
     hurt_pose_tracks_semantic_payload,
-    q16_hurt_poses_equivalent,
 )
 
 
-MELEE_TO_SIM_Q16 = 65536.0 * 12.0 / 115.0
+MELEE_TO_SIM_F32 = 12.0 / 115.0
 
 
 def maximum_grab_margin(
@@ -151,15 +152,15 @@ def main() -> int:
         extracted["frames"], expected_frames, strict=True
     ):
         actual_pose = tuple(
-            tuple(int(value) for value in capsule)
+            tuple(capsule)
             for capsule in extracted_frame["capsules_f32"]
         )
         expected_pose = tuple(
-            tuple(int(value) for value in capsule)
+            tuple(capsule)
             for capsule in expected_frame["capsules_f32"]
         )
         if int(extracted_frame["displayed_frame"]) < 20:
-            if not q16_hurt_poses_equivalent(actual_pose, expected_pose):
+            if not hurt_poses_equivalent(actual_pose, expected_pose):
                 raise SystemExit("Falcon Dive pre-catch JumpF pose drifted")
         else:
             hurtbox_id = int(qualification["target_collision_hurtbox_id"])
@@ -181,10 +182,10 @@ def main() -> int:
         position = [float(value) for value in hitbox["position"]]
         live_spheres.append(
             [
-                round((position[0] - attacker_position[0]) * MELEE_TO_SIM_Q16),
-                round(-(position[1] - attacker_position[1]) * MELEE_TO_SIM_Q16),
-                round((position[2] - attacker_position[2]) * MELEE_TO_SIM_Q16),
-                round(float(hitbox["radius"]) * MELEE_TO_SIM_Q16),
+                binary32((position[0] - attacker_position[0]) * MELEE_TO_SIM_F32),
+                binary32(-(position[1] - attacker_position[1]) * MELEE_TO_SIM_F32),
+                binary32((position[2] - attacker_position[2]) * MELEE_TO_SIM_F32),
+                binary32(float(hitbox["radius"]) * MELEE_TO_SIM_F32),
             ]
         )
     if live_spheres != qualification.get("attacker_hit_spheres_f32"):
@@ -205,8 +206,8 @@ def main() -> int:
     for case in manifest["stored_oracle"]["cases"]:
         geometry = case["geometry_f32"]
         offset_x_f32, offset_y_f32 = geometry["target_offset_f32"]
-        requested_dx = float(offset_x_f32) / MELEE_TO_SIM_Q16
-        requested_dy = -float(offset_y_f32) / MELEE_TO_SIM_Q16
+        requested_dx = float(offset_x_f32) / MELEE_TO_SIM_F32
+        requested_dy = -float(offset_y_f32) / MELEE_TO_SIM_F32
         margin, _ = maximum_grab_margin(
             memory,
             requested_dx - actual_dx,

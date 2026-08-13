@@ -67,7 +67,7 @@
     ],
     "source_pose_sha256": "e1ba78ad8a537c192849a295d9db896e0d165e70a13bbe7488bdd85e3885fead",
     "production_pose_serialization": "action-name-nul,source-frame-u16le,capsule-count-u8,capsules-seven-f32le-four-u8-v2",
-    "production_pose_sha256": "7b13e659fa8be4e22ef2d390dc029463cbc712547801b4c63e7f1db0068fa2a7",
+    "production_pose_sha256": "e2c6bca11dfcb422972e7163792b5f8c34af63fb204f0efa83a0b33a87a6c281",
     "expected_pose_count": 79,
     "expected_capsules_per_pose": 11,
     "c": {
@@ -108,7 +108,7 @@
         "geometry_f32": {
           "attacker_move": "PUMMEL",
           "attacker_action_frame": 4,
-          "target_offset_f32": [53806, 0],
+          "target_offset_f32": [0.821014404296875, 0.0],
           "attacker_facing": 1,
           "target_facing": -1,
           "grabbable_only": false
@@ -125,7 +125,7 @@
         "geometry_f32": {
           "attacker_move": "PUMMEL",
           "attacker_action_frame": 4,
-          "target_offset_f32": [709166, 0],
+          "target_offset_f32": [10.821014404296875, 0.0],
           "attacker_facing": 1,
           "target_facing": -1,
           "grabbable_only": false
