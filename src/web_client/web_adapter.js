@@ -229,8 +229,8 @@ mergeInto(LibraryManager.library, {
     var positionCount = checkpointCount * playerCount * 2;
     var hashCount = checkpointCount * 32;
     var eventValueCount = checkpointCount * 16 * 10;
-    var positions = new Int32Array(
-      HEAP32.subarray(
+    var positions = new Float32Array(
+      HEAPF32.subarray(
         positionsPointer >> 2,
         (positionsPointer >> 2) + positionCount
       )
@@ -244,8 +244,8 @@ mergeInto(LibraryManager.library, {
         (eventCountsPointer >> 2) + checkpointCount
       )
     );
-    var eventValues = new Int32Array(
-      HEAP32.subarray(
+    var eventValues = new Float32Array(
+      HEAPF32.subarray(
         eventValuesPointer >> 2,
         (eventValuesPointer >> 2) + eventValueCount
       )
@@ -518,12 +518,12 @@ mergeInto(LibraryManager.library, {
       var label = replayEventNames[event.type] || "EVENT " + event.type;
       var source = replayEventPlayer(event.source);
       var target = replayEventPlayer(event.target);
-      var value = (event.value / 65536).toFixed(2);
+      var value = (event.value ).toFixed(2);
       var velocity =
         "(" +
-        (event.velocityX / 65536).toFixed(2) +
+        (event.velocityX ).toFixed(2) +
         ", " +
-        (event.velocityY / 65536).toFixed(2) +
+        (event.velocityY ).toFixed(2) +
         ")";
 
       if (event.type === 9) {
@@ -655,8 +655,8 @@ mergeInto(LibraryManager.library, {
 
       function screenPosition(checkpoint, slot) {
         var offset = (checkpoint * playerCount + slot) * 2;
-        var x = positions[offset] / 65536;
-        var y = positions[offset + 1] / 65536;
+        var x = positions[offset] ;
+        var y = positions[offset + 1] ;
         return {
           x: arenaLeft + ((x + 64) / 128) * (arenaRight - arenaLeft),
           y: arenaBottom - (y / 64) * (arenaBottom - arenaTop),
@@ -2603,21 +2603,20 @@ mergeInto(LibraryManager.library, {
       return;
     }
     var previousTick = state.latest ? state.latest[1] : -1;
-    state.latest = new Int32Array(
-      HEAP32.subarray(viewPointer >> 2, (viewPointer >> 2) + viewCount)
+    state.latest = new Float32Array(
+      HEAPF32.subarray(viewPointer >> 2, (viewPointer >> 2) + viewCount)
     );
 
     var view = state.latest;
-    if (view[0] !== 48) {
+    if (view[0] !== 49) {
       return;
     }
     var canvas = state.canvas;
     var context = canvas.getContext("2d");
-    var q16 = 65536;
-    var blastLeft = view[8] / q16;
-    var blastRight = view[9] / q16;
-    var blastTop = view[10] / q16;
-    var blastBottom = view[11] / q16;
+    var blastLeft = view[8];
+    var blastRight = view[9];
+    var blastTop = view[10];
+    var blastBottom = view[11];
     var padding = 34;
     var usableWidth = canvas.width - padding * 2;
     var usableHeight = canvas.height - padding * 2;
@@ -2809,12 +2808,12 @@ mergeInto(LibraryManager.library, {
     function eventDescription(event) {
       var source = eventPlayer(event.source);
       var target = eventPlayer(event.target);
-      var value = (event.value / q16).toFixed(1);
+      var value = (event.value ).toFixed(1);
       var velocity =
         "(" +
-        (event.velocityX / q16).toFixed(2) +
+        (event.velocityX ).toFixed(2) +
         ", " +
-        (event.velocityY / q16).toFixed(2) +
+        (event.velocityY ).toFixed(2) +
         ")";
 
       switch (event.type) {
@@ -3021,17 +3020,17 @@ mergeInto(LibraryManager.library, {
     }
     renderEventFeed();
 
-    function sx(q16Value) {
+    function sx(value) {
       return (
         padding +
-        ((q16Value / q16 - blastLeft) / (blastRight - blastLeft)) *
+        ((value  - blastLeft) / (blastRight - blastLeft)) *
           usableWidth
       );
     }
-    function sy(q16Value) {
+    function sy(value) {
       return (
         padding +
-        ((q16Value / q16 - blastTop) / (blastBottom - blastTop)) *
+        ((value  - blastTop) / (blastBottom - blastTop)) *
           usableHeight
       );
     }
@@ -3384,9 +3383,9 @@ mergeInto(LibraryManager.library, {
       var x = sx(view[base]);
       var y = sy(view[base + 1]);
       var halfWidth =
-        (view[12] / q16 / (blastRight - blastLeft)) * usableWidth;
+        (view[12]  / (blastRight - blastLeft)) * usableWidth;
       var halfHeight =
-        (view[13] / q16 / (blastBottom - blastTop)) * usableHeight;
+        (view[13]  / (blastBottom - blastTop)) * usableHeight;
       var width = Math.max(14, halfWidth * 2);
       var height = Math.max(28, halfHeight * 2);
       var facing = view[base + 5];
@@ -3548,7 +3547,7 @@ mergeInto(LibraryManager.library, {
         var shieldPresentationPadding = lightShielding ? 22 : 14;
         var shieldHealthFraction = Math.max(
           0,
-          Math.min(1, view[base + 25] / (60 * 65536))
+          Math.min(1, view[base + 25] / 60)
         );
         var shieldDensityScale = 1 - 0.5 * shieldInputFraction;
         var shieldMinimumScale = 0.15;
@@ -3927,13 +3926,13 @@ mergeInto(LibraryManager.library, {
         " · " +
         action +
         "</strong><br>x " +
-        (view[base] / q16).toFixed(3) +
+        (view[base] ).toFixed(3) +
         " · y " +
-        (view[base + 1] / q16).toFixed(3) +
+        (view[base + 1] ).toFixed(3) +
         " · vx " +
-        (view[base + 2] / q16).toFixed(3) +
+        (view[base + 2] ).toFixed(3) +
         " · vy " +
-        (view[base + 3] / q16).toFixed(3) +
+        (view[base + 3] ).toFixed(3) +
         "<br>grounded " +
         view[base + 6] +
         " · support " +
@@ -3952,7 +3951,7 @@ mergeInto(LibraryManager.library, {
         view[base + 34] +
         "f" +
         "<br>damage " +
-        (view[base + 11] / q16).toFixed(1) +
+        (view[base + 11] ).toFixed(1) +
         "% · hitlag " +
         view[base + 12] +
         " · hitstun " +
@@ -3973,7 +3972,7 @@ mergeInto(LibraryManager.library, {
         (proneOrientationNames[proneOrientation] ||
           "orientation " + proneOrientation) +
         "<br>shield " +
-        (view[base + 25] / q16).toFixed(2) +
+        (view[base + 25] ).toFixed(2) +
         " / 60 · shield stun " +
         view[base + 26] +
         " · strength " +
@@ -4015,7 +4014,7 @@ mergeInto(LibraryManager.library, {
           ? "empty"
           : staleMoveQueue.join(" ← ")) +
         " · selected move scale " +
-        ((view[staleMoveBase + 1] / q16) * 100).toFixed(3) +
+        ((view[staleMoveBase + 1] ) * 100).toFixed(3) +
         "% · attack registered " +
         view[staleMoveBase + 2];
     });
@@ -4032,13 +4031,13 @@ mergeInto(LibraryManager.library, {
       "<strong>Relay Rod · " +
       (itemStateNames[itemStateCode] || "STATE " + itemStateCode) +
       "</strong><br>x " +
-      (view[itemBase + 6] / q16).toFixed(3) +
+      (view[itemBase + 6] ).toFixed(3) +
       " · y " +
-      (view[itemBase + 7] / q16).toFixed(3) +
+      (view[itemBase + 7] ).toFixed(3) +
       " · vx " +
-      (view[itemBase + 8] / q16).toFixed(3) +
+      (view[itemBase + 8] ).toFixed(3) +
       " · vy " +
-      (view[itemBase + 9] / q16).toFixed(3) +
+      (view[itemBase + 9] ).toFixed(3) +
       "<br>holder " +
       (view[itemBase + 2] === 255
         ? "none"
@@ -4068,13 +4067,13 @@ mergeInto(LibraryManager.library, {
       (projectileStateNames[projectileStateCode] ||
         "STATE " + projectileStateCode) +
       "</strong><br>x " +
-      (view[projectileBase + 4] / q16).toFixed(3) +
+      (view[projectileBase + 4] ).toFixed(3) +
       " · y " +
-      (view[projectileBase + 5] / q16).toFixed(3) +
+      (view[projectileBase + 5] ).toFixed(3) +
       " · vx " +
-      (view[projectileBase + 6] / q16).toFixed(3) +
+      (view[projectileBase + 6] ).toFixed(3) +
       " · vy " +
-      (view[projectileBase + 7] / q16).toFixed(3) +
+      (view[projectileBase + 7] ).toFixed(3) +
       "<br>owner " +
       (view[projectileBase + 2] === 255
         ? "none"

@@ -16,10 +16,7 @@ from import_ssbm_falcon_frame_data import (
     canonical_sha256,
     command_variable_assignments,
 )
-from ssbm_collision import (
-    canonical_hurt_pose_f32,
-    q16_hurt_poses_equivalent,
-)
+from ssbm_collision import canonical_hurt_pose_f32
 
 
 EXPECTED_FULL_SOURCE_SHA256 = (
@@ -83,7 +80,18 @@ EXPECTED_COMMON_HURT_LIBMELEE_VERSION = "0.47.2"
 EXPECTED_COMMON_HURT_ORACLE_SHA256 = (
     "87e9ef6d80ed03354a1647d0616016dbc91399aa9e86a69ae5a398edd0a0c2bd"
 )
-MELEE_TO_SIM_Q16 = 65536.0 * 12.0 / 115.0
+MELEE_TO_SIM_SCALE = 12.0 / 115.0
+
+
+def c_float(value: float) -> str:
+    literal = f"{value:.9g}"
+    if "." not in literal and "e" not in literal:
+        literal += ".0"
+    return literal + "f"
+
+
+def c_float_from_source_grid(value: int) -> str:
+    return c_float(value / 65536.0)
 
 COMMON_HURT_ACTIONS = (
     ("DASHING", tuple(range(1, 16))),
@@ -1082,10 +1090,10 @@ def generate(
         ),
         "};",
         "",
-        "static const int32_t falcon_capture_offset_x_f32 = "
-        f"INT32_C({capture_offset_x_f32});",
-        "static const int32_t falcon_capture_offset_y_f32 = "
-        f"INT32_C({capture_offset_y_f32});",
+        "static const float falcon_capture_offset_x_f32 = "
+        f"{c_float_from_source_grid(capture_offset_x_f32)};",
+        "static const float falcon_capture_offset_y_f32 = "
+        f"{c_float_from_source_grid(capture_offset_y_f32)};",
         "",
         "static const uint16_t falcon_side_special_ground_search_offset = "
         f"UINT16_C({search_offsets[0]});",
@@ -1100,8 +1108,10 @@ def generate(
     ]
     lines.extend(
         "    { "
-        f"INT32_C({sphere[0]}), INT32_C({sphere[1]}), "
-        f"INT32_C({sphere[2]}), INT32_C({sphere[3]}) "
+        f"{c_float_from_source_grid(sphere[0])}, "
+        f"{c_float_from_source_grid(sphere[1])}, "
+        f"{c_float_from_source_grid(sphere[2])}, "
+        f"{c_float_from_source_grid(sphere[3])} "
         "},"
         for sphere in search_spheres
     )
@@ -1144,10 +1154,10 @@ def generate(
     )
     lines.extend(
         "    { "
-        f"INT32_C({sphere['offset_x']}), "
-        f"INT32_C({sphere['offset_y']}), "
-        f"INT32_C({sphere['offset_z']}), "
-        f"INT32_C({sphere['radius']}), "
+        f"{c_float_from_source_grid(sphere['offset_x'])}, "
+        f"{c_float_from_source_grid(sphere['offset_y'])}, "
+        f"{c_float_from_source_grid(sphere['offset_z'])}, "
+        f"{c_float_from_source_grid(sphere['radius'])}, "
         f"UINT8_C({sphere['effect_index']}), "
         f"UINT8_C({sphere['hitbox_id']}), "
         f"UINT8_C({sphere['group_id']}), "
@@ -1228,13 +1238,13 @@ def generate(
     )
     lines.extend(
         "    { "
-        f"INT32_C({hurtbox[0]}), "
-        f"INT32_C({hurtbox[1]}), "
-        f"INT32_C({hurtbox[2]}), "
-        f"INT32_C({hurtbox[3]}), "
-        f"INT32_C({hurtbox[4]}), "
-        f"INT32_C({hurtbox[5]}), "
-        f"INT32_C({hurtbox[6]}), "
+        f"{c_float_from_source_grid(hurtbox[0])}, "
+        f"{c_float_from_source_grid(hurtbox[1])}, "
+        f"{c_float_from_source_grid(hurtbox[2])}, "
+        f"{c_float_from_source_grid(hurtbox[3])}, "
+        f"{c_float_from_source_grid(hurtbox[4])}, "
+        f"{c_float_from_source_grid(hurtbox[5])}, "
+        f"{c_float_from_source_grid(hurtbox[6])}, "
         f"UINT8_C({hurtbox[7]}), "
         f"UINT8_C({hurtbox[8]}), "
         f"UINT8_C({hurtbox[9]}), UINT8_C(0) "
@@ -1252,13 +1262,13 @@ def generate(
     )
     lines.extend(
         "    { "
-        f"INT32_C({hurtbox[0]}), "
-        f"INT32_C({hurtbox[1]}), "
-        f"INT32_C({hurtbox[2]}), "
-        f"INT32_C({hurtbox[3]}), "
-        f"INT32_C({hurtbox[4]}), "
-        f"INT32_C({hurtbox[5]}), "
-        f"INT32_C({hurtbox[6]}), "
+        f"{c_float_from_source_grid(hurtbox[0])}, "
+        f"{c_float_from_source_grid(hurtbox[1])}, "
+        f"{c_float_from_source_grid(hurtbox[2])}, "
+        f"{c_float_from_source_grid(hurtbox[3])}, "
+        f"{c_float_from_source_grid(hurtbox[4])}, "
+        f"{c_float_from_source_grid(hurtbox[5])}, "
+        f"{c_float_from_source_grid(hurtbox[6])}, "
         f"UINT8_C({hurtbox[7]}), "
         f"UINT8_C({hurtbox[8]}), "
         f"UINT8_C({hurtbox[9]}), UINT8_C(0) "

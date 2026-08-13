@@ -2213,16 +2213,11 @@ pf_status default_content(struct content *out_content)
         60.0f;
     fighter->shield_reset_health_f32 =
         mash->furafura_shield_health_f32;
-    fighter->shield_hold_depletion_f32 =
-        (uint32_t)PF_F32_RATIO(7, 25);
-    fighter->light_shield_hold_depletion_f32 =
-        (uint32_t)PF_F32_RATIO(7, 500);
-    fighter->shield_regeneration_f32 =
-        (uint32_t)PF_F32_RATIO(7, 100);
-    fighter->light_shield_damage_multiplier_f32 =
-        (uint32_t)PF_F32_RATIO(9, 10);
-    fighter->dense_shield_damage_multiplier_f32 =
-        (uint32_t)PF_F32_RATIO(7, 10);
+    fighter->shield_hold_depletion_f32 = PF_F32_RATIO(7, 25);
+    fighter->light_shield_hold_depletion_f32 = PF_F32_RATIO(7, 500);
+    fighter->shield_regeneration_f32 = PF_F32_RATIO(7, 100);
+    fighter->light_shield_damage_multiplier_f32 = PF_F32_RATIO(9, 10);
+    fighter->dense_shield_damage_multiplier_f32 = PF_F32_RATIO(7, 10);
     fighter->light_shield_stun_damage_multiplier_f32 =
         PF_F32_RATIO(57, 40);
     fighter->dense_shield_stun_damage_multiplier_f32 =
@@ -2242,16 +2237,16 @@ pf_status default_content(struct content *out_content)
         PF_F32_RATIO(3, 575);
     fighter->shield_attacker_pushback_ground_friction_scale_f32 =
         PF_F32_RATIO(11, 10);
-    fighter->shield_radius_x_f32 = INT32_C(99501);
-    fighter->shield_radius_y_f32 = INT32_C(169178);
+    fighter->shield_radius_x_f32 = 1.5182648f;
+    fighter->shield_radius_y_f32 = 2.5814514f;
     fighter->shield_minimum_size_scale_f32 =
         PF_F32_RATIO(3, 20);
     fighter->dense_shield_size_scale_f32 =
         PF_F32_RATIO(1, 2);
-    fighter->shield_center_forward_f32 = INT32_C(1327);
-    fighter->shield_center_up_f32 = INT32_C(65404);
-    fighter->shield_animation_scale_x_f32 = INT32_C(6633);
-    fighter->shield_animation_scale_y_f32 = INT32_C(11279);
+    fighter->shield_center_forward_f32 = 0.020248413f;
+    fighter->shield_center_up_f32 = 0.99798584f;
+    fighter->shield_animation_scale_x_f32 = 0.10121155f;
+    fighter->shield_animation_scale_y_f32 = 0.17210388f;
     fighter->grabbox_offset_x_f32 = PF_F32_RATIO(3, 4);
     fighter->grabbox_offset_y_f32 = INT32_C(0);
     fighter->grabbox_half_width_f32 = PF_F32_RATIO(1, 2);
@@ -2685,7 +2680,7 @@ static pf_status apply_battlefield_stage(struct content *content)
     stage->reference_spawn_x_f32 = spawn->position_x_f32;
     stage->revival_platform_start_y_f32 = profile->camera_top_f32;
     /* Battlefield's Rebirth target root is source-world Y=80. */
-    stage->revival_platform_end_y_f32 = INT32_C(380532);
+    stage->revival_platform_end_y_f32 = 5.8064575f;
     stage->revival_platform_half_width_f32 = INT32_C(2) * PF_F32_ONE;
     return PF_STATUS_OK;
 }

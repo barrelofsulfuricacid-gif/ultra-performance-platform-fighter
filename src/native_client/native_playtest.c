@@ -77,11 +77,6 @@ static int pf_native_fail(const char *stage)
     return 1;
 }
 
-static float pf_native_f32_to_float(int32_t value)
-{
-    return (float)value / (float)PF_F32_ONE;
-}
-
 static int16_t pf_native_normalize_axis(Sint16 raw)
 {
     int32_t value = (int32_t)raw;
@@ -893,8 +888,8 @@ static SDL_FPoint pf_native_world_point(
 {
     SDL_FPoint point;
 
-    point.x = view.x + pf_native_f32_to_float(x_f32) * view.scale;
-    point.y = view.y + pf_native_f32_to_float(y_f32) * view.scale;
+    point.x = view.x + x_f32 * view.scale;
+    point.y = view.y + y_f32 * view.scale;
     return point;
 }
 
@@ -1040,8 +1035,7 @@ static void pf_native_draw_hurt_capsule(
         view,
         capsule->endpoint_b_x_f32,
         capsule->endpoint_b_y_f32);
-    const float radius =
-        pf_native_f32_to_float(capsule->radius_f32) * view.scale;
+    const float radius = capsule->radius_f32 * view.scale;
     const float delta_x = endpoint_b.x - endpoint_a.x;
     const float delta_y = endpoint_b.y - endpoint_a.y;
     const float length = sqrtf(delta_x * delta_x + delta_y * delta_y);
@@ -1084,10 +1078,9 @@ static void pf_native_draw_player(
     int collision_inspector)
 {
     const int crouched = pf_native_is_crouched(player->action_state);
-    const float half_width =
-        pf_native_f32_to_float(content->fighter.half_width_f32) * view.scale;
+    const float half_width = content->fighter.half_width_f32 * view.scale;
     const float full_half_height =
-        pf_native_f32_to_float(content->fighter.half_height_f32) * view.scale;
+        content->fighter.half_height_f32 * view.scale;
     const float half_height =
         crouched != 0 ? full_half_height * 0.58F : full_half_height;
     const SDL_FPoint position = pf_native_world_point(
@@ -1176,17 +1169,15 @@ static void pf_native_draw_player(
     if (player->shield_active != UINT8_C(0))
     {
         const float shield_width =
-            pf_native_f32_to_float(
-                player->shield_right_f32 - player->shield_left_f32) *
+            (player->shield_right_f32 - player->shield_left_f32) *
             view.scale;
         const float shield_height =
-            pf_native_f32_to_float(
-                player->shield_bottom_f32 - player->shield_top_f32) *
+            (player->shield_bottom_f32 - player->shield_top_f32) *
             view.scale;
         const SDL_FPoint shield_center = pf_native_world_point(
             view,
-            (player->shield_left_f32 + player->shield_right_f32) / INT32_C(2),
-            (player->shield_top_f32 + player->shield_bottom_f32) / INT32_C(2));
+            (player->shield_left_f32 + player->shield_right_f32) * 0.5f,
+            (player->shield_top_f32 + player->shield_bottom_f32) * 0.5f);
         const float radius =
             (shield_width < shield_height ? shield_width : shield_height) *
             0.5F;
@@ -1234,16 +1225,12 @@ static void pf_native_draw_blast_inset(
     const float top = 10.0F;
     SDL_FRect rect = {left, top, inset_width, inset_height};
     const float center_x =
-        left + inset_width *
-                   (-pf_native_f32_to_float(stage->blast_left_f32)) /
-                   pf_native_f32_to_float(
-                       stage->blast_right_f32 - stage->blast_left_f32);
+        left + inset_width * (-stage->blast_left_f32) /
+                   (stage->blast_right_f32 - stage->blast_left_f32);
     const float floor_y =
         top + inset_height *
-                  pf_native_f32_to_float(
-                      stage->floor_y_f32 - stage->blast_top_f32) /
-                  pf_native_f32_to_float(
-                      stage->blast_bottom_f32 - stage->blast_top_f32);
+                  (stage->floor_y_f32 - stage->blast_top_f32) /
+                  (stage->blast_bottom_f32 - stage->blast_top_f32);
 
     pf_native_set_color(renderer, 255u, 103u, 143u, 255u);
     (void)SDL_RenderRect(renderer, &rect);

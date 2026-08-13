@@ -54,7 +54,7 @@ static int test_walk_axis;
 static int test_dash_axis;
 static int test_aerial_landing_lag_ticks;
 static int test_strong_aerial_landing_lag_ticks;
-static int32_t test_view[TEST_VIEW_COUNT];
+static float test_view[TEST_VIEW_COUNT];
 static pf_input_frame test_inputs[PF_SIM_MAX_PLAYERS];
 static size_t test_input_count;
 
@@ -64,7 +64,7 @@ void pf_web_playtest_install(
     int aerial_landing_lag_ticks,
     int strong_aerial_landing_lag_ticks);
 void pf_web_playtest_render(
-    const int32_t *view,
+    const float *view,
     int view_count);
 void pf_web_playtest_observe_inputs(
     const pf_input_frame *inputs,
@@ -88,7 +88,7 @@ void pf_web_playtest_install(
 }
 
 void pf_web_playtest_render(
-    const int32_t *view,
+    const float *view,
     int view_count)
 {
     ++test_render_count;
@@ -146,13 +146,13 @@ static int test_startup_view_contract(void)
            test_view[TEST_EVENT_COUNT] == 0 &&
            test_view[TEST_ITEM_BASE + TEST_ITEM_ENABLED] == 1 &&
            test_view[TEST_PROJECTILE_BASE + TEST_PROJECTILE_ENABLED] == 1 &&
-           test_view[TEST_UPPER_PLATFORM_LEFT] == 16 * 65536 &&
-           test_view[TEST_UPPER_PLATFORM_RIGHT] == 24 * 65536 &&
-           test_view[TEST_UPPER_PLATFORM_Y] == 13 * 65536 &&
-           test_view[TEST_SOLID_LEFT] == 14 * 65536 &&
-           test_view[TEST_SOLID_RIGHT] == 27 * 65536 &&
-           test_view[TEST_SOLID_TOP] == 16 * 65536 &&
-           test_view[TEST_SOLID_BOTTOM] == 29 * 65536;
+           test_view[TEST_UPPER_PLATFORM_LEFT] == 16.0f &&
+           test_view[TEST_UPPER_PLATFORM_RIGHT] == 24.0f &&
+           test_view[TEST_UPPER_PLATFORM_Y] == 13.0f &&
+           test_view[TEST_SOLID_LEFT] == 14.0f &&
+           test_view[TEST_SOLID_RIGHT] == 27.0f &&
+           test_view[TEST_SOLID_TOP] == 16.0f &&
+           test_view[TEST_SOLID_BOTTOM] == 29.0f;
 }
 
 static int test_basic_step(void)

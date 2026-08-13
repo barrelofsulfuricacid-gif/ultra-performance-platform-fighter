@@ -184,14 +184,10 @@ static void print_player(
         &pose);
 
     (void)printf(
-        ",%u,%u,%u,%" PRId32 ",%" PRId32 ",%" PRId32 ",%" PRId32
-        ",%u,%" PRId32 ",%" PRId32 ",%" PRId32 ",%" PRId32
-        ",%" PRId32 ",%" PRId32 ",%" PRId32 ",%" PRId32
-        ",%" PRId32
-        ",%d,%u,%u,%u,%u,%" PRIu32 ",%u,%u,%u,%u,%u,%u,%u,%u"
-        ",%d,%d,%u,%" PRId32 ",%" PRId32 ",%" PRId32 ",%" PRId32
-        ",%" PRId32 ",%" PRId32 ",%" PRId32 ",%" PRId32
-        ",%u,%" PRId32,
+        ",%u,%u,%u,%.9g,%.9g,%.9g,%.9g,%u,%.9g,%.9g,%.9g,%.9g"
+        ",%.9g,%.9g,%.9g,%.9g,%.9g,%d,%u,%u,%u,%u,%.9g"
+        ",%u,%u,%u,%u,%u,%u,%u,%u,%d,%d,%u,%.9g,%.9g,%.9g,%.9g"
+        ",%.9g,%.9g,%.9g,%.9g,%u,%.9g",
         (unsigned int)player->action_state,
         (unsigned int)player->action_ticks,
         (unsigned int)player->source_submotion,
@@ -226,14 +222,14 @@ static void print_player(
         (int)player->dash_direction,
         (int)player->previous_strong_direction,
         (unsigned int)player->tilt_x_age,
-        pose_available != 0 ? pose.top_x_from_origin_f32 : INT32_C(0),
-        pose_available != 0 ? pose.top_y_from_origin_f32 : INT32_C(0),
-        pose_available != 0 ? pose.bottom_x_from_origin_f32 : INT32_C(0),
-        pose_available != 0 ? pose.bottom_y_from_origin_f32 : INT32_C(0),
-        pose_available != 0 ? pose.right_x_from_origin_f32 : INT32_C(0),
-        pose_available != 0 ? pose.right_y_from_origin_f32 : INT32_C(0),
-        pose_available != 0 ? pose.left_x_from_origin_f32 : INT32_C(0),
-        pose_available != 0 ? pose.left_y_from_origin_f32 : INT32_C(0),
+        pose_available != 0 ? pose.top_x_from_origin_f32 : 0.0f,
+        pose_available != 0 ? pose.top_y_from_origin_f32 : 0.0f,
+        pose_available != 0 ? pose.bottom_x_from_origin_f32 : 0.0f,
+        pose_available != 0 ? pose.bottom_y_from_origin_f32 : 0.0f,
+        pose_available != 0 ? pose.right_x_from_origin_f32 : 0.0f,
+        pose_available != 0 ? pose.right_y_from_origin_f32 : 0.0f,
+        pose_available != 0 ? pose.left_x_from_origin_f32 : 0.0f,
+        pose_available != 0 ? pose.left_y_from_origin_f32 : 0.0f,
         (unsigned int)ecb_bottom_lock_ticks,
         ecb_locked_bottom_y_f32);
 }

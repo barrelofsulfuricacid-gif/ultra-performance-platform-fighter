@@ -433,16 +433,12 @@ static void make_match_inputs(
     {
         const uint32_t opponent_index =
             player_index == UINT32_C(0) ? UINT32_C(1) : UINT32_C(0);
-        const int32_t position =
+        const float position =
             inspection->players[player_index].position_x_f32;
-        const int32_t opponent_position =
+        const float opponent_position =
             inspection->players[opponent_index].position_x_f32;
-        const int64_t difference =
-            (int64_t)opponent_position - (int64_t)position;
-        const uint64_t distance =
-            difference < INT64_C(0)
-                ? (uint64_t)(-difference)
-                : (uint64_t)difference;
+        const float difference = opponent_position - position;
+        const float distance = difference < 0.0f ? -difference : difference;
         const uint32_t seed_shift = player_index * UINT32_C(8);
         const uint64_t phase =
             (inspection->tick +
@@ -461,11 +457,11 @@ static void make_match_inputs(
             continue;
         }
 
-        if (difference > INT64_C(0))
+        if (difference > 0.0f)
         {
             direction = INT16_MAX;
         }
-        else if (difference < INT64_C(0))
+        else if (difference < 0.0f)
         {
             direction = INT16_MIN;
         }
@@ -475,11 +471,11 @@ static void make_match_inputs(
                             ? INT16_MAX
                             : INT16_MIN;
         }
-        if (position <= -INT32_C(7) * PF_F32_ONE)
+        if (position <= -7.0f)
         {
             direction = INT16_MAX;
         }
-        else if (position >= INT32_C(7) * PF_F32_ONE)
+        else if (position >= 7.0f)
         {
             direction = INT16_MIN;
         }
@@ -487,8 +483,8 @@ static void make_match_inputs(
         if (inspection->tick >= fallback_tick &&
             player_index == fallback_player)
         {
-            direction = position < INT32_C(0) ||
-                                (position == INT32_C(0) &&
+            direction = position < 0.0f ||
+                                (position == 0.0f &&
                                  player_index == UINT32_C(0))
                             ? INT16_MIN
                             : INT16_MAX;
@@ -501,7 +497,7 @@ static void make_match_inputs(
         {
             inputs[player_index].left_trigger = UINT16_MAX;
         }
-        if (distance <= UINT64_C(2) * (uint64_t)PF_F32_ONE &&
+        if (distance <= 2.0f &&
             phase % UINT64_C(18) == UINT64_C(0))
         {
             inputs[player_index].buttons = PF_INPUT_BUTTON_ATTACK;
@@ -754,10 +750,10 @@ static int run_match_soak_invariant(pf_verifier_checks *checks)
                         (void)fprintf(
                             stderr,
                             " player=%" PRIu32 " active=%u action=%u"
-                            " resume=%u submotion=%u frame=%" PRId32
-                            " rate=%" PRId32 " ticks=%u hitlag=%u"
-                            " grounded=%u support=%u vx=%" PRId32
-                            " vy=%" PRId32 " recoil=%" PRId32
+                            " resume=%u submotion=%u frame=%.9g"
+                            " rate=%.9g ticks=%u hitlag=%u"
+                            " grounded=%u support=%u vx=%.9g"
+                            " vy=%.9g recoil=%.9g"
                             " fast_fall=%u recovery=%u\n",
                             player_index,
                             (unsigned int)player->active,
@@ -915,8 +911,8 @@ static int run_match_soak_invariant(pf_verifier_checks *checks)
                         stderr,
                         "m4-match-replay-event index=%" PRIu32
                         " tick=%" PRIu64 " sequence=%" PRIu32
-                        " type=%u source=%u target=%u value=%" PRIu32
-                        " vx=%" PRId32 " vy=%" PRId32
+                        " type=%u source=%u target=%u value=%.9g"
+                        " vx=%.9g vy=%.9g"
                         " flags=%u detail=%u\n",
                         event_index,
                         event->tick,

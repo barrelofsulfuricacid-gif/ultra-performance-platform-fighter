@@ -29,10 +29,13 @@ def require_identifier(value: object, label: str) -> str:
     return value
 
 
-def int32(value: int) -> str:
+def float_from_legacy_grid(value: int) -> str:
     if not -(1 << 31) <= value < (1 << 31):
-        raise ValueError(f"hurt-pose coordinate is outside int32: {value}")
-    return f"INT32_C({value})"
+        raise ValueError(f"hurt-pose coordinate is outside source grid: {value}")
+    literal = f"{value / 65536.0:.9g}"
+    if "." not in literal and "e" not in literal:
+        literal += ".0"
+    return literal + "f"
 
 
 def uint8(value: int) -> str:
@@ -238,7 +241,7 @@ def generate(manifest: dict[str, Any], profile: dict[str, Any]) -> str:
         lines.append(
             "    { "
             + ", ".join(
-                [*(int32(value) for value in capsule[:7]),
+                [*(float_from_legacy_grid(value) for value in capsule[:7]),
                  *(uint8(value) for value in capsule[7:]),
                  "UINT8_C(0)"]
             )

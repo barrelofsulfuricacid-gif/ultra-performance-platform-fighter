@@ -14,7 +14,7 @@
 #define TEST_MEMORY_ALIGNMENT 64U
 #define TEST_REPLAY_TICKS UINT32_C(24)
 #define TEST_SAVE_HEADER_BYTES ((size_t)140)
-#define TEST_SAVE_PAYLOAD_BYTES ((size_t)1647)
+#define TEST_SAVE_PAYLOAD_BYTES ((size_t)1660)
 #define TEST_SAVE_CHECKSUM_OFFSET ((size_t)108)
 #define TEST_SAVE_CHARGE0_OFFSET ((size_t)815)
 
@@ -454,8 +454,8 @@ static int run_release_and_interrupt_contract(
     pf_sim *sim = NULL;
     pf_tick_result result;
     struct inspection inspection;
-    uint32_t low_damage;
-    uint32_t high_damage;
+    float low_damage;
+    float high_damage;
     uint32_t tick;
     const test_command up_special = {
         INT16_MIN,
@@ -465,10 +465,8 @@ static int run_release_and_interrupt_contract(
     if (!initialize_sim(&storage, view, &sim) ||
         !release_damage_after_charge(sim, UINT16_C(1), &low_damage) ||
         !release_damage_after_charge(sim, UINT16_C(120), &high_damage) ||
-        low_damage != UINT32_C(4) * UINT32_C(65536) +
-                          (UINT32_C(16) * UINT32_C(65536) /
-                           UINT32_C(120)) ||
-        high_damage != UINT32_C(20) * UINT32_C(65536) ||
+        low_damage != 4.0f + 16.0f / 120.0f ||
+        high_damage != 20.0f ||
         high_damage <= low_damage)
     {
         return fail("charge-release-scaling");
@@ -580,7 +578,7 @@ static int run_state_interfaces_contract(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "charge-save-size") ||
-        save_size != (size_t)1787)
+        save_size != (size_t)1800)
     {
         return fail("charge-save-setup");
     }

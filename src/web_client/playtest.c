@@ -190,7 +190,7 @@ extern void pf_web_playtest_install(
     int aerial_landing_lag_ticks,
     int strong_aerial_landing_lag_ticks);
 extern void pf_web_playtest_render(
-    const int32_t *view,
+    const float *view,
     int view_count);
 #if defined(PF_WEB_M4_TEST)
 extern void pf_web_playtest_observe_inputs(
@@ -205,7 +205,7 @@ static pf_web_storage pf_web_sim_storage;
 static struct content pf_web_content;
 static pf_sim *pf_web_sim;
 static pf_tick_result pf_web_last_result;
-static int32_t pf_web_view[PF_WEB_M4_VIEW_COUNT];
+static float pf_web_view[PF_WEB_M4_VIEW_COUNT];
 static uint8_t pf_web_player_count = PF_WEB_M4_DUEL_PLAYER_COUNT;
 static uint8_t pf_web_team_lab_active;
 static uint8_t pf_web_stock_count = PF_SIM_DEFAULT_STOCK_COUNT;
@@ -453,7 +453,7 @@ static void pf_web_pack_dynamic_player_view(
     uint8_t hit_sphere_index;
 
     pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_HITBOX_ACTIVE] =
-        (int32_t)player->hitbox_active;
+        (float)player->hitbox_active;
     pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_HITBOX_LEFT] =
         player->hitbox_left_f32;
     pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_HITBOX_RIGHT] =
@@ -463,7 +463,7 @@ static void pf_web_pack_dynamic_player_view(
     pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_HITBOX_BOTTOM] =
         player->hitbox_bottom_f32;
     pf_web_view[hit_sphere_base] =
-        (int32_t)player->hit_sphere_count;
+        (float)player->hit_sphere_count;
     for (hit_sphere_index = UINT8_C(0);
          hit_sphere_index < player->hit_sphere_count;
          ++hit_sphere_index)
@@ -478,16 +478,16 @@ static void pf_web_pack_dynamic_player_view(
         pf_web_view[sphere_base + 1] = sphere->center_y_f32;
         pf_web_view[sphere_base + 2] = sphere->radius_f32;
         pf_web_view[sphere_base + 3] =
-            (int32_t)sphere->effect_index;
+            (float)sphere->effect_index;
         pf_web_view[sphere_base + 4] =
-            (int32_t)sphere->hitbox_id;
+            (float)sphere->hitbox_id;
         pf_web_view[sphere_base + 5] =
-            (int32_t)sphere->group_id;
+            (float)sphere->group_id;
     }
     pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_SHIELD_STRENGTH] =
-        (int32_t)player->shield_strength;
+        (float)player->shield_strength;
     pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_SHIELD_ACTIVE] =
-        (int32_t)player->shield_active;
+        (float)player->shield_active;
     pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_SHIELD_LEFT] =
         player->shield_left_f32;
     pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_SHIELD_RIGHT] =
@@ -497,9 +497,9 @@ static void pf_web_pack_dynamic_player_view(
     pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_SHIELD_BOTTOM] =
         player->shield_bottom_f32;
     pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_SHIELD_TILT_X] =
-        (int32_t)player->shield_tilt_x;
+        (float)player->shield_tilt_x;
     pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_SHIELD_TILT_Y] =
-        (int32_t)player->shield_tilt_y;
+        (float)player->shield_tilt_y;
 }
 
 #if defined(PF_WEB_M4_TEST)
@@ -548,9 +548,9 @@ static int pf_web_render(void)
     }
 
     (void)memset(pf_web_view, 0, sizeof(pf_web_view));
-    pf_web_view[PF_WEB_M4_VIEW_SCHEMA] = INT32_C(48);
+    pf_web_view[PF_WEB_M4_VIEW_SCHEMA] = 49.0f;
     pf_web_view[PF_WEB_M4_VIEW_TICK] =
-        (int32_t)inspection.tick;
+        (float)inspection.tick;
     pf_web_view[PF_WEB_M4_VIEW_FLOOR_LEFT] =
         inspection.stage.floor_left_f32;
     pf_web_view[PF_WEB_M4_VIEW_FLOOR_RIGHT] =
@@ -584,19 +584,19 @@ static int pf_web_render(void)
     pf_web_view[PF_WEB_M4_VIEW_SOLID_BOTTOM] =
         inspection.stage.solid_bottom_f32;
     pf_web_view[PF_WEB_M4_VIEW_STOCK_COUNT] =
-        (int32_t)inspection.stock_count;
+        (float)inspection.stock_count;
     pf_web_view[PF_WEB_M4_VIEW_RESPAWN_DELAY] =
-        (int32_t)inspection.respawn_delay_ticks;
+        (float)inspection.respawn_delay_ticks;
     pf_web_view[PF_WEB_M4_VIEW_RESPAWN_INVULNERABILITY] =
-        (int32_t)inspection.respawn_invulnerability_ticks;
+        (float)inspection.respawn_invulnerability_ticks;
     pf_web_view[PF_WEB_M4_VIEW_SUDDEN_DEATH] =
-        (int32_t)inspection.sudden_death;
+        (float)inspection.sudden_death;
     pf_web_view[PF_WEB_M4_VIEW_TERMINATED] =
-        (int32_t)inspection.terminated;
+        (float)inspection.terminated;
     pf_web_view[PF_WEB_M4_VIEW_TRUNCATED] =
-        (int32_t)inspection.truncated;
+        (float)inspection.truncated;
     pf_web_view[PF_WEB_M4_VIEW_WINNER_MASK] =
-        (int32_t)inspection.winner_mask;
+        (float)inspection.winner_mask;
 
     for (player_index = UINT32_C(0);
          player_index < (uint32_t)pf_web_player_count;
@@ -620,71 +620,71 @@ static int pf_web_render(void)
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_VY] =
             player->velocity_y_f32;
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_ACTION] =
-            (int32_t)player->action_state;
+            (float)player->action_state;
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_FACING] =
-            (int32_t)player->facing;
+            (float)player->facing;
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_GROUNDED] =
-            (int32_t)player->grounded;
+            (float)player->grounded;
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_SUPPORT] =
-            (int32_t)player->support;
+            (float)player->support;
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_AIR_JUMPS] =
-            (int32_t)player->air_jumps_remaining;
+            (float)player->air_jumps_remaining;
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_FAST_FALL] =
-            (int32_t)player->fast_fall;
+            (float)player->fast_fall;
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_RESPAWNS] =
-            (int32_t)player->respawn_count;
+            (float)player->respawn_count;
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_DAMAGE] =
-            (int32_t)player->damage_f32;
+            (float)player->damage_f32;
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_HITLAG] =
-            (int32_t)player->hitlag_ticks;
+            (float)player->hitlag_ticks;
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_HITSTUN] =
-            (int32_t)player->hitstun_ticks;
+            (float)player->hitstun_ticks;
         pf_web_pack_dynamic_player_view(
             player,
             base,
             hit_sphere_base);
         pf_web_view[
             base + PF_WEB_M4_VIEW_PLAYER_LAST_HIT_SEQUENCE] =
-            (int32_t)player->last_hit_sequence;
+            (float)player->last_hit_sequence;
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_TECH_WINDOW] =
-            (int32_t)player->tech_window_ticks;
+            (float)player->tech_window_ticks;
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_TECH_LOCKOUT] =
-            (int32_t)player->tech_lockout_ticks;
+            (float)player->tech_lockout_ticks;
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_TUMBLE] =
-            (int32_t)player->tumble;
+            (float)player->tumble;
         pf_web_view[
             base + PF_WEB_M4_VIEW_PLAYER_SDI_PULSE_COUNT] =
-            (int32_t)player->sdi_pulse_count;
+            (float)player->sdi_pulse_count;
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_TECH_DIRECTION] =
-            (int32_t)player->tech_direction;
+            (float)player->tech_direction;
         pf_web_view[
             PF_WEB_M4_VIEW_PRONE_ORIENTATION0 + (int)player_index] =
-            (int32_t)player->prone_orientation;
+            (float)player->prone_orientation;
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_SHIELD_HEALTH] =
-            (int32_t)player->shield_health_f32;
+            (float)player->shield_health_f32;
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_SHIELD_STUN] =
-            (int32_t)player->shield_stun_ticks;
+            (float)player->shield_stun_ticks;
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_POWERSHIELD] =
-            (int32_t)player->powershield;
+            (float)player->powershield;
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_INVULNERABLE] =
-            (int32_t)player->invulnerable;
+            (float)player->invulnerable;
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_ACTION_TICKS] =
-            (int32_t)player->action_ticks;
+            (float)player->action_ticks;
         pf_web_view[
             base + PF_WEB_M4_VIEW_PLAYER_TRIGGER_INPUT_AGE] =
-            (int32_t)player->trigger_input_age;
+            (float)player->trigger_input_age;
         pf_web_view[
             base + PF_WEB_M4_VIEW_PLAYER_L_CANCEL_ELIGIBLE] =
-            (int32_t)player->l_cancel_eligible;
+            (float)player->l_cancel_eligible;
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_STOCKS] =
-            (int32_t)player->stocks_remaining;
+            (float)player->stocks_remaining;
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_RESPAWN_TICKS] =
-            (int32_t)player->respawn_ticks;
+            (float)player->respawn_ticks;
         pf_web_view[
             base + PF_WEB_M4_VIEW_PLAYER_RESPAWN_INVULNERABILITY] =
-            (int32_t)player->respawn_invulnerability_ticks;
+            (float)player->respawn_invulnerability_ticks;
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_GRABBOX_ACTIVE] =
-            (int32_t)player->grabbox_active;
+            (float)player->grabbox_active;
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_GRABBOX_LEFT] =
             player->grabbox_left_f32;
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_GRABBOX_RIGHT] =
@@ -695,19 +695,19 @@ static int pf_web_render(void)
             player->grabbox_bottom_f32;
         pf_web_view[
             base + PF_WEB_M4_VIEW_PLAYER_GRAB_ESCAPE_TICKS] =
-            (int32_t)player->grab_escape_ticks;
+            (float)player->grab_escape_ticks;
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_GRAB_TARGET] =
-            (int32_t)player->grab_target;
+            (float)player->grab_target;
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_GRAB_OWNER] =
-            (int32_t)player->grab_owner;
+            (float)player->grab_owner;
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_CHARGE_TICKS] =
-            (int32_t)player->charge_ticks;
+            (float)player->charge_ticks;
         pf_web_view[
             base + PF_WEB_M4_VIEW_PLAYER_SMASH_CHARGE_TICKS] =
-            (int32_t)player->smash_charge_ticks;
+            (float)player->smash_charge_ticks;
     }
     pf_web_view[PF_WEB_M4_VIEW_EVENT_COUNT] =
-        (int32_t)pf_web_last_result.event_count;
+        (float)pf_web_last_result.event_count;
     for (event_index = UINT32_C(0);
          event_index <
          (uint32_t)pf_web_last_result.event_count;
@@ -726,45 +726,45 @@ static int pf_web_render(void)
             return 0;
         }
         pf_web_view[base + PF_WEB_M4_VIEW_EVENT_SEQUENCE] =
-            (int32_t)event->sequence;
+            (float)event->sequence;
         pf_web_view[base + PF_WEB_M4_VIEW_EVENT_TICK] =
-            (int32_t)event->tick;
+            (float)event->tick;
         pf_web_view[base + PF_WEB_M4_VIEW_EVENT_TYPE] =
-            (int32_t)event->type;
+            (float)event->type;
         pf_web_view[base + PF_WEB_M4_VIEW_EVENT_SOURCE] =
-            (int32_t)event->source_player;
+            (float)event->source_player;
         pf_web_view[base + PF_WEB_M4_VIEW_EVENT_TARGET] =
-            (int32_t)event->target_player;
+            (float)event->target_player;
         pf_web_view[base + PF_WEB_M4_VIEW_EVENT_VALUE] =
-            (int32_t)event->value_f32;
+            (float)event->value_f32;
         pf_web_view[base + PF_WEB_M4_VIEW_EVENT_VELOCITY_X] =
             event->velocity_x_f32;
         pf_web_view[base + PF_WEB_M4_VIEW_EVENT_VELOCITY_Y] =
             event->velocity_y_f32;
         pf_web_view[base + PF_WEB_M4_VIEW_EVENT_FLAGS] =
-            (int32_t)event->flags;
+            (float)event->flags;
         pf_web_view[base + PF_WEB_M4_VIEW_EVENT_DETAIL] =
-            (int32_t)event->detail;
+            (float)event->detail;
     }
 
     pf_web_view[
         PF_WEB_M4_VIEW_ITEM0 + PF_WEB_M4_VIEW_ITEM_ENABLED] =
-        (int32_t)inspection.item.enabled;
+        (float)inspection.item.enabled;
     pf_web_view[
         PF_WEB_M4_VIEW_ITEM0 + PF_WEB_M4_VIEW_ITEM_STATE] =
-        (int32_t)inspection.item.state;
+        (float)inspection.item.state;
     pf_web_view[
         PF_WEB_M4_VIEW_ITEM0 + PF_WEB_M4_VIEW_ITEM_HOLDER] =
-        (int32_t)inspection.item.holder;
+        (float)inspection.item.holder;
     pf_web_view[
         PF_WEB_M4_VIEW_ITEM0 + PF_WEB_M4_VIEW_ITEM_SOURCE] =
-        (int32_t)inspection.item.source;
+        (float)inspection.item.source;
     pf_web_view[
         PF_WEB_M4_VIEW_ITEM0 + PF_WEB_M4_VIEW_ITEM_THROW_DIRECTION] =
-        (int32_t)inspection.item.throw_direction;
+        (float)inspection.item.throw_direction;
     pf_web_view[
         PF_WEB_M4_VIEW_ITEM0 + PF_WEB_M4_VIEW_ITEM_HITBOX_ACTIVE] =
-        (int32_t)inspection.item.hitbox_active;
+        (float)inspection.item.hitbox_active;
     pf_web_view[PF_WEB_M4_VIEW_ITEM0 + PF_WEB_M4_VIEW_ITEM_X] =
         inspection.item.position_x_f32;
     pf_web_view[PF_WEB_M4_VIEW_ITEM0 + PF_WEB_M4_VIEW_ITEM_Y] =
@@ -775,16 +775,16 @@ static int pf_web_render(void)
         inspection.item.velocity_y_f32;
     pf_web_view[
         PF_WEB_M4_VIEW_ITEM0 + PF_WEB_M4_VIEW_ITEM_LIFETIME] =
-        (int32_t)inspection.item.lifetime_ticks;
+        (float)inspection.item.lifetime_ticks;
     pf_web_view[
         PF_WEB_M4_VIEW_ITEM0 + PF_WEB_M4_VIEW_ITEM_RESPAWN] =
-        (int32_t)inspection.item.respawn_ticks;
+        (float)inspection.item.respawn_ticks;
     pf_web_view[
         PF_WEB_M4_VIEW_ITEM0 + PF_WEB_M4_VIEW_ITEM_PICKUP_LOCKOUT] =
-        (int32_t)inspection.item.pickup_lockout_ticks;
+        (float)inspection.item.pickup_lockout_ticks;
     pf_web_view[
         PF_WEB_M4_VIEW_ITEM0 + PF_WEB_M4_VIEW_ITEM_HIT_MASK] =
-        (int32_t)inspection.item.hit_mask;
+        (float)inspection.item.hit_mask;
     pf_web_view[
         PF_WEB_M4_VIEW_ITEM0 + PF_WEB_M4_VIEW_ITEM_HALF_WIDTH] =
         pf_web_content.item.half_width_f32;
@@ -801,19 +801,19 @@ static int pf_web_render(void)
     pf_web_view[
         PF_WEB_M4_VIEW_PROJECTILE0 +
         PF_WEB_M4_VIEW_PROJECTILE_ENABLED] =
-        (int32_t)inspection.projectile.enabled;
+        (float)inspection.projectile.enabled;
     pf_web_view[
         PF_WEB_M4_VIEW_PROJECTILE0 +
         PF_WEB_M4_VIEW_PROJECTILE_STATE] =
-        (int32_t)inspection.projectile.state;
+        (float)inspection.projectile.state;
     pf_web_view[
         PF_WEB_M4_VIEW_PROJECTILE0 +
         PF_WEB_M4_VIEW_PROJECTILE_OWNER] =
-        (int32_t)inspection.projectile.owner;
+        (float)inspection.projectile.owner;
     pf_web_view[
         PF_WEB_M4_VIEW_PROJECTILE0 +
         PF_WEB_M4_VIEW_PROJECTILE_HITBOX_ACTIVE] =
-        (int32_t)inspection.projectile.hitbox_active;
+        (float)inspection.projectile.hitbox_active;
     pf_web_view[
         PF_WEB_M4_VIEW_PROJECTILE0 + PF_WEB_M4_VIEW_PROJECTILE_X] =
         inspection.projectile.position_x_f32;
@@ -829,7 +829,7 @@ static int pf_web_render(void)
     pf_web_view[
         PF_WEB_M4_VIEW_PROJECTILE0 +
         PF_WEB_M4_VIEW_PROJECTILE_LIFETIME] =
-        (int32_t)inspection.projectile.lifetime_ticks;
+        (float)inspection.projectile.lifetime_ticks;
     pf_web_view[
         PF_WEB_M4_VIEW_PROJECTILE0 +
         PF_WEB_M4_VIEW_PROJECTILE_HALF_WIDTH] =
@@ -841,7 +841,7 @@ static int pf_web_render(void)
     pf_web_view[
         PF_WEB_M4_VIEW_PROJECTILE0 +
         PF_WEB_M4_VIEW_PROJECTILE_REFLECT_WINDOW] =
-        (int32_t)pf_web_content.projectile
+        (float)pf_web_content.projectile
             .powershield_reflect_window_ticks;
     for (player_index = UINT32_C(0);
          player_index < (uint32_t)pf_web_player_count;
@@ -858,10 +858,10 @@ static int pf_web_render(void)
         uint32_t stale_slot;
 
         pf_web_view[PF_WEB_M4_VIEW_RECOVERY0 + (int)player_index] =
-            (int32_t)player->recovery_available;
+            (float)player->recovery_available;
         pf_web_view[
             revival_base + PF_WEB_M4_VIEW_REVIVAL_ACTIVE] =
-            (int32_t)player->revival_platform_active;
+            (float)player->revival_platform_active;
         pf_web_view[
             revival_base + PF_WEB_M4_VIEW_REVIVAL_LEFT] =
             player->revival_platform_left_f32;
@@ -873,13 +873,13 @@ static int pf_web_render(void)
             player->revival_platform_y_f32;
         pf_web_view[
             stale_move_base + PF_WEB_M4_VIEW_STALE_MOVE_COUNT] =
-            (int32_t)player->stale_move_count;
+            (float)player->stale_move_count;
         pf_web_view[
             stale_move_base + PF_WEB_M4_VIEW_STALE_MOVE_MULTIPLIER] =
-            (int32_t)player->stale_move_multiplier_f32;
+            (float)player->stale_move_multiplier_f32;
         pf_web_view[
             stale_move_base + PF_WEB_M4_VIEW_STALE_MOVE_REGISTERED] =
-            (int32_t)player->attack_stale_registered;
+            (float)player->attack_stale_registered;
         for (stale_slot = UINT32_C(0);
              stale_slot <
                  (uint32_t)PF_SIM_STALE_MOVE_QUEUE_CAPACITY;
@@ -888,11 +888,11 @@ static int pf_web_render(void)
             pf_web_view[
                 stale_move_base + PF_WEB_M4_VIEW_STALE_MOVE_IDS +
                 (int)stale_slot] =
-                (int32_t)player->stale_move_ids[stale_slot];
+                (float)player->stale_move_ids[stale_slot];
         }
     }
     pf_web_view[PF_WEB_M4_VIEW_ITEM_STALE_REGISTERED] =
-        (int32_t)inspection.item.stale_registered;
+        (float)inspection.item.stale_registered;
     pf_web_view[
         PF_WEB_M4_VIEW_UPPER_PLATFORM0 +
         PF_WEB_M4_VIEW_UPPER_PLATFORM_LEFT] =

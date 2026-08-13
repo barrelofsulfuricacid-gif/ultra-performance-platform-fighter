@@ -137,10 +137,8 @@ static int run_teeter_pre_roll(
                  ++axis)
             {
                 const float target_f32 =
-                    (int32_t)(
-                        (int64_t)(int32_t)axis *
-                        (int64_t)content->fighter.walk_speed_f32 /
-                        INT64_C(32767));
+                    (float)axis * content->fighter.walk_speed_f32 /
+                    32767.0f;
                 float next_velocity_f32 = velocity_f32;
                 const float acceleration_f32 =
                     content->fighter.ground_acceleration_f32;
@@ -407,7 +405,7 @@ static int run_ucf_tumble_input_pre_roll(
      * native theorem in DamageFall without writing fighter state directly. */
     for (hit = UINT32_C(0); hit < UINT32_C(5); ++hit)
     {
-        uint32_t damage_before = inspection->players[0].damage_f32;
+        float damage_before = inspection->players[0].damage_f32;
 
         if (run_duel_pre_roll_tick(
                 sim,
@@ -1175,7 +1173,7 @@ int main(int argc, char **argv)
                 stderr,
                 "m4-movement-trace=fail operation=ucf-tumble-pre-roll "
                 "action=%u grounded=%u tumble=%u hitlag=%u hitstun=%u "
-                "damage=%" PRIu32 "\n",
+                "damage=%.9g\n",
                 (unsigned int)inspection.players[0].action_state,
                 (unsigned int)inspection.players[0].grounded,
                 (unsigned int)inspection.players[0].tumble,
@@ -1237,10 +1235,8 @@ int main(int argc, char **argv)
         {
             return fail_status("platform-geometry", status);
         }
-        platform_center_x_f32 = (int32_t)(
-            ((int64_t)platform_line.start_x_f32 +
-             (int64_t)platform_line.end_x_f32) /
-            INT64_C(2));
+        platform_center_x_f32 =
+            (platform_line.start_x_f32 + platform_line.end_x_f32) * 0.5f;
         for (pre_roll_tick = UINT32_C(0);
              pre_roll_tick < UINT32_C(240);
              ++pre_roll_tick)
@@ -1894,12 +1890,11 @@ int main(int argc, char **argv)
         }
         (void)printf(
             "%" PRIu32 ",%d,%d,%d,%d,%u,%u,%" PRIu64 ",%" PRIu64
-            ",%u,%u,%u,%" PRId32 ",%" PRId32 ",%" PRId32 ",%u,%" PRId32 ",%d,%u,%u,%" PRId32 ",%" PRId32 ",%d,%d,%u,%" PRId32 ",%" PRId32 ",%" PRId32 ",%" PRId32
-            ",%" PRId32
-            ",%" PRIu32 ",%u,%u,%u,%" PRId32 ",%" PRId32 ",%" PRId32
-            ",%" PRId32 ",%u,%u,%u,%u,%u,%u,%u,%u,%u,%d,%u,%" PRId32 ",%" PRId32
-            ",%" PRId32 ",%" PRId32 ",%" PRId32 ",%" PRIu32
-            ",%u,%u,%u,%u,%d,%d,%d,%d\n",
+            ",%u,%u,%u,%.9g,%.9g,%.9g,%u,%.9g,%d,%u,%u,%.9g,%.9g"
+            ",%d,%d,%u,%.9g,%.9g,%.9g,%.9g,%.9g,%.9g,%u,%u,%u"
+            ",%.9g,%.9g,%.9g,%.9g,%u,%u,%u,%u,%u,%u,%u,%u,%u"
+            ",%d,%u,%.9g,%.9g,%.9g,%.9g,%.9g,%.9g,%u,%u,%u,%u"
+            ",%d,%d,%d,%d\n",
             trace_frame,
             input_x,
             input_y,

@@ -51,7 +51,7 @@ extern void pf_web_replay_inspector(
     const float *positions_f32,
     const uint8_t *hashes,
     const int32_t *event_counts,
-    const int32_t *event_values,
+    const float *event_values,
     const uint8_t *replay_bytes,
     int replay_size,
     int tick_count,
@@ -65,12 +65,12 @@ static pf_web_replay_storage pf_web_source_storage;
 static pf_web_replay_storage pf_web_playback_storage;
 static pf_input_frame pf_web_replay_inputs[PF_WEB_REPLAY_INPUT_COUNT];
 static pf_state_hash pf_web_replay_hashes[PF_WEB_REPLAY_HASH_COUNT];
-static int32_t pf_web_replay_positions[PF_WEB_REPLAY_POSITION_COUNT];
+static float pf_web_replay_positions[PF_WEB_REPLAY_POSITION_COUNT];
 static uint8_t pf_web_replay_bytes[PF_WEB_REPLAY_CAPACITY];
 static uint8_t pf_web_hash_bytes[
     PF_WEB_REPLAY_MAX_CHECKPOINTS * PF_SIM_STATE_HASH_BYTES];
 static int32_t pf_web_replay_event_counts[PF_WEB_REPLAY_MAX_CHECKPOINTS];
-static int32_t pf_web_replay_event_values[PF_WEB_REPLAY_EVENT_VALUE_COUNT];
+static float pf_web_replay_event_values[PF_WEB_REPLAY_EVENT_VALUE_COUNT];
 static char pf_web_replay_final_hash[65];
 
 static int pf_web_hex_nibble(char value)
@@ -254,25 +254,25 @@ static pf_status pf_web_capture_verified_checkpoint(
         {
             return PF_STATUS_BUFFER_TOO_SMALL;
         }
-        pf_web_replay_event_values[base] = (int32_t)event->sequence;
+        pf_web_replay_event_values[base] = (float)event->sequence;
         pf_web_replay_event_values[base + (size_t)1] =
-            (int32_t)event->tick;
+            (float)event->tick;
         pf_web_replay_event_values[base + (size_t)2] =
-            (int32_t)event->type;
+            (float)event->type;
         pf_web_replay_event_values[base + (size_t)3] =
-            (int32_t)event->source_player;
+            (float)event->source_player;
         pf_web_replay_event_values[base + (size_t)4] =
-            (int32_t)event->target_player;
+            (float)event->target_player;
         pf_web_replay_event_values[base + (size_t)5] =
-            (int32_t)event->value_f32;
+            event->value_f32;
         pf_web_replay_event_values[base + (size_t)6] =
             event->velocity_x_f32;
         pf_web_replay_event_values[base + (size_t)7] =
             event->velocity_y_f32;
         pf_web_replay_event_values[base + (size_t)8] =
-            (int32_t)event->flags;
+            (float)event->flags;
         pf_web_replay_event_values[base + (size_t)9] =
-            (int32_t)event->detail;
+            (float)event->detail;
     }
 
     context->checkpoint_count += UINT64_C(1);
