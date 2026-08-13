@@ -14,7 +14,9 @@ sys.path.insert(0, str(ROOT / "tools"))
 from ssbm_replay_differential import (  # noqa: E402
     ConfigurationError,
     PHYSICAL_L,
+    actual_row,
     classify_source_modifier,
+    compare_rows,
     detect_ucf_dashback,
     detect_ucf084_cardinal_mismatch,
     diagnostic_execution_reference,
@@ -23,10 +25,59 @@ from ssbm_replay_differential import (  # noqa: E402
     native_input,
     qualify_segment,
     reference_qualification,
+    scale_f32,
 )
 
 
 EXACT_REFERENCE = {"status": "exact", "failures": []}
+
+
+class Float32ProjectionTests(unittest.TestCase):
+    def test_source_scale_returns_direct_float32_units(self) -> None:
+        scaled = scale_f32(1.0, {"numerator": 12, "denominator": 115})
+        self.assertAlmostEqual(scaled, 12.0 / 115.0, places=7)
+        self.assertLess(scaled, 1.0)
+
+    def test_native_csv_keeps_float_fields_as_floats(self) -> None:
+        parsed = actual_row(
+            {
+                "tick": "1",
+                "action_state": "2",
+                "action_ticks": "3",
+                "facing": "-1",
+                "grounded": "1",
+                "position_x_f32_from_origin": "0.125",
+                "position_y_f32_from_origin": "-0.25",
+                "velocity_x_f32": "0.03125",
+                "velocity_y_f32": "-0.0625",
+            }
+        )
+        self.assertEqual(parsed["action_state"], 2)
+        self.assertEqual(parsed["position_x_f32_from_origin"], 0.125)
+        self.assertEqual(parsed["velocity_y_f32"], -0.0625)
+
+    def test_comparison_uses_direct_float_tolerances(self) -> None:
+        expected = {
+            "action_state": 2,
+            "facing": 1,
+            "grounded": 1,
+            "position_x_f32_from_origin": 1.0,
+            "position_y_f32_from_origin": 2.0,
+            "velocity_x_f32": 0.5,
+            "velocity_y_f32": -0.5,
+        }
+        actual = dict(expected)
+        actual["position_x_f32_from_origin"] = 1.01
+        actual["velocity_y_f32"] = -0.49975
+        profile = {
+            "comparison": {
+                "position_tolerance_f32": 0.015625,
+                "velocity_tolerance_f32": 0.00048828125,
+            }
+        }
+        self.assertEqual(compare_rows(expected, actual, profile), [])
+        actual["position_x_f32_from_origin"] = 1.02
+        self.assertTrue(compare_rows(expected, actual, profile))
 
 
 def replay_fixture(

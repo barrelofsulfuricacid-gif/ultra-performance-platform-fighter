@@ -27,6 +27,8 @@ import time
 from typing import Any, Callable, Iterable
 import urllib.request
 
+from ssbm_collision import binary32
+
 
 ROOT = Path(__file__).resolve().parent.parent
 EXTRACTOR = ROOT / "tools" / "ssbm_slippi_extract.mjs"
@@ -793,12 +795,11 @@ def native_input(
     return ",".join(str(value) for value in values)
 
 
-def scale_f32(value: float, scale: dict[str, Any]) -> int:
+def scale_f32(value: float, scale: dict[str, Any]) -> float:
     sign = -1.0 if bool(scale.get("invert", False)) else 1.0
-    return round(
+    return binary32(
         value
         * sign
-        * 65536.0
         * int(scale["numerator"])
         / int(scale["denominator"])
     )
@@ -1200,20 +1201,25 @@ def expected_row(
     }
 
 
-def actual_row(row: dict[str, str]) -> dict[str, int]:
-    fields = (
+def actual_row(row: dict[str, str]) -> dict[str, int | float]:
+    integer_fields = (
         "tick",
         "action_state",
         "action_ticks",
         "facing",
         "grounded",
+    )
+    float_fields = (
         "position_x_f32_from_origin",
         "position_y_f32_from_origin",
         "velocity_x_f32",
         "velocity_y_f32",
     )
     try:
-        return {field: int(row[field]) for field in fields}
+        return {
+            **{field: int(row[field]) for field in integer_fields},
+            **{field: float(row[field]) for field in float_fields},
+        }
     except (KeyError, ValueError) as error:
         raise ConfigurationError(f"native CSV field error: {error}") from error
 
@@ -1229,13 +1235,13 @@ def compare_rows(
             differences.append(
                 f"{field} expected={expected[field]} actual={actual[field]}"
             )
-    position_tolerance = int(profile["comparison"]["position_tolerance_f32"])
-    velocity_tolerance = int(profile["comparison"]["velocity_tolerance_f32"])
+    position_tolerance = float(profile["comparison"]["position_tolerance_f32"])
+    velocity_tolerance = float(profile["comparison"]["velocity_tolerance_f32"])
     for field in (
         "position_x_f32_from_origin",
         "position_y_f32_from_origin",
     ):
-        delta = int(actual[field]) - int(expected[field])
+        delta = float(actual[field]) - float(expected[field])
         if abs(delta) > position_tolerance:
             differences.append(
                 f"{field} expected={expected[field]} actual={actual[field]} "
@@ -1244,7 +1250,7 @@ def compare_rows(
     for field in ("velocity_x_f32", "velocity_y_f32"):
         if expected[field] is None:
             continue
-        delta = int(actual[field]) - int(expected[field])
+        delta = float(actual[field]) - float(expected[field])
         if abs(delta) > velocity_tolerance:
             differences.append(
                 f"{field} expected={expected[field]} actual={actual[field]} "
@@ -1448,7 +1454,7 @@ def compare_segment(
         },
         "field_coverage": {
             "strict": ["mapped_action", "facing", "grounded"],
-            "q16_tolerant": ["relative_position_x", "relative_position_y"],
+            "float32_tolerant": ["relative_position_x", "relative_position_y"],
             "conditional_f32_tolerant_samples": velocity_fields_available,
             "observed_not_compared": [
                 "source_action_counter",

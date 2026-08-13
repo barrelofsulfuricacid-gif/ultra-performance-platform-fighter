@@ -1707,7 +1707,7 @@ static pf_status apply_shield_hit(
                       response.damage_f32;
     }
     scratch->velocity_x_f32[target_index] =
-        horizontal_direction * response.defender_pushback_f32;
+        (float)horizontal_direction * response.defender_pushback_f32;
     scratch->velocity_y_f32[target_index] = INT32_C(0);
     scratch->powershield[target_index] =
         powershield ? UINT8_C(1) : UINT8_C(0);
@@ -7253,8 +7253,8 @@ pf_status resolve_combat(
                 scratch->grounded[attacker_index] != UINT8_C(0))
             {
                 scratch->shield_recoil_x_f32[attacker_index] =
-                    -(int32_t)scratch->facing[attacker_index] *
-                    (int32_t)attack.direction *
+                    -(float)scratch->facing[attacker_index] *
+                    (float)attack.direction *
                     attacker_shield_pushback_f32[attacker_index];
                 scratch->shield_recoil_mask =
                     (uint8_t)(

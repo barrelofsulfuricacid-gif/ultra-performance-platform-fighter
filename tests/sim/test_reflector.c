@@ -258,7 +258,7 @@ static int run_content_contract(void)
         return 0;
     }
     invalid = enabled;
-    invalid.reflector.base_knockback_y_f32 = (-((float)INT32_C(1) / 65536.0f));
+    invalid.reflector.base_knockback_y_f32 = -0.0000152587890625f;
     return expect_status(
         validate_content(&invalid),
         PF_STATUS_INVALID_CONFIG,

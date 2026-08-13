@@ -11,9 +11,11 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "tools"))
 
 from ssbm_full_match_differential import (  # noqa: E402
+    expected_target_position_f32,
     native_player_fields,
     validate_complete_match,
 )
+from ssbm_collision import binary32  # noqa: E402
 
 
 def pre_frame(*, raw_c: bool = True) -> dict:
@@ -82,6 +84,34 @@ def complete_replay(*, raw_c: bool = True) -> dict:
 
 
 class CompleteMatchValidationTests(unittest.TestCase):
+    def test_position_projection_uses_direct_float32_units(self) -> None:
+        profile = {
+            "source_to_target_x_scale": {
+                "numerator": 12,
+                "denominator": 115,
+            },
+            "source_to_target_y_scale": {
+                "numerator": 11,
+                "denominator": 62,
+                "invert": True,
+                "origin_f32": 20.0,
+                "fighter_root_to_body_center_f32": 0.79998779296875,
+            },
+        }
+        x, y = expected_target_position_f32(
+            profile, {"positionX": 9.0, "positionY": 3.0}
+        )
+        self.assertAlmostEqual(x, 9.0 * 12.0 / 115.0, places=7)
+        self.assertEqual(
+            y,
+            binary32(
+                20.0
+                + binary32(-3.0 * 11.0 / 62.0)
+                - 0.79998779296875
+            ),
+        )
+        self.assertLess(abs(x), 10.0)
+
     def test_complete_exact_match_is_accepted(self) -> None:
         self.assertEqual(
             validate_complete_match(

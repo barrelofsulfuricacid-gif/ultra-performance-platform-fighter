@@ -2959,7 +2959,7 @@ static int run_content_contract_test(
     }
 
     invalid_content = *default_content;
-    invalid_content.fighter.crouch_step_speed_f32 = (-((float)INT32_C(1) / 65536.0f));
+    invalid_content.fighter.crouch_step_speed_f32 = -0.0000152587890625f;
     if (default_content->fighter.crouch_step_speed_f32 !=
             0.0f ||
         default_content->fighter.crouch_step_ticks != UINT16_C(1) ||
@@ -6653,7 +6653,7 @@ static int run_stage_humping_test(
                 (uint8_t)PF_M4_ACTION_CROUCH_STEP ||
             source_inspection.players[0].position_x_f32 !=
                 start_position_f32 +
-                    (int32_t)(repetition + UINT32_C(1)) *
+                    (float)(repetition + UINT32_C(1)) *
                         content->fighter.crouch_step_speed_f32 ||
             !expect_status(
                 pf_sim_hash(source, &source_hash),

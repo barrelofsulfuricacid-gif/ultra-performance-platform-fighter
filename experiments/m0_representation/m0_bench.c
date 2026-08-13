@@ -93,13 +93,6 @@ typedef struct {
 } MotionF32;
 
 typedef struct {
-    float x_f32;
-    float y_f32;
-    float vx_f32;
-    float vy_f32;
-} MotionQ16;
-
-typedef struct {
     uint8_t x;
     uint8_t y;
     int8_t vx;
@@ -116,7 +109,6 @@ typedef struct {
 } MotionHybrid;
 
 static MotionF32 g_motion_f32[NUM_ACTORS];
-static MotionQ16 g_motion_f32[NUM_ACTORS];
 static MotionCell256 g_motion_cell[NUM_ACTORS];
 static MotionHybrid g_motion_hybrid[NUM_ACTORS];
 static int8_t g_input_x[NUM_ACTORS];
@@ -136,9 +128,6 @@ static void init_motion(void)
         g_motion_f32[i] =
             (MotionF32){(float)x, (float)y, (float)vx * 0.25f,
                         (float)vy * 0.25f};
-        g_motion_f32[i] =
-            (MotionQ16){(int32_t)x << 16, (int32_t)y << 16,
-                        vx * (1 << 14), vy * (1 << 14)};
         g_motion_cell[i] =
             (MotionCell256){(uint8_t)x, (uint8_t)y, (int8_t)vx, (int8_t)vy};
         g_motion_hybrid[i] =
@@ -186,48 +175,6 @@ static uint64_t bench_motion_f32(uint64_t iterations)
     for (size_t i = 0; i < NUM_ACTORS; i += 97u) {
         checksum = hash_mix(checksum, float_bits(g_motion_f32[i].x));
         checksum = hash_mix(checksum, float_bits(g_motion_f32[i].y));
-    }
-    g_sink ^= checksum;
-    return checksum;
-}
-
-static float bench_motion_f32(uint64_t iterations)
-{
-    const int32_t accel = 4096;
-    const int32_t gravity = 3072;
-    const int32_t fast_gravity = 6144;
-    const int32_t max_position = 255 << 16;
-    uint64_t checksum = 0;
-
-    for (uint64_t tick = 0; tick < iterations; ++tick) {
-        for (size_t i = 0; i < NUM_ACTORS; ++i) {
-            MotionQ16 *m = &g_motion_f32[i];
-            m->vx_f32 += (int32_t)g_input_x[i] * accel;
-            m->vx_f32 -= m->vx_f32 >> 5;
-            m->vy_f32 -= g_fast_fall[i] ? fast_gravity : gravity;
-            m->x_f32 += m->vx_f32;
-            m->y_f32 += m->vy_f32;
-
-            if (m->x_f32 < 0) {
-                m->x_f32 = -m->x_f32;
-                m->vx_f32 = -(m->vx_f32 >> 1);
-            } else if (m->x_f32 > max_position) {
-                m->x_f32 = max_position - (m->x_f32 - max_position);
-                m->vx_f32 = -(m->vx_f32 >> 1);
-            }
-            if (m->y_f32 < 0) {
-                m->y_f32 = 0;
-                m->vy_f32 = -(m->vy_f32 >> 2);
-            } else if (m->y_f32 > max_position) {
-                m->y_f32 = max_position;
-                m->vy_f32 = -abs(m->vy_f32 >> 2);
-            }
-        }
-    }
-
-    for (size_t i = 0; i < NUM_ACTORS; i += 97u) {
-        checksum = hash_mix(checksum, (uint32_t)g_motion_f32[i].x_f32);
-        checksum = hash_mix(checksum, (uint32_t)g_motion_f32[i].y_f32);
     }
     g_sink ^= checksum;
     return checksum;
@@ -1214,12 +1161,6 @@ static bool motion_bounds_valid(void)
             g_motion_f32[i].y > 255.0f) {
             return false;
         }
-        if (g_motion_f32[i].x_f32 < 0 ||
-            g_motion_f32[i].x_f32 > (255 << 16) ||
-            g_motion_f32[i].y_f32 < 0 ||
-            g_motion_f32[i].y_f32 > (255 << 16)) {
-            return false;
-        }
         if (g_motion_hybrid[i].x_subcell < 0 ||
             g_motion_hybrid[i].x_subcell > 255 * 256 ||
             g_motion_hybrid[i].y_subcell < 0 ||
@@ -1233,7 +1174,6 @@ static bool motion_bounds_valid(void)
 static bool self_test(void)
 {
     reset_all_state();
-    (void)bench_motion_f32(64u);
     (void)bench_motion_f32(64u);
     (void)bench_motion_cell256(64u);
     (void)bench_motion_hybrid(64u);
@@ -1333,8 +1273,6 @@ static bool self_test(void)
 
 static const BenchCase g_cases[] = {
     {"numeric_motion", "float32", "fighter_ticks", bench_motion_f32,
-     NUM_ACTORS, sizeof(g_motion_f32)},
-    {"numeric_motion", "fixed_f32_16", "fighter_ticks", bench_motion_f32,
      NUM_ACTORS, sizeof(g_motion_f32)},
     {"numeric_motion", "cell_256_int8", "fighter_ticks",
      bench_motion_cell256, NUM_ACTORS, sizeof(g_motion_cell)},

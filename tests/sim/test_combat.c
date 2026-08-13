@@ -326,10 +326,10 @@ static int make_jab_reset_content(
     out_content->stage.platform_center_x_f32 =
         -INT32_C(20) * 1.0f;
     out_content->stage.platform_motion_amplitude_f32 = 0.0f;
-    out_content->fighter.strong_base_knockback_x_f32 = ((float)INT32_C(1) / 65536.0f);
+    out_content->fighter.strong_base_knockback_x_f32 = 0.0000152587890625f;
     out_content->fighter.strong_base_knockback_y_f32 =
         1.0f / INT32_C(2);
-    out_content->fighter.strong_knockback_growth_f32 = ((float)INT32_C(1) / 65536.0f);
+    out_content->fighter.strong_knockback_growth_f32 = 0.0000152587890625f;
     out_content->fighter.tumble_hitstun_threshold_ticks =
         UINT16_C(13);
     return expect_status(
@@ -350,9 +350,9 @@ static int make_grab_damage_content(
         return 0;
     }
 
-    out_content->fighter.jab_base_knockback_x_f32 = ((float)INT32_C(1) / 65536.0f);
-    out_content->fighter.jab_base_knockback_y_f32 = ((float)INT32_C(1) / 65536.0f);
-    out_content->fighter.jab_knockback_growth_f32 = ((float)INT32_C(1) / 65536.0f);
+    out_content->fighter.jab_base_knockback_x_f32 = 0.0000152587890625f;
+    out_content->fighter.jab_base_knockback_y_f32 = 0.0000152587890625f;
+    out_content->fighter.jab_knockback_growth_f32 = 0.0000152587890625f;
     out_content->fighter.jab_melee_knockback.enabled = UINT8_C(0);
     out_content->fighter.reference_frame_data_enabled = UINT8_C(0);
     out_content->fighter.grab_escape_damage_ticks_f32 = 1.0f;
@@ -377,9 +377,9 @@ static int make_chain_grab_escape_content(
 
     out_content->fighter.jab_damage_f32 =
         UINT32_C(45) * 1.0f;
-    out_content->fighter.jab_base_knockback_x_f32 = ((float)INT32_C(1) / 65536.0f);
-    out_content->fighter.jab_base_knockback_y_f32 = ((float)INT32_C(1) / 65536.0f);
-    out_content->fighter.jab_knockback_growth_f32 = ((float)INT32_C(1) / 65536.0f);
+    out_content->fighter.jab_base_knockback_x_f32 = 0.0000152587890625f;
+    out_content->fighter.jab_base_knockback_y_f32 = 0.0000152587890625f;
+    out_content->fighter.jab_knockback_growth_f32 = 0.0000152587890625f;
     out_content->fighter.jab_melee_knockback.enabled = UINT8_C(0);
     out_content->fighter.jab_startup_ticks = UINT16_C(1);
     out_content->fighter.jab_active_ticks = UINT16_C(1);
@@ -575,10 +575,10 @@ static int make_ladder_content(
     out_content->fighter.aerial_hitbox_half_height_f32 =
         INT32_C(2) * 1.0f;
     out_content->fighter.aerial_damage_f32 = 4.0f;
-    out_content->fighter.aerial_base_knockback_x_f32 = ((float)INT32_C(1) / 65536.0f);
+    out_content->fighter.aerial_base_knockback_x_f32 = 0.0000152587890625f;
     out_content->fighter.aerial_base_knockback_y_f32 =
         (INT32_C(3) * 1.0f) / INT32_C(5);
-    out_content->fighter.aerial_knockback_growth_f32 = ((float)INT32_C(1) / 65536.0f);
+    out_content->fighter.aerial_knockback_growth_f32 = 0.0000152587890625f;
     out_content->fighter.aerial_startup_ticks = UINT16_C(1);
     out_content->fighter.aerial_active_ticks = UINT16_C(2);
     out_content->fighter.aerial_recovery_ticks = UINT16_C(2);
@@ -592,10 +592,10 @@ static int make_ladder_content(
     out_content->fighter.strong_hitbox_half_width_f32 = 1.0f;
     out_content->fighter.strong_hitbox_half_height_f32 =
         INT32_C(2) * 1.0f;
-    out_content->fighter.strong_base_knockback_x_f32 = ((float)INT32_C(1) / 65536.0f);
+    out_content->fighter.strong_base_knockback_x_f32 = 0.0000152587890625f;
     out_content->fighter.strong_base_knockback_y_f32 =
         (INT32_C(15) * 1.0f) / INT32_C(16);
-    out_content->fighter.strong_knockback_growth_f32 = ((float)INT32_C(1) / 65536.0f);
+    out_content->fighter.strong_knockback_growth_f32 = 0.0000152587890625f;
     out_content->fighter.strong_startup_ticks = UINT16_C(2);
     out_content->fighter.strong_active_ticks = UINT16_C(2);
     out_content->fighter.strong_recovery_ticks = UINT16_C(6);
@@ -634,10 +634,10 @@ static int make_kill_confirm_content(
         return 0;
     }
 
-    out_content->fighter.jab_base_knockback_x_f32 = ((float)INT32_C(1) / 65536.0f);
+    out_content->fighter.jab_base_knockback_x_f32 = 0.0000152587890625f;
     out_content->fighter.jab_base_knockback_y_f32 =
         1.0f / INT32_C(5);
-    out_content->fighter.jab_knockback_growth_f32 = ((float)INT32_C(1) / 65536.0f);
+    out_content->fighter.jab_knockback_growth_f32 = 0.0000152587890625f;
     out_content->fighter.jab_melee_knockback.enabled = UINT8_C(0);
     out_content->fighter.reference_frame_data_enabled = UINT8_C(0);
     out_content->fighter.strong_base_knockback_x_f32 =
@@ -1727,7 +1727,7 @@ static int make_v_cancel_fall_special_setup(
     out_content->fighter.air_dodge_invulnerability_begin_tick = UINT16_C(0);
     out_content->fighter.air_dodge_invulnerability_end_tick = UINT16_C(1);
     out_content->fighter.air_dodge_ordinary_physics_begin_tick = UINT16_C(1);
-    out_content->fighter.gravity_f32 = ((float)INT32_C(1) / 65536.0f);
+    out_content->fighter.gravity_f32 = 0.0000152587890625f;
     return expect_status(
         make_content_view(out_content, out_view),
         PF_STATUS_OK,
@@ -10383,9 +10383,9 @@ static int run_combat_entry_tilt_age_reset_test(
     /* Geometry is unrelated to the ResetBound and armor entry contracts.
      * Keep those authored fixtures on the rectangle path. */
     reset_content.fighter.reference_frame_data_enabled = UINT8_C(0);
-    reset_content.fighter.jab_base_knockback_x_f32 = ((float)INT32_C(1) / 65536.0f);
-    reset_content.fighter.jab_base_knockback_y_f32 = ((float)INT32_C(1) / 65536.0f);
-    reset_content.fighter.jab_knockback_growth_f32 = ((float)INT32_C(1) / 65536.0f);
+    reset_content.fighter.jab_base_knockback_x_f32 = 0.0000152587890625f;
+    reset_content.fighter.jab_base_knockback_y_f32 = 0.0000152587890625f;
+    reset_content.fighter.jab_knockback_growth_f32 = 0.0000152587890625f;
     reset_content.fighter.jab_melee_knockback.enabled = UINT8_C(0);
     if (!expect_status(
             make_content_view(&reset_content, &reset_view),
@@ -14679,17 +14679,17 @@ static int reference_falcon_turn_hurt_pose_facing_case(
                 &world_capsules[capsule_index];
 
             if (world->endpoint_a_x_f32 !=
-                    candidate_facing * local->endpoint_a_x_f32 ||
+                    (float)candidate_facing * local->endpoint_a_x_f32 ||
                 world->endpoint_a_y_f32 !=
                     fighter->half_height_f32 + local->endpoint_a_y_f32 ||
                 world->endpoint_a_z_f32 !=
-                    candidate_facing * local->endpoint_a_z_f32 ||
+                    (float)candidate_facing * local->endpoint_a_z_f32 ||
                 world->endpoint_b_x_f32 !=
-                    candidate_facing * local->endpoint_b_x_f32 ||
+                    (float)candidate_facing * local->endpoint_b_x_f32 ||
                 world->endpoint_b_y_f32 !=
                     fighter->half_height_f32 + local->endpoint_b_y_f32 ||
                 world->endpoint_b_z_f32 !=
-                    candidate_facing * local->endpoint_b_z_f32 ||
+                    (float)candidate_facing * local->endpoint_b_z_f32 ||
                 world->radius_f32 != local->radius_f32 ||
                 world->hurtbox_id != local->hurtbox_id ||
                 world->height != local->height ||
@@ -14926,9 +14926,9 @@ static int make_shield_break_content(
     out_content->fighter.shield_hold_depletion_f32 = 0.01f;
     out_content->fighter.light_shield_hold_depletion_f32 = 0.0025f;
     out_content->fighter.shield_attacker_pushback_damage_f32 =
-        1.0f / 65536.0f;
+        0.0000152587890625f;
     out_content->fighter.shield_attacker_pushback_base_f32 =
-        1.0f / 65536.0f;
+        0.0000152587890625f;
     out_content->fighter.gravity_f32 = 0.1f;
     out_content->fighter.fall_speed_f32 = 0.4f;
     out_content->fighter.shield_break_launch_speed_f32 = 0.5f;
@@ -16140,7 +16140,7 @@ static int make_ssbm_falcon_punch_content(
     }
     out_content->item.enabled = UINT8_C(0);
     out_content->projectile.enabled = UINT8_C(1);
-    out_content->projectile.speed_f32 = ((float)INT32_C(1) / 65536.0f);
+    out_content->projectile.speed_f32 = 0.0000152587890625f;
     out_content->projectile.lifetime_ticks = UINT16_C(1);
     out_content->reflector.enabled = UINT8_C(1);
     out_content->stage.blast_left_f32 =
@@ -19602,8 +19602,8 @@ static uint8_t run_ssbm_slope_ledge_response_trace_case(
             1.0f / INT32_C(100);
         content.fighter.jab_base_knockback_y_f32 =
             1.0f / INT32_C(5);
-        content.fighter.jab_knockback_growth_f32 = ((float)INT32_C(1) / 65536.0f);
-        content.fighter.hitstun_velocity_per_tick_f32 = ((float)INT32_C(515) / 65536.0f);
+        content.fighter.jab_knockback_growth_f32 = 0.0000152587890625f;
+        content.fighter.hitstun_velocity_per_tick_f32 = 0.0078582763671875f;
         content.fighter.tumble_hitstun_threshold_ticks = UINT16_C(13);
     }
     else
@@ -19625,11 +19625,11 @@ static uint8_t run_ssbm_slope_ledge_response_trace_case(
         content.fighter.jab_damage_f32 =
             UINT32_C(10) * 1.0f;
         content.fighter.jab_hitlag_ticks = UINT16_C(4);
-        content.fighter.jab_base_knockback_x_f32 = ((float)INT32_C(12140) / 65536.0f);
-        content.fighter.jab_base_knockback_y_f32 = ((float)INT32_C(20002) / 65536.0f);
+        content.fighter.jab_base_knockback_x_f32 = 0.18524169921875f;
+        content.fighter.jab_base_knockback_y_f32 = 0.305206298828125f;
         content.fighter.reference_frame_data_enabled = UINT8_C(1);
-        content.fighter.jab_knockback_growth_f32 = ((float)INT32_C(1) / 65536.0f);
-        content.fighter.hitstun_velocity_per_tick_f32 = ((float)INT32_C(977) / 65536.0f);
+        content.fighter.jab_knockback_growth_f32 = 0.0000152587890625f;
+        content.fighter.hitstun_velocity_per_tick_f32 = 0.0149078369140625f;
     }
     if (!expect_status(
             make_content_view(&content, &view),
@@ -23685,7 +23685,7 @@ static int run_boost_grab_test(
             inspection.players[0].action_ticks != UINT16_C(1) ||
             inspection.players[0].velocity_x_f32 !=
                 content->fighter.dash_attack_speed_f32 -
-                    (int32_t)(tick + UINT32_C(1)) *
+                    (float)(tick + UINT32_C(1)) *
                         content->fighter.traction_f32)
         {
             return fail("boost-grab-every-legal-cancel-frame");

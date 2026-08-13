@@ -6,8 +6,9 @@ establish final-engine performance.
 
 ## Candidate families
 
-- Motion arithmetic: float32, float32 fixed point, 256-cell integers, and
-  integer-position/float-velocity hybrid.
+- Motion arithmetic: float32, 256-cell integers, and an
+  integer-position/float-velocity hybrid. The former fixed-point candidate was
+  retired when production standardized on IEEE-754 binary32.
 - World coordinate range: 256-cell `uint8_t` and 4096-cell `uint16_t`.
 - Sparse and dense broadphase: naive pairs, rebuilt sweep, 16×16 grid, and a
   256×256 occupancy bitboard.

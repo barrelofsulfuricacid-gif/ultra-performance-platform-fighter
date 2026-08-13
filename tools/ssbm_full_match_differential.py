@@ -40,7 +40,9 @@ from ssbm_replay_differential import (  # noqa: E402
     input_trigger,
     load_json,
     logical_buttons,
+    scale_f32,
 )
+from ssbm_collision import binary32  # noqa: E402
 
 
 REQUIRED_STAGE_IDS = frozenset({28, 31, 32})
@@ -314,29 +316,17 @@ def expected_target_action(
 
 def expected_target_position_f32(
     profile: dict[str, Any], source_post: dict[str, Any]
-) -> tuple[int, int]:
+) -> tuple[float, float]:
     x_scale = profile["source_to_target_x_scale"]
     y_scale = profile["source_to_target_y_scale"]
     source_x = float(source_post["positionX"])
     source_y = float(source_post["positionY"])
-    target_x = round(
-        source_x
-        * int(x_scale["numerator"])
-        * 65536.0
-        / int(x_scale["denominator"])
+    target_x = scale_f32(source_x, x_scale)
+    target_y = binary32(
+        float(y_scale["origin_f32"])
+        + scale_f32(source_y, y_scale)
+        - float(y_scale["fighter_root_to_body_center_f32"])
     )
-    scaled_y = round(
-        source_y
-        * int(y_scale["numerator"])
-        * 65536.0
-        / int(y_scale["denominator"])
-    )
-    target_y = int(y_scale["origin_f32"])
-    if bool(y_scale.get("invert")):
-        target_y -= scaled_y
-    else:
-        target_y += scaled_y
-    target_y -= int(y_scale["fighter_root_to_body_center_f32"])
     return target_x, target_y
 
 
@@ -346,11 +336,14 @@ def first_divergence(
     profile: dict[str, Any],
     *,
     ignore_position: bool = False,
-    displacement_tolerance_f32: int | None = None,
+    displacement_tolerance_f32: float | None = None,
 ) -> dict[str, Any] | None:
     source_frames = replay["frames"]
     l_cancel_action: list[int | None] = [None, None]
-    previous_positions: list[tuple[int, int, int, int] | None] = [None, None]
+    previous_positions: list[tuple[float, float, float, float] | None] = [
+        None,
+        None,
+    ]
     for row_index, source_frame in enumerate(source_frames):
         if row_index >= len(target_rows):
             return {
@@ -407,8 +400,8 @@ def first_divergence(
             expected_x_f32, expected_y_f32 = expected_target_position_f32(
                 profile, source_post
             )
-            target_x_f32 = int(target[f"p{player_index}_x_f32"])
-            target_y_f32 = int(target[f"p{player_index}_y_f32"])
+            target_x_f32 = float(target[f"p{player_index}_x_f32"])
+            target_y_f32 = float(target[f"p{player_index}_y_f32"])
             comparisons = {
                 "facing": (
                     round(float(source_post["facingDirection"])),
@@ -423,8 +416,8 @@ def first_divergence(
                     int(target[f"p{player_index}_stocks"]),
                 ),
                 "damage_f32": (
-                    round(float(source_post["percent"]) * 65536.0),
-                    int(target[f"p{player_index}_damage_f32"]),
+                    binary32(float(source_post["percent"])),
+                    float(target[f"p{player_index}_damage_f32"]),
                 ),
                 "position_x_f32": (
                     expected_x_f32,
@@ -465,15 +458,17 @@ def first_divergence(
                 ):
                     continue
                 tolerance = (
-                    int(profile["comparison"]["position_tolerance_f32"])
+                    float(profile["comparison"]["position_tolerance_f32"])
                     if field.startswith("position_")
                     else (
                         displacement_tolerance_f32
                         if displacement_tolerance_f32 is not None
-                        else int(profile["comparison"]["velocity_tolerance_f32"])
+                        else float(
+                            profile["comparison"]["velocity_tolerance_f32"]
+                        )
                     )
                     if field.startswith("displacement_")
-                    else int(profile["comparison"]["damage_tolerance_f32"])
+                    else float(profile["comparison"]["damage_tolerance_f32"])
                     if field == "damage_f32"
                     else 0
                 )
@@ -691,8 +686,8 @@ def parser() -> argparse.ArgumentParser:
         ),
     )
     result.add_argument(
-        "--diagnostic-displacement-tolerance-q16",
-        type=int,
+        "--diagnostic-displacement-tolerance-f32",
+        type=float,
         help=(
             "diagnostic only; override the per-frame displacement tolerance "
             "without weakening the qualifying profile"

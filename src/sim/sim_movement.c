@@ -1227,7 +1227,7 @@ static pf_status evaluate_falcon_ground_blend_pose(
             hsd_local_pose next[PF_M4_HSD_POSE_MAX_JOINTS];
             float step_frame_f32 =
                 source_animation_frame_f32 -
-                (transition_steps - step) * 1.0f;
+                (float)(transition_steps - step);
             const falcon_submotion_data *motion =
                 falcon_reference_submotion(
                     source_submotion);
@@ -1250,15 +1250,15 @@ static pf_status evaluate_falcon_ground_blend_pose(
                     data,
                     step_target,
                     current,
-                    (int32_t)(INT32_C(6) - step) * 1.0f /
-                        (int32_t)(INT32_C(7) - step),
+                    (float)(INT32_C(6) - step) /
+                        (float)(INT32_C(7) - step),
                     next))
             {
                 return PF_STATUS_DETERMINISTIC_FAULT;
             }
             (void)memcpy(current, next, sizeof(*next) * data->joint_count);
         }
-        progress_f32 = transition_steps * 1.0f;
+        progress_f32 = (float)transition_steps;
     }
     else if (world->ground_blend_progress_f32[player_index] > INT32_C(0) &&
              action == previous_action &&
@@ -5903,7 +5903,7 @@ void reset_player(
     sim->world.position_x_f32[player_index] =
         reference_spawn != NULL
             ? reference_spawn->position_x_f32
-            : centered_slot * stage->spawn_spacing_f32 +
+            : (float)centered_slot * stage->spawn_spacing_f32 +
                   (stage->reference_collision_profile !=
                            (uint16_t)PF_M4_REFERENCE_STAGE_AUTHORED
                        ? stage->reference_spawn_x_f32

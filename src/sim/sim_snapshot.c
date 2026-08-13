@@ -1225,10 +1225,11 @@ static void pf_read_payload(
             reader->failed = 1;
         }
         world->ground_blend_pose[player_index].mode =
-            (encoded_progress & PF_M4_SNAPSHOT_GROUND_BLEND_REPLAY_TAG) !=
-                    UINT32_C(0)
-                ? (uint8_t)PF_M4_HSD_COMPACT_POSE_REPLAY
-                : (uint8_t)PF_M4_HSD_COMPACT_POSE_PACKED;
+            (uint8_t)(
+                (encoded_progress & PF_M4_SNAPSHOT_GROUND_BLEND_REPLAY_TAG) !=
+                        UINT32_C(0)
+                    ? PF_M4_HSD_COMPACT_POSE_REPLAY
+                    : PF_M4_HSD_COMPACT_POSE_PACKED);
         world->ground_blend_progress_f32[player_index] =
             pf_sim_f32_from_bits(
                 encoded_progress &

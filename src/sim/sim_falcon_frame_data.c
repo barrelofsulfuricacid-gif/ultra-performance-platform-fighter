@@ -2198,10 +2198,6 @@ int falcon_reference_retained_hsd_hurt_capsules(
 
 uint16_t falcon_reference_shield_break_down_submotion(void)
 {
-    _Static_assert(
-        falcon_dynamic_hsd_pose_branch_shield_break_down_up_component_f32 <
-            INT32_C(0),
-        "Falcon terminal ShieldBreakFly HipN branch must remain DownD");
     return falcon_dynamic_hsd_pose_branch_shield_break_down_up !=
                    UINT8_C(0)
                ? (uint16_t)
