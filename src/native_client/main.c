@@ -1,8 +1,8 @@
 #include "pf/render_packet.h"
 #include "pf/sim.h"
+#include "m4_native_playtest.h"
 
 #include <SDL3/SDL.h>
-#include <SDL3/SDL_main.h>
 
 #include <inttypes.h>
 #include <stddef.h>
@@ -212,6 +212,12 @@ static int run_smoke(void)
         result = 1;
         goto cleanup;
     }
+    if (!pf_m4_native_playtest_smoke())
+    {
+        (void)puts("native-client-smoke=fail stage=playtest-contract");
+        result = 1;
+        goto cleanup;
+    }
 
     pf_render_packet_build_probe(&packet);
     if (!pf_render_packet_validate(&packet))
@@ -298,96 +304,6 @@ cleanup:
     return result;
 }
 
-static int run_interactive(void)
-{
-    PF_RenderPacket packet;
-    SDL_Window *window = NULL;
-    SDL_Renderer *renderer = NULL;
-    SDL_Texture *texture = NULL;
-    SDL_GPUDevice *gpu_device;
-    SDL_Event event;
-    int width;
-    int height;
-    int running = 1;
-    int result = 1;
-
-    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_GAMEPAD))
-    {
-        (void)report_sdl_failure("init-interactive");
-        return 1;
-    }
-
-    window = SDL_CreateWindow(
-        "M1 SDL3 / shared render-packet spike",
-        960,
-        540,
-        SDL_WINDOW_RESIZABLE);
-    if (window == NULL)
-    {
-        (void)report_sdl_failure("create-window");
-        goto cleanup;
-    }
-
-    renderer = SDL_CreateGPURenderer(NULL, window);
-    if (renderer == NULL)
-    {
-        renderer = SDL_CreateRenderer(window, NULL);
-    }
-    if (renderer == NULL)
-    {
-        (void)report_sdl_failure("create-renderer");
-        goto cleanup;
-    }
-
-    pf_render_packet_build_probe(&packet);
-    texture = create_probe_texture(renderer, &packet);
-    if (texture == NULL)
-    {
-        (void)report_sdl_failure("create-interactive-texture");
-        goto cleanup;
-    }
-
-    gpu_device = SDL_GetGPURendererDevice(renderer);
-    (void)printf(
-        "native-client renderer=%s gpu_driver=%s\n",
-        SDL_GetRendererName(renderer),
-        gpu_device == NULL ? "fallback" : SDL_GetGPUDeviceDriver(gpu_device));
-
-    while (running)
-    {
-        while (SDL_PollEvent(&event))
-        {
-            if (event.type == SDL_EVENT_QUIT ||
-                (event.type == SDL_EVENT_KEY_DOWN &&
-                 event.key.key == SDLK_ESCAPE))
-            {
-                running = 0;
-            }
-        }
-
-        if (!SDL_GetCurrentRenderOutputSize(renderer, &width, &height) ||
-            !render_probe_packet(
-                renderer,
-                texture,
-                width,
-                height,
-                &packet))
-        {
-            goto cleanup;
-        }
-        SDL_Delay(16u);
-    }
-
-    result = 0;
-
-cleanup:
-    SDL_DestroyTexture(texture);
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
-    SDL_Quit();
-    return result;
-}
-
 int main(int argument_count, char **arguments)
 {
     if (argument_count == 2 && strcmp(arguments[1], "--smoke") == 0)
@@ -396,7 +312,7 @@ int main(int argument_count, char **arguments)
     }
     if (argument_count == 1)
     {
-        return run_interactive();
+        return pf_m4_native_playtest_run();
     }
 
     (void)fprintf(stderr, "usage: %s [--smoke]\n", arguments[0]);

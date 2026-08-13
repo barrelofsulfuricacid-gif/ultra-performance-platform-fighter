@@ -1,0 +1,626 @@
+{
+  "schema": 1,
+  "scope": "ssbm-dynamic-hsd-hurt-pose-import",
+  "fighter": "CPTFALCON",
+  "fighter_kind": 2,
+  "fighter_root": "ftDataCaptain",
+  "model_root": "PlyCaptain5KGy_Share_joint",
+  "pose_conversion": {
+    "root_rotation_turns": [0.0, 0.25, 0.0],
+    "source_to_sim_numerator": 12,
+    "source_to_sim_denominator": 115,
+    "axis_sign": [1, -1, 1]
+  },
+  "source_sha256": {
+    "fighter_dat": "4cf61a52737d464df9298fd15573345fb3b9a15c79ab47dce4fd2e3e707917af",
+    "animation_dat": "a9a0ccc2382a2f02d5423675469719488540dd119a14577712c97348f70e1c1a",
+    "common_dat": "63841336337eb5a7366b06ccc60ea4bd37c3604ab56e19939d78b9aa9cdd234c",
+    "model_dat": "dcc34bbb428f978858e95b18e29d4a476b4582d59cdc5daca3814dcaf2eef872"
+  },
+  "motions": [
+    { "submotion_index": 2, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT", "compact_blend": true },
+    { "submotion_index": 3, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT_2" },
+    { "submotion_index": 4, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT_3" },
+    { "submotion_index": 7, "c_submotion": "PF_M4_FALCON_SUBMOTION_WALK_SLOW", "compact_blend": true },
+    { "submotion_index": 8, "c_submotion": "PF_M4_FALCON_SUBMOTION_WALK_MIDDLE", "compact_blend": true },
+    { "submotion_index": 9, "c_submotion": "PF_M4_FALCON_SUBMOTION_WALK_FAST", "compact_blend": true },
+    { "submotion_index": 10, "c_submotion": "PF_M4_FALCON_SUBMOTION_TURN" },
+    { "submotion_index": 12, "c_submotion": "PF_M4_FALCON_SUBMOTION_DASH", "compact_blend": true },
+    { "submotion_index": 13, "c_submotion": "PF_M4_FALCON_SUBMOTION_RUN", "compact_blend": true },
+    { "submotion_index": 15, "c_submotion": "PF_M4_FALCON_SUBMOTION_LANDING" },
+    { "submotion_index": 20, "c_submotion": "PF_M4_FALCON_SUBMOTION_FALL" },
+    { "submotion_index": 21, "c_submotion": "PF_M4_FALCON_SUBMOTION_FALL_FORWARD" },
+    { "submotion_index": 22, "c_submotion": "PF_M4_FALCON_SUBMOTION_FALL_BACKWARD" },
+    { "submotion_index": 23, "c_submotion": "PF_M4_FALCON_SUBMOTION_FALL_AERIAL" },
+    { "submotion_index": 24, "c_submotion": "PF_M4_FALCON_SUBMOTION_FALL_AERIAL_FORWARD" },
+    { "submotion_index": 25, "c_submotion": "PF_M4_FALCON_SUBMOTION_FALL_AERIAL_BACKWARD" },
+    { "submotion_index": 26, "c_submotion": "PF_M4_FALCON_SUBMOTION_FALL_SPECIAL" },
+    { "submotion_index": 27, "c_submotion": "PF_M4_FALCON_SUBMOTION_FALL_SPECIAL_FORWARD" },
+    { "submotion_index": 28, "c_submotion": "PF_M4_FALCON_SUBMOTION_FALL_SPECIAL_BACKWARD" },
+    { "submotion_index": 34, "c_submotion": "PF_M4_FALCON_SUBMOTION_SQUAT_REVERSE" },
+    { "submotion_index": 36, "c_submotion": "PF_M4_FALCON_SUBMOTION_LANDING_FALL_SPECIAL" },
+    { "submotion_index": 40, "c_submotion": "PF_M4_FALCON_SUBMOTION_GUARD_SET_OFF" },
+    { "submotion_index": 44, "c_submotion": "PF_M4_FALCON_SUBMOTION_AIR_DODGE" },
+    { "submotion_index": 46, "c_submotion": "UINT16_C(46)", "action_frame_offset": 0 },
+    { "submotion_index": 47, "c_submotion": "UINT16_C(47)", "action_frame_offset": -1 },
+    { "submotion_index": 48, "c_submotion": "UINT16_C(48)", "action_frame_offset": -1 },
+    { "submotion_index": 49, "c_submotion": "UINT16_C(49)", "action_frame_offset": 0 },
+    { "submotion_index": 50, "c_submotion": "UINT16_C(50)", "action_frame_offset": -1 },
+    { "submotion_index": 51, "c_submotion": "UINT16_C(51)", "action_frame_offset": -1 },
+    { "submotion_index": 52, "c_submotion": "UINT16_C(52)", "action_frame_offset": 0 },
+    { "submotion_index": 53, "c_submotion": "UINT16_C(53)", "action_frame_offset": 0 },
+    { "submotion_index": 54, "c_submotion": "UINT16_C(54)", "action_frame_offset": 0 },
+    { "submotion_index": 55, "c_submotion": "UINT16_C(55)", "action_frame_offset": 0 },
+    { "submotion_index": 56, "c_submotion": "UINT16_C(56)", "action_frame_offset": 0 },
+    { "submotion_index": 57, "c_submotion": "UINT16_C(57)", "action_frame_offset": 0 },
+    { "submotion_index": 58, "c_submotion": "UINT16_C(58)", "action_frame_offset": 0 },
+    { "submotion_index": 59, "c_submotion": "UINT16_C(59)", "action_frame_offset": 0 },
+    { "submotion_index": 60, "c_submotion": "UINT16_C(60)", "action_frame_offset": 0 },
+    { "submotion_index": 62, "c_submotion": "UINT16_C(62)", "action_frame_offset": 0 },
+    { "submotion_index": 64, "c_submotion": "UINT16_C(64)", "action_frame_offset": 0 },
+    { "submotion_index": 66, "c_submotion": "UINT16_C(66)", "action_frame_offset": 0 },
+    { "submotion_index": 67, "c_submotion": "UINT16_C(67)", "action_frame_offset": 0 },
+    { "submotion_index": 68, "c_submotion": "UINT16_C(68)", "action_frame_offset": 0 },
+    { "submotion_index": 69, "c_submotion": "UINT16_C(69)", "action_frame_offset": 0 },
+    { "submotion_index": 70, "c_submotion": "UINT16_C(70)", "action_frame_offset": 0 },
+    { "submotion_index": 71, "c_submotion": "UINT16_C(71)", "action_frame_offset": 0 },
+    { "submotion_index": 72, "c_submotion": "UINT16_C(72)", "action_frame_offset": 0 },
+    { "submotion_index": 165, "c_submotion": "PF_M4_FALCON_SUBMOTION_DAMAGE_HIGH_1", "action_frame_offset": 0 },
+    { "submotion_index": 166, "c_submotion": "UINT16_C(166)", "action_frame_offset": 0 },
+    { "submotion_index": 167, "c_submotion": "UINT16_C(167)", "action_frame_offset": 0 },
+    { "submotion_index": 168, "c_submotion": "PF_M4_FALCON_SUBMOTION_DAMAGE_NEUTRAL_1", "action_frame_offset": 0 },
+    { "submotion_index": 169, "c_submotion": "PF_M4_FALCON_SUBMOTION_DAMAGE_NEUTRAL_2", "action_frame_offset": 0 },
+    { "submotion_index": 170, "c_submotion": "UINT16_C(170)", "action_frame_offset": 0 },
+    { "submotion_index": 171, "c_submotion": "PF_M4_FALCON_SUBMOTION_DAMAGE_LOW_1", "action_frame_offset": 0 },
+    { "submotion_index": 172, "c_submotion": "UINT16_C(172)", "action_frame_offset": 0 },
+    { "submotion_index": 173, "c_submotion": "UINT16_C(173)", "action_frame_offset": 0 },
+    { "submotion_index": 174, "c_submotion": "PF_M4_FALCON_SUBMOTION_DAMAGE_AIR_1", "action_frame_offset": 0 },
+    { "submotion_index": 175, "c_submotion": "UINT16_C(175)", "action_frame_offset": 0 },
+    { "submotion_index": 176, "c_submotion": "UINT16_C(176)", "action_frame_offset": 0 },
+    { "submotion_index": 177, "c_submotion": "PF_M4_FALCON_SUBMOTION_DAMAGE_FLY_HIGH", "action_frame_offset": 0 },
+    { "submotion_index": 178, "c_submotion": "PF_M4_FALCON_SUBMOTION_DAMAGE_FLY_NEUTRAL", "action_frame_offset": 0 },
+    { "submotion_index": 179, "c_submotion": "PF_M4_FALCON_SUBMOTION_DAMAGE_FLY_LOW", "action_frame_offset": 0 },
+    { "submotion_index": 180, "c_submotion": "PF_M4_FALCON_SUBMOTION_DAMAGE_FLY_TOP", "action_frame_offset": 0 },
+    { "submotion_index": 181, "c_submotion": "PF_M4_FALCON_SUBMOTION_DAMAGE_FLY_ROLL", "action_frame_offset": 0 },
+    { "submotion_index": 205, "c_submotion": "PF_M4_FALCON_SUBMOTION_FURAFURA" },
+    { "submotion_index": 242, "c_submotion": "PF_M4_FALCON_SUBMOTION_CATCH", "action_frame_offset": -1 },
+    { "submotion_index": 243, "c_submotion": "UINT16_C(243)", "action_frame_offset": -1 },
+    { "submotion_index": 244, "c_submotion": "PF_M4_FALCON_SUBMOTION_CATCH_WAIT" },
+    { "submotion_index": 247, "c_submotion": "PF_M4_FALCON_SUBMOTION_THROW_FORWARD" },
+    { "submotion_index": 248, "c_submotion": "PF_M4_FALCON_SUBMOTION_THROW_BACK" },
+    { "submotion_index": 249, "c_submotion": "PF_M4_FALCON_SUBMOTION_THROW_UP" },
+    { "submotion_index": 250, "c_submotion": "PF_M4_FALCON_SUBMOTION_THROW_DOWN" },
+    { "submotion_index": 254, "c_submotion": "PF_M4_FALCON_SUBMOTION_CAPTURE_PULLED_LOW" },
+    { "submotion_index": 255, "c_submotion": "PF_M4_FALCON_SUBMOTION_CAPTURE_WAIT_LOW" },
+    { "submotion_index": 262, "c_submotion": "PF_M4_FALCON_SUBMOTION_THROWN_FORWARD" },
+    { "submotion_index": 263, "c_submotion": "PF_M4_FALCON_SUBMOTION_THROWN_BACK" },
+    { "submotion_index": 264, "c_submotion": "PF_M4_FALCON_SUBMOTION_THROWN_UP" },
+    { "submotion_index": 265, "c_submotion": "PF_M4_FALCON_SUBMOTION_THROWN_DOWN" },
+    { "submotion_index": 286, "c_submotion": "PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_FLY" },
+    { "submotion_index": 289, "c_submotion": "PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_DOWN_DOWN" },
+    { "submotion_index": 291, "c_submotion": "PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_STAND_DOWN" },
+    { "submotion_index": 303, "c_submotion": "PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_START_GROUND" },
+    { "submotion_index": 304, "c_submotion": "PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_HIT_GROUND" },
+    { "submotion_index": 305, "c_submotion": "PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_START_AIR" },
+    { "submotion_index": 306, "c_submotion": "PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_HIT_AIR" },
+    { "submotion_index": 307, "c_submotion": "PF_M4_FALCON_SUBMOTION_FALCON_DIVE_START_GROUND" },
+    { "submotion_index": 308, "c_submotion": "PF_M4_FALCON_SUBMOTION_FALCON_DIVE_START_AIR" },
+    { "submotion_index": 309, "c_submotion": "PF_M4_FALCON_SUBMOTION_FALCON_DIVE_CATCH" },
+    { "submotion_index": 310, "c_submotion": "PF_M4_FALCON_SUBMOTION_FALCON_DIVE_THROW" }
+  ],
+  "static_local_poses": [
+    {
+      "id": "guard_target",
+      "path": "data/ssbm_falcon_guard_target_pose.json",
+      "sha256": "da78f31e12c2b5c70b844f6b8e320ca1366c5c42e02f4a08e594d1bc8bf5d7da"
+    }
+  ],
+  "wait_animation_table": {
+    "expected_weight_total": 100
+  },
+  "joint_point_sets": [
+    {
+      "id": "ecb",
+      "source_joint_indices": [39, 47, 25, 14, 8, 4]
+    },
+    {
+      "id": "capture_constraint",
+      "source_joint_indices": [2, 61]
+    }
+  ],
+  "capture_constraint": {
+    "fighter_root_source_joint_index": 1,
+    "model_offset_source_joint_index": 2,
+    "holder_attachment_source_joint_index": 61,
+    "world_y_source_to_sim_numerator": 11,
+    "world_y_source_to_sim_denominator": 62
+  },
+  "blend_copy_target_source_joint_indices": [1],
+  "pose_branches": [
+    {
+      "id": "shield_break_down_up",
+      "submotion_index": 286,
+      "runtime_part_index": 4,
+      "sample": "last_frame",
+      "matrix_row": 1,
+      "matrix_column": 1
+    }
+  ],
+  "expected": {
+    "source_joint_count": 63,
+    "runtime_part_count": 63,
+    "joint_count": 26,
+    "motion_count": 89,
+    "wait_animation_count": 3,
+    "compact_motion_count": 6,
+    "track_count": 5815,
+    "key_count": 55515,
+    "capsule_count": 11,
+    "rotation_joint_count": 19,
+    "translation_joint_count": 6,
+    "copy_target_joint_count": 1,
+    "static_local_pose_count": 1,
+    "joint_point_set_count": 2,
+    "pose_branch_count": 1,
+    "data_sha256": "d036498f50548a5291fa2a43320db42fb7218b5b92c84b6750c2f49386115515"
+  },
+  "damage_pose_qualification": {
+    "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
+    "dolphin_release_artifact_sha256": "87e9ef6d80ed03354a1647d0616016dbc91399aa9e86a69ae5a398edd0a0c2bd",
+    "probe_engine_version": "1.3.1",
+    "decomp_revision": "9509dc04406fb2028bfab01243841ba4787c0fb7",
+    "capture_route_field": "damage_hit_route",
+    "coordinate_tolerance_q16": 8,
+    "compare_ecb": true,
+    "ecb_joint_point_set_id": "ecb",
+    "captures": [
+      {
+        "id": "damage-response-pose-control",
+        "sha256": "e34454e4f4cd7c3e02d46285820ce8210b9c002f6a32242577fba98aa9f0e437"
+      },
+      {
+        "id": "damage-response-pose-repeat",
+        "sha256": "24dc8291bcfe9ca8e470bda95e34e97242eb1138a5fc356eef91746777201401",
+        "repeat_of": "damage-response-pose-control"
+      }
+    ],
+    "cases": [
+      {
+        "source_action": "DAMAGE_NEUTRAL_2",
+        "submotion_index": 169,
+        "compare_ecb": false,
+        "expected_source_frame_pattern_q16": [65536, 65536, 65536, 131072, 196608, 262144, 327680, 393216, 458752, 524288, 589824, 655360],
+        "expected_source_frame_pattern_repetitions": 6,
+        "expected_animation_rate_q16": 65536,
+        "expected_samples": 72
+      },
+      {
+        "source_action": "DAMAGE_NEUTRAL_2",
+        "submotion_index": 169,
+        "excluded_label_suffixes": ["_pre_hit"],
+        "ecb_grounded_from_capture": true,
+        "ecb_lock_ticks_from_capture": true,
+        "expected_source_frame_pattern_q16": [65536, 65536, 131072, 196608, 262144, 327680, 393216, 458752, 524288, 589824, 655360],
+        "expected_source_frame_pattern_repetitions": 6,
+        "expected_animation_rate_q16": 65536,
+        "expected_samples": 66
+      },
+      {
+        "source_action": "DAMAGE_NEUTRAL_2",
+        "submotion_index": 169,
+        "label_suffix": "_pre_hit",
+        "ecb_owner": "previous-row-post-animation",
+        "ecb_owner_facing": 1,
+        "ecb_grounded_from_capture": true,
+        "expected_source_frame_pattern_q16": [65536],
+        "expected_source_frame_pattern_repetitions": 6,
+        "expected_animation_rate_q16": 65536,
+        "expected_samples": 6
+      }
+    ]
+  },
+  "action_hurt_qualification": {
+    "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
+    "dolphin_release_artifact_sha256": "87e9ef6d80ed03354a1647d0616016dbc91399aa9e86a69ae5a398edd0a0c2bd",
+    "probe_engine_version": "1.3.1",
+    "decomp_revision": "9509dc04406fb2028bfab01243841ba4787c0fb7",
+    "capture_route_field": "shield_break_orientation_route",
+    "coordinate_tolerance_q16": 8,
+    "captures": [
+      {
+        "id": "shield-break-control",
+        "sha256": "ae02dca6e63eda47e780ee96cae26c4c8a565f4e2d534979791f827d737f5645"
+      },
+      {
+        "id": "shield-break-repeat",
+        "sha256": "ddbc82fcd401fdbea41a202964f3dff678eff32a23199567607e26cb9ba5f40b"
+      }
+    ],
+    "cases": [
+      { "source_action": "SHIELD_BREAK_FLY", "submotion_index": 286, "first_source_frame": 1, "last_source_frame": 42, "expected_samples": 42 },
+      { "source_action": "SHIELD_BREAK_DOWN_D", "submotion_index": 289, "first_source_frame": 0, "last_source_frame": 25, "expected_samples": 26 },
+      { "source_action": "SHIELD_BREAK_STAND_D", "submotion_index": 291, "first_source_frame": 0, "last_source_frame": 29, "expected_samples": 30 },
+      { "source_action": "SHIELD_BREAK_TEETER", "submotion_index": 205, "first_source_frame": 0, "last_source_frame": 99, "source_frame_cycle": 100, "expected_samples": 127 }
+    ]
+  },
+  "wait_pose_qualification": {
+    "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
+    "dolphin_release_artifact_sha256": "87e9ef6d80ed03354a1647d0616016dbc91399aa9e86a69ae5a398edd0a0c2bd",
+    "probe_engine_version": "1.3.1",
+    "decomp_revision": "9509dc04406fb2028bfab01243841ba4787c0fb7",
+    "capture_route_field": "common_hurt_geometry_route",
+    "coordinate_tolerance_q16": 8,
+    "compare_ecb": true,
+    "ecb_joint_point_set_id": "ecb",
+    "captures": [
+      {
+        "id": "wait-control",
+        "sha256": "a9c9b5456f421304e08ae5b63165283b529a3612ee6d991379836f6cb3314dc3"
+      },
+      {
+        "id": "wait-repeat",
+        "sha256": "ef72ec895024aa44f96d0b6f99f2913a7d2b370583ab1535654581ff1b7a1089",
+        "repeat_of": "wait-control"
+      }
+    ],
+    "cases": [
+      {
+        "source_action": "CROUCH_END",
+        "submotion_index": 34,
+        "first_source_frame": 0,
+        "last_source_frame": 9,
+        "expected_samples": 10
+      },
+      {
+        "source_action": "STANDING",
+        "submotion_index": 2,
+        "minimum_source_frame_exclusive_q16": 327680,
+        "first_source_frame": 6,
+        "last_source_frame": 59,
+        "expected_samples": 54
+      }
+    ]
+  },
+  "wait_lifecycle_qualification": {
+    "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
+    "dolphin_release_artifact_sha256": "87e9ef6d80ed03354a1647d0616016dbc91399aa9e86a69ae5a398edd0a0c2bd",
+    "probe_engine_version": "1.3.1",
+    "decomp_revision": "9509dc04406fb2028bfab01243841ba4787c0fb7",
+    "capture_route_field": "common_hurt_geometry_route",
+    "coordinate_tolerance_q16": 8,
+    "compare_ecb": true,
+    "ecb_joint_point_set_id": "ecb",
+    "captures": [
+      {
+        "id": "wait-lifecycle-control",
+        "sha256": "d97474f2a15912b1c98fba9b7444883c1db4798290702c311b13bcffb4cc7f7b"
+      }
+    ],
+    "cases": [
+      { "source_action": "STANDING", "label": "common_hurt_wait_wait2_hold", "submotion_index": 3, "first_source_frame": 0, "last_source_frame": 74, "expected_samples": 75 },
+      { "source_action": "STANDING", "label": "common_hurt_wait_wait3_hold", "submotion_index": 4, "first_source_frame": 0, "last_source_frame": 69, "expected_samples": 70 }
+    ]
+  },
+  "guard_setoff_pose_qualification": {
+    "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
+    "dolphin_release_artifact_sha256": "87e9ef6d80ed03354a1647d0616016dbc91399aa9e86a69ae5a398edd0a0c2bd",
+    "probe_engine_version": "1.3.1",
+    "decomp_revision": "9509dc04406fb2028bfab01243841ba4787c0fb7",
+    "capture_route_field": "shield_hit_route",
+    "coordinate_tolerance_q16": 8,
+    "frame_tolerance_q16": 0,
+    "rate_tolerance_q16": 0,
+    "compare_ecb": true,
+    "ecb_joint_point_set_id": "ecb",
+    "captures": [
+      {
+        "id": "guard-setoff-light",
+        "sha256": "ed7023223832ca898467b5a30d55af9c62aa2abd8fc0da2d9f744cd1ecbeea36",
+        "cases": [
+          {
+            "source_action": "SHIELD_STUN",
+            "submotion_index": 40,
+            "minimum_source_frame_exclusive_q16": 0,
+            "expected_source_frames_q16": [279634, 559267, 838901, 1118534],
+            "expected_animation_rate_q16": 279634,
+            "expected_samples": 4
+          }
+        ]
+      },
+      {
+        "id": "guard-setoff-light-repeat",
+        "sha256": "fd3106778f8b3b4902068acb45993560b6e3a795c82c20bc029e0e26237f9621",
+        "repeat_of": "guard-setoff-light"
+      },
+      {
+        "id": "guard-setoff-mid",
+        "sha256": "07537b376ae658a9e173ade4b31295e3b4a981c1bc74f6093fe2f0e4c0faca2e",
+        "cases": [
+          {
+            "source_action": "SHIELD_STUN",
+            "submotion_index": 40,
+            "minimum_source_frame_exclusive_q16": 0,
+            "expected_source_frames_q16": [339942, 679883, 1019825],
+            "expected_animation_rate_q16": 339942,
+            "expected_samples": 3
+          }
+        ]
+      },
+      {
+        "id": "guard-setoff-mid-repeat",
+        "sha256": "fafff5fed079fc8963be4a0e5f042151771931443631cadde518f617fa96e350",
+        "repeat_of": "guard-setoff-mid"
+      },
+      {
+        "id": "guard-setoff-dense",
+        "sha256": "8fc1da4409473796523e3775d22dd07e2e90808580dcad23f43f2db40fc7b5b3",
+        "cases": [
+          {
+            "source_action": "SHIELD_STUN",
+            "submotion_index": 40,
+            "minimum_source_frame_exclusive_q16": 0,
+            "expected_source_frames_q16": [454232, 908465],
+            "expected_animation_rate_q16": 454232,
+            "expected_samples": 2
+          }
+        ]
+      },
+      {
+        "id": "guard-setoff-dense-repeat",
+        "sha256": "db5422a410358c9fba7e8853c2e338d53f925de80b6f944df130497ad9adae6c",
+        "repeat_of": "guard-setoff-dense"
+      }
+    ]
+  },
+  "ordinary_action_ecb_qualification": {
+    "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
+    "probe_engine_version": "1.3.1",
+    "decomp_revision": "9509dc04406fb2028bfab01243841ba4787c0fb7",
+    "coordinate_tolerance_q16": 8,
+    "require_motion_action_frame_offset": true,
+    "cases": [
+      { "source_action": "NEUTRAL_ATTACK_1", "submotion_index": 46, "first_frame": 1, "last_frame": 21, "grounded": true },
+      { "source_action": "NEUTRAL_ATTACK_2", "submotion_index": 47, "first_frame": 1, "last_frame": 20, "grounded": true },
+      { "source_action": "NEUTRAL_ATTACK_3", "submotion_index": 48, "first_frame": 1, "last_frame": 12, "grounded": true },
+      { "source_action": "LOOPING_ATTACK_START", "submotion_index": 49, "first_frame": 1, "last_frame": 5, "grounded": true },
+      { "source_action": "LOOPING_ATTACK_MIDDLE", "submotion_index": 50, "first_frame": 1, "last_frame": 40, "grounded": true },
+      { "source_action": "LOOPING_ATTACK_END", "submotion_index": 51, "first_frame": 1, "last_frame": 9, "grounded": true },
+      { "source_action": "DASH_ATTACK", "submotion_index": 52, "first_frame": 1, "last_frame": 39, "grounded": true },
+      { "source_action": "FTILT_HIGH", "submotion_index": 53, "first_frame": 1, "last_frame": 29, "grounded": true },
+      { "source_action": "FTILT_HIGH_MID", "submotion_index": 54, "first_frame": 1, "last_frame": 29, "grounded": true },
+      { "source_action": "FTILT_MID", "submotion_index": 55, "first_frame": 1, "last_frame": 29, "grounded": true },
+      { "source_action": "FTILT_LOW_MID", "submotion_index": 56, "first_frame": 1, "last_frame": 29, "grounded": true },
+      { "source_action": "FTILT_LOW", "submotion_index": 57, "first_frame": 1, "last_frame": 29, "grounded": true },
+      { "source_action": "UPTILT", "submotion_index": 58, "first_frame": 1, "last_frame": 39, "grounded": true },
+      { "source_action": "DOWNTILT", "submotion_index": 59, "first_frame": 1, "last_frame": 35, "grounded": true },
+      { "source_action": "FSMASH_HIGH", "submotion_index": 60, "first_frame": 1, "last_frame": 64, "grounded": true },
+      { "source_action": "FSMASH_MID", "submotion_index": 62, "first_frame": 1, "last_frame": 64, "grounded": true },
+      { "source_action": "FSMASH_LOW", "submotion_index": 64, "first_frame": 1, "last_frame": 64, "grounded": true },
+      { "source_action": "UPSMASH", "submotion_index": 66, "first_frame": 1, "last_frame": 54, "grounded": true },
+      { "source_action": "DOWNSMASH", "submotion_index": 67, "first_frame": 1, "last_frame": 49, "grounded": true },
+      { "source_action": "GRAB", "submotion_index": 242, "first_frame": 1, "last_frame": 30, "grounded": true },
+      { "source_action": "GRAB_RUNNING", "submotion_index": 243, "first_frame": 1, "last_frame": 40, "grounded": true },
+      { "source_action": "NAIR", "submotion_index": 68, "first_frame": 1, "last_frame": 44, "grounded": false, "compared_components": ["top", "right", "left"] },
+      { "source_action": "FAIR", "submotion_index": 69, "first_frame": 1, "last_frame": 39, "grounded": false, "compared_components": ["top", "right", "left"] },
+      { "source_action": "BAIR", "submotion_index": 70, "first_frame": 1, "last_frame": 35, "grounded": false, "compared_components": ["top", "right", "left"] },
+      { "source_action": "UAIR", "submotion_index": 71, "first_frame": 1, "last_frame": 33, "grounded": false, "compared_components": ["top", "right", "left"] },
+      { "source_action": "DAIR", "submotion_index": 72, "first_frame": 1, "last_frame": 44, "grounded": false, "compared_components": ["top", "right", "left"] }
+    ],
+    "captures": [
+      { "id": "ordinary-action-control", "sha256": "aeff75c16b2041fbecc6b8ec2322a614e0695f0d3d9088eb44d60aedbdeb7ca0" },
+      { "id": "ordinary-action-repeat", "sha256": "5a797d05fe1dfd30ee1a82b7ede3cac3c003a668d20dcd1d53b824450e19bd55", "repeat_of": "ordinary-action-control" }
+    ]
+  },
+  "action_ecb_qualification": {
+    "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
+    "probe_engine_version": "1.3.1",
+    "decomp_revision": "9509dc04406fb2028bfab01243841ba4787c0fb7",
+    "coordinate_tolerance_q16": 8,
+    "captures": [
+      {
+        "id": "raptor-start-control",
+        "sha256": "81cafb4d75e75c1f876b6a903a770a3e20376d0399d9374cab19d7feea413602",
+        "cases": [
+          { "source_action": "SWORD_DANCE_1", "submotion_index": 303, "first_frame": 1, "last_frame": 79, "grounded": true },
+          { "source_action": "SWORD_DANCE_2_MID", "submotion_index": 305, "first_frame": 1, "last_frame": 79, "grounded": false, "bottom_lock_through_frame": 4 }
+        ]
+      },
+      {
+        "id": "raptor-start-repeat",
+        "sha256": "1780ae376ae2be8f26187db96b81df96b8a750ff9d1ef8934631ab02da6e4ae1",
+        "cases": [
+          { "source_action": "SWORD_DANCE_1", "submotion_index": 303, "first_frame": 1, "last_frame": 79, "grounded": true },
+          { "source_action": "SWORD_DANCE_2_MID", "submotion_index": 305, "first_frame": 1, "last_frame": 79, "grounded": false, "bottom_lock_through_frame": 4 }
+        ]
+      },
+      {
+        "id": "raptor-ground-hit-control",
+        "sha256": "20f39477c01894751724b5e0097a7c2646baa4e12bfbbfe7bcdb09edf10bf864",
+        "cases": [
+          { "source_action": "SWORD_DANCE_2_HIGH", "submotion_index": 304, "first_frame": 0, "last_frame": 24, "grounded": true, "entry_submotion_index": 303, "entry_source_frame": 18, "entry_grounded": true }
+        ]
+      },
+      {
+        "id": "raptor-ground-hit-repeat",
+        "sha256": "9efacb94277b8cb870f8c69008e5dd248d4d31cec17e9713323abde94a577028",
+        "cases": [
+          { "source_action": "SWORD_DANCE_2_HIGH", "submotion_index": 304, "first_frame": 0, "last_frame": 24, "grounded": true, "entry_submotion_index": 303, "entry_source_frame": 15, "entry_grounded": true }
+        ]
+      },
+      {
+        "id": "raptor-air-hit-control",
+        "sha256": "86e0abff2d1de0483e25ef8db045da323a35331bf95fb7089b00283233b4fc8e",
+        "cases": [
+          { "source_action": "SWORD_DANCE_3_HIGH", "submotion_index": 306, "first_frame": 0, "last_frame": 44, "grounded": false, "entry_submotion_index": 305, "entry_source_frame": 18, "entry_grounded": false }
+        ]
+      },
+      {
+        "id": "falcon-dive-ground-miss",
+        "sha256": "97672ddf0e5013beaad8ff4c31f54c6bae93551ca3a38755cc3d185bcd5b83c4",
+        "cases": [
+          { "source_action": "SWORD_DANCE_3_MID", "submotion_index": 307, "first_frame": 1, "last_frame": 64, "grounded": true, "grounded_from_capture": true, "bottom_lock_frame_ranges": [[14, 17]] }
+        ]
+      },
+      {
+        "id": "falcon-dive-air-miss",
+        "sha256": "9ecf456e6377f5b7d371ccb84c9f5bd7b3a1045724a7c223acb6cb9d4681fd21",
+        "cases": [
+          { "source_action": "SWORD_DANCE_3_LOW", "submotion_index": 308, "first_frame": 1, "last_frame": 64, "grounded": false, "bottom_lock_through_frame": 5, "bottom_lock_frame_ranges": [[14, 17]], "locked_bottom_sources": [{ "first_frame": 14, "last_frame": 17, "submotion_index": 308, "source_frame": 13, "grounded": false }] }
+        ]
+      },
+      {
+        "id": "falcon-dive-ground-catch",
+        "sha256": "4518dbb5cd43158baeaa1ddad7d5ffd073b4dda46ecbe2aa55d8c7efa9eadfdb",
+        "cases": [
+          { "source_action": "SWORD_DANCE_3_MID", "submotion_index": 307, "first_frame": 1, "last_frame": 12, "grounded": true },
+          { "source_action": "SWORD_DANCE_4_HIGH", "submotion_index": 309, "first_frame": 0, "last_frame": 15, "grounded": true, "entry_submotion_index": 307, "entry_source_frame": 13, "entry_pose_through_frame": 15, "entry_grounded": true },
+          { "source_action": "SWORD_DANCE_4_MID", "submotion_index": 310, "first_frame": 0, "last_frame": 59, "grounded": false, "bottom_lock_frame_ranges": [[1, 59]], "locked_bottom_source": { "submotion_index": 310, "source_frame": 0, "grounded": false } }
+        ]
+      },
+      {
+        "id": "falcon-dive-air-catch",
+        "sha256": "59a4489ea6e955c9bb587bb5e49bc5d34ce4cce6ae42accd98a24ff97e271a6f",
+        "cases": [
+          { "source_action": "SWORD_DANCE_3_LOW", "submotion_index": 308, "first_frame": 1, "last_frame": 12, "grounded": false, "bottom_lock_through_frame": 5 },
+          { "source_action": "SWORD_DANCE_4_HIGH", "submotion_index": 309, "first_frame": 0, "last_frame": 15, "grounded": false, "entry_submotion_index": 308, "entry_source_frame": 13, "entry_grounded": false },
+          { "source_action": "SWORD_DANCE_4_MID", "submotion_index": 310, "first_frame": 0, "last_frame": 59, "grounded": false, "bottom_lock_frame_ranges": [[1, 59]], "locked_bottom_source": { "submotion_index": 310, "source_frame": 0, "grounded": false } }
+        ]
+      }
+    ]
+  },
+  "guard_setoff_stored_oracle": {
+    "symbol_prefix": "pf_m4_falcon_guard_setoff_hsd",
+    "coordinate_tolerance_q16": 64,
+    "captures": [
+      { "id": "light", "sha256": "ed7023223832ca898467b5a30d55af9c62aa2abd8fc0da2d9f744cd1ecbeea36" },
+      { "id": "mid", "sha256": "07537b376ae658a9e173ade4b31295e3b4a981c1bc74f6093fe2f0e4c0faca2e" },
+      { "id": "dense", "sha256": "8fc1da4409473796523e3775d22dd07e2e90808580dcad23f43f2db40fc7b5b3" }
+    ],
+    "cases": [
+      { "id": "guard-setoff-light-1", "capture_id": "light", "trace_frame": 88, "c_submotion": "PF_M4_FALCON_SUBMOTION_GUARD_SET_OFF" },
+      { "id": "guard-setoff-light-2", "capture_id": "light", "trace_frame": 89, "c_submotion": "PF_M4_FALCON_SUBMOTION_GUARD_SET_OFF" },
+      { "id": "guard-setoff-light-3", "capture_id": "light", "trace_frame": 90, "c_submotion": "PF_M4_FALCON_SUBMOTION_GUARD_SET_OFF" },
+      { "id": "guard-setoff-light-4", "capture_id": "light", "trace_frame": 91, "c_submotion": "PF_M4_FALCON_SUBMOTION_GUARD_SET_OFF" },
+      { "id": "guard-setoff-mid-1", "capture_id": "mid", "trace_frame": 88, "c_submotion": "PF_M4_FALCON_SUBMOTION_GUARD_SET_OFF" },
+      { "id": "guard-setoff-mid-2", "capture_id": "mid", "trace_frame": 89, "c_submotion": "PF_M4_FALCON_SUBMOTION_GUARD_SET_OFF" },
+      { "id": "guard-setoff-mid-3", "capture_id": "mid", "trace_frame": 90, "c_submotion": "PF_M4_FALCON_SUBMOTION_GUARD_SET_OFF" },
+      { "id": "guard-setoff-dense-1", "capture_id": "dense", "trace_frame": 88, "c_submotion": "PF_M4_FALCON_SUBMOTION_GUARD_SET_OFF" },
+      { "id": "guard-setoff-dense-2", "capture_id": "dense", "trace_frame": 89, "c_submotion": "PF_M4_FALCON_SUBMOTION_GUARD_SET_OFF" }
+    ]
+  },
+  "stored_oracle": {
+    "capture_sha256": "4894c8d3917568e43d3499b71cb3b3ebc361575670aeaad63c8a99bcba106b4e",
+    "coordinate_tolerance_q16": 64,
+    "cases": [
+      { "id": "walk-slow-fractional", "trace_frame": 190, "c_submotion": "PF_M4_FALCON_SUBMOTION_WALK_SLOW" },
+      { "id": "walk-slow-looped-fractional", "trace_frame": 225, "c_submotion": "PF_M4_FALCON_SUBMOTION_WALK_SLOW" },
+      { "id": "walk-middle-fractional", "trace_frame": 250, "c_submotion": "PF_M4_FALCON_SUBMOTION_WALK_MIDDLE" },
+      { "id": "walk-middle-looped-fractional", "trace_frame": 268, "c_submotion": "PF_M4_FALCON_SUBMOTION_WALK_MIDDLE" },
+      { "id": "walk-fast-fractional", "trace_frame": 291, "c_submotion": "PF_M4_FALCON_SUBMOTION_WALK_FAST" },
+      { "id": "walk-fast-looped-fractional", "trace_frame": 300, "c_submotion": "PF_M4_FALCON_SUBMOTION_WALK_FAST" },
+      { "id": "run-fractional", "trace_frame": 343, "c_submotion": "PF_M4_FALCON_SUBMOTION_RUN" },
+      { "id": "run-looped-fractional", "trace_frame": 355, "c_submotion": "PF_M4_FALCON_SUBMOTION_RUN" }
+    ]
+  },
+  "wait_stored_oracle": {
+    "symbol_prefix": "pf_m4_falcon_wait_hsd",
+    "capture_sha256": "a9c9b5456f421304e08ae5b63165283b529a3612ee6d991379836f6cb3314dc3",
+    "coordinate_tolerance_q16": 64,
+    "cases": [
+      { "id": "wait-first-unblended", "trace_frame": 29, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait-middle", "trace_frame": 53, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait-terminal", "trace_frame": 82, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" }
+    ]
+  },
+  "wait_transition_stored_oracle": {
+    "symbol_prefix": "pf_m4_falcon_wait_transition_hsd",
+    "capture_sha256": "a9c9b5456f421304e08ae5b63165283b529a3612ee6d991379836f6cb3314dc3",
+    "coordinate_tolerance_q16": 64,
+    "cases": [
+      { "id": "squatrv-wait-blend-1", "trace_frame": 23, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "squatrv-wait-blend-2", "trace_frame": 24, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "squatrv-wait-blend-3", "trace_frame": 25, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "squatrv-wait-blend-4", "trace_frame": 26, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "squatrv-wait-blend-5", "trace_frame": 27, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "squatrv-wait-blend-6", "trace_frame": 28, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" }
+    ]
+  },
+  "wait_lifecycle_stored_oracle": {
+    "symbol_prefix": "pf_m4_falcon_wait_lifecycle_hsd",
+    "capture_sha256": "d97474f2a15912b1c98fba9b7444883c1db4798290702c311b13bcffb4cc7f7b",
+    "coordinate_tolerance_q16": 64,
+    "cases": [
+      { "id": "wait2-entry", "trace_frame": 83, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT_2" },
+      { "id": "wait2-frame-1", "trace_frame": 84, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT_2" },
+      { "id": "wait2-middle", "trace_frame": 113, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT_2" },
+      { "id": "wait2-terminal", "trace_frame": 157, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT_2" },
+      { "id": "wait2-base-blend-1", "trace_frame": 158, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait2-base-blend-2", "trace_frame": 159, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait2-base-blend-3", "trace_frame": 160, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait2-base-blend-4", "trace_frame": 161, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait2-base-blend-5", "trace_frame": 162, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait2-base-blend-6", "trace_frame": 163, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait2-base-restart-blend-1", "trace_frame": 218, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait2-base-restart-blend-2", "trace_frame": 219, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait2-base-restart-blend-3", "trace_frame": 220, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait2-base-restart-blend-4", "trace_frame": 221, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait2-base-restart-blend-5", "trace_frame": 222, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait2-base-restart-blend-6", "trace_frame": 223, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait3-entry", "trace_frame": 326, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT_3" },
+      { "id": "wait3-frame-1", "trace_frame": 327, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT_3" },
+      { "id": "wait3-middle", "trace_frame": 356, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT_3" },
+      { "id": "wait3-terminal", "trace_frame": 395, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT_3" },
+      { "id": "wait3-base-blend-1", "trace_frame": 396, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait3-base-blend-2", "trace_frame": 397, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait3-base-blend-3", "trace_frame": 398, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait3-base-blend-4", "trace_frame": 399, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait3-base-blend-5", "trace_frame": 400, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait3-base-blend-6", "trace_frame": 401, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait3-base-restart-blend-1", "trace_frame": 456, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait3-base-restart-blend-2", "trace_frame": 457, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait3-base-restart-blend-3", "trace_frame": 458, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait3-base-restart-blend-4", "trace_frame": 459, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait3-base-restart-blend-5", "trace_frame": 460, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait3-base-restart-blend-6", "trace_frame": 461, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" }
+    ]
+  },
+  "live_qualification": {
+    "capture_sha256": "4894c8d3917568e43d3499b71cb3b3ebc361575670aeaad63c8a99bcba106b4e",
+    "repeat_capture_sha256": "2c0dda770bd58774e0681b3736ea3f7c7de61f15a116849f9381b0460c4af529",
+    "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
+    "dolphin_release_artifact_sha256": "87e9ef6d80ed03354a1647d0616016dbc91399aa9e86a69ae5a398edd0a0c2bd",
+    "coordinate_tolerance_q16": 8,
+    "cases": [
+      { "source_action": "WALK_SLOW", "submotion_index": 7, "expected_samples": 51 },
+      { "source_action": "WALK_MIDDLE", "submotion_index": 8, "expected_samples": 31 },
+      { "source_action": "WALK_FAST", "submotion_index": 9, "expected_samples": 29 },
+      { "source_action": "RUNNING", "submotion_index": 13, "expected_samples": 20 }
+    ]
+  },
+  "pose_branch_qualification": {
+    "capture_sha256": "1109c92ec4c57bff5658d25c432383ccc4c63e2caed73a1575ae3ef80c7c802d",
+    "repeat_capture_sha256": "3daad9d8a51ad0c6eb106fd14c25b6814a543dd359ca07f9a1e6b84e47ac4e74",
+    "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
+    "dolphin_release_artifact_sha256": "87e9ef6d80ed03354a1647d0616016dbc91399aa9e86a69ae5a398edd0a0c2bd",
+    "capture_route_field": "shield_break_orientation_route",
+    "action_family_prefix": "SHIELD_BREAK_",
+    "branch_id": "shield_break_down_up",
+    "expected_positive": false,
+    "ecb_profile": {
+      "sha256": "2b4354f075594264ddb1686c9123c78459658a8dec145d78445c1b115585bc7c",
+      "semantic_sha256": "11b28d22f68f7bb87c99dbc5f949f5456d1a69ab7bfa78360927ecb334064eeb",
+      "track_id": "shield-break-fly",
+      "source_action": "SHIELD_BREAK_FLY",
+      "label_substring": "shield_break_orientation_",
+      "first_displayed_frame": 1,
+      "last_displayed_frame": 42
+    },
+    "expected_sequence": [
+      { "source_action": "SHIELD_BREAK_FLY", "action_value": 205, "expected_samples": 42 },
+      { "source_action": "SHIELD_BREAK_DOWN_D", "action_value": 208, "expected_samples": 26 },
+      { "source_action": "SHIELD_BREAK_STAND_D", "action_value": 210, "expected_samples": 30 },
+      { "source_action": "SHIELD_BREAK_TEETER", "action_value": 211, "expected_samples": 127 }
+    ]
+  },
+  "symbol_prefix": "pf_m4_falcon_dynamic_hsd"
+}

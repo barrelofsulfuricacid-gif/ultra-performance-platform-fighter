@@ -9,7 +9,11 @@
 #include <string.h>
 #include <time.h>
 
-#define PF_HEADLESS_MEMORY_BYTES 2048U
+#if defined(_WIN32)
+#include <windows.h>
+#endif
+
+#define PF_HEADLESS_MEMORY_BYTES 4096U
 #define PF_HEADLESS_MEMORY_ALIGNMENT 64U
 #define PF_HEADLESS_ENVIRONMENTS 64U
 #define PF_HEADLESS_MAX_SAMPLES 7U
@@ -35,6 +39,18 @@ static pf_state_hash pf_headless_single_hashes[
 
 static double monotonic_sample_seconds(void)
 {
+#if defined(_WIN32)
+    LARGE_INTEGER counter;
+    LARGE_INTEGER frequency;
+
+    if (QueryPerformanceFrequency(&frequency) == 0 ||
+        QueryPerformanceCounter(&counter) == 0 ||
+        frequency.QuadPart <= 0)
+    {
+        return 0.0;
+    }
+    return (double)counter.QuadPart / (double)frequency.QuadPart;
+#else
     struct timespec value;
 
     if (timespec_get(&value, TIME_UTC) != TIME_UTC)
@@ -43,6 +59,7 @@ static double monotonic_sample_seconds(void)
     }
     return (double)value.tv_sec +
            (double)value.tv_nsec / 1000000000.0;
+#endif
 }
 
 static pf_content_view make_benchmark_content(void)
@@ -79,6 +96,8 @@ static int initialize_throughput_environments(void)
         return 0;
     }
     config.max_ticks = UINT64_C(1000000000);
+    /* Empty benchmark content must not end calibration through stock loss. */
+    config.stock_count = UINT8_C(0);
     if (pf_sim_query_memory(&config, &requirements) != PF_STATUS_OK ||
         requirements.state_bytes > (size_t)PF_HEADLESS_MEMORY_BYTES ||
         requirements.scratch_bytes > (size_t)PF_HEADLESS_MEMORY_BYTES ||

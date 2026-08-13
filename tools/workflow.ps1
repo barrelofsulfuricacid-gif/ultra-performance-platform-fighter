@@ -74,6 +74,16 @@ if ($Preset -eq "profile")
             "pinned Tracy source is missing; run .\tools\bootstrap.ps1")
     }
     $env:PF_TRACY_SOURCE_DIR = $tracyRoot
+    if ([string]::IsNullOrWhiteSpace($env:PF_TRACY_TIMER_FALLBACK) -or
+        $env:PF_TRACY_TIMER_FALLBACK -eq "auto")
+    {
+        $env:PF_TRACY_TIMER_FALLBACK = "OFF"
+    }
+    elseif ($env:PF_TRACY_TIMER_FALLBACK -notin @("ON", "OFF"))
+    {
+        Stop-PFToolchain (
+            "PF_TRACY_TIMER_FALLBACK must be auto, ON, or OFF")
+    }
 }
 
 $sdlPresets = @("debug", "sanitizer", "release", "profile")

@@ -6,8 +6,22 @@ native, web, rollback, headless, and reinforcement-learning targets.
 The project has completed **M0: product contract and measured architecture
 decisions** and **M1: reproducible foundation**. The M2 deterministic
 simulation is complete, and its reinforcement-learning contract has been
-accepted by the owner with schema-2 qualification complete and merge review
-pending. M0 selected Q16.16 deterministic motion and geometry after benchmark,
+accepted by the owner; its current structured-observation schema 13 includes
+M4 stock, respawn, special charge, smash charge, projectile, item, and recovery
+state.
+M4 is in progress with production-path movement, the complete jab/tilt/dash-
+attack/directional-strong ground vocabulary, charged directional smashes,
+hit reaction, ground/wall/ceiling teching, missed-tech recovery, dense shield,
+physical powershield canceling, ledges, directional air dodge/wavedash, the
+complete ledge-roll and ledge-attack option set, the five-direction
+light-aerial vocabulary plus a direct strong
+aerial route, auto-cancel, visibly scored
+L-cancel practice, SHFFL, grounded forward and backward rolls, spot dodge,
+grounded low-percent crouch cancel, target-weighted hit reaction, grab pummels,
+four directional throws, and a deterministic four-stock
+KO/respawn/match-result loop in the live
+two-player browser playtest. M0 selected
+Q16.16 deterministic motion and geometry after benchmark,
 verifier, and blind human-playtest evidence. The accepted
 milestones are summarized in
 [`docs/milestones/M0_checkpoint_report.md`](docs/milestones/M0_checkpoint_report.md)
@@ -15,6 +29,8 @@ and
 [`docs/milestones/M1_checkpoint_report.md`](docs/milestones/M1_checkpoint_report.md).
 The M2 evidence and owner decision record are in
 [`docs/milestones/M2_checkpoint_report.md`](docs/milestones/M2_checkpoint_report.md).
+Current M4 scope and evidence are in
+[`docs/milestones/M4_progress.md`](docs/milestones/M4_progress.md).
 
 ## Verify the checkpoint
 
@@ -92,21 +108,37 @@ The optional Gymnasium 1.3 vector adapter is under
 ./tools/verify_m2_python.sh
 ```
 
-## Inspect the M2 replay in a browser
+## Play the current M4 checkpoint in a browser
 
 Open the owner-only browser checkpoint in a current desktop browser:
 
 [`https://platform-fighter-m1.lol1234.chatgpt.site`](https://platform-fighter-m1.lol1234.chatgpt.site)
 
 The live page loads the repository's generated JavaScript and Wasm, verifies
-the authored-C 180-tick four-player replay, and presents a draggable timeline
-with positions and a SHA-256 state hash at every tick. It must report
-`web-client-smoke=pass sim_abi=2 tick_hz=60`, `webgl2=pass batch_draws=1`,
-and `replay=pass ticks=180 winner_mask=5`.
-
-This is an M2 deterministic-kernel review, not the M4 gameplay playtest.
-Keyboard movement, dash dancing, short/full-hop mechanics, combat, and the
-first complete stage remain later milestone work.
+the authored-C 180-tick four-player replay, presents a draggable timeline, and
+runs the real two-player M4 simulation at 60 Hz. The playtest includes explicit
+walk/dash keyboard magnitudes, binary short/full hops, attacks, hitlag,
+hitstun, tumble, ground/wall/ceiling teching, missed-impact bounce, floor
+recovery, shields, directional air dodge/wavedash, neutral/forward/back/up/down
+ground tilts and immediate directional strong attacks, charged directional
+smashes, neutral/forward/back/up/down light aerials plus the direct strong aerial,
+auto-cancel, L-cancel/SHFFL, a 30-frame strong-aerial landing-lag drill with
+red/green success feedback, grounded forward/backward rolls, spot-dodge,
+held-down crouch cancel with a typed feed label, grab-pummel, and
+directional-throw behavior. The HUD exposes stocks, respawn
+countdown and invulnerability; final
+stock KOs show results/rematch, and simultaneous final-stock KOs enter the
+300% sudden-death fixture. A sequenced deterministic feed shows the current
+hit, shield, grab, pummel, throw, KO, respawn, sudden-death, and result events.
+It must report
+`web-client-smoke=pass sim_abi=5 tick_hz=60`, `webgl2=pass batch_draws=1`,
+`replay=pass ticks=240 winner_mask=5`, and the browser-specific startup and
+bridge gates as `pass`.
+The collapsible owner-evidence panel presents all 61 registry recipes, saves a
+local draft, captures the combat rubric and mandatory match/input gates, and
+exports Markdown or JSON without automatically changing registry status.
+Controls and focused human checks are documented in
+[`docs/milestones/M4_browser_playtest.md`](docs/milestones/M4_browser_playtest.md).
 
 To reproduce the same check locally, the web bootstrap additionally installs
 the checksum-verified Emscripten 6.0.3 SDK and its pinned Node.js runtime.
@@ -136,6 +168,19 @@ hosted checkpoint. Clean-machine CI runs this generated HTML and Wasm in
 headless Chrome, compiles and links shaders, submits the shared
 textured/blended batch, verifies a rendered pixel, and checks the replay
 inspector rather than checking files alone.
+
+Run the focused native M4 contracts without a browser:
+
+```sh
+./tools/verify_m4_movement.sh
+./tools/verify_m4_falcon_punch.sh
+./tools/verify_m4_combat.sh
+./tools/verify_m4_match.sh
+```
+
+The `web.m4_playtest` CTest owns the native browser-bridge ABI. After building
+the generated HTML/Wasm with `./tools/workflow.sh web`, run the real browser
+boundary once with `./tools/verify_web_smoke.sh`.
 
 Validate the complete lock, bootstrap, preset, and CI contract with:
 

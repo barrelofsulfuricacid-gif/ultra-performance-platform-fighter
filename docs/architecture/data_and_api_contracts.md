@@ -3,6 +3,36 @@
 This document fixes interface shape rather than wire layout. M2 implements the
 contracts incrementally in public headers and conformance tests.
 
+The active UCF/raw-input slice uses ABI 5, input schema 6, content schema 78,
+fighter schema 70, canonical state schema 78, save format 68, and magic
+`PFSAVE60`. Its fixed checkpoint is a 140-byte header plus a 1,647-byte payload,
+1,787 bytes total. State schema 77 appends the rollback state consumed by the
+pinned UCF 0.84 controller hooks: each player's prior processed main-stick X/Y,
+UCF X/Y tilt ages, raw main-stick X/Y from two samples earlier, and pad-buffer
+count. State schema 76 remains the historical same-layout correction that
+retired the invented Moonwalk actions: action values 71 and 72 are reserved
+invalid holes, including inside hitlag-resume state, so later public values are
+not renumbered and old authored-state saves/replays fail closed. Content schema
+78/fighter schema 70 remove the invented `moonwalk_setup_ticks` field. The
+ordinary horizontal tilt age remains canonical, saturates at 254, and resets to
+254 at the one shared Dash-entry boundary.
+State schema 78 appends one GuardOn dash-grab window byte per player. Imported
+PlCo `x68` initializes it to three only for Run and late-Dash Guard entry;
+GuardOn checks A before expiry, while other entry owners and action changes
+clear it.
+
+Inspection schema 57 exposes that existing age through a previously unused
+inspection byte, and browser view schema 48 replaces the retired action labels
+and appends exact imported hit-sphere records for a 603-value layout. The
+reference configuration is GALE01 NTSC 1.02 with pinned UCF 0.84 enabled. The
+vanilla decomp remains the base source for input-age and Dash callbacks. The
+live acquisition lane now pins the active UCF policy and qualifies exact
+processed/raw 75/76 dashback boundaries plus delayed Turn-to-Dash behavior;
+vanilla Turn timing alone is not the configured contract. The complete
+player-performed Moonwalk remains a separate emergent-composition playability
+gate. Older schemas and layouts below remain historical evidence, not active
+compatibility claims.
+
 ## Simulation lifecycle
 
 The public API must support this conceptual C surface:
@@ -81,25 +111,434 @@ Rules:
 - Observations and legal-action masks have separately versioned schemas.
 - Single and batched RL entry points invoke the same internal tick semantics.
 
-Save format 1 is fixed at 305 bytes for state schema 1. Its exact header,
-payload, compatibility, checksum, and atomic-load behavior are recorded in
+Save formats 1–67 remain historical checkpoints. The current M4 state uses
+save format 68: a fixed 1,787-byte checkpoint with state schema 78 and a
+1,647-byte payload. Relative to schema 76, schema 77 appends 36 bytes: four
+players' prior processed main-stick X/Y values, UCF X/Y tilt ages, raw
+main-stick X/Y values from two samples earlier, and pad-buffer counts. These
+fields affect future UCF decisions and therefore participate in save/load,
+rollback, replay, validation, and hashing. Historical state schema 76 changes
+no schema-75 payload bytes; it makes reserved action values 71/72 and their
+hitlag-resume use fail closed while the existing horizontal tilt age follows
+the source Dash-entry interpretation.
+Relative to schema 77, schema 78 appends four GuardOn dash-grab window bytes;
+they are range-checked against the imported common-data value, restricted to
+the Guard/ShieldStun continuation, and required to be zero for inactive slots.
+The following format records preserve the historical progression. Save format
+48/state schema 49 packed each
+player's signed tech direction and prone orientation into one canonical byte;
+reserved codes and bits fail closed. Save format 47/state schema 48 retained
+the preceding byte layout while adding stationary
+upper-platform support semantics. Save format 46/state schema 47 appended one
+attack-registration latch, one queue count, and nine newest-first canonical
+stale-move IDs per fixed player slot plus one thrown-item registration latch.
+Load makes owner-local scaling, successful-hurt-only queue insertion,
+per-instance deduplication, queue persistence, and reset semantics fail closed.
+Save format 45/state schema 46 retained the preceding byte layout while adding
+the moving revival-platform action/support semantics. Save format
+44/state schema 45 appended one little-endian signed x-tilt and y-tilt value per
+fixed player slot and made tilt lifecycle, shield-volume derivation,
+blocking-versus-poke priority, release, interruption, and hitlag-resume state
+fail closed. Save
+format 42/state schema 43 introduced the smash-charge values and their charge,
+early/automatic release, charged damage, interruption, and hitlag-resume
+relationships. Save format 41/state schema 42 retained the prior layout while
+adding forward tilt plus forward/up/down directional strong actions and their
+timing, grounding, hitlag-resume, and input-arbitration semantics. Save format
+40/state schema 41 made the two ledge-option action IDs, grounding, ledge
+claims, timing, invulnerability, and ledge-attack hitlag resume fail closed.
+Save format
+39/state schema 40 made the four directional-aerial action IDs, five-way
+airborne light-input arbitration, grounding, authored two-axis launch, and
+hitlag resume fail closed. Save format 38/state schema 39 made the `UP_ATTACK`
+and `DOWN_ATTACK` action IDs,
+vertical-dominant ground-light arbitration, authored two-axis launch, hitlag
+resume, and powershield-cancel routing fail closed. Save format 37/state schema
+38 made the grounded crouch-cancel action,
+resulting-damage ceiling, eligible physical event kinds, scaled
+launch/hitstun, derived tumble, and typed flag fail closed. Save format
+36/state schema 37 made the explicit
+`PUMMEL` action ID, authored hit/total ticks, reciprocal-link requirements,
+non-launching damage, attribution, and typed event fail closed. Save format
+35/state schema 36 appended one
+recovery-availability byte per player and made the explicit `VECTOR_ASCENT`
+action ID, once-per-airtime consumption, authored launch/steering/duration,
+special-fall completion, interruption persistence, and landing/ledge/respawn
+restoration fail closed. Save format 34/state schema 35 retained the prior
+690-byte layout while making the explicit `WALL_JUMP` action ID, authored
+speeds, 24-tick recovery, four-tick invulnerability, preserved air jump, exact
+wall contact, and legal jump/aerial cancels fail closed. Save format 33/state schema 34 made
+the grounded `TAUNT` action ID, a 61-count terminal counter yielding Falcon's
+60 observable recovery frames, inherited dash
+momentum, locked controls, held-input non-repetition, and support-edge
+cancellation fail closed. Historical state schema 31 / save format 30 retained
+the same layout while making the two
+Moonwalk action IDs, authored two-tick shallow-back setup, full-back
+activation, facing-preserving backward velocity, and mistimed dashback
+semantics fail closed. That invented interpretation is superseded: active
+schema 76 rejects values 71/72 as reserved holes. State schema 30 / save format 29 appended one canonical charge-tick
+value per player and made Arc Reservoir charge, storage, early cancel, exact
+resume, scaled release, completion, and interruption semantics fail closed.
+State schema 29 / save format 28 retained
+the format-27 byte layout while making grounded/aerial Prism Burst actions,
+hitlag resume, landing, downward physical launch, and active-box projectile
+reflection fail closed. State schema 28 / save format 27 appended one
+fixed-capacity projectile slot with position/velocity, lifetime, state, and
+owner, and made grounded/aerial fire, shield block, powershield reflection,
+hit, and typed-event semantics fail closed. State schema 27 / save format 26
+retained the prior 522-byte payload while making the full-up plus fresh
+light/strong jump-squat cancel into standing strong attack fail closed. State
+schema 26 / save format 25 added one fixed canonical item entity with
+position/velocity, lifecycle timers, state, holder/source slots, hit mask, and
+throw direction; load validates all state/ownership/timer relationships before
+atomic replacement. The preceding
+state schema 25 and save format 24 define canonical solid-surface tech/bounce,
+air-dodge/special-fall/special-landing, and
+aerial/normal-landing/L-cancel-landing semantics plus trigger age, grounded
+forward/backward roll and spot-dodge semantics, fresh-down input history, and
+the strong-aerial/normal-landing/L-cancel-landing action semantics. It also
+stores configurable stock/respawn rules, per-player stocks and respawn timers,
+respawn-wait/eliminated actions, sudden-death state, and the authoritative
+monotonic event sequence. It also defines the shield-break
+flight/down/stand/stun action semantics, independent remaining
+ledge-invulnerability and 29-tick disabled-regrab timers, and reciprocal
+grab owner/target links plus escape timers per player. State schema 20 added the
+four directional throw action IDs and made startup-link, atomic release,
+hitlag-resume, recovery, and typed-event semantics fail closed. State schema 21
+added the dash-attack action ID and made its authored run entry, hitlag resume,
+and three-frame boost-grab cancel semantics fail closed. State schema 22 added
+the final-jab action ID and makes its authored hitlag resume, timing, and
+inclusive first-jab choice window fail closed. State schema 23 adds the
+reset-bound and forced-getup action IDs and makes weak-hit qualification,
+hitlag resume, exact action timing, and grounded-versus-airborne expiry fail
+closed, again without changing the byte layout. State schema 24 adds the
+`DELAYED_AIR_JUMP` action ID and makes the authored half-open aerial-cancel
+window, remaining-upward-velocity cancellation, late full-arc behavior, and
+simultaneous jump-plus-attack non-consumption fail closed, again without
+changing the byte layout. State schema 25 makes knockback-based
+delayed-air-jump armor, zero-launch hit events, preserved trajectory/action
+timing, and delayed-action hitlag resume fail closed without changing the byte
+layout. State schema 26 adds fixed-capacity item pickup/drop/throw/hit/reset
+semantics, two item-throw action IDs, and typed item events. Structured
+observation schema 3 and RL schema 5 expose the same item state; compact
+observation schema 4 appends eight values without changing existing indices.
+State schema 27 retains that layout while making the full-up threshold,
+fresh-attack edge, grounded standing-strong selection, retained inherited
+momentum, and neutral/shallow-up/first-airborne-frame exclusions fail closed.
+State schema 28 appends the projectile slot. Structured observation schema 4
+and RL schema 6 expose it; compact observation schema 5 appends six values at
+indices 56–61 without changing earlier indices. Input schema 4 adds the
+separate special button used to request Pulse Bolt or, with full down, Prism
+Burst. State schema 29 adds no bytes: it versions the two reflector action IDs
+and their physical/projectile collision interpretation. Content schema 30 adds
+one reflector definition under reflector schema 1; inspection schema 25 and
+browser view schema 25 expose the action semantics without changing layouts.
+State schema 30 appends eight bytes for four players' charge ticks. Structured
+observation schema 5 and RL schema 7 expose the same state; compact observation
+schema 6 appends four values at indices 62–65, for 66 total. Content schema 31
+adds one charge definition under charge schema 1. Inspection schema 26 appends
+the charge value, and browser view schema 26 appends it to both visible players
+for a 304-value view.
+Historical state schema 31 retained the 550-byte payload while versioning
+`MOONWALK_SETUP` and `MOONWALK` action timing. Content schema 32/fighter
+schema 28 adds and hashes the data-defined setup duration. Inspection and
+browser view schema 27 version the new action interpretation without changing
+the 304-value layout; structured observation schema 5, RL schema 7, compact
+observation schema 6, and its 66 values remain unchanged.
+This is a superseded format record, not a current behavior contract: state
+schema 76 reserves and rejects those two values, and content schema 78 removes
+the setup-duration field.
+State schema 32 also retains the 550-byte payload while adding explicit
+`TEETER` action semantics. Content schema 33/fighter schema 29 add and hash the
+data-defined support-edge snap distance and duration. Inspection and browser
+view schema 28 version that interpretation without changing the 304-value
+layout; observation and RL schemas remain unchanged.
+State schema 33 likewise retains the 550-byte payload while adding explicit
+`CROUCH_STEP` action semantics. Content schema 34/fighter schema 30 add and
+hash the data-defined speed and duration. Inspection and browser view schema
+29 version that interpretation without changing the 304-value layout;
+observation and RL schemas remain unchanged.
+State schema 34 retains that layout while adding explicit grounded `TAUNT`
+semantics. Content schema 35/fighter schema 31 add and hash the authored
+duration. Input schema 5 assigns bit 4 to Taunt. Inspection and browser view
+schema 30 version the new action interpretation without changing the
+304-value layout; observation and RL schemas remain unchanged.
+State schema 35 retains that layout while adding explicit `WALL_JUMP`
+semantics. Content schema 36/fighter schema 32 add and hash the authored
+horizontal and vertical speeds, action duration, brief invulnerability, and
+enable flag. Inspection and browser view schema 31 version the new action
+interpretation without changing the 304-value layout; input, observation, and
+RL schemas remain unchanged.
+Browser view schema 32 is presentation-only and expands that layout to 392
+values by exposing all four already-canonical player inspection records. Each
+player keeps the 44-value layout at base 25; event count is at 201, 16
+ten-value event records begin at 202, the 18-value item record begins at 362,
+and the 12-value projectile record begins at 380. Canonical state schema 35,
+save format 34, content schema 36, input schema 5, inspection schema 31,
+observation schema 5, RL schema 7, compact schema 6, and 66 compact values are
+unchanged.
+State schema 36 / save format 35 appends four recovery-availability bytes for
+a 554-byte payload and 694-byte checkpoint under `PFSAVE35`. Content schema 37
+adds and hashes recovery schema 1 with enable, horizontal/vertical speed, and
+18-tick duration fields; fighter schema 32 and input schema 5 remain unchanged.
+Inspection schema 32 and structured observation schema 6 expose the resource.
+RL schema 8 / compact schema 7 packs it into player flag bit 18 while retaining
+66 compact values. Browser view schema 33 appends the four visible values at
+indices 392–395 for a 396-value presentation view without moving any existing
+offset.
+State schema 37 / save format 36 retains the 554-byte payload and 694-byte
+checkpoint under `PFSAVE36` while adding fail-closed `PUMMEL` action and typed
+event semantics. Content schema 38/fighter schema 33 add and hash pummel
+damage, hit tick, and total duration; inspection schema 33 versions the new
+action/event interpretation. Input schema 5, observation schema 6, RL schema
+8, compact schema 7, and 66 compact values remain unchanged. Browser view
+schema 34 retains 396 values while versioning the action and event labels.
+State schema 38 / save format 37 retains those sizes under `PFSAVE37` while
+making crouch-cancel qualification, scaling, hitstun flooring, tumble, and
+event-flag semantics fail closed. Content schema 39/fighter schema 34 add and
+hash the post-hit damage ceiling plus independent launch/hitstun scales;
+inspection schema 34 versions the interpretation. Input schema 5, observation
+schema 6, RL schema 8, compact schema 7, and 66 compact values remain unchanged.
+Browser view schema 35 retains 396 values and labels the new typed flag.
+Content schema 40/fighter schema 35 add and hash the target-side Q16.16 victim
+weight used by the shared unblocked hit-reaction path. The default 1.0 value is
+an identity transform; the field changes no canonical, save, replay,
+inspection, observation, RL, or 396-value browser-view layout and therefore
+leaves their schema versions unchanged.
+State schema 39 / save format 38 retains the 554-byte payload and 694-byte
+checkpoint under `PFSAVE38` while adding fail-closed `UP_ATTACK` and
+`DOWN_ATTACK` action semantics. Content schema 41/fighter schema 36 append and
+hash two embedded attack-data records under the parent fighter definition;
+each record owns box geometry, damage, two-axis base knockback, growth,
+startup, active, recovery, and hitlag values. Inspection schema 35 and browser
+view schema 36 version the new action/event interpretation while retaining the
+existing inspection and 396-value presentation layouts. Input schema 5,
+structured observation schema 6, RL schema 8, compact schema 7, and 66 compact
+values remain unchanged.
+State schema 40 / save format 39 retains those serialized sizes under
+`PFSAVE39` while adding fail-closed `FORWARD_AERIAL`, `BACK_AERIAL`,
+`UP_AERIAL`, and `DOWN_AERIAL` semantics. Content schema 42/fighter schema 37
+append and hash four more embedded attack-data records. Inspection schema 36
+and browser view schema 37 version the new action interpretation while
+retaining the inspection and 396-value browser layouts. Input schema 5,
+structured observation schema 6, RL schema 8, compact schema 7, and 66 compact
+values remain unchanged. The public memory-requirements query now reports
+2,080 state bytes and 1,008 scratch bytes; the 4 KiB M4 caller envelopes remain
+valid, and this opaque in-memory growth does not change the 694-byte canonical
+checkpoint.
+State schema 41 / save format 40 retains the 554-byte payload and 694-byte
+checkpoint under `PFSAVE40` while adding fail-closed `LEDGE_ROLL` and
+`LEDGE_ATTACK` action, timing, grounding, ledge-claim, invulnerability, and
+hitlag-resume semantics. Content schema 43/fighter schema 38 append and hash
+the ledge-roll distance and timing windows plus one embedded ledge-attack
+record. Inspection schema 37 and browser view schema 38 version the new action
+interpretation and labels while retaining the inspection and 396-value
+browser layouts. Input schema 5, structured observation schema 6, RL schema 8,
+compact schema 7, and 66 compact values remain unchanged. The public
+memory-requirements query now reports 2,128 state bytes and 1,008 scratch
+bytes; existing callers retain their 4 KiB opaque state and scratch envelopes,
+and canonical checkpoint size remains unchanged.
+State schema 42 / save format 41 retains the 554-byte payload and 694-byte
+checkpoint under `PFSAVE41` while adding fail-closed `FORWARD_ATTACK`,
+`FORWARD_STRONG_ATTACK`, `UP_STRONG_ATTACK`, and `DOWN_STRONG_ATTACK` action,
+grounding, timing, hitlag-resume, powershield-cancel, and directional-input
+semantics. Content schema 44/fighter schema 39 append and hash four embedded
+attack-data records. Inspection schema 38 and browser view schema 39 version
+the new action interpretation and labels while retaining the inspection and
+396-value browser layouts. Input schema 5, structured observation schema 6,
+RL schema 8, compact schema 7, and 66 compact values remain unchanged.
+State schema 43 / save format 42 appends one little-endian `uint16_t` smash-
+charge value for each of the four fixed player slots, producing a 562-byte
+payload and 702-byte checkpoint under `PFSAVE42`. Loading validates the three
+charge actions, 60-tick cap, action-timer equality, early or automatic release,
+released-action and attacker-hitlag retention, interruption clearing, and
+inactive-slot zero state. Content schema 45/fighter schema 40 add and hash the
+maximum charge and Q16.16 damage bonus. Inspection schema 39 and structured
+observation schema 7 expose the timer; RL schema 9/transition schema 7 and
+compact schema 8 append four values at indices 66–69, for 70 total. Browser
+view schema 40 expands each player record from 44 to 45 values and the whole
+view from 396 to 400 values. The public memory-requirements query reports 2,312
+state bytes and 1,016 scratch bytes; the 4 KiB caller envelopes remain valid.
+State schema 44 / save format 43 appends one little-endian `uint16_t` raw shield
+strength for each fixed player slot, producing a 570-byte payload and 710-byte
+checkpoint under `PFSAVE43`. Loading accepts the value only for `SHIELD`,
+`SHIELD_STUN`, or hitlag that resumes into shield stun; it validates the light
+and digital thresholds, dense-only powershield state, and inactive-slot zero
+state. Content schema 46/fighter schema 41 add and hash the light hold-depletion
+and defender-pushback values plus the light trigger threshold. Inspection
+schema 40 and structured observation schema 8 expose raw shield strength. RL
+schema 10/transition schema 8 and compact schema 9 append four values at indices
+70–73, for 74 total. Browser view schema 41 expands each player record from 45
+to 46 values and the whole view from 400 to 404 values. The public
+memory-requirements query reports 2,328 state bytes and 1,024 scratch bytes; the
+4 KiB caller envelopes remain valid.
+State schema 45 / save format 44 appends little-endian signed 16-bit x/y shield
+tilt for every fixed player slot, producing a 586-byte payload and 726-byte
+checkpoint under `PFSAVE44`. Loading permits nonzero tilt only wherever raw
+strength is legal and rejects inactive-slot or ended-lifecycle residue. Shield
+bounds are derived from canonical position, health, strength, and tilt rather
+than serialized. Content schema 47/fighter schema 42 add and hash base half
+extents, minimum/dense scales, and maximum x/y tilt. Inspection schema 41
+exposes shield-active, exact bounds, and tilt. Structured observation schema 9
+adds shield health and tilt. RL schema 11/transition schema 9 and compact schema
+10 retain strength at 70–73, append health at 74–77 and two tilt values per
+player at 78–85, for 86 total. Browser view schema 42 expands each player
+record from 46 to 53 values and the whole view from 404 to 431 values. The
+public memory-requirements query reports 2,368 state bytes and 1,040 scratch
+bytes; the 4 KiB caller envelopes remain valid.
+Content schema 48/fighter schema 43 append, validate, and hash the immutable
+`shield_sdi_scale_q16`, exactly 33/50 by default. The field scales grounded
+horizontal shield SDI and shield ASDI without adding canonical state: state
+schema 45/save format 44, inspection/observation/RL/browser layouts, checkpoint
+size, and memory requirements remain unchanged.
+State schema 46 / save format 45 retains the 586-byte payload and 726-byte
+checkpoint under `PFSAVE45` while recognizing canonical action 94 and support
+4 for the moving revival platform. Loading derives the exact slot x and
+interpolated y from player count, slot, immutable stage data, and action ticks;
+it rejects wrong position, velocity, grounding, support, recovery resource,
+timer, or premature post-drop invulnerability. Content schema 49/stage schema
+3 append and hash revival start/end y, half-width, descent ticks, and hold
+ticks. Inspection schema 42 adds the authored stage values and derived active
+platform geometry. Browser schema 43 keeps every earlier index stable and
+appends four values per fixed player at 431–446, growing the view from 431 to
+447 values. Fighter schema 43, observation schema 9, RL schema 11/transition
+schema 9, compact schema 10 with 86 values, checkpoint size, and public memory
+scratch requirement remain unchanged. The larger copied immutable stage record
+raises the opaque state requirement from 2,368 to 2,384 bytes; the 4 KiB caller
+envelope remains valid.
+State schema 47 / save format 46 appends 45 bytes to the canonical payload:
+one attack-registration latch and one queue count per fixed player, nine
+newest-first canonical move IDs per fixed player, and one thrown-item
+registration latch. The 631-byte payload produces a 771-byte checkpoint under
+`PFSAVE46`. Loading rejects noncanonical IDs, nonzero unused queue slots,
+out-of-range counts or latches, and inconsistent item registration state.
+Content schema 50/fighter schema 44 add, validate, hash, and default nine
+strictly descending Q16.16 slot reductions. Inspection schema 43 exposes each
+queue, the current or hitlag-resume move multiplier, and fighter/item
+registration latches. Structured observation schema 10 exposes queue count,
+multiplier, and IDs; RL schema 12/transition schema 10 and compact schema 11
+append four packed four-value records at 86–101 for 102 values total. Browser schema 44
+keeps indices 0–446 stable, appends the four 12-value player records at 447–494,
+and exposes the item latch at 495 for 496 values total. Opaque requirements are
+2,448 state bytes and 1,080 scratch bytes inside the unchanged 4 KiB envelopes.
+State schema 48 / save format 47 retains the 631-byte payload and 771-byte
+checkpoint under `PFSAVE47`; support ID 5 denotes the stationary upper
+pass-through platform and is validated through the same grounded/airborne state
+relationships as the existing ordinary supports. No stage coordinate is added
+to the payload because stage data remains immutable compatibility identity.
+Content schema 51/stage schema 4 append, validate, and hash the upper-platform
+center x, y, and half-width. Inspection schema 44 exposes derived left/right/y
+geometry. Browser schema 45 preserves indices 0–495 and appends those three
+values at 496–498 for 499 values total. Fighter schema 44, observation schema
+10, RL schema 12/transition schema 10, compact schema 11 with 102 values, save
+sizes, and the 1,080-byte scratch requirement remain unchanged. The larger
+copied immutable stage record raises the public state requirement from 2,448 to
+2,464 bytes, within the existing 4 KiB envelope.
+
+State schema 49 / save format 48 retains the 631-byte payload and 771-byte
+checkpoint. Bits 0–1 of each packed recovery byte encode tech direction
+0/negative/positive as 0/1/2, bits 2–3 encode prone none/back/stomach as 0/1/2,
+and code 3 or nonzero bits 4–7 are invalid. Content schema 52/fighter schema 45
+add four byte-sized getup-roll timing records; inspection schema 45 and
+observation schema 11 expose prone orientation. RL schema 13/transition schema
+11 and compact schema 12 retain 102 values by packing orientation into bits
+19–20 of the existing player-flags words. Browser schema 46 appends four
+orientation values at 499–502 for 503 total. Opaque requirements are 2,472
+state bytes and 1,088 scratch bytes inside the unchanged 4 KiB envelopes.
+
+State schema 50 / save format 49 retains the same 631-byte payload, 771-byte
+checkpoint, 2,472-byte state requirement, and 1,088-byte scratch requirement.
+The semantic bump assigns event type 24 to one system action-transition record
+per changing tick: `value_q16` packs four final action bytes,
+`velocity_x_q16` packs the four previous action bytes, and `detail` is the
+nonzero changed-player mask. Simultaneous forfeits coalesce into one system
+event whose `detail` is the nonzero forfeiting-player mask. Inspection schema
+46 and browser schema 47 make these meanings fail closed without changing the
+inspection layout or the 503-value browser layout. Content, fighter,
+observation, RL, transition, and compact schemas are unchanged.
+
+Content schema 53/fighter schema 46 append, validate, default, and hash three
+Q16.16 grounded-jump takeoff fields: horizontal stick contribution, retained
+ground-momentum multiplier, and absolute horizontal maximum. They are immutable
+compatibility identity. Serialized state/save, observation, RL, inspection,
+browser, and replay-container layouts remain unchanged. Because the opaque
+simulation state copies the immutable fighter record, its requirement grows
+from 2472 to 2488 bytes; the 1088-byte scratch requirement is unchanged, and
+both remain inside the public 4 KiB storage bounds.
+
+Content schema 54/fighter schema 47 append, validate, default, and hash the
+two-tick horizontal dash-input window. `WALK` reuses its serialized action tick
+as the bounded time since leaving the dead zone, so save/state, observation,
+RL, inspection, browser, compact, and replay-container layouts remain
+unchanged. The new `uint16_t` occupies existing fighter-record alignment space,
+so the measured 2,488-byte state and 1,088-byte scratch requirements are also
+unchanged. A first horizontal sample at or below the midpoint between dead zone
+and dash threshold saturates the bounded age to express walk intent without new
+canonical state. Old content fails closed through its schema and hash.
+
+The M4 collision inspector consumes schema-35 stage geometry, fighter and
+active attack/grab bounds, schema-42 exact shield bounds, and item/projectile
+extents. Its default-on toggle, legend, and pause-safe redraw remain
+presentation semantics; the new shield overlay reads the versioned view and
+does not add canonical, replay, save, observation, or RL state.
+The temporary M4.3 browser setup calls
+`pf_web_m4_playtest_configure_duel(stock_count)` for stock choices 1–4. The
+bridge validates the value, rebuilds a fresh production duel, and renders tick
+zero; it does not patch live canonical state. Result, rematch, and setup are
+presentation flow states and add no serialized format.
+Format 14 changed the
+public tick-result semantics without adding journal payloads to canonical
+state.
+Format 5 first
+introduced the same-size payload containing shield health, shield-stun timers,
+and powershield result state. Exact headers, payloads, compatibility, checksum,
+and atomic-load behavior are recorded in
 [TDR-0006](../technology_decisions/0006-canonical-state-format.md).
 
 ## Normalized input frame
 
-The logical fields are:
+The input fields are:
 
 | Field | Type | Rule |
 |---|---|---|
 | tick | `uint64_t` | Exact target logical tick |
 | player slot | `uint8_t` | Stable slot, not controller/device ID |
-| buttons | `uint64_t` | Versioned action bitset |
+| buttons/control word | `uint64_t` | Versioned logical-action bits plus four packed signed raw PAD axis bytes in disjoint reserved bit ranges |
 | main stick x/y | `int16_t` each | Canonical calibrated range |
 | secondary stick x/y | `int16_t` each | Canonical calibrated range |
 | left/right trigger | `uint16_t` each | Canonical range |
 | input schema | `uint16_t` | Reject unknown incompatible mappings |
+| raw-axis validity | `uint8_t` | Per-axis validity mask; an absent axis must have a zero packed byte |
 
 The C ABI structure is not the replay/network byte encoding.
+
+Input schema 3 assigns bit 0 to jump, bit 1 to light attack, bit 2 to strong
+attack, and bit 63 to forfeit. Unknown bits fail before any player state is
+advanced.
+Input schema 4 additionally assigns bit 3 to special. Neutral special may
+request source-routed ground/air Falcon Punch in default reference content, or
+the fixed Pulse Bolt in explicit custom content; full down plus a fresh special
+edge may request the grounded or airborne Prism Burst, and full up plus a fresh
+special edge may request Vector Ascent from the ground or air. Holding light
+with the grounded full-up Special chord instead starts or resumes Arc Reservoir
+when its content and action state are legal.
+Input schema 5 additionally assigns bit 4 to Taunt. A fresh grounded edge may
+enter the authored `TAUNT` action from ordinary standing, dash, run, crouch,
+turnaround/brake, or teeter states; held input does not retrigger it.
+
+Input schema 6 keeps the input frame at 32 bytes and the four-player batch at
+128 bytes. Bits 8–39 of the 64-bit control word carry signed raw main-stick and
+secondary-stick X/Y bytes; they are transport metadata, not logical buttons.
+The final structure byte is a four-bit per-axis validity mask. An invalid axis
+must encode a zero raw byte, and unknown mask or control-word bits fail closed.
+For a missing raw axis, the core deterministically synthesizes the signed
+PADStatus value from the processed Q15 axis, with full scale mapping to 80 and
+the main/C Y convention inverted. That fallback keeps keyboard, standard
+Gamepad, native SDL, web, and RL callers playable, but it is not authoritative
+raw-controller evidence for UCF equivalence. Exact UCF oracle lanes provide the
+captured raw axes explicitly. Public observations mask the packed raw metadata
+out of `previous_buttons`, while canonical state retains the resolved raw
+history that affects later UCF decisions.
 
 ## Deterministic state schema
 
@@ -121,9 +560,31 @@ not duplicated per match.
 
 ## Event journal
 
-The tick result exposes a caller-owned bounded array of fixed-header events.
-Large optional payloads use offsets into a same-tick bounded byte buffer.
-Overflow is a deterministic simulation fault and a test failure; events are
+ABI 5 exposes up to 16 caller-owned, fixed-size events in every tick result.
+Each event records the processed input tick, a match-monotonic sequence,
+type, flags, source and target slots, one 32-bit value, one signed 32-bit
+velocity pair, and a type-specific 16-bit detail. Combat records normally use
+Q16.16 numeric semantics; action-transition records pack raw action bytes.
+`255` denotes a system/no-player
+endpoint. The currently produced types are hit, shield block, powershield,
+shield break, grab, grab escape, throw, item pickup/drop/throw/hit/reset,
+projectile fire/hit/reflect, KO, respawn, revival drop, sudden death, match
+result, forfeit, time limit, and packed action transitions.
+
+The event array itself is same-tick output scratch, not rolling canonical
+history. Canonical state stores the next sequence authority. Loading a
+checkpoint and replaying the same inputs therefore reproduces exactly the
+same event records and sequence IDs without making rollback memory grow with
+match length. Presentation clients may retain a bounded recent history and
+must discard/reconcile it when the simulation tick rewinds.
+
+The current production path has a statically proven upper bound of 14 events
+per tick: at most one movement and one combat event per player, plus one packed
+action-transition event, one coalesced forfeit event, one match-resolution
+event, two item events, and one projectile event. Capacity is 16. The action
+record follows movement/item/combat/projectile resolution and precedes any
+forfeit/result record; match resolution remains last. Sequence exhaustion or
+capacity overflow faults before the tick mutates canonical state; events are
 never silently dropped.
 
 Event categories include:
@@ -145,9 +606,9 @@ The replay is a chunked, length-delimited binary container:
 | Chunk | Required content |
 |---|---|
 | Header | Magic, replay version, simulation ABI, content/config hashes, seed, players/teams, tick rate |
-| Inputs | Delta-compressed normalized frames in tick order |
+| Inputs | Tick-major, slot-major normalized frames; format 1 stores them uncompressed |
 | Checkpoints | Optional canonical save states plus per-tick or periodic hashes |
-| Result | Final deterministic result and journal digest |
+| Result | Final deterministic result; a later chunk version may add a journal digest |
 | Metadata | Non-authoritative display names, client platform, annotations |
 | Verification envelope | Server protocol version, signer ID, signature, acceptance/rejection reason |
 
@@ -159,9 +620,23 @@ server re-simulates it with the identified headless build/content pair before
 rating is finalized.
 
 Replay format 1 uses five checksummed required chunks and mandatory per-tick
-hashes. Its exact ownership, compatibility, failure, and golden-corpus rules
-are recorded in
+hashes. Replay API schema 3 carries ABI-5 tick results, but the format-1 result
+chunk intentionally retains its original 16-byte terminal summary and does
+not encode the inline last-tick journal. Verification re-simulates the journal;
+the canonical cross-target corpus separately hashes every emitted event under
+the `PFEVT001` domain. Its exact ownership, compatibility, failure, and
+golden-corpus rules are recorded in
 [TDR-0007](../technology_decisions/0007-replay-container.md).
+
+`pf_replay_verify_observed` adds replay-observer schema 1 without changing the
+container. After the initial save and each subsequent tick pass their stored
+SHA-256 comparison, the caller receives the read-only simulation, total replay
+tick count, verified checkpoint hash, and that transition's exact ABI-5 tick
+result. Checkpoint zero has an empty journal; checkpoint `N` carries the events
+emitted while processing input tick `N - 1`. Callback failure aborts inspection
+and is reported through the ordinary verification status, so presentation and
+tools can stage a trace and publish it only after the terminal result also
+matches.
 
 The owner-approved action, structured/compact observation, reward, legal-mask,
 and batch semantics are recorded in
@@ -198,6 +673,132 @@ same pack bytes. Developer runtime import produces the same canonical model and
 must byte-match the offline packer for identical workbooks.
 
 ## Compatibility identity
+
+State schema 62/save format 58 add one source-equivalent prone A/B input-age
+byte per fixed player slot. Prior C-stick edge state shares the existing
+directional-input history byte, so the canonical payload grows by only four
+bytes to 671 bytes and the checkpoint to 811 bytes. `PFSAVE52` fails closed
+against peers that do not preserve the new buffered-input state.
+
+State schema 61/save format 57 extend the canonical action domain through
+`DAMAGE_LOW_1`, `DAMAGE_LOW_2`, and `DAMAGE_LOW_3` while retaining the
+667-byte payload and 807-byte checkpoint. Flat-stage load reconstructs the
+ground-tangent knockback scalar from the already serialized grounded `x8c`
+component; a future sloped-stage format must serialize that scalar separately.
+The version bump makes the new action, hitlag-resume, animation-plus-hitstun
+release, and ground-to-air cleanup semantics fail closed. Inspection schema 53
+exposes both the scalar and the effective hitlag resume action.
+
+State schema 60/save format 56 append one bounded Falcon Kick ground-hit
+counter per fixed player slot and extend the canonical action domain through
+the seven source down-special states. The canonical payload is 667 bytes and
+the checkpoint is 807 bytes. Reset, inactive-slot zeroing, hitlag resume,
+save/load validation, replay transitions, native/Wasm hashing, and inspection
+all share that state. Content schema 70/fighter schema 63 were current for this
+historical slice: the
+generated Falcon source already owns the imported down-special scripts,
+attributes, geometry, and root motion folded into content identity.
+
+State schema 59/save format 55 extend the canonical action domain with the
+source-routed Falcon Dive ground/air start, catch, throw, fall, and landing
+states. The payload and 803-byte checkpoint size are unchanged, but old peers,
+replays, and saves fail closed because the serialized action byte now has new
+meanings. Content schema 70/fighter schema 63 were current for this historical
+slice because the
+generated collision pose and up-special views are immutable internal source
+tables already folded into the canonical Falcon source identity.
+
+Content schema 70/fighter schema 63 folds the canonical Falcon geometry digest
+into content identity and routes complete-frame executable-captured pose and
+hit geometry for the 14 production normals/aerials, standing and dash grab,
+all 17 Falcon special subactions, Initial Dash, RunBrake, CrouchStart, and
+CrouchEnd, KneeBend, SpotDodge, both rolls, AirDodge, looping FallSpecial, and
+the speed-scaled LandingFallSpecial sequence, plus all 30 ordinary Landing
+poses. A compact common-pose index maps
+the existing public action at lookup time; one inlined action-tick adapter
+preserves the source-frame-1 convention of dash/brake/squat while mapping the
+zero-based common states to their one-based source poses. Its frame spans reuse
+the ordinary deduplicated capsule pool and add no canonical state. Raptor
+Boost's six non-damaging search
+spheres live in a distinct immutable table so they cannot be mistaken for
+attack hitboxes. The move/frame tables are immutable offset/count arrays;
+collision does one bounded lookup and iterates fixed-capacity spans without
+allocation. Hit-sphere geometry remains sourced from its independently pinned
+capture, so recapturing hurt poses cannot perturb already-qualified attack
+coordinates.
+State schema 58 and the 803-byte checkpoint are unchanged because animation
+frame selection uses the existing canonical action and action-tick state.
+
+Content schema 67/fighter schema 59 appends, validates, defaults, and hashes
+Falcon jab 2's angle, KBG, set-weight, BKB, and semantic-selection flag;
+content schema 66/fighter schema 58 did the same for jab 1. The complete pinned
+50-subaction Falcon table is immutable compiled data behind one query API.
+Existing hashed action timing/damage fields receive its defaults, and the
+runtime table route is selected only while those identity fields still match;
+customized content falls back instead of silently mixing two contracts. The
+canonical source SHA-256 is also part of every M4 content hash, covering late
+phases and effects that are not repeated as public fighter fields. No canonical
+state or save layout changes.
+
+State schema 64/save format 60 appends one 16-bit resolved airborne source
+submotion per fixed player slot. That historical `PFSAVE54` checkpoint has a
+695-byte payload and is 835 bytes total. Load rejects a submotion outside
+Falcon's imported catalog, a non-airborne action carrying airborne motion
+state, or an action clock outside that submotion's imported animation cycle.
+The field lets the public `AIRBORNE` action retain exact JumpF/JumpB,
+JumpAerialF/JumpAerialB, Fall, and FallAerial continuation without runtime
+allocation or duplicated action state. Content schema 75/fighter schema 67 do
+not change: the complete submotion catalog and `ftCommonData` object were
+already hashed content identity, and this revision only begins consuming their
+existing lengths and `x78` directional predicate.
+
+Content schema 65/fighter schema 57 replaces approximate rectangular shield
+extents and direct Cartesian tilt with Falcon's owner-executable joint center,
+anisotropic radii, animation scales, and guard-direction table. State schema
+57/save format 54 reinterprets the same four canonical per-player bytes as an
+unsigned angle turn and Q0.16 magnitude; the canonical payload remains 663
+bytes and the checkpoint remains 803 bytes. Observation schema 13 and
+inspection schema 49 expose smoothed Cartesian tilt, while inspection also
+exposes the canonical angle and magnitude. One shared shield-volume helper is
+the only runtime authority for health/pressure size, facing reflection, tilt
+animation, inspection bounds, authored rectangle/ellipse collision, and the
+uniform-source-metric radius consumed by imported Falcon hit spheres.
+
+Content schema 64/fighter schema 56 replaces the prior approximate
+shield-response constants with the owner-disc/decomp pressure-dependent
+damage, stun, defender-pushback, separate attacker-recoil, and recoil-decay
+table. State schema 56/save format 53 appends one signed Q16.16 attacker-recoil
+component per fixed player slot. The canonical payload is 663 bytes and the
+`PFSAVE53` checkpoint is 803 bytes. Inspection schema 48 exposes the component
+without changing the ordinary self-velocity meaning. Hashing, validation,
+save/load, replay, reset, inactive-slot zeroing, and browser/native inspection
+all treat the new values as deterministic compatibility identity. An internal
+derived presence mask is rebuilt from serialized recoil values on load; it is
+not compatibility state and lets ordinary zero-recoil ticks skip copying or
+committing the sparse component.
+
+Content schema 63/fighter schema 55 append, validate, default, and hash the
+Falcon grounded-player-push radius and common nudge speed. The prior
+platform-pass downward speed and grounded crouch-start delay remain part of the
+same identity. Default values are the GALE01 Falcon 3.5 radius, common 0.3
+nudge, common 0.63 pass speed, and three displayed `Squat` ticks before
+`Pass`, converted to Q16.16 where applicable. These are immutable content
+identity; state schema 55 and save format 52 remain unchanged.
+
+State schema 52/save format 51 retains the 647-byte canonical payload and
+787-byte checkpoint while adding fail-closed action semantics for distinct
+forward, back, up, and down aerial landing and L-cancel states. Content schema
+56/fighter schema 48 adds provenance-recorded Falcon movement fields,
+ledge-jump velocities, and the 15/19/18/15/24 aerial landing-lag table. State
+schema 51/save format 50 introduced the four per-player X/Y tilt directions and
+ages used by decomp-style dash and fast-fall input timing.
+
+Inspection schema 52 appends the signed Q16.16 source-Z center to every
+imported hit-sphere record. Native and browser consumers continue reading X/Y
+and radius by named fields; the browser deliberately projects the diagnostic
+overlay into 2D. Canonical state/save/replay layouts are unchanged because hit
+and hurt geometry is immutable generated content, while its canonical digest
+already participates in the content hash.
 
 A peer, replay, save state, or verifier job is compatible only when all
 deterministic identity fields match:

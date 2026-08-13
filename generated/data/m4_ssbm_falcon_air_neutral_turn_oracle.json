@@ -1,0 +1,111 @@
+{
+  "cases": [
+    {
+      "field_exclusions": {},
+      "id": "recent_opposite_boundary",
+      "input_runs": [
+        {
+          "input": "0,0,0,0,0,0,1,0,0",
+          "ticks": 5
+        },
+        {
+          "input": "-16384,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 18
+        },
+        {
+          "input": "0,0,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 30,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "stale_opposite_boundary",
+      "input_runs": [
+        {
+          "input": "0,0,0,0,0,0,1,0,0",
+          "ticks": 5
+        },
+        {
+          "input": "-16384,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 19
+        },
+        {
+          "input": "0,0,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 31,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "recent_same_boundary",
+      "input_runs": [
+        {
+          "input": "0,0,0,0,0,0,1,0,0",
+          "ticks": 5
+        },
+        {
+          "input": "16384,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 18
+        },
+        {
+          "input": "0,0,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 30,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
+    }
+  ],
+  "domain": "falcon-air-neutral-special-turn",
+  "kind": "native-csv-trace-v1",
+  "production_trace_sha256": "027fad335436a97393260b553019fe6247661b3ae1c03d981b4b1db4cc4d5fcb",
+  "schema": 1,
+  "source_trace_sha256": "027fad335436a97393260b553019fe6247661b3ae1c03d981b4b1db4cc4d5fcb"
+}

@@ -1,0 +1,219 @@
+{
+  "schema": 1,
+  "scope": "falcon-turn-hurt-geometry",
+  "domain": "falcon-turn-hurt",
+  "character": "falcon",
+  "oracle": "SSBM GALE01 NTSC-U revision 2",
+  "checkpoint_pack": {
+    "protocol": "rebased-slippi-state-file-control-v1",
+    "expected_rows": 39,
+    "warm_budget_seconds": 1.5,
+    "capture_plan": {
+      "trace_start_label": "common_hurt_standing_turn_place",
+      "record_actions_by_label": {
+        "common_hurt_standing_turn_entry": ["TURNING"],
+        "common_hurt_standing_turn_hold": ["TURNING"],
+        "common_hurt_run_turn_entry": ["TURNING_RUN"],
+        "common_hurt_run_turn_hold": ["TURNING_RUN"]
+      },
+      "command_limits_by_label": {
+        "common_hurt_standing_turn_hold": 14,
+        "common_hurt_run_turn_run": 25,
+        "common_hurt_run_turn_hold": 35
+      },
+      "always_record_prefixes": [],
+      "command_overrides": []
+    }
+  },
+  "checkpoint_cases": [
+    {
+      "id": "standing-turn-poses",
+      "start_label": "common_hurt_standing_turn_place"
+    },
+    {
+      "id": "run-turn-poses",
+      "start_label": "common_hurt_run_turn_place"
+    }
+  ],
+  "capture_tracks": [
+    {
+      "id": "standing_turn",
+      "source_action": "TURNING",
+      "label_prefix": "common_hurt_standing_turn_",
+      "frames": { "first": 1, "last": 11 }
+    },
+    {
+      "id": "run_turnaround",
+      "source_action": "TURNING_RUN",
+      "label_prefix": "common_hurt_run_turn_",
+      "frames": { "first": 0, "last": 21 },
+      "pending_pose_facing_frame": 9
+    }
+  ],
+  "pose_tracks": [],
+  "selection": {
+    "paths": [
+      "generated/data/m4_ssbm_falcon_turn_hurt.inc",
+      "generated/data/m4_ssbm_falcon_turn_hurt_oracle.inc",
+      "src/sim/sim_combat.c",
+      "src/sim/sim_falcon_frame_data.c",
+      "src/sim/sim_internal.h",
+      "src/sim/sim_movement.c",
+      "src/sim/sim_snapshot.c",
+      "tools/data/ssbm_falcon_turn_hurt.json",
+      "tools/extract_ssbm_hurt_pose_tracks.py",
+      "tools/generate_ssbm_hurt_pose_include.py",
+      "tools/ssbm_falcon_turn_hurt_coverage.json",
+      "tools/ssbm_falcon_turn_hurt_import.json",
+      "tools/verify_ssbm_falcon_turn_hurt.py"
+    ]
+  },
+  "live_qualification": {
+    "accelerated_capture_sha256": "e0240567b226cdd1802a3b7ad14384cf5096df9c8b323b383020c0a1844cf901",
+    "control_capture_sha256": "18abfc0b39cc15614dcda03e243abb8298adcd4738869ea1738cf550cbed6be5",
+    "semantic_sha256": "1cc3543b1363ecb5c7427c36f4d8d8a2826f9fb7c5281877f54108e1ffe281a2",
+    "accelerated_warm_seconds": 0.227533,
+    "control_warm_seconds": 0.565447
+  },
+  "stored_oracle": {
+    "pose_profiles": [
+      {
+        "path": "data/ssbm_falcon_turn_hurt.json",
+        "profile_sha256": "6addc920dda39acf06df2f8bcecee7ee23a3200c128b6545d0232c58c5704ea6",
+        "capture_sha256": "e0240567b226cdd1802a3b7ad14384cf5096df9c8b323b383020c0a1844cf901",
+        "semantic_sha256": "1cc3543b1363ecb5c7427c36f4d8d8a2826f9fb7c5281877f54108e1ffe281a2",
+        "track_submotions": {
+          "standing_turn": "TURN",
+          "run_turnaround": "TURN_RUN"
+        },
+        "track_first_action_frames": {
+          "standing_turn": 1,
+          "run_turnaround": 0
+        }
+      }
+    ],
+    "source_pose_sha256": "1c004b685babaecff0a105774766e389e7babccf7a3905877d277a29e01022ea",
+    "production_pose_serialization": "action-name-nul,source-frame-u16le,capsule-count-u8,capsules-seven-i32le-four-u8-v1",
+    "production_pose_sha256": "0750e32d78d2b51b49f4e917dde6088a266e6940d92351250c8a167422563d07",
+    "expected_pose_count": 33,
+    "expected_capsules_per_pose": 11,
+    "c": {
+      "symbol_prefix": "pf_m4_ssbm_falcon_turn_hurt",
+      "macro_prefix": "PF_M4_SSBM_FALCON_TURN_HURT",
+      "track_count_expression": "2",
+      "actions": {
+        "TURNING": "PF_M4_ACTION_STANDING_TURN",
+        "TURNING_RUN": "PF_M4_ACTION_RUN_TURNAROUND"
+      },
+      "submotions": {
+        "TURN": "PF_M4_FALCON_SUBMOTION_TURN",
+        "TURN_RUN": "PF_M4_FALCON_SUBMOTION_TURN_RUN"
+      },
+      "buttons": {}
+    },
+    "generator": {
+      "script": "tools/generate_ssbm_stored_oracle.py",
+      "output": "generated/data/m4_ssbm_falcon_turn_hurt_oracle.inc"
+    },
+    "runner": {
+      "executable": "m4_combat_test",
+      "arguments": ["--ssbm-oracle", "falcon-turn-hurt"]
+    },
+    "cases": [
+      {
+        "id": "standing-turn-overlap",
+        "mode": "geometry",
+        "target_action": "TURNING",
+        "target_source_submotion": "TURN",
+        "action_frame": 6,
+        "source_frame": 6,
+        "jab_frame": 4,
+        "facing": 1,
+        "distance_hundredths": 0,
+        "height_hundredths": 0,
+        "expect_hit": true
+      },
+      {
+        "id": "standing-turn-separated",
+        "mode": "geometry",
+        "target_action": "TURNING",
+        "target_source_submotion": "TURN",
+        "action_frame": 6,
+        "source_frame": 6,
+        "jab_frame": 4,
+        "facing": 1,
+        "distance_hundredths": 10000,
+        "height_hundredths": 0,
+        "expect_hit": false
+      },
+      {
+        "id": "run-turn-overlap",
+        "mode": "geometry",
+        "target_action": "TURNING_RUN",
+        "target_source_submotion": "TURN_RUN",
+        "action_frame": 9,
+        "source_frame": 9,
+        "jab_frame": 4,
+        "facing": 1,
+        "distance_hundredths": 0,
+        "height_hundredths": 0,
+        "expect_hit": true
+      },
+      {
+        "id": "run-turn-separated",
+        "mode": "geometry",
+        "target_action": "TURNING_RUN",
+        "target_source_submotion": "TURN_RUN",
+        "action_frame": 9,
+        "source_frame": 9,
+        "jab_frame": 4,
+        "facing": 1,
+        "distance_hundredths": 10000,
+        "height_hundredths": 0,
+        "expect_hit": false
+      },
+      {
+        "id": "run-turn-frame9-before-flip",
+        "mode": "pose_facing",
+        "target_action": "TURNING_RUN",
+        "target_source_submotion": "TURN_RUN",
+        "action_frame": 9,
+        "source_frame": 9,
+        "pose_facing": {
+          "action_ticks": 10,
+          "gameplay_facing": 1,
+          "dash_direction": -1,
+          "expected_pose_facing": 1
+        }
+      },
+      {
+        "id": "run-turn-frame9-pending-display",
+        "mode": "pose_facing",
+        "target_action": "TURNING_RUN",
+        "target_source_submotion": "TURN_RUN",
+        "action_frame": 9,
+        "source_frame": 9,
+        "pose_facing": {
+          "action_ticks": 10,
+          "gameplay_facing": -1,
+          "dash_direction": -1,
+          "expected_pose_facing": 1
+        }
+      },
+      {
+        "id": "run-turn-frame10-resumed-display",
+        "mode": "pose_facing",
+        "target_action": "TURNING_RUN",
+        "target_source_submotion": "TURN_RUN",
+        "action_frame": 10,
+        "source_frame": 10,
+        "pose_facing": {
+          "action_ticks": 11,
+          "gameplay_facing": -1,
+          "dash_direction": -1,
+          "expected_pose_facing": -1
+        }
+      }
+    ]
+  }
+}

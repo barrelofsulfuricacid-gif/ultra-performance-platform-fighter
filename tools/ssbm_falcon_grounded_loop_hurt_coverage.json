@@ -1,0 +1,271 @@
+{
+  "schema": 1,
+  "scope": "falcon-grounded-loop-hurt-geometry",
+  "domain": "falcon-grounded-loop-hurt",
+  "character": "falcon",
+  "oracle": "SSBM GALE01 NTSC-U revision 2",
+  "checkpoint_pack": {
+    "protocol": "rebased-slippi-state-file-control-v1",
+    "expected_rows": 423,
+    "warm_budget_seconds": 5.0,
+    "capture_route": "common-hurt-geometry",
+    "capture_shards": [
+      ["crouch-wait-poses", "taunt-left-poses"],
+      ["walk-slow-clock-probe", "taunt-right-poses"],
+      ["walk-middle-clock-probe", "run-clock-probe"],
+      ["walk-fast-clock-probe"]
+    ],
+    "capture_plan": {
+      "trace_start_label": "common_hurt_crouch_wait_place",
+      "record_actions_by_label": {
+        "common_hurt_crouch_wait_hold": ["CROUCHING"],
+        "common_hurt_walk_slow_hold": ["WALK_SLOW"],
+        "common_hurt_walk_middle_hold": ["WALK_MIDDLE"],
+        "common_hurt_walk_fast_hold": ["WALK_FAST"],
+        "common_hurt_run_hold": ["RUNNING"],
+        "common_hurt_taunt_right_entry": ["TAUNT_RIGHT"],
+        "common_hurt_taunt_right_hold": ["TAUNT_RIGHT"],
+        "common_hurt_taunt_left_entry": ["TAUNT_LEFT"],
+        "common_hurt_taunt_left_hold": ["TAUNT_LEFT"]
+      },
+      "command_limits_by_label": {
+        "common_hurt_crouch_wait_hold": 160,
+        "common_hurt_walk_slow_hold": 55,
+        "common_hurt_walk_middle_hold": 41,
+        "common_hurt_walk_fast_hold": 40,
+        "common_hurt_run_entry": 20,
+        "common_hurt_run_hold": 21,
+        "common_hurt_taunt_right_hold": 60,
+        "common_hurt_taunt_left_hold": 60
+      },
+      "always_record_prefixes": [],
+      "command_overrides": []
+    }
+  },
+  "checkpoint_cases": [
+    {
+      "id": "crouch-wait-poses",
+      "start_label": "common_hurt_crouch_wait_place"
+    },
+    {
+      "id": "walk-slow-clock-probe",
+      "start_label": "common_hurt_walk_slow_place"
+    },
+    {
+      "id": "walk-middle-clock-probe",
+      "start_label": "common_hurt_walk_middle_place"
+    },
+    {
+      "id": "walk-fast-clock-probe",
+      "start_label": "common_hurt_walk_fast_place"
+    },
+    {
+      "id": "run-clock-probe",
+      "start_label": "common_hurt_run_place"
+    },
+    {
+      "id": "taunt-right-poses",
+      "start_label": "common_hurt_taunt_right_place"
+    },
+    {
+      "id": "taunt-left-poses",
+      "start_label": "common_hurt_taunt_left_place"
+    }
+  ],
+  "capture_notes": [
+    "CrouchWait and both Appeal orientations have bounded integer-frame pose tracks and are qualified below.",
+    "WalkSlow, WalkMiddle, WalkFast, and Run rows expose Melee's velocity-driven fractional animation clock and six-frame gait transitions for the source-data HSD pose evaluator."
+  ],
+  "capture_tracks": [
+    {
+      "id": "crouch_wait",
+      "source_action": "CROUCHING",
+      "label_prefix": "common_hurt_crouch_wait_",
+      "frames": { "first": 1, "last": 158 }
+    },
+    {
+      "id": "taunt_right",
+      "source_action": "TAUNT_RIGHT",
+      "label_prefix": "common_hurt_taunt_right_",
+      "frames": { "first": 1, "last": 60 }
+    },
+    {
+      "id": "taunt_left",
+      "source_action": "TAUNT_LEFT",
+      "label_prefix": "common_hurt_taunt_left_",
+      "frames": { "first": 1, "last": 60 }
+    }
+  ],
+  "pose_tracks": [],
+  "selection": {
+    "paths": [
+      "src/sim/sim_falcon_frame_data.c",
+      "src/sim/sim_falcon_frame_data.h",
+      "src/sim/sim_hsd_pose.h",
+      "src/sim/sim_internal.h",
+      "src/sim/sim_movement.c",
+      "src/sim/sim_snapshot.c",
+      "tests/sim/test_m4_combat.c",
+      "generated/data/m4_ssbm_falcon_crouch_taunt_hurt.inc",
+      "generated/data/m4_ssbm_falcon_ground_loop_hsd.inc",
+      "generated/data/m4_ssbm_falcon_ground_loop_hsd_oracle.inc",
+      "generated/data/m4_ssbm_falcon_grounded_loop_hurt_oracle.inc",
+      "tools/capture_ssbm_movement.py",
+      "tools/capture_ssbm_checkpoint_shards.py",
+      "tools/data/ssbm_falcon_ground_loop_ecb.json",
+      "tools/extract_ssbm_ecb_pose_tracks.py",
+      "tools/extract_ssbm_falcon_ground_loop_ecb.py",
+      "tools/data/ssbm_falcon_crouch_taunt_hurt.json",
+      "tools/extract_ssbm_hurt_pose_tracks.py",
+      "tools/generate_ssbm_hurt_pose_include.py",
+      "tools/generate_ssbm_dynamic_hurt_oracle.py",
+      "tools/generate_ssbm_dynamic_hurt_pose_include.py",
+      "tools/generate_ssbm_stored_oracle.py",
+      "tools/hsd_figatree.py",
+      "tools/hsd_joint_pose.py",
+      "tools/ssbm_falcon_crouch_taunt_hurt_import.json",
+      "tools/ssbm_falcon_ground_loop_hurt_import.json",
+      "tools/ssbm_falcon_grounded_loop_hurt_coverage.json",
+      "tools/verify_ssbm_dynamic_hurt_pose_source.py",
+      "tools/verify_ssbm_hsd_action_hurt_source.py",
+      "tools/verify_ssbm_falcon_ground_loop_ecb.py",
+      "tools/verify_ssbm_falcon_ground_loop_ecb.sh"
+    ]
+  },
+  "live_qualification": {
+    "control_capture_sha256": "4894c8d3917568e43d3499b71cb3b3ebc361575670aeaad63c8a99bcba106b4e",
+    "repeat_capture_sha256": "2c0dda770bd58774e0681b3736ea3f7c7de61f15a116849f9381b0460c4af529",
+    "semantic_sha256": "3c72296c3c1558d7df32228892f5b1adec4b4370e72e4d415fdc981cd2aa3ed3",
+    "control_warm_seconds": 4.820601,
+    "repeat_warm_seconds": 4.932569
+  },
+  "stored_oracle": {
+    "pose_profiles": [
+      {
+        "path": "data/ssbm_falcon_crouch_taunt_hurt.json",
+        "profile_sha256": "67d3f20d79b808c5d193892fd529c7e270fa1f175a8a2f92ee403c8a3e8d0ac7",
+        "capture_sha256": "0c40e316047eab2b4922049a80cdc9e9b05a55b16e2299ad4ca64467ac257348",
+        "semantic_sha256": "3c72296c3c1558d7df32228892f5b1adec4b4370e72e4d415fdc981cd2aa3ed3",
+        "track_submotions": {
+          "crouch_wait": "SQUAT_WAIT",
+          "taunt_right": "APPEAL_RIGHT",
+          "taunt_left": "APPEAL_LEFT"
+        },
+        "track_first_action_frames": {
+          "crouch_wait": 1,
+          "taunt_right": 1,
+          "taunt_left": 1
+        }
+      }
+    ],
+    "source_pose_sha256": "f3c9ca8bfa7fc3d85acf2a0b74eeb6ab2452159cd7c8c7dbb3f66bd870cf84e6",
+    "production_pose_serialization": "action-name-nul,source-frame-u16le,capsule-count-u8,capsules-seven-i32le-four-u8-v1",
+    "production_pose_sha256": "1a83c02e310c097ad609dd2e18787bec2b6589fc76f5daa039578b8e04f6a81f",
+    "expected_pose_count": 278,
+    "expected_capsules_per_pose": 11,
+    "c": {
+      "symbol_prefix": "pf_m4_ssbm_falcon_grounded_loop_hurt",
+      "macro_prefix": "PF_M4_SSBM_FALCON_GROUNDED_LOOP_HURT",
+      "track_count_expression": "3",
+      "actions": {
+        "CROUCHING": "PF_M4_ACTION_CROUCH",
+        "TAUNT_RIGHT": "PF_M4_ACTION_TAUNT",
+        "TAUNT_LEFT": "PF_M4_ACTION_TAUNT"
+      },
+      "submotions": {
+        "SQUAT_WAIT": "PF_M4_FALCON_SUBMOTION_SQUAT_WAIT",
+        "APPEAL_RIGHT": "PF_M4_FALCON_SUBMOTION_APPEAL_RIGHT",
+        "APPEAL_LEFT": "PF_M4_FALCON_SUBMOTION_APPEAL_LEFT"
+      },
+      "buttons": {}
+    },
+    "generator": {
+      "script": "tools/generate_ssbm_stored_oracle.py",
+      "output": "generated/data/m4_ssbm_falcon_grounded_loop_hurt_oracle.inc"
+    },
+    "runner": {
+      "executable": "m4_combat_test",
+      "arguments": ["--ssbm-oracle", "falcon-grounded-loop-hurt"]
+    },
+    "cases": [
+      {
+        "id": "crouch-wait-overlap",
+        "mode": "geometry",
+        "target_action": "CROUCHING",
+        "target_source_submotion": "SQUAT_WAIT",
+        "action_frame": 80,
+        "source_frame": 80,
+        "jab_frame": 4,
+        "facing": 1,
+        "distance_hundredths": 0,
+        "height_hundredths": 0,
+        "expect_hit": true
+      },
+      {
+        "id": "crouch-wait-separated",
+        "mode": "geometry",
+        "target_action": "CROUCHING",
+        "target_source_submotion": "SQUAT_WAIT",
+        "action_frame": 80,
+        "source_frame": 80,
+        "jab_frame": 4,
+        "facing": 1,
+        "distance_hundredths": 10000,
+        "height_hundredths": 0,
+        "expect_hit": false
+      },
+      {
+        "id": "taunt-right-overlap",
+        "mode": "geometry",
+        "target_action": "TAUNT_RIGHT",
+        "target_source_submotion": "APPEAL_RIGHT",
+        "action_frame": 30,
+        "source_frame": 30,
+        "jab_frame": 4,
+        "facing": 1,
+        "distance_hundredths": 0,
+        "height_hundredths": 0,
+        "expect_hit": true
+      },
+      {
+        "id": "taunt-right-separated",
+        "mode": "geometry",
+        "target_action": "TAUNT_RIGHT",
+        "target_source_submotion": "APPEAL_RIGHT",
+        "action_frame": 30,
+        "source_frame": 30,
+        "jab_frame": 4,
+        "facing": 1,
+        "distance_hundredths": 10000,
+        "height_hundredths": 0,
+        "expect_hit": false
+      },
+      {
+        "id": "taunt-left-overlap",
+        "mode": "geometry",
+        "target_action": "TAUNT_LEFT",
+        "target_source_submotion": "APPEAL_LEFT",
+        "action_frame": 30,
+        "source_frame": 30,
+        "jab_frame": 4,
+        "facing": -1,
+        "distance_hundredths": 0,
+        "height_hundredths": 0,
+        "expect_hit": true
+      },
+      {
+        "id": "taunt-left-separated",
+        "mode": "geometry",
+        "target_action": "TAUNT_LEFT",
+        "target_source_submotion": "APPEAL_LEFT",
+        "action_frame": 30,
+        "source_frame": 30,
+        "jab_frame": 4,
+        "facing": -1,
+        "distance_hundredths": 10000,
+        "height_hundredths": 0,
+        "expect_hit": false
+      }
+    ]
+  }
+}

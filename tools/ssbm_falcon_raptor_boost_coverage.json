@@ -1,0 +1,220 @@
+{
+  "schema": 1,
+  "scope": "falcon-side-special",
+  "domain": "falcon-side-special",
+  "character": "falcon",
+  "oracle": "SSBM GALE01 NTSC-U revision 2",
+  "live_source": {
+    "ground_hit_capture_sha256": "7b0a4d6a855a88fd88dd83270b9f8812df0023159e6ab95a4236e5391ba3cd3a",
+    "miss_capture_sha256": "81cafb4d75e75c1f876b6a903a770a3e20376d0399d9374cab19d7feea413602",
+    "air_hit_floor_capture_sha256": "f3f8518c103958f6b6e56e76b5bc728c0b3da0854f26a022fac978869f6d051b",
+    "ground_edge_capture_sha256": "3b59fbf62ad880ffe88d694e6e69f0a0b08f23fd7e4714c9a0cf4a41194744ae",
+    "item_search_capture_sha256": "9efacb94277b8cb870f8c69008e5dd248d4d31cec17e9713323abde94a577028",
+    "decomp_revision": "9509dc04406fb2028bfab01243841ba4787c0fb7",
+    "current_decomp_revision": "6ddd74ecbb755df25b32f137b5f7b7f6d7005e91",
+    "dolphin_version": "3.4.0",
+    "libmelee_version": "0.40.1",
+    "memory_engine_version": "1.3.1",
+    "qualified_route_frames": {
+      "ground_hit": 46,
+      "ground_miss": 80,
+      "air_miss": 180,
+      "air_hit_floor": 145,
+      "ground_edge": 51,
+      "item_search": 155
+    }
+  },
+  "selection": {
+    "paths": [
+      "generated/data/m4_falcon_ntsc102_frame_data.inc",
+      "generated/data/m4_ssbm_falcon_raptor_boost_oracle.json",
+      "src/sim/sim_falcon_frame_data.c",
+      "src/sim/sim_falcon_frame_data.h",
+      "src/sim/sim_movement.c",
+      "src/tools/m4_movement_trace.c",
+      "tools/compare_ssbm_movement.py",
+      "tools/generate_ssbm_stored_trace_oracle.py",
+      "tools/ssbm_falcon_raptor_boost_coverage.json",
+      "tools/verify_m4_raptor_boost.sh",
+      "tools/verify_ssbm_falcon_raptor_boost.py"
+    ]
+  },
+  "checkpoint_pack": {
+    "capture_plan": {
+      "route": "falcon-raptor-boost-ground-air"
+    }
+  },
+  "stored_oracle": {
+    "kind": "native-csv-trace-v1",
+    "source_trace_sha256": "19b5d604d5721e20bc2151e41c11054632a5c384dfd5528cf373dac2bd1abe2c",
+    "production_trace_sha256": "7733655e234ac2de12fe1b674ed6be967ad7de39b848d94cf97b2e36547509a0",
+    "serialized_fields": [
+      "action_state",
+      "facing",
+      "grounded",
+      "position_x_q16_from_origin",
+      "velocity_x_q16",
+      "velocity_y_q16",
+      "shield_health_q16",
+      "shield_strength"
+    ],
+    "cases": [
+      {
+        "id": "ground_hit",
+        "runner_arguments": ["--raptor-boost-ground-hit"],
+        "sample_count": 46,
+        "serialized_fields": [
+          "action_state",
+          "action_ticks",
+          "facing",
+          "grounded",
+          "position_x_q16_from_origin",
+          "position_y_q16_from_origin",
+          "velocity_x_q16",
+          "velocity_y_q16",
+          "shield_health_q16",
+          "shield_strength"
+        ],
+        "field_exclusions": {
+          "action_ticks": [[19, 24], [45, 46]]
+        },
+        "input_phases": [
+          {
+            "ticks": 1,
+            "lanes": [
+              { "main": [32767, 0], "buttons": ["special"] },
+              {}
+            ]
+          },
+          { "ticks": 45, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "ground_miss",
+        "runner_arguments": ["--raptor-boost-ground-miss"],
+        "sample_count": 80,
+        "serialized_fields": [
+          "action_state",
+          "action_ticks",
+          "facing",
+          "grounded",
+          "position_x_q16_from_origin",
+          "position_y_q16_from_origin",
+          "velocity_x_q16",
+          "velocity_y_q16",
+          "shield_health_q16",
+          "shield_strength"
+        ],
+        "field_exclusions": {
+          "action_ticks": [[79, 80]]
+        },
+        "input_phases": [
+          {
+            "ticks": 1,
+            "lanes": [
+              { "main": [32767, 0], "buttons": ["special"] },
+              {}
+            ]
+          },
+          { "ticks": 79, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "air_miss",
+        "runner_arguments": ["--raptor-boost-air-miss"],
+        "sample_count": 180,
+        "serialized_fields": [
+          "action_state",
+          "action_ticks",
+          "facing",
+          "grounded",
+          "position_x_q16_from_origin",
+          "velocity_x_q16",
+          "velocity_y_q16",
+          "shield_health_q16",
+          "shield_strength"
+        ],
+        "input_phases": [
+          {
+            "ticks": 1,
+            "lanes": [
+              { "main": [32767, 0], "buttons": ["special"] },
+              {}
+            ]
+          },
+          { "ticks": 179, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "air_hit_floor",
+        "runner_arguments": ["--raptor-boost-air-hit"],
+        "sample_count": 145,
+        "serialized_fields": [
+          "action_state",
+          "action_ticks",
+          "facing",
+          "grounded",
+          "position_x_q16_from_origin",
+          "velocity_x_q16",
+          "velocity_y_q16",
+          "shield_health_q16",
+          "shield_strength",
+          "hitlag_ticks",
+          "opponent_hitlag_ticks",
+          "opponent_damage_q16"
+        ],
+        "field_exclusions": {
+          "action_ticks": [[20, 25], [56, 96]]
+        },
+        "input_phases": [
+          {
+            "ticks": 1,
+            "lanes": [
+              { "main": [32767, 0], "buttons": ["special"] },
+              {}
+            ]
+          },
+          { "ticks": 144, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "ground_edge",
+        "runner_arguments": ["--raptor-boost-ground-edge"],
+        "sample_count": 51,
+        "serialized_fields": [
+          "action_state",
+          "action_ticks",
+          "facing",
+          "grounded",
+          "position_x_q16_from_origin",
+          "position_y_q16_from_origin",
+          "velocity_x_q16",
+          "velocity_y_q16",
+          "shield_health_q16",
+          "shield_strength"
+        ],
+        "input_phases": [
+          {
+            "ticks": 1,
+            "lanes": [
+              { "main": [32767, 0], "buttons": ["special"] },
+              { "main": [-32767, 0] }
+            ]
+          },
+          {
+            "ticks": 50,
+            "lanes": [{}, { "main": [-32767, 0] }]
+          }
+        ]
+      }
+    ],
+    "generator": {
+      "script": "tools/generate_ssbm_stored_trace_oracle.py",
+      "output": "generated/data/m4_ssbm_falcon_raptor_boost_oracle.json"
+    },
+    "runner": {
+      "executable": "pf_m4_movement_trace",
+      "arguments": []
+    }
+  }
+}

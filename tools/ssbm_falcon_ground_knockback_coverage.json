@@ -1,0 +1,69 @@
+{
+  "schema": 1,
+  "scope": "falcon-common-ground-knockback",
+  "domain": "falcon-common-ground-knockback",
+  "character": "falcon",
+  "oracle": "SSBM GALE01 NTSC-U revision 2",
+  "checkpoint_pack": {
+    "protocol": "rebased-slippi-state-file-control-v1",
+    "expected_rows": 64,
+    "warm_budget_seconds": 2.0,
+    "capture_plan": {
+      "ground_knockback_cases": [
+        {
+          "id": "late_dash_attack_flat",
+          "target_x": 33.0,
+          "approach_ticks": 4,
+          "observe_ticks": 50
+        }
+      ]
+    }
+  },
+  "checkpoint_cases": [
+    {
+      "id": "late-dash-attack-flat",
+      "start_label": "ground_knockback_late_dash_attack_flat_place"
+    }
+  ],
+  "selection": {
+    "paths": [
+      "generated/data/m4_ssbm_ntsc102_common_data.inc",
+      "generated/data/m4_ssbm_falcon_ground_knockback_oracle.inc",
+      "include/pf/m4.h",
+      "src/sim/sim_combat.c",
+      "src/sim/sim_melee.h",
+      "src/sim/sim_movement.c",
+      "src/sim/sim_snapshot.c",
+      "src/sim/sim_ssbm_common_data.h",
+      "tests/sim/ssbm_stored_oracle.c",
+      "tests/sim/ssbm_stored_oracle.h",
+      "tests/sim/test_m4_combat.c",
+      "tools/generate_ssbm_stored_trace_oracle.py",
+      "tools/import_ssbm_common_data.py",
+      "tools/ssbm_falcon_ground_knockback_coverage.json",
+      "tools/verify_ssbm_falcon_ground_knockback.py",
+      "tools/verify_ssbm_falcon_ground_knockback.sh"
+    ]
+  },
+  "stored_oracle": {
+    "kind": "numeric-trace-v1",
+    "source_trace_sha256": "e08d7149e3f46d814d5c4a709e316cf3063208bb9673141effe6b1958f03fc79",
+    "production_trace_sha256": "729798c184414c35a0528553ba34c4c6920c4ae50ba1942d832677d78f061a51",
+    "samples_per_case": 15,
+    "cases": [
+      { "id": "late_dash_attack_flat" }
+    ],
+    "c": {
+      "symbol_prefix": "pf_m4_ssbm_falcon_ground_knockback",
+      "macro_prefix": "PF_M4_SSBM_FALCON_GROUND_KNOCKBACK"
+    },
+    "generator": {
+      "script": "tools/generate_ssbm_stored_trace_oracle.py",
+      "output": "generated/data/m4_ssbm_falcon_ground_knockback_oracle.inc"
+    },
+    "runner": {
+      "executable": "m4_combat_test",
+      "arguments": ["--ssbm-oracle", "falcon-common-ground-knockback"]
+    }
+  }
+}

@@ -2,11 +2,12 @@
 set -eu
 
 repository_root=$(git rev-parse --show-toplevel)
-web_root="$repository_root/build/web"
+web_root=${PF_WEB_ROOT:-"$repository_root/build/web"}
 port=${PF_WEB_SMOKE_PORT:-8123}
 url="http://127.0.0.1:$port/web_client.html"
 server_log="$web_root/web_smoke_server.log"
 dom_output="$web_root/web_smoke_dom.html"
+browser_log="$web_root/web_smoke_browser.log"
 
 [ -f "$web_root/web_client.html" ] ||
     {
@@ -58,7 +59,7 @@ while ! curl -fsS "$url" >/dev/null 2>&1; do
     sleep 1
 done
 
-"$browser" \
+if ! "$browser" \
     --headless \
     --no-sandbox \
     --use-gl=angle \
@@ -67,22 +68,130 @@ done
     --virtual-time-budget=10000 \
     --dump-dom \
     "$url" \
-    >"$dom_output"
+    >"$dom_output" \
+    2>"$browser_log"
+then
+    echo "web browser smoke failed: Chrome exited unsuccessfully" >&2
+    tail -n 80 "$browser_log" >&2
+    exit 1
+fi
 
-grep -Fq \
-    'web-client-smoke=pass sim_abi=2 tick_hz=60' \
-    "$dom_output"
-grep -Fq \
-    'webgl2=pass batch_draws=1' \
-    "$dom_output"
-grep -Fq \
-    'replay=pass ticks=180 winner_mask=5 final_sha256=7571f4ec1375cecbde2c6dc1b9e8ea00a8d368c876bda87e8adcdb354af83ea7' \
-    "$dom_output"
-grep -Fq \
-    'id="pf-replay-inspector"' \
-    "$dom_output"
-grep -Fq \
-    'Platform Fighter M2 Replay Checkpoint' \
-    "$dom_output"
+pf_dump_browser_diagnostics()
+{
+    echo "web browser smoke captured status:" >&2
+    sed -n \
+        '/id="pf-status"/p;/id="output"/p;/id="pf-m4-playtest"/p' \
+        "$dom_output" >&2
+    echo "web browser smoke browser log tail:" >&2
+    tail -n 40 "$browser_log" >&2
+}
+
+pf_require_dom()
+{
+    pf_label=$1
+    pf_expected=$2
+    if ! grep -Fq "$pf_expected" "$dom_output"; then
+        echo "web browser smoke failed: missing $pf_label" >&2
+        pf_dump_browser_diagnostics
+        exit 1
+    fi
+}
+
+pf_require_dom \
+    "simulation ABI status" \
+    'web-client-smoke=pass sim_abi=5 tick_hz=60'
+pf_require_dom \
+    "WebGL2 status" \
+    'webgl2=pass batch_draws=1'
+pf_require_dom \
+    "deterministic replay status" \
+    'replay=pass ticks=240 winner_mask=5 final_sha256=5a7db4a5e899b1af31909f7997dcb1a08226aec79f4f09fab7422fe9602f246f'
+pf_require_dom \
+    "replay inspector" \
+    'id="pf-replay-inspector"'
+pf_require_dom \
+    "verified replay-file event visualization" \
+    'data-replay-event-visualization="verified-per-tick-events"'
+pf_require_dom \
+    "replay file input" \
+    'id="pf-replay-file"'
+pf_require_dom \
+    "replay event timeline" \
+    'id="pf-replay-events"'
+pf_require_dom \
+    "re-simulated canonical events" \
+    '82 typed events'
+pf_require_dom \
+    "M4 browser integration status" \
+    'playtest=ready gamepad_api=available wii_u_adapter_api=available controls=keyboard-gamepad-webusb-two-controller-duel-team-lab owner_checklist=ready-61'
+pf_require_dom \
+    "native Wii U GameCube adapter control" \
+    'id="pf-m4-wii-u-adapter"'
+pf_require_dom \
+    "M4 playtest surface" \
+    'id="pf-m4-playtest"'
+pf_require_dom \
+    "M4 crouch-cancel help" \
+    'CROUCH CANCEL'
+pf_require_dom \
+    "M4 owner checklist status" \
+    'owner_checklist=ready-61'
+pf_require_dom \
+    "M4 owner checklist source" \
+    'data-owner-checklist="ready"'
+pf_require_dom \
+    "M4 owner checklist schema" \
+    'data-owner-checklist-schema="1"'
+pf_require_dom \
+    "M4 owner checklist revision" \
+    'data-owner-checklist-revision="2048934"'
+pf_require_dom \
+    "M4 owner evidence panel" \
+    'id="pf-m4-owner-evidence"'
+pf_require_dom \
+    "M4 owner evidence exports" \
+    'id="pf-m4-owner-export-markdown"'
+pf_require_dom \
+    "M4 owner match gate" \
+    'id="pf-m4-owner-complete-match"'
+owner_recipe_count=$(grep -Fo 'class="pf-m4-owner-technique"' "$dom_output" | wc -l)
+if [ "$owner_recipe_count" -ne 61 ]; then
+    echo "web browser smoke failed: expected 61 owner recipes, got $owner_recipe_count" >&2
+    pf_dump_browser_diagnostics
+    exit 1
+fi
+pf_require_dom \
+    "M4 collision inspector semantics" \
+    'data-collision-overlay-semantics="stage-hurtbox-shield-attack-grab-item-projectile-blast"'
+pf_require_dom \
+    "M4 collision inspector toggle" \
+    'id="pf-m4-collision-overlay"'
+pf_require_dom \
+    "M4 collision inspector legend" \
+    'id="pf-m4-collision-legend"'
+pf_require_dom \
+    "M4 local match setup state" \
+    'data-match-flow="setup"'
+pf_require_dom \
+    "M4 published match-flow capability marker" \
+    'data-match-flow="setup-duel-results-rematch"'
+pf_require_dom \
+    "M4 local match setup panel" \
+    'id="pf-m4-match-setup"'
+pf_require_dom \
+    "M4 stock selector" \
+    'id="pf-m4-stock-count"'
+pf_require_dom \
+    "M4 explicit match start" \
+    'id="pf-m4-start-match"'
+pf_require_dom \
+    "M4 reset and rematch control" \
+    '>Reset</button>'
+pf_require_dom \
+    "M4 return-to-setup control" \
+    '>Match Setup</button>'
+pf_require_dom \
+    "M4 browser title" \
+    'Platform Fighter M4 Browser Playtest'
 
 echo "web-browser-smoke=pass browser=$browser url=$url"

@@ -1,0 +1,104 @@
+{
+  "schema": 1,
+  "scope": "falcon-neutral-special",
+  "domain": "falcon-neutral-special",
+  "character": "falcon",
+  "oracle": "SSBM GALE01 NTSC-U revision 2",
+  "live_source": {
+    "ground_capture_sha256": "2c8bc604024cfad745e266239dcc4d3e1b1ff1c4a07afcc6eecb9938b5f155b1",
+    "air_capture_sha256": "9cfc8c5632a8bce37a0f79c6999bff6f0742130df5f8f2473196338d8b14d6c5",
+    "decomp_revision": "9509dc04406fb2028bfab01243841ba4787c0fb7",
+    "current_decomp_revision": "6ddd74ecbb755df25b32f137b5f7b7f6d7005e91",
+    "dolphin_version": "3.4.0",
+    "libmelee_version": "0.40.1",
+    "memory_engine_version": "1.3.1",
+    "ground_start_label": "special_geometry_neutral_ground_start",
+    "air_start_label": "special_geometry_neutral_air_start",
+    "action_frames": 99,
+    "air_physics_first_frame": 50
+  },
+  "selection": {
+    "paths": [
+      "generated/data/m4_falcon_ntsc102_frame_data.inc",
+      "generated/data/m4_ssbm_falcon_punch_oracle.inc",
+      "src/sim/sim_falcon_frame_data.c",
+      "src/sim/sim_falcon_frame_data.h",
+      "src/sim/sim_movement.c",
+      "tests/sim/ssbm_stored_oracle.c",
+      "tests/sim/ssbm_stored_oracle.h",
+      "tests/sim/test_m4_combat.c",
+      "tools/compare_ssbm_movement.py",
+      "tools/generate_ssbm_stored_trace_oracle.py",
+      "tools/ssbm_falcon_punch_coverage.json",
+      "tools/verify_m4_falcon_punch.sh",
+      "tools/verify_ssbm_falcon_punch.py"
+    ]
+  },
+  "checkpoint_pack": {
+    "capture_plan": {
+      "route": "falcon-punch-ground-air"
+    }
+  },
+  "stored_oracle": {
+    "kind": "numeric-trace-v1",
+    "source_trace_sha256": "defbb9746b3784c6e1aae2b7d176344fadcb9a1ba0c51ac4b8c097e1765a16f1",
+    "production_trace_sha256": "eec11ed8d9050fe51196b9241e326c3e189be8a56dad82e64b5ee28a7c5b527e",
+    "samples_per_case": 100,
+    "serialized_fields": [
+      "position_x",
+      "position_y",
+      "self_velocity_x",
+      "self_velocity_y",
+      "action_ticks",
+      "action_state",
+      "grounded",
+      "facing"
+    ],
+    "cases": [
+      {
+        "id": "ground_complete",
+        "initial_state_variant": 1,
+        "sample_count": 100,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "buttons": ["special"] }] },
+          { "ticks": 99, "lanes": [{}] }
+        ]
+      },
+      {
+        "id": "air_complete_clock",
+        "initial_state_variant": 2,
+        "sample_count": 100,
+        "serialized_fields": [
+          "action_ticks",
+          "action_state",
+          "grounded",
+          "facing"
+        ],
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "buttons": ["special"] }] },
+          { "ticks": 99, "lanes": [{}] }
+        ]
+      },
+      {
+        "id": "air_physics_tail",
+        "initial_state_variant": 3,
+        "sample_count": 51,
+        "input_phases": [
+          { "ticks": 51, "lanes": [{}] }
+        ]
+      }
+    ],
+    "c": {
+      "symbol_prefix": "pf_m4_ssbm_falcon_punch",
+      "macro_prefix": "PF_M4_SSBM_FALCON_PUNCH"
+    },
+    "generator": {
+      "script": "tools/generate_ssbm_stored_trace_oracle.py",
+      "output": "generated/data/m4_ssbm_falcon_punch_oracle.inc"
+    },
+    "runner": {
+      "executable": "m4_combat_test",
+      "arguments": ["--ssbm-oracle", "falcon-neutral-special"]
+    }
+  }
+}

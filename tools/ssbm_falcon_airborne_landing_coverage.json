@@ -1,0 +1,98 @@
+{
+  "schema": 1,
+  "scope": "falcon-common-airborne-landing",
+  "domain": "falcon-common-airborne-landing",
+  "character": "falcon",
+  "oracle": "SSBM GALE01 NTSC-U revision 2",
+  "live_source": {
+    "capture_sha256": "0c987bd7f77300ef407eb8469fbc43b658be7414cb79712863bbd02ff7cde852",
+    "repeat_capture_sha256": "4ed61b2580e2eb0c2090bc9bcd84e4bd503e1684a3c0a3dc49380b437eafadff",
+    "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
+    "release_artifact_sha256": "87e9ef6d80ed03354a1647d0616016dbc91399aa9e86a69ae5a398edd0a0c2bd",
+    "launcher_sha256": "f06b96ddf780417e7c23ad2001879207ff8ea4bd88cc52195b297eae37661455",
+    "decomp_revision": "9509dc04406fb2028bfab01243841ba4787c0fb7",
+    "current_decomp_revision": "ee4311b81417eb49b77ac73f3e9dc41c6a1e3dee",
+    "dolphin_version": "3.5.1",
+    "libmelee_version": "0.47.2",
+    "row_count": 520,
+    "position_tolerance_q16": 640
+  },
+  "checkpoint_pack": {
+    "capture_plan": {
+      "stage": "BATTLEFIELD",
+      "route": "airborne-landing"
+    }
+  },
+  "selection": {
+    "paths": [
+      "generated/data/m4_falcon_ntsc102_frame_data.inc",
+      "generated/data/m4_ssbm_falcon_airborne_landing_oracle.json",
+      "src/sim/sim_falcon_frame_data.c",
+      "src/sim/sim_falcon_frame_data.h",
+      "src/sim/sim_movement.c",
+      "src/tools/m4_movement_trace.c",
+      "tests/sim/test_m4_combat.c",
+      "tools/capture_ssbm_movement.py",
+      "tools/compare_ssbm_movement.py",
+      "tools/data/ssbm_falcon_airborne_ecb.json",
+      "tools/extract_ssbm_ecb_pose_tracks.py",
+      "tools/generate_ssbm_stored_trace_oracle.py",
+      "tools/import_ssbm_falcon_frame_data.py",
+      "tools/ssbm_falcon_airborne_landing_coverage.json",
+      "tools/ssbm_live_trace.py",
+      "tools/verify_ssbm_falcon_airborne_ecb.py",
+      "tools/verify_ssbm_falcon_airborne_landing.py"
+    ]
+  },
+  "stored_oracle": {
+    "kind": "native-csv-trace-v1",
+    "source_trace_sha256": "4b36cab9936996b419d526c5923525c48c766aa2a8408f3e9c7798cc65af80bb",
+    "production_trace_sha256": "9b3c14c53cc4eb7ca9832cae1741baa553b21f464af5350bfad6b367088faf21",
+    "serialized_fields": [
+      "action_state",
+      "action_ticks",
+      "facing",
+      "grounded",
+      "support",
+      "surface_normal_source_x_q16",
+      "surface_normal_source_y_q16",
+      "position_x_q16_from_origin",
+      "position_y_q16_from_origin",
+      "velocity_x_q16",
+      "velocity_y_q16"
+    ],
+    "cases": [
+      {
+        "id": "battlefield_jump_landings",
+        "runner_arguments": ["--platform"],
+        "sample_count": 520,
+        "field_exclusions": {
+          "action_ticks": [[0, 60], [125, 197], [281, 357], [451, 520]]
+        },
+        "input_phases": [
+          { "ticks": 60, "lanes": [{}, {}] },
+          { "ticks": 1, "lanes": [{ "main": [-13107, 0], "buttons": ["jump"] }, {}] },
+          { "ticks": 6, "lanes": [{ "main": [-13107, 0] }, {}] },
+          { "ticks": 130, "lanes": [{}, {}] },
+          { "ticks": 1, "lanes": [{ "buttons": ["jump"] }, {}] },
+          { "ticks": 8, "lanes": [{}, {}] },
+          { "ticks": 1, "lanes": [{ "buttons": ["jump"] }, {}] },
+          { "ticks": 150, "lanes": [{}, {}] },
+          { "ticks": 1, "lanes": [{ "buttons": ["jump"] }, {}] },
+          { "ticks": 8, "lanes": [{}, {}] },
+          { "ticks": 1, "lanes": [{ "main": [-13107, 0], "buttons": ["jump"] }, {}] },
+          { "ticks": 3, "lanes": [{ "main": [-13107, 0] }, {}] },
+          { "ticks": 150, "lanes": [{}, {}] }
+        ]
+      }
+    ],
+    "generator": {
+      "script": "tools/generate_ssbm_stored_trace_oracle.py",
+      "output": "generated/data/m4_ssbm_falcon_airborne_landing_oracle.json"
+    },
+    "runner": {
+      "executable": "pf_m4_movement_trace",
+      "arguments": []
+    }
+  }
+}

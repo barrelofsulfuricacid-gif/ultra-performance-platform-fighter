@@ -1,0 +1,861 @@
+{
+  "schema": 1,
+  "scope": "falcon-common-prone-response",
+  "domain": "falcon-common-prone-response",
+  "character": "falcon",
+  "oracle": "SSBM GALE01 NTSC-U revision 2",
+  "checkpoint_pack": {
+    "protocol": "rebased-slippi-state-file-control-v1",
+    "expected_rows": 1515,
+    "warm_budget_seconds": 18,
+    "capture_shards": [
+      ["timeout", "up_buffered_a_getup_attack", "c_roll_below_threshold"],
+      ["up_timeout", "buffered_a_getup_attack", "buffered_b_getup_attack"],
+      ["up_c_roll_forward", "up_main_roll_backward", "c_roll_forward", "c_up_getup_attack"],
+      ["main_roll_backward", "up_neutral_getup", "shield_neutral_getup", "attack_over_roll_priority"]
+    ],
+    "capture_plan": {
+      "record_response_only": true,
+      "batch_exi_inputs": true,
+      "source_random_seed": 1,
+      "source_random_seed_post_hit_index": 5,
+      "floor_response_cases": [
+        {
+          "damage_percent": 200,
+          "target_start": [
+            -20,
+            30
+          ],
+          "opponent_start": [
+            5,
+            30
+          ],
+          "approach_main": -32767,
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 42,
+          "impact_x": 30,
+          "impact_opponent_x": 45,
+          "impact_y": 3,
+          "impact_x_hold_ticks": 14,
+          "impact_main": [
+            0,
+            0
+          ],
+          "id": "timeout",
+          "observe_segments": [
+            {
+              "id": "response",
+              "ticks": 300
+            }
+          ]
+        },
+        {
+          "damage_percent": 200,
+          "target_start": [
+            -20,
+            30
+          ],
+          "opponent_start": [
+            5,
+            30
+          ],
+          "approach_main": -32767,
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 42,
+          "impact_x": 30,
+          "impact_opponent_x": 45,
+          "impact_y": 3,
+          "impact_x_hold_ticks": 14,
+          "impact_main": [
+            0,
+            0
+          ],
+          "id": "buffered_a_getup_attack",
+          "observe_segments": [
+            {
+              "id": "response",
+              "ticks": 95,
+              "conditional_edge": {
+                "action": "TECH_MISS_DOWN",
+                "frame": 9,
+                "attack": true
+              }
+            }
+          ]
+        },
+        {
+          "damage_percent": 200,
+          "target_start": [
+            -20,
+            30
+          ],
+          "opponent_start": [
+            5,
+            30
+          ],
+          "approach_main": -32767,
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 42,
+          "impact_x": 30,
+          "impact_opponent_x": 45,
+          "impact_y": 3,
+          "impact_x_hold_ticks": 14,
+          "impact_main": [
+            0,
+            0
+          ],
+          "id": "buffered_b_getup_attack",
+          "observe_segments": [
+            {
+              "id": "response",
+              "ticks": 60,
+              "conditional_edge": {
+                "action": "TECH_MISS_DOWN",
+                "frame": 9,
+                "special": true
+              }
+            }
+          ]
+        },
+        {
+          "damage_percent": 200,
+          "target_start": [
+            -20,
+            30
+          ],
+          "opponent_start": [
+            5,
+            30
+          ],
+          "approach_main": -32767,
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 42,
+          "impact_x": 30,
+          "impact_opponent_x": 45,
+          "impact_y": 3,
+          "impact_x_hold_ticks": 14,
+          "impact_main": [
+            0,
+            0
+          ],
+          "id": "c_up_getup_attack",
+          "observe_segments": [
+            {
+              "id": "response",
+              "ticks": 60,
+              "conditional_edge": {
+                "action": "TECH_MISS_DOWN",
+                "frame": 25,
+                "secondary": [
+                  0,
+                  32767
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "damage_percent": 200,
+          "target_start": [
+            -20,
+            30
+          ],
+          "opponent_start": [
+            5,
+            30
+          ],
+          "approach_main": -32767,
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 42,
+          "impact_x": 30,
+          "impact_opponent_x": 15,
+          "impact_y": 3,
+          "impact_x_hold_ticks": 14,
+          "impact_main": [
+            0,
+            0
+          ],
+          "id": "c_roll_forward",
+          "observe_segments": [
+            {
+              "id": "response",
+              "ticks": 90,
+              "conditional_edge": {
+                "action": "TECH_MISS_DOWN",
+                "frame": 25,
+                "secondary": [
+                  32767,
+                  0
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "damage_percent": 200,
+          "target_start": [
+            -20,
+            30
+          ],
+          "opponent_start": [
+            5,
+            30
+          ],
+          "approach_main": -32767,
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 42,
+          "impact_x": 30,
+          "impact_opponent_x": 45,
+          "impact_y": 3,
+          "impact_x_hold_ticks": 14,
+          "impact_main": [
+            0,
+            0
+          ],
+          "id": "main_roll_backward",
+          "observe_segments": [
+            {
+              "id": "response",
+              "ticks": 80,
+              "main": [
+                -32767,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "damage_percent": 200,
+          "target_start": [
+            -20,
+            30
+          ],
+          "opponent_start": [
+            5,
+            30
+          ],
+          "approach_main": -32767,
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 42,
+          "impact_x": 30,
+          "impact_opponent_x": 45,
+          "impact_y": 3,
+          "impact_x_hold_ticks": 14,
+          "impact_main": [
+            0,
+            0
+          ],
+          "id": "up_neutral_getup",
+          "observe_segments": [
+            {
+              "id": "response",
+              "ticks": 60,
+              "main": [
+                0,
+                32767
+              ]
+            }
+          ]
+        },
+        {
+          "damage_percent": 200,
+          "target_start": [
+            -20,
+            30
+          ],
+          "opponent_start": [
+            5,
+            30
+          ],
+          "approach_main": -32767,
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 42,
+          "impact_x": 30,
+          "impact_opponent_x": 45,
+          "impact_y": 3,
+          "impact_x_hold_ticks": 14,
+          "impact_main": [
+            0,
+            0
+          ],
+          "id": "shield_neutral_getup",
+          "observe_segments": [
+            {
+              "id": "response",
+              "ticks": 85,
+              "conditional_edge": {
+                "action": "TECH_MISS_DOWN",
+                "frame": 26,
+                "digital_left": true
+              }
+            }
+          ]
+        },
+        {
+          "damage_percent": 200,
+          "target_start": [
+            -20,
+            30
+          ],
+          "opponent_start": [
+            5,
+            30
+          ],
+          "approach_main": -32767,
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 42,
+          "impact_x": 30,
+          "impact_opponent_x": 15,
+          "impact_y": 3,
+          "impact_x_hold_ticks": 14,
+          "impact_main": [
+            0,
+            0
+          ],
+          "id": "attack_over_roll_priority",
+          "observe_segments": [
+            {
+              "id": "response",
+              "ticks": 60,
+              "main": [
+                32767,
+                0
+              ],
+              "conditional_edge": {
+                "action": "TECH_MISS_DOWN",
+                "frame": 9,
+                "main": [
+                  32767,
+                  0
+                ],
+                "attack": true
+              }
+            }
+          ]
+        },
+        {
+          "damage_percent": 200,
+          "target_start": [
+            -20,
+            30
+          ],
+          "opponent_start": [
+            5,
+            30
+          ],
+          "approach_main": -32767,
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 42,
+          "impact_x": 30,
+          "impact_opponent_x": 45,
+          "impact_y": 3,
+          "impact_x_hold_ticks": 14,
+          "impact_main": [
+            0,
+            0
+          ],
+          "id": "c_roll_below_threshold",
+          "observe_segments": [
+            {
+              "id": "response",
+              "ticks": 50,
+              "conditional_edge": {
+                "action": "TECH_MISS_DOWN",
+                "frame": 25,
+                "secondary": [
+                  6500,
+                  0
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "up_timeout",
+          "damage_percent": 50,
+          "target_start": [0, 30],
+          "opponent_start": [12, 30],
+          "target_facing": 1,
+          "opponent_facing": -1,
+          "approach_main": 0,
+          "attack_main": [0, 32767],
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 90,
+          "impact_opponent_x": 40,
+          "impact_waypoints": [[0, 30], [0, 28], [0, 26], [0, 25.5], [0, 25.1]],
+          "impact_waypoint_main": [0, 0],
+          "impact_main": [0, 0],
+          "observe_segments": [
+            { "id": "response", "ticks": 300 }
+          ]
+        },
+        {
+          "id": "up_buffered_a_getup_attack",
+          "damage_percent": 50,
+          "target_start": [0, 30],
+          "opponent_start": [12, 30],
+          "target_facing": 1,
+          "opponent_facing": -1,
+          "approach_main": 0,
+          "attack_main": [0, 32767],
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 90,
+          "impact_opponent_x": 40,
+          "impact_waypoints": [[0, 30], [0, 28], [0, 26], [0, 25.5], [0, 25.1]],
+          "impact_waypoint_main": [0, 0],
+          "impact_main": [0, 0],
+          "observe_segments": [
+            {
+              "id": "response",
+              "ticks": 95,
+              "conditional_edge": {
+                "action": "TECH_MISS_UP",
+                "frame": 9,
+                "attack": true
+              }
+            }
+          ]
+        },
+        {
+          "id": "up_c_roll_forward",
+          "damage_percent": 50,
+          "target_start": [0, 30],
+          "opponent_start": [12, 30],
+          "target_facing": 1,
+          "opponent_facing": -1,
+          "approach_main": 0,
+          "attack_main": [0, 32767],
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 90,
+          "impact_opponent_x": 40,
+          "impact_waypoints": [[0, 30], [0, 28], [0, 26], [0, 25.5], [0, 25.1]],
+          "impact_waypoint_main": [0, 0],
+          "impact_main": [0, 0],
+          "observe_segments": [
+            {
+              "id": "response",
+              "ticks": 90,
+              "conditional_edge": {
+                "action": "TECH_MISS_UP",
+                "frame": 25,
+                "secondary": [32767, 0]
+              }
+            }
+          ]
+        },
+        {
+          "id": "up_main_roll_backward",
+          "damage_percent": 50,
+          "target_start": [0, 30],
+          "opponent_start": [12, 30],
+          "target_facing": 1,
+          "opponent_facing": -1,
+          "approach_main": 0,
+          "attack_main": [0, 32767],
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 90,
+          "impact_opponent_x": 40,
+          "impact_waypoints": [[0, 30], [0, 28], [0, 26], [0, 25.5], [0, 25.1]],
+          "impact_waypoint_main": [0, 0],
+          "impact_main": [0, 0],
+          "observe_segments": [
+            {
+              "id": "response",
+              "ticks": 90,
+              "conditional_edge": {
+                "action": "TECH_MISS_UP",
+                "frame": 25,
+                "main": [-32767, 0]
+              }
+            }
+          ]
+        },
+        {
+          "id": "up_wait_c_roll_forward",
+          "damage_percent": 50,
+          "target_start": [0, 30],
+          "opponent_start": [12, 30],
+          "target_facing": 1,
+          "opponent_facing": -1,
+          "approach_main": 0,
+          "attack_main": [0, 32767],
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 90,
+          "impact_opponent_x": 40,
+          "impact_waypoints": [[0, 30], [0, 28], [0, 26], [0, 25.5], [0, 25.1]],
+          "impact_waypoint_main": [0, 0],
+          "impact_main": [0, 0],
+          "observe_segments": [
+            {
+              "id": "response",
+              "ticks": 95,
+              "conditional_edge": {
+                "action": "LYING_GROUND_UP",
+                "frame": 1,
+                "secondary": [32767, 0]
+              }
+            }
+          ]
+        },
+        {
+          "id": "up_wait_main_roll_backward",
+          "damage_percent": 50,
+          "target_start": [0, 30],
+          "opponent_start": [12, 30],
+          "target_facing": 1,
+          "opponent_facing": -1,
+          "approach_main": 0,
+          "attack_main": [0, 32767],
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 90,
+          "impact_opponent_x": 40,
+          "impact_waypoints": [[0, 30], [0, 28], [0, 26], [0, 25.5], [0, 25.1]],
+          "impact_waypoint_main": [0, 0],
+          "impact_main": [0, 0],
+          "observe_segments": [
+            {
+              "id": "response",
+              "ticks": 95,
+              "conditional_edge": {
+                "action": "LYING_GROUND_UP",
+                "frame": 1,
+                "main": [-32767, 0]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "checkpoint_cases": [
+    {
+      "id": "timeout",
+      "start_label": "floor_response_timeout_setup"
+    },
+    {
+      "id": "buffered_a_getup_attack",
+      "start_label": "floor_response_buffered_a_getup_attack_setup"
+    },
+    {
+      "id": "buffered_b_getup_attack",
+      "start_label": "floor_response_buffered_b_getup_attack_setup"
+    },
+    {
+      "id": "c_up_getup_attack",
+      "start_label": "floor_response_c_up_getup_attack_setup"
+    },
+    {
+      "id": "c_roll_forward",
+      "start_label": "floor_response_c_roll_forward_setup"
+    },
+    {
+      "id": "main_roll_backward",
+      "start_label": "floor_response_main_roll_backward_setup"
+    },
+    {
+      "id": "up_neutral_getup",
+      "start_label": "floor_response_up_neutral_getup_setup"
+    },
+    {
+      "id": "shield_neutral_getup",
+      "start_label": "floor_response_shield_neutral_getup_setup"
+    },
+    {
+      "id": "attack_over_roll_priority",
+      "start_label": "floor_response_attack_over_roll_priority_setup"
+    },
+    {
+      "id": "c_roll_below_threshold",
+      "start_label": "floor_response_c_roll_below_threshold_setup"
+    },
+    {
+      "id": "up_timeout",
+      "start_label": "floor_response_up_timeout_setup"
+    },
+    {
+      "id": "up_buffered_a_getup_attack",
+      "start_label": "floor_response_up_buffered_a_getup_attack_setup"
+    },
+    {
+      "id": "up_c_roll_forward",
+      "start_label": "floor_response_up_c_roll_forward_setup"
+    },
+    {
+      "id": "up_main_roll_backward",
+      "start_label": "floor_response_up_main_roll_backward_setup"
+    }
+  ],
+  "projection_cases": [
+    {
+      "id": "up_wait_c_roll_forward",
+      "start_label": "floor_response_up_wait_c_roll_forward_setup"
+    },
+    {
+      "id": "up_wait_main_roll_backward",
+      "start_label": "floor_response_up_wait_main_roll_backward_setup"
+    }
+  ],
+  "selection": {
+    "paths": [
+      "generated/data/m4_ssbm_ntsc102_common_data.inc",
+      "generated/data/m4_ssbm_falcon_prone_response_oracle.inc",
+      "include/pf/m4.h",
+      "src/sim/sim_content.c",
+      "src/sim/sim_falcon_frame_data.c",
+      "src/sim/sim_falcon_frame_data.h",
+      "src/sim/sim_movement.c",
+      "src/sim/sim_snapshot.c",
+      "tests/sim/ssbm_stored_oracle.c",
+      "tests/sim/ssbm_stored_oracle.h",
+      "tests/sim/test_m4_combat.c",
+      "tools/capture_ssbm_checkpoint_shards.py",
+      "tools/capture_ssbm_movement.py",
+      "tools/data/ssbm_falcon_down_bound_ecb.json",
+      "tools/data/ssbm_falcon_getup_ecb.json",
+      "tools/extract_ssbm_ecb_pose_tracks.py",
+      "tools/extract_ssbm_falcon_getup_ecb.py",
+      "tools/generate_ssbm_stored_trace_oracle.py",
+      "tools/import_ssbm_falcon_frame_data.py",
+      "tools/import_ssbm_common_data.py",
+      "tools/merge_ssbm_checkpoint_captures.py",
+      "tools/ssbm_falcon_prone_response_coverage.json",
+      "tools/verify_ssbm_falcon_prone_response.py",
+      "tools/verify_ssbm_falcon_prone_response.sh",
+      "tools/verify_ssbm_falcon_down_bound_ecb.py",
+      "tools/verify_ssbm_falcon_down_bound_ecb.sh",
+      "tools/verify_ssbm_falcon_getup_ecb.py",
+      "tools/verify_ssbm_falcon_getup_ecb.sh"
+    ]
+  },
+  "stored_oracle": {
+    "kind": "numeric-trace-v1",
+    "source_trace_sha256": "db317711cb1a5b2c877d4dc8dd57e1ef38c31edd93638dd1d05e272b6d46cd8d",
+    "production_trace_sha256": "dc416f87ccd228a045c61e87350af2619bad244e6a83dc0708502b414886fefb",
+    "samples_per_case": 12,
+    "cases": [
+      {
+        "id": "timeout",
+        "initial_state_variant": 2,
+        "initial_facing": 1,
+        "inputs": [
+          { "advance_ticks": 26 }, { "advance_ticks": 1 },
+          { "advance_ticks": 109 }, { "advance_ticks": 109 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 },
+          { "advance_ticks": 10 }, { "advance_ticks": 10 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 },
+          { "advance_ticks": 5 }, { "advance_ticks": 2 }
+        ]
+      },
+      {
+        "id": "buffered_a_getup_attack",
+        "initial_state_variant": 2,
+        "initial_facing": 1,
+        "inputs": [
+          { "advance_ticks": 8 },
+          { "buttons": ["attack"], "advance_ticks": 1 },
+          { "advance_ticks": 17 }, { "advance_ticks": 1 },
+          { "advance_ticks": 10 }, { "advance_ticks": 15 },
+          { "advance_ticks": 1 }, { "advance_ticks": 10 },
+          { "advance_ticks": 10 }, { "advance_ticks": 1 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 }
+        ]
+      },
+      {
+        "id": "buffered_b_getup_attack",
+        "initial_state_variant": 2,
+        "initial_facing": 1,
+        "inputs": [
+          { "advance_ticks": 8 },
+          { "buttons": ["special"], "advance_ticks": 1 },
+          { "advance_ticks": 17 }, { "advance_ticks": 1 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 }
+        ]
+      },
+      {
+        "id": "c_up_getup_attack",
+        "initial_state_variant": 2,
+        "initial_facing": 1,
+        "inputs": [
+          { "advance_ticks": 24 },
+          { "c_stick": [0, 32767], "advance_ticks": 1 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 }
+        ]
+      },
+      {
+        "id": "c_roll_forward",
+        "initial_state_variant": 2,
+        "initial_facing": 1,
+        "inputs": [
+          { "advance_ticks": 24 },
+          { "c_stick": [32767, 0], "advance_ticks": 1 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 },
+          { "advance_ticks": 17 }, { "advance_ticks": 1 },
+          { "advance_ticks": 10 }, { "advance_ticks": 5 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 }
+        ]
+      },
+      {
+        "id": "main_roll_backward",
+        "initial_state_variant": 2,
+        "initial_facing": 1,
+        "inputs": [
+          { "main": [-32767, 0], "advance_ticks": 26 },
+          { "advance_ticks": 1 }, { "advance_ticks": 10 },
+          { "advance_ticks": 13 }, { "advance_ticks": 1 },
+          { "advance_ticks": 5 }, { "advance_ticks": 5 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 },
+          { "advance_ticks": 1 }
+        ]
+      },
+      {
+        "id": "up_neutral_getup",
+        "initial_state_variant": 2,
+        "initial_facing": 1,
+        "inputs": [
+          { "main": [0, 32767], "advance_ticks": 26 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 },
+          { "advance_ticks": 1 }
+        ]
+      },
+      {
+        "id": "shield_neutral_getup",
+        "initial_state_variant": 2,
+        "initial_facing": 1,
+        "inputs": [
+          { "advance_ticks": 25 },
+          { "left_trigger": 65535, "advance_ticks": 1 },
+          { "advance_ticks": 1 }, { "advance_ticks": 10 },
+          { "advance_ticks": 10 }, { "advance_ticks": 1 },
+          { "advance_ticks": 1 }, { "advance_ticks": 5 },
+          { "advance_ticks": 2 }, { "advance_ticks": 1 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 }
+        ]
+      },
+      {
+        "id": "attack_over_roll_priority",
+        "initial_state_variant": 2,
+        "initial_facing": 1,
+        "inputs": [
+          { "main": [32767, 0], "advance_ticks": 8 },
+          { "main": [32767, 0], "buttons": ["attack"], "advance_ticks": 1 },
+          { "main": [32767, 0], "advance_ticks": 17 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 },
+          { "advance_ticks": 1 }
+        ]
+      },
+      {
+        "id": "c_roll_below_threshold",
+        "initial_state_variant": 2,
+        "initial_facing": 1,
+        "inputs": [
+          { "advance_ticks": 24 },
+          { "c_stick": [6500, 0], "advance_ticks": 1 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 }
+        ]
+      },
+      {
+        "id": "up_timeout",
+        "initial_state_variant": 1,
+        "initial_facing": 1,
+        "inputs": [
+          { "advance_ticks": 26 }, { "advance_ticks": 1 },
+          { "advance_ticks": 109 }, { "advance_ticks": 109 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 },
+          { "advance_ticks": 10 }, { "advance_ticks": 10 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 },
+          { "advance_ticks": 5 }, { "advance_ticks": 2 }
+        ]
+      },
+      {
+        "id": "up_buffered_a_getup_attack",
+        "initial_state_variant": 1,
+        "initial_facing": 1,
+        "inputs": [
+          { "advance_ticks": 8 },
+          { "buttons": ["attack"], "advance_ticks": 1 },
+          { "advance_ticks": 17 }, { "advance_ticks": 1 },
+          { "advance_ticks": 10 }, { "advance_ticks": 15 },
+          { "advance_ticks": 1 }, { "advance_ticks": 10 },
+          { "advance_ticks": 10 }, { "advance_ticks": 1 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 }
+        ]
+      },
+      {
+        "id": "up_c_roll_forward",
+        "initial_state_variant": 1,
+        "initial_facing": 1,
+        "inputs": [
+          { "advance_ticks": 24 },
+          { "c_stick": [32767, 0], "advance_ticks": 1 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 },
+          { "advance_ticks": 17 }, { "advance_ticks": 1 },
+          { "advance_ticks": 10 }, { "advance_ticks": 5 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 }
+        ]
+      },
+      {
+        "id": "up_main_roll_backward",
+        "initial_state_variant": 1,
+        "initial_facing": 1,
+        "inputs": [
+          { "main": [-32767, 0], "advance_ticks": 26 },
+          { "advance_ticks": 1 }, { "advance_ticks": 10 },
+          { "advance_ticks": 13 }, { "advance_ticks": 1 },
+          { "advance_ticks": 5 }, { "advance_ticks": 5 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 },
+          { "advance_ticks": 1 }
+        ]
+      }
+    ],
+    "c": {
+      "symbol_prefix": "pf_m4_ssbm_falcon_prone_response",
+      "macro_prefix": "PF_M4_SSBM_FALCON_PRONE_RESPONSE"
+    },
+    "generator": {
+      "script": "tools/generate_ssbm_stored_trace_oracle.py",
+      "output": "generated/data/m4_ssbm_falcon_prone_response_oracle.inc"
+    },
+    "runner": {
+      "executable": "m4_combat_test",
+      "arguments": ["--ssbm-oracle", "falcon-common-prone-response"]
+    }
+  }
+}

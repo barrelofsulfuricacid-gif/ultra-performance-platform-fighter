@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "scope": "ssbm-hurt-pose-import",
+  "fighter": "CPTFALCON",
+  "profile": "tools/data/ssbm_falcon_guard_hurt.json",
+  "profile_sha256": "e1d76de8fac684d0976fa464d5906a145aeb340a99c0f88490da3574231c763b",
+  "capture_sha256": "e9141d1ce253bee82233d9545cf20145d594d60510cee5ea77b19ca5e12390b9",
+  "semantic_sha256": "4db8c524835e969b5b34fda81e53b59d6af99aa68d13e7203086c6441a41abde",
+  "symbol_prefix": "pf_m4_falcon_guard_hurt",
+  "enum_prefix": "PF_M4_FALCON_GUARD_HURT",
+  "expected_pose_count": 25,
+  "expected_unique_pose_count": 25,
+  "expected_capsule_count": 275,
+  "tracks": [
+    { "id": "guard_on", "enum": "GUARD_ON", "frame_count": 8 },
+    { "id": "guard", "enum": "GUARD", "frame_count": 1 },
+    { "id": "guard_off", "enum": "GUARD_OFF", "frame_count": 16 }
+  ]
+}

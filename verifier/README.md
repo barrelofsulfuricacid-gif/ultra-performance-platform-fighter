@@ -6,6 +6,9 @@ check manifest, then:
 
 - drives deterministic scripted and exploratory matches through the public
   player/RL action layer;
+- runs eight seeded production M4 stock matches through ordinary player input,
+  then verifies a lockstep twin, saved-state rewind/resimulation, and encoded
+  replay for every match against one pinned cross-target digest;
 - verifies seed-redacted policy observations, diagnostic seed visibility,
   four-player snapshot continuation, state hashes, and tolerant semantic
   render packets;

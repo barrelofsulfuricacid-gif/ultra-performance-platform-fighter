@@ -118,6 +118,30 @@ pf_record \
     "$PF_REPOSITORY_ROOT/tools/verify_m2_replay.sh" \
     "$pf_artifact_dir/m2_replay"
 pf_record \
+    mechanical-oracle \
+    "$PF_REPOSITORY_ROOT/tools/verify_m4_movement.sh" \
+    "$pf_artifact_dir/m4_movement"
+pf_record \
+    m4-combat \
+    "$PF_REPOSITORY_ROOT/tools/verify_m4_combat.sh" \
+    "$pf_artifact_dir/m4_combat"
+pf_record \
+    m4-item \
+    "$PF_REPOSITORY_ROOT/tools/verify_m4_item.sh" \
+    "$pf_artifact_dir/m4_item"
+pf_record \
+    m4-projectile \
+    "$PF_REPOSITORY_ROOT/tools/verify_m4_projectile.sh" \
+    "$pf_artifact_dir/m4_projectile"
+pf_record \
+    m4-reflector \
+    "$PF_REPOSITORY_ROOT/tools/verify_m4_reflector.sh" \
+    "$pf_artifact_dir/m4_reflector"
+pf_record \
+    m4-charge \
+    "$PF_REPOSITORY_ROOT/tools/verify_m4_charge.sh" \
+    "$pf_artifact_dir/m4_charge"
+pf_record \
     m3-regression-qualification \
     "$PF_REPOSITORY_ROOT/tools/verify_m3_performance.sh" \
     "$pf_artifact_dir/m3_performance_qualification"
@@ -128,7 +152,7 @@ pf_record \
     "$pf_artifact_dir/m3_performance"
 
 if pf_diff_matches \
-    '^(CMakeLists\.txt|CMakePresets\.json|cmake/|include/pf/|src/(benchmarks|checkpoint|headless|presentation|sim|verifier)/|tests/(presentation|sim)/|tools/(bootstrap|workflow)\.)'
+    '^(CMakeLists\.txt|CMakePresets\.json|cmake/|include/pf/|src/(benchmarks|checkpoint|headless|presentation|sim|verifier|web_client)/|tests/(presentation|sim|web)/|tools/(bootstrap|workflow)\.)'
 then
     pf_record \
         sanitizer \
@@ -152,10 +176,23 @@ then
         pf_defer \
             browser-smoke \
             "selected for browser CI; set PF_VERIFIER_RUN_WEB=1 for local Chrome execution"
+        pf_defer \
+            browser-runtime \
+            "selected for browser CI; set PF_VERIFIER_RUN_WEB=1 for local Chrome execution"
     fi
 else
     pf_defer browser-smoke "not selected: commit does not affect browser presentation"
+    pf_defer browser-runtime "not selected: commit does not affect browser presentation"
 fi
+pf_defer \
+    browser-collision-interaction \
+    "owner interaction gate: generated-page smoke proves the initial collision-inspector surface, not toggle behavior"
+pf_defer \
+    browser-match-flow-interaction \
+    "owner interaction gate: generated-page smoke proves setup initialization, not start/results/rematch transitions"
+pf_defer \
+    browser-replay-interaction \
+    "owner interaction gate: generated-page smoke proves the initial replay surface, not event navigation or fail-closed import"
 
 pf_build_hash=$(pf_sha256 "$pf_verifier")
 

@@ -379,7 +379,7 @@ static void pf_replay_write_input(
     pf_replay_writer_u16(writer, input->right_trigger);
     pf_replay_writer_u16(writer, input->schema_version);
     pf_replay_writer_u8(writer, input->player_slot);
-    pf_replay_writer_u8(writer, input->reserved);
+    pf_replay_writer_u8(writer, input->raw_axis_valid_mask);
 }
 
 static pf_input_frame pf_replay_read_input(pf_replay_reader *reader)
@@ -397,7 +397,7 @@ static pf_input_frame pf_replay_read_input(pf_replay_reader *reader)
     input.right_trigger = pf_replay_reader_u16(reader);
     input.schema_version = pf_replay_reader_u16(reader);
     input.player_slot = pf_replay_reader_u8(reader);
-    input.reserved = pf_replay_reader_u8(reader);
+    input.raw_axis_valid_mask = pf_replay_reader_u8(reader);
     return input;
 }
 
@@ -465,6 +465,133 @@ static int pf_replay_result_equal(
            left->reserved == right->reserved;
 }
 
+static int pf_replay_player_mask_valid(
+    uint16_t mask,
+    uint8_t player_count)
+{
+    const uint16_t player_mask =
+        (uint16_t)((UINT16_C(1) << player_count) - UINT16_C(1));
+
+    return mask != UINT16_C(0) &&
+           (mask & (uint16_t)~player_mask) == UINT16_C(0);
+}
+
+static int pf_replay_forfeit_event_valid(
+    const pf_sim_event *event,
+    uint8_t player_count)
+{
+    return event->source_player == PF_SIM_EVENT_NO_PLAYER &&
+           event->target_player == PF_SIM_EVENT_NO_PLAYER &&
+           event->value_q16 == UINT32_C(0) &&
+           event->velocity_x_q16 == INT32_C(0) &&
+           event->velocity_y_q16 == INT32_C(0) &&
+           event->flags == UINT16_C(0) &&
+           pf_replay_player_mask_valid(event->detail, player_count);
+}
+
+static int pf_replay_action_transition_event_valid(
+    const pf_sim_event *event,
+    uint8_t player_count)
+{
+    const uint32_t previous_actions =
+        (uint32_t)event->velocity_x_q16;
+    uint32_t player_index;
+
+    if (event->source_player != PF_SIM_EVENT_NO_PLAYER ||
+        event->target_player != PF_SIM_EVENT_NO_PLAYER ||
+        event->velocity_y_q16 != INT32_C(0) ||
+        event->flags != UINT16_C(0) ||
+        !pf_replay_player_mask_valid(event->detail, player_count))
+    {
+        return 0;
+    }
+
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        const uint32_t shift = player_index * UINT32_C(8);
+        const uint8_t previous_action =
+            (uint8_t)(previous_actions >> shift);
+        const uint8_t next_action =
+            (uint8_t)(event->value_q16 >> shift);
+        const int changed = previous_action != next_action;
+
+        if (player_index < (uint32_t)player_count)
+        {
+            if (!pf_m4_action_is_canonical(previous_action) ||
+                !pf_m4_action_is_canonical(next_action) ||
+                changed !=
+                    ((event->detail &
+                      (uint16_t)(UINT16_C(1) << player_index)) !=
+                     UINT16_C(0)))
+            {
+                return 0;
+            }
+        }
+        else if (previous_action != UINT8_C(0) ||
+                 next_action != UINT8_C(0))
+        {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+static int pf_replay_tick_events_valid(
+    const pf_tick_result *result,
+    uint8_t player_count)
+{
+    const uint16_t known_flags =
+        (uint16_t)PF_SIM_EVENT_FLAG_TUMBLE |
+        (uint16_t)PF_SIM_EVENT_FLAG_ELIMINATED |
+        (uint16_t)PF_SIM_EVENT_FLAG_LAST_STOCK |
+        (uint16_t)PF_SIM_EVENT_FLAG_SUDDEN_DEATH |
+        (uint16_t)PF_SIM_EVENT_FLAG_CROUCH_CANCEL;
+    uint32_t event_index;
+    uint32_t previous_sequence = UINT32_C(0);
+
+    if (result->reserved2 != UINT8_C(0) ||
+        result->reserved3 != UINT16_C(0) ||
+        result->event_count > PF_SIM_MAX_EVENTS_PER_TICK ||
+        (result->completed_tick == UINT64_C(0) &&
+         result->event_count != UINT8_C(0)))
+    {
+        return 0;
+    }
+    for (event_index = UINT32_C(0);
+         event_index < (uint32_t)result->event_count;
+         ++event_index)
+    {
+        const pf_sim_event *event = &result->events[event_index];
+
+        if (event->tick != result->completed_tick - UINT64_C(1) ||
+            event->sequence == UINT32_C(0) ||
+            (event_index != UINT32_C(0) &&
+             event->sequence != previous_sequence + UINT32_C(1)) ||
+            event->type <= (uint16_t)PF_SIM_EVENT_NONE ||
+            event->type >
+                (uint16_t)PF_SIM_EVENT_ACTION_TRANSITIONS ||
+            (event->flags & (uint16_t)~known_flags) != UINT16_C(0) ||
+            (event->source_player != PF_SIM_EVENT_NO_PLAYER &&
+             event->source_player >= player_count) ||
+            (event->target_player != PF_SIM_EVENT_NO_PLAYER &&
+             event->target_player >= player_count) ||
+            (event->type == (uint16_t)PF_SIM_EVENT_FORFEIT &&
+             !pf_replay_forfeit_event_valid(event, player_count)) ||
+            (event->type ==
+                 (uint16_t)PF_SIM_EVENT_ACTION_TRANSITIONS &&
+             !pf_replay_action_transition_event_valid(
+                 event,
+                 player_count)))
+        {
+            return 0;
+        }
+        previous_sequence = event->sequence;
+    }
+    return 1;
+}
+
 static void pf_replay_world_result(
     const pf_world_state *world,
     pf_tick_result *result)
@@ -484,10 +611,10 @@ static int pf_replay_input_valid(
 {
     return input->tick == tick &&
            input->buttons ==
-               (input->buttons & PF_INPUT_KNOWN_BUTTONS) &&
+               (input->buttons & PF_INPUT_FRAME_KNOWN_BITS) &&
            input->schema_version == PF_SIM_INPUT_SCHEMA_VERSION &&
            input->player_slot == player_slot &&
-           input->reserved == UINT8_C(0);
+           pf_input_raw_payload_valid(input);
 }
 
 static pf_status pf_replay_calculate_layout(
@@ -613,6 +740,9 @@ static pf_status pf_replay_calculate_layout(
 
     if (source->final_result.completed_tick != source->tick_count ||
         source->final_result.reserved != UINT8_C(0) ||
+        !pf_replay_tick_events_valid(
+            &source->final_result,
+            source->initial_state->world.player_count) ||
         source->final_result.terminated > UINT8_C(1) ||
         source->final_result.truncated > UINT8_C(1) ||
         (source->final_result.fault_flags & ~known_faults) !=
@@ -1439,9 +1569,49 @@ static pf_status pf_replay_report_mismatch(
         PF_STATUS_REPLAY_MISMATCH);
 }
 
-pf_status pf_replay_verify(
+static pf_status pf_replay_observer_validate(
+    const pf_replay_observer *observer)
+{
+    if (observer == NULL)
+    {
+        return PF_STATUS_OK;
+    }
+    if (observer->struct_size != (uint32_t)sizeof(*observer) ||
+        observer->schema_version != PF_REPLAY_OBSERVER_SCHEMA_VERSION)
+    {
+        return PF_STATUS_UNSUPPORTED_VERSION;
+    }
+    if (observer->reserved != UINT16_C(0) ||
+        observer->checkpoint == NULL)
+    {
+        return PF_STATUS_INVALID_ARGUMENT;
+    }
+    return PF_STATUS_OK;
+}
+
+static pf_status pf_replay_observe_checkpoint(
+    const pf_replay_observer *observer,
+    const pf_sim *sim,
+    uint64_t replay_tick_count,
+    const pf_tick_result *tick_result,
+    const pf_state_hash *state_hash)
+{
+    if (observer == NULL)
+    {
+        return PF_STATUS_OK;
+    }
+    return observer->checkpoint(
+        observer->user_data,
+        sim,
+        replay_tick_count,
+        tick_result,
+        state_hash);
+}
+
+static pf_status pf_replay_verify_internal(
     pf_sim *sim,
     pf_bytes replay,
+    const pf_replay_observer *observer,
     pf_replay_verification *out_verification)
 {
     pf_replay_chunks chunks;
@@ -1464,6 +1634,13 @@ pf_status pf_replay_verify(
         return PF_STATUS_INVALID_ARGUMENT;
     }
     pf_replay_verification_init(out_verification);
+    status = pf_replay_observer_validate(observer);
+    if (status != PF_STATUS_OK)
+    {
+        return pf_replay_verification_return(
+            out_verification,
+            status);
+    }
     if (!pf_sim_is_valid(sim))
     {
         return pf_replay_verification_return(
@@ -1585,6 +1762,19 @@ pf_status pf_replay_verify(
             &expected_hash,
             &actual_hash);
     }
+    pf_replay_world_result(&sim->world, &actual_result);
+    status = pf_replay_observe_checkpoint(
+        observer,
+        sim,
+        match.tick_count,
+        &actual_result,
+        &actual_hash);
+    if (status != PF_STATUS_OK)
+    {
+        return pf_replay_verification_return(
+            out_verification,
+            status);
+    }
 
     for (tick_index = UINT64_C(0);
          tick_index < match.tick_count;
@@ -1637,6 +1827,18 @@ pf_status pf_replay_verify(
         }
         out_verification->verified_ticks =
             tick_index + UINT64_C(1);
+        status = pf_replay_observe_checkpoint(
+            observer,
+            sim,
+            match.tick_count,
+            &actual_result,
+            &actual_hash);
+        if (status != PF_STATUS_OK)
+        {
+            return pf_replay_verification_return(
+                out_verification,
+                status);
+        }
     }
 
     if (input_reader.failed != 0 ||
@@ -1667,4 +1869,29 @@ pf_status pf_replay_verify(
     return pf_replay_verification_return(
         out_verification,
         PF_STATUS_OK);
+}
+
+pf_status pf_replay_verify(
+    pf_sim *sim,
+    pf_bytes replay,
+    pf_replay_verification *out_verification)
+{
+    return pf_replay_verify_internal(
+        sim,
+        replay,
+        NULL,
+        out_verification);
+}
+
+pf_status pf_replay_verify_observed(
+    pf_sim *sim,
+    pf_bytes replay,
+    const pf_replay_observer *observer,
+    pf_replay_verification *out_verification)
+{
+    return pf_replay_verify_internal(
+        sim,
+        replay,
+        observer,
+        out_verification);
 }

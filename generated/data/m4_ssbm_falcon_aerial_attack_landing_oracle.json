@@ -1,0 +1,297 @@
+{
+  "cases": [
+    {
+      "field_exclusions": {
+        "action_ticks": [
+          [
+            0,
+            61
+          ],
+          [
+            111,
+            137
+          ]
+        ],
+        "velocity_y_q16": [
+          [
+            96,
+            97
+          ]
+        ]
+      },
+      "id": "battlefield_short_hop_nair_landing",
+      "input_runs": [
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 61
+        },
+        {
+          "input": "0,0,0,0,0,0,1,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 4
+        },
+        {
+          "input": "0,0,0,0,0,0,2,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 70
+        }
+      ],
+      "runner_arguments": [
+        "--platform"
+      ],
+      "sample_count": 137,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded",
+        "support",
+        "surface_normal_source_x_q16",
+        "surface_normal_source_y_q16",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
+      ]
+    },
+    {
+      "field_exclusions": {
+        "action_ticks": [
+          [
+            0,
+            61
+          ],
+          [
+            115,
+            137
+          ]
+        ],
+        "velocity_y_q16": [
+          [
+            96,
+            97
+          ]
+        ]
+      },
+      "id": "battlefield_short_hop_fair_landing",
+      "input_runs": [
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 61
+        },
+        {
+          "input": "0,0,0,0,0,0,1,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 4
+        },
+        {
+          "input": "0,0,32767,0,0,0,4,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 70
+        }
+      ],
+      "runner_arguments": [
+        "--platform"
+      ],
+      "sample_count": 137,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded",
+        "support",
+        "surface_normal_source_x_q16",
+        "surface_normal_source_y_q16",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
+      ]
+    },
+    {
+      "field_exclusions": {
+        "action_ticks": [
+          [
+            0,
+            61
+          ],
+          [
+            126,
+            137
+          ]
+        ]
+      },
+      "id": "battlefield_short_hop_bair_autocancel",
+      "input_runs": [
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 61
+        },
+        {
+          "input": "0,0,0,0,0,0,1,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 4
+        },
+        {
+          "input": "0,0,-32767,0,0,0,4,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 70
+        }
+      ],
+      "runner_arguments": [
+        "--platform"
+      ],
+      "sample_count": 137,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded",
+        "support",
+        "surface_normal_source_x_q16",
+        "surface_normal_source_y_q16",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
+      ]
+    },
+    {
+      "field_exclusions": {
+        "action_ticks": [
+          [
+            0,
+            61
+          ],
+          [
+            126,
+            137
+          ]
+        ]
+      },
+      "id": "battlefield_short_hop_uair_autocancel",
+      "input_runs": [
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 61
+        },
+        {
+          "input": "0,0,0,0,0,0,1,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 4
+        },
+        {
+          "input": "0,0,0,-32767,0,0,4,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 70
+        }
+      ],
+      "runner_arguments": [
+        "--platform"
+      ],
+      "sample_count": 137,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded",
+        "support",
+        "surface_normal_source_x_q16",
+        "surface_normal_source_y_q16",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
+      ]
+    },
+    {
+      "field_exclusions": {
+        "action_ticks": [
+          [
+            0,
+            61
+          ],
+          [
+            121,
+            137
+          ]
+        ],
+        "velocity_y_q16": [
+          [
+            97,
+            98
+          ]
+        ]
+      },
+      "id": "battlefield_short_hop_dair_landing",
+      "input_runs": [
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 61
+        },
+        {
+          "input": "0,0,0,0,0,0,1,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 4
+        },
+        {
+          "input": "0,0,0,32767,0,0,4,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 70
+        }
+      ],
+      "runner_arguments": [
+        "--platform"
+      ],
+      "sample_count": 137,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded",
+        "support",
+        "surface_normal_source_x_q16",
+        "surface_normal_source_y_q16",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
+      ]
+    }
+  ],
+  "domain": "falcon-aerial-attack-landing",
+  "kind": "native-csv-trace-v1",
+  "production_trace_sha256": "dd14d194d15a115925c17761fd5fff692413b26a268ef96286180e176273e490",
+  "schema": 1,
+  "source_trace_sha256": "83e1fadc017af2c5005411ea2fae8d378855127662196fa0b9b81a37c7a11efe"
+}

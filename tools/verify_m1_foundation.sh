@@ -15,6 +15,17 @@ mkdir -p "$direct_dir" "$cmake_dir"
     -Wwrite-strings \
     -I"$root/include" \
     "$root/src/sim/sim.c" \
+    "$root/src/sim/sim_combat.c" \
+    "$root/src/sim/sim_content.c" \
+    "$root/src/sim/sim_falcon_frame_data.c" \
+    "$root/src/sim/sim_ssbm_common_data.c" \
+    "$root/src/sim/sim_ssbm_damage.c" \
+    "$root/src/sim/sim_event.c" \
+    "$root/src/sim/sim_item.c" \
+    "$root/src/sim/sim_projectile.c" \
+    "$root/src/sim/sim_reflector.c" \
+    "$root/src/sim/sim_charge.c" \
+    "$root/src/sim/sim_movement.c" \
     "$root/src/sim/sim_replay.c" \
     "$root/src/sim/sim_rl.c" \
     "$root/src/sim/sim_sha256.c" \
@@ -24,7 +35,7 @@ mkdir -p "$direct_dir" "$cmake_dir"
     -o "$direct_dir/sim_contract_test"
 
 "$direct_dir/sim_contract_test" >"$direct_dir/sim_contract.txt"
-grep -q '^sim-contract=pass abi=2 tick_hz=60$' \
+grep -q '^sim-contract=pass abi=5 tick_hz=60$' \
     "$direct_dir/sim_contract.txt"
 
 "$compiler" -std=c17 -O2 -g \
@@ -33,6 +44,17 @@ grep -q '^sim-contract=pass abi=2 tick_hz=60$' \
     -Wwrite-strings \
     -I"$root/include" \
     "$root/src/sim/sim.c" \
+    "$root/src/sim/sim_combat.c" \
+    "$root/src/sim/sim_content.c" \
+    "$root/src/sim/sim_falcon_frame_data.c" \
+    "$root/src/sim/sim_ssbm_common_data.c" \
+    "$root/src/sim/sim_ssbm_damage.c" \
+    "$root/src/sim/sim_event.c" \
+    "$root/src/sim/sim_item.c" \
+    "$root/src/sim/sim_projectile.c" \
+    "$root/src/sim/sim_reflector.c" \
+    "$root/src/sim/sim_charge.c" \
+    "$root/src/sim/sim_movement.c" \
     "$root/src/sim/sim_replay.c" \
     "$root/src/sim/sim_rl.c" \
     "$root/src/sim/sim_sha256.c" \
@@ -42,7 +64,7 @@ grep -q '^sim-contract=pass abi=2 tick_hz=60$' \
     -o "$direct_dir/headless"
 
 "$direct_dir/headless" --smoke >"$direct_dir/headless.txt"
-grep -q '^headless-smoke=pass sim_abi=2 tick_hz=60$' \
+grep -q '^headless-smoke=pass sim_abi=5 tick_hz=60$' \
     "$direct_dir/headless.txt"
 
 cmake_command=${CMAKE_COMMAND:-}
@@ -86,27 +108,27 @@ if [ -n "$cmake_command" ]; then
 
     run_cmake_smoke \
         headless \
-        "headless-smoke=pass sim_abi=2 tick_hz=60" \
+        "headless-smoke=pass sim_abi=5 tick_hz=60" \
         headless.txt
     run_cmake_smoke \
         pf_native_client \
-        "native-client-smoke=pass sim_abi=2 tick_hz=60" \
+        "native-client-smoke=pass sim_abi=5 tick_hz=60" \
         native_client.txt
     run_cmake_smoke \
         pf_web_client_host_smoke \
-        "web-client-smoke=pass sim_abi=2 tick_hz=60" \
+        "web-client-smoke=pass sim_abi=5 tick_hz=60" \
         web_client.txt
     run_cmake_smoke \
         pf_tools \
-        "tools-smoke=pass sim_abi=2 tick_hz=60" \
+        "tools-smoke=pass sim_abi=5 tick_hz=60" \
         tools.txt
     run_cmake_smoke \
         pf_benchmarks \
-        "benchmarks-smoke=pass sim_abi=2 tick_hz=60" \
+        "benchmarks-smoke=pass sim_abi=5 tick_hz=60" \
         benchmarks.txt
     run_cmake_smoke \
         pf_verifier \
-        "verifier-smoke=pass sim_abi=2 tick_hz=60" \
+        "verifier-smoke=pass sim_abi=5 tick_hz=60" \
         verifier.txt
 
     if command -v nm >/dev/null 2>&1; then

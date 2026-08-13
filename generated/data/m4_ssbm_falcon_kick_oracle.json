@@ -1,0 +1,223 @@
+{
+  "cases": [
+    {
+      "field_exclusions": {},
+      "id": "ground",
+      "input_runs": [
+        {
+          "input": "0,32767,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 69
+        }
+      ],
+      "runner_arguments": [
+        "--falcon-kick-ground"
+      ],
+      "sample_count": 70,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16",
+        "shield_health_q16",
+        "shield_strength"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "air",
+      "input_runs": [
+        {
+          "input": "0,32767,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 58
+        }
+      ],
+      "runner_arguments": [
+        "--falcon-kick-air"
+      ],
+      "sample_count": 59,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded",
+        "position_x_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16",
+        "shield_health_q16",
+        "shield_strength"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "air_land",
+      "input_runs": [
+        {
+          "input": "0,32767,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 64
+        }
+      ],
+      "runner_arguments": [
+        "--falcon-kick-air-land"
+      ],
+      "sample_count": 65,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16",
+        "shield_health_q16",
+        "shield_strength"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "ground_edge",
+      "input_runs": [
+        {
+          "input": "0,32767,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 69
+        }
+      ],
+      "runner_arguments": [
+        "--falcon-kick-ground-edge"
+      ],
+      "sample_count": 70,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16",
+        "shield_health_q16",
+        "shield_strength"
+      ]
+    },
+    {
+      "field_exclusions": {
+        "action_ticks": [
+          [
+            15,
+            23
+          ]
+        ]
+      },
+      "id": "ground_hit",
+      "input_runs": [
+        {
+          "input": "0,32767,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 76
+        }
+      ],
+      "runner_arguments": [
+        "--falcon-kick-ground-hit"
+      ],
+      "sample_count": 77,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16",
+        "shield_health_q16",
+        "shield_strength",
+        "hitlag_ticks",
+        "opponent_hitlag_ticks",
+        "opponent_damage_q16"
+      ]
+    },
+    {
+      "field_exclusions": {
+        "position_x_q16_from_origin": [
+          [
+            0,
+            22
+          ]
+        ],
+        "position_y_q16_from_origin": [
+          [
+            0,
+            22
+          ]
+        ],
+        "velocity_x_q16": [
+          [
+            0,
+            22
+          ]
+        ],
+        "velocity_y_q16": [
+          [
+            0,
+            22
+          ]
+        ]
+      },
+      "id": "ground_wall",
+      "input_runs": [
+        {
+          "input": "0,32767,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 57
+        }
+      ],
+      "runner_arguments": [
+        "--falcon-kick-ground-wall"
+      ],
+      "sample_count": 58,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16",
+        "shield_health_q16",
+        "shield_strength"
+      ]
+    }
+  ],
+  "domain": "falcon-down-special",
+  "kind": "native-csv-trace-v1",
+  "production_trace_sha256": "19a4dd302f0e51fa9d01d8fe7193d57e1b3ea5979e496fb6138bc0c85f356f4e",
+  "schema": 1,
+  "source_trace_sha256": "2c6f28a9701990b913adb2f2daa214433bb18174a610af6c96fc1dce39deaf33"
+}

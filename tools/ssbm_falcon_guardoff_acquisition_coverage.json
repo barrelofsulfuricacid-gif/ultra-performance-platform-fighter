@@ -1,0 +1,481 @@
+{
+  "schema": 1,
+  "scope": "falcon-common-guardoff-acquisition",
+  "domain": "falcon-common-guardoff-acquisition",
+  "character": "falcon",
+  "oracle": "SSBM GALE01 NTSC-U revision 2",
+  "live_source": {
+    "capture_sha256": "20e3d7a2e5e5cba93df059069b72cf560a0c4641258582997fd6aebc6bdc8649",
+    "repeat_capture_sha256": "20e3d7a2e5e5cba93df059069b72cf560a0c4641258582997fd6aebc6bdc8649",
+    "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
+    "release_artifact_sha256": "87e9ef6d80ed03354a1647d0616016dbc91399aa9e86a69ae5a398edd0a0c2bd",
+    "launcher_sha256": "9eb024aa9347648f020e2a76666e5c5597b77b32ef26752f563c99f0772b1e82",
+    "decomp_revision": "9509dc04406fb2028bfab01243841ba4787c0fb7",
+    "current_decomp_revision": "d882af94175e3c880ad51039e2979aa9a50aea09",
+    "dolphin_version": "3.5.1",
+    "libmelee_version": "0.47.2",
+    "capture_schema": 7,
+    "stage": "FINAL_DESTINATION",
+    "opponent": "CPTFALCON",
+    "row_count": 119
+  },
+  "checkpoint_pack": {
+    "protocol": "immutable-multislot-slippi-state-file-control-v2",
+    "expected_rows": 119,
+    "warm_budget_seconds": 10.0,
+    "cold_budget_seconds": 13.0,
+    "capture_route": "special-acquisition",
+    "merge_setup_suffixes": ["setup", "edge", "observe"],
+    "capture_shards": [
+      [
+        "powershield_neutral",
+        "powershield_side",
+        "powershield_up"
+      ],
+      [
+        "powershield_down",
+        "ordinary_neutral",
+        "powershield_jump"
+      ],
+      [
+        "ordinary_jump",
+        "powershield_spot_dodge",
+        "ordinary_spot_dodge"
+      ],
+      [
+        "powershield_jab",
+        "powershield_tilt_forward",
+        "powershield_tilt_up"
+      ],
+      [
+        "powershield_tilt_down",
+        "powershield_smash_forward",
+        "powershield_smash_up"
+      ],
+      [
+        "powershield_smash_down",
+        "powershield_grab"
+      ]
+    ],
+    "capture_plan": {
+      "batch_exi_inputs": false,
+      "checkpoint_slot_count": 16,
+      "special_acquisition_cases": [
+        {
+          "id": "powershield_neutral",
+          "checkpoint_slot": 0,
+          "source_state": "powershield_release",
+          "edge_main": [0, 0],
+          "release_ticks": 6,
+          "observe_ticks": 5
+        },
+        {
+          "id": "powershield_side",
+          "checkpoint_slot": 1,
+          "source_state": "powershield_release",
+          "edge_main": [32767, 0],
+          "release_ticks": 6,
+          "observe_ticks": 5
+        },
+        {
+          "id": "powershield_up",
+          "checkpoint_slot": 2,
+          "source_state": "powershield_release",
+          "edge_main": [0, -32767],
+          "release_ticks": 6,
+          "observe_ticks": 5
+        },
+        {
+          "id": "powershield_down",
+          "checkpoint_slot": 3,
+          "source_state": "powershield_release",
+          "edge_main": [0, 32767],
+          "release_ticks": 6,
+          "observe_ticks": 5
+        },
+        {
+          "id": "ordinary_neutral",
+          "checkpoint_slot": 4,
+          "source_state": "powershield_release",
+          "edge_main": [0, 0],
+          "shield_start_ticks": 12,
+          "release_ticks": 1,
+          "observe_ticks": 5
+        },
+        {
+          "id": "powershield_jump",
+          "checkpoint_slot": 5,
+          "source_state": "powershield_release",
+          "edge_main": [0, 0],
+          "edge_action": "jump",
+          "release_ticks": 6,
+          "observe_ticks": 5
+        },
+        {
+          "id": "ordinary_jump",
+          "checkpoint_slot": 6,
+          "source_state": "powershield_release",
+          "edge_main": [0, 0],
+          "edge_action": "jump",
+          "shield_start_ticks": 12,
+          "release_ticks": 1,
+          "observe_ticks": 5
+        },
+        {
+          "id": "powershield_spot_dodge",
+          "checkpoint_slot": 7,
+          "source_state": "powershield_release",
+          "edge_main": [0, 32767],
+          "edge_action": "spot_dodge",
+          "release_ticks": 6,
+          "observe_ticks": 5
+        },
+        {
+          "id": "ordinary_spot_dodge",
+          "checkpoint_slot": 8,
+          "source_state": "powershield_release",
+          "edge_main": [0, 32767],
+          "edge_action": "spot_dodge",
+          "shield_start_ticks": 12,
+          "release_ticks": 1,
+          "observe_ticks": 5
+        },
+        {
+          "id": "powershield_jab",
+          "checkpoint_slot": 9,
+          "source_state": "powershield_release",
+          "edge_main": [0, 0],
+          "edge_action": "attack",
+          "release_ticks": 6,
+          "observe_ticks": 5
+        },
+        {
+          "id": "powershield_tilt_forward",
+          "checkpoint_slot": 10,
+          "source_state": "powershield_release",
+          "edge_main": [19660, 0],
+          "edge_action": "attack",
+          "release_ticks": 6,
+          "observe_ticks": 5
+        },
+        {
+          "id": "powershield_tilt_up",
+          "checkpoint_slot": 11,
+          "source_state": "powershield_release",
+          "edge_main": [0, -19660],
+          "edge_action": "attack",
+          "release_ticks": 6,
+          "observe_ticks": 5
+        },
+        {
+          "id": "powershield_tilt_down",
+          "checkpoint_slot": 12,
+          "source_state": "powershield_release",
+          "edge_main": [0, 19660],
+          "edge_action": "attack",
+          "release_ticks": 6,
+          "observe_ticks": 5
+        },
+        {
+          "id": "powershield_smash_forward",
+          "checkpoint_slot": 13,
+          "source_state": "powershield_release",
+          "edge_main": [0, 0],
+          "edge_c": [32767, 0],
+          "edge_action": "none",
+          "release_ticks": 6,
+          "observe_ticks": 5
+        },
+        {
+          "id": "powershield_smash_up",
+          "checkpoint_slot": 14,
+          "source_state": "powershield_release",
+          "edge_main": [0, 0],
+          "edge_c": [0, -32767],
+          "edge_action": "none",
+          "release_ticks": 6,
+          "observe_ticks": 5
+        },
+        {
+          "id": "powershield_smash_down",
+          "checkpoint_slot": 15,
+          "source_state": "powershield_release",
+          "edge_main": [0, 0],
+          "edge_c": [0, 32767],
+          "edge_action": "none",
+          "release_ticks": 6,
+          "observe_ticks": 5
+        },
+        {
+          "id": "powershield_grab",
+          "checkpoint_slot": 15,
+          "source_state": "powershield_release",
+          "edge_main": [0, 0],
+          "edge_action": "grab",
+          "release_ticks": 6,
+          "observe_ticks": 5
+        }
+      ]
+    }
+  },
+  "checkpoint_cases": [
+    { "id": "powershield_neutral", "start_label": "special_acquisition_powershield_neutral_setup" },
+    { "id": "powershield_side", "start_label": "special_acquisition_powershield_side_setup" },
+    { "id": "powershield_up", "start_label": "special_acquisition_powershield_up_setup" },
+    { "id": "powershield_down", "start_label": "special_acquisition_powershield_down_setup" },
+    { "id": "ordinary_neutral", "start_label": "special_acquisition_ordinary_neutral_setup" },
+    { "id": "powershield_jump", "start_label": "special_acquisition_powershield_jump_setup" },
+    { "id": "ordinary_jump", "start_label": "special_acquisition_ordinary_jump_setup" },
+    { "id": "powershield_spot_dodge", "start_label": "special_acquisition_powershield_spot_dodge_setup" },
+    { "id": "ordinary_spot_dodge", "start_label": "special_acquisition_ordinary_spot_dodge_setup" },
+    { "id": "powershield_jab", "start_label": "special_acquisition_powershield_jab_setup" },
+    { "id": "powershield_tilt_forward", "start_label": "special_acquisition_powershield_tilt_forward_setup" },
+    { "id": "powershield_tilt_up", "start_label": "special_acquisition_powershield_tilt_up_setup" },
+    { "id": "powershield_tilt_down", "start_label": "special_acquisition_powershield_tilt_down_setup" },
+    { "id": "powershield_smash_forward", "start_label": "special_acquisition_powershield_smash_forward_setup" },
+    { "id": "powershield_smash_up", "start_label": "special_acquisition_powershield_smash_up_setup" },
+    { "id": "powershield_smash_down", "start_label": "special_acquisition_powershield_smash_down_setup" },
+    { "id": "powershield_grab", "start_label": "special_acquisition_powershield_grab_setup" }
+  ],
+  "selection": {
+    "paths": [
+      "generated/data/m4_ssbm_falcon_guardoff_acquisition_oracle.json",
+      "src/sim/sim_movement.c",
+      "src/tools/m4_movement_trace.c",
+      "tests/sim/test_m4_combat.c",
+      "tools/bootstrap_ssbm_checkpoint_oracle.sh",
+      "tools/capture_ssbm_movement.py",
+      "tools/compare_ssbm_movement.py",
+      "tools/generate_ssbm_stored_trace_oracle.py",
+      "tools/ssbm_exiai_checkpoint.patch",
+      "tools/ssbm_falcon_guardoff_acquisition_coverage.json",
+      "tools/ssbm_live_trace.py",
+      "tools/ssbm_natural_movement_domain.py",
+      "tools/verify_ssbm_falcon_guardoff_acquisition.py"
+    ]
+  },
+  "stored_oracle": {
+    "kind": "native-csv-trace-v1",
+    "source_trace_sha256": "851a0c05e393bd644344bf8a49d70fceea179727903ff68feacebb1c12a27c0d",
+    "production_trace_sha256": "851a0c05e393bd644344bf8a49d70fceea179727903ff68feacebb1c12a27c0d",
+    "require_exact_source_match": true,
+    "serialized_fields": [
+      "action_state",
+      "action_ticks",
+      "facing",
+      "grounded"
+    ],
+    "action_mapping": {
+      "SHIELD_RELEASE": { "action_state": 20, "action_tick_offset": 0 },
+      "NEUTRAL_B_ATTACKING_AIR": { "action_state": 107, "action_tick_offset": 0 },
+      "SWORD_DANCE_1": { "action_state": 109, "action_tick_offset": 0 },
+      "SWORD_DANCE_3_MID": { "action_state": 117, "action_tick_offset": 0 },
+      "SWORD_DANCE_4_LOW": { "action_state": 123, "action_tick_offset": 0 },
+      "NEUTRAL_ATTACK_1": { "action_state": 12, "action_tick_offset": 0 },
+      "FTILT_MID": { "action_state": 87, "action_tick_offset": 0 },
+      "UPTILT": { "action_state": 79, "action_tick_offset": 0 },
+      "DOWNTILT": { "action_state": 80, "action_tick_offset": 0 },
+      "FSMASH_MID": { "action_state": 88, "action_tick_offset": 0 },
+      "UPSMASH": { "action_state": 89, "action_tick_offset": 0 },
+      "DOWNSMASH": { "action_state": 90, "action_tick_offset": 0 },
+      "GRAB": { "action_state": 49, "action_tick_offset": 0 }
+    },
+    "cases": [
+      {
+        "id": "powershield_neutral",
+        "runner_arguments": ["--powershield-guardoff"],
+        "source_label_prefix": "special_acquisition_powershield_neutral_",
+        "sample_count": 7,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{}, {}] },
+          { "ticks": 1, "lanes": [{ "buttons": ["special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "powershield_side",
+        "runner_arguments": ["--powershield-guardoff"],
+        "source_label_prefix": "special_acquisition_powershield_side_",
+        "sample_count": 7,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{}, {}] },
+          { "ticks": 1, "lanes": [{ "main": [32767, 0], "buttons": ["special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "powershield_up",
+        "runner_arguments": ["--powershield-guardoff"],
+        "source_label_prefix": "special_acquisition_powershield_up_",
+        "sample_count": 7,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{}, {}] },
+          { "ticks": 1, "lanes": [{ "main": [0, 32767], "buttons": ["special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "powershield_down",
+        "runner_arguments": ["--powershield-guardoff"],
+        "source_label_prefix": "special_acquisition_powershield_down_",
+        "sample_count": 7,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{}, {}] },
+          { "ticks": 1, "lanes": [{ "main": [0, -32767], "buttons": ["special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "ordinary_neutral",
+        "runner_arguments": ["--ordinary-guardoff"],
+        "source_label_prefix": "special_acquisition_ordinary_neutral_",
+        "sample_count": 7,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{}, {}] },
+          { "ticks": 1, "lanes": [{ "buttons": ["special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "powershield_jump",
+        "runner_arguments": ["--powershield-guardoff"],
+        "source_label_prefix": "special_acquisition_powershield_jump_",
+        "sample_count": 7,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{}, {}] },
+          { "ticks": 1, "lanes": [{ "buttons": ["jump"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "ordinary_jump",
+        "runner_arguments": ["--ordinary-guardoff"],
+        "source_label_prefix": "special_acquisition_ordinary_jump_",
+        "sample_count": 7,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{}, {}] },
+          { "ticks": 1, "lanes": [{ "buttons": ["jump"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "powershield_spot_dodge",
+        "runner_arguments": ["--powershield-guardoff"],
+        "source_label_prefix": "special_acquisition_powershield_spot_dodge_",
+        "sample_count": 7,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{}, {}] },
+          { "ticks": 1, "lanes": [{ "main": [0, -32767] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "ordinary_spot_dodge",
+        "runner_arguments": ["--ordinary-guardoff"],
+        "source_label_prefix": "special_acquisition_ordinary_spot_dodge_",
+        "sample_count": 7,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{}, {}] },
+          { "ticks": 1, "lanes": [{ "main": [0, -32767] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "powershield_jab",
+        "runner_arguments": ["--powershield-guardoff"],
+        "source_label_prefix": "special_acquisition_powershield_jab_",
+        "sample_count": 7,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{}, {}] },
+          { "ticks": 1, "lanes": [{ "buttons": ["attack"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "powershield_tilt_forward",
+        "runner_arguments": ["--powershield-guardoff"],
+        "source_label_prefix": "special_acquisition_powershield_tilt_forward_",
+        "sample_count": 7,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{}, {}] },
+          { "ticks": 1, "lanes": [{ "main": [19660, 0], "buttons": ["attack"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "powershield_tilt_up",
+        "runner_arguments": ["--powershield-guardoff"],
+        "source_label_prefix": "special_acquisition_powershield_tilt_up_",
+        "sample_count": 7,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{}, {}] },
+          { "ticks": 1, "lanes": [{ "main": [0, 19660], "buttons": ["attack"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "powershield_tilt_down",
+        "runner_arguments": ["--powershield-guardoff"],
+        "source_label_prefix": "special_acquisition_powershield_tilt_down_",
+        "sample_count": 7,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{}, {}] },
+          { "ticks": 1, "lanes": [{ "main": [0, -19660], "buttons": ["attack"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "powershield_smash_forward",
+        "runner_arguments": ["--powershield-guardoff"],
+        "source_label_prefix": "special_acquisition_powershield_smash_forward_",
+        "sample_count": 7,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{}, {}] },
+          { "ticks": 1, "lanes": [{ "c_stick": [32767, 0], "buttons": ["strong_attack"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "powershield_smash_up",
+        "runner_arguments": ["--powershield-guardoff"],
+        "source_label_prefix": "special_acquisition_powershield_smash_up_",
+        "sample_count": 7,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{}, {}] },
+          { "ticks": 1, "lanes": [{ "c_stick": [0, 32767], "buttons": ["strong_attack"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "powershield_smash_down",
+        "runner_arguments": ["--powershield-guardoff"],
+        "source_label_prefix": "special_acquisition_powershield_smash_down_",
+        "sample_count": 7,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{}, {}] },
+          { "ticks": 1, "lanes": [{ "c_stick": [0, -32767], "buttons": ["strong_attack"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "powershield_grab",
+        "runner_arguments": ["--powershield-guardoff"],
+        "source_label_prefix": "special_acquisition_powershield_grab_",
+        "sample_count": 7,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{}, {}] },
+          { "ticks": 1, "lanes": [{ "left_trigger": 65535, "buttons": ["attack"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      }
+    ],
+    "generator": {
+      "script": "tools/generate_ssbm_stored_trace_oracle.py",
+      "output": "generated/data/m4_ssbm_falcon_guardoff_acquisition_oracle.json"
+    },
+    "runner": {
+      "executable": "pf_m4_movement_trace",
+      "arguments": []
+    }
+  }
+}

@@ -80,15 +80,23 @@ The following arithmetic rules are binding:
 
 Simulation emits a bounded journal of logical events. Each event has:
 
-- Tick and monotonically increasing sequence within that tick.
+- Processed input tick and a match-monotonic sequence.
 - Versioned event kind.
 - Stable subject/object indices where applicable.
 - Fixed-size deterministic payload.
-- Event ID derived from match identity, tick, and sequence.
+- Event ID formed by match identity plus the sequence; the tick remains
+  explicit diagnostic context.
 
 Clients may preview speculative events according to per-kind policy, but must
-reconcile by event ID after rollback. Server verification hashes the
-deterministic journal; it does not verify rendered particles or mixed audio.
+reconcile by event ID after rollback. The journal array is per-tick output;
+only its sequence authority is canonical state. Restoring a checkpoint and
+re-simulating inputs must reproduce the exact event bytes.
+
+The native/WebAssembly corpus hashes the complete event stream under the
+`PFEVT001` domain in addition to canonical state hashes. Replay format 1
+re-simulates events but does not yet carry an expected per-replay journal
+digest, so ranked event-digest verification remains a future replay-chunk
+version. Rendered particles, UI, and mixed audio are never authoritative.
 
 ## Verification matrix
 

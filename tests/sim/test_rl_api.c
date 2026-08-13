@@ -8,9 +8,12 @@
 #include <stdalign.h>
 #include <string.h>
 
-#define TEST_MEMORY_BYTES 2048U
+#define TEST_MEMORY_BYTES 4096U
 #define TEST_MEMORY_ALIGNMENT 64U
 #define TEST_BATCH_ENVIRONMENTS 6U
+#define TEST_LIGHT_SHIELD_TRIGGER UINT16_C(32768)
+#define TEST_LIGHT_SHIELD_STRENGTH UINT16_C(18725)
+#define TEST_SHIELD_TILT_AXIS INT16_C(10000)
 
 typedef struct test_sim_storage
 {
@@ -138,7 +141,13 @@ static int verify_transition_contract(
         transition->structured_observation.seed != UINT64_C(0) ||
         transition->structured_observation.tick != tick ||
         transition->tick_result.completed_tick != tick ||
-        (match_bits & UINT32_C(0xff)) != (uint32_t)player_count)
+        (match_bits & UINT32_C(0xff)) != (uint32_t)player_count ||
+        ((match_bits >> 18U) & UINT32_C(0x1)) !=
+            (uint32_t)transition->structured_observation.sudden_death ||
+        ((match_bits >> 19U) & UINT32_C(0x7f)) !=
+            (uint32_t)transition->structured_observation.stock_count ||
+        ((match_bits >> 26U) & UINT32_C(0xf)) !=
+            (uint32_t)transition->structured_observation.winner_mask)
     {
         (void)fprintf(
             stderr,
@@ -154,8 +163,23 @@ static int verify_transition_contract(
     {
         const uint16_t base =
             PF_RL_COMPACT_PLAYER_BASE(player_index);
+        const uint16_t stale_base =
+            PF_RL_COMPACT_STALE_MOVE_PLAYER_BASE(player_index);
         const pf_player_observation *player =
             &transition->structured_observation.players[player_index];
+        const uint32_t stale_count_ids_0_2 =
+            (uint32_t)player->stale_move_count |
+            ((uint32_t)player->stale_move_ids[0] << 8U) |
+            ((uint32_t)player->stale_move_ids[1] << 16U) |
+            ((uint32_t)player->stale_move_ids[2] << 24U);
+        const uint32_t stale_ids_3_6 =
+            (uint32_t)player->stale_move_ids[3] |
+            ((uint32_t)player->stale_move_ids[4] << 8U) |
+            ((uint32_t)player->stale_move_ids[5] << 16U) |
+            ((uint32_t)player->stale_move_ids[6] << 24U);
+        const uint32_t stale_ids_7_8 =
+            (uint32_t)player->stale_move_ids[7] |
+            ((uint32_t)player->stale_move_ids[8] << 8U);
         if (transition->compact_observation.values[
                 base + UINT16_C(2)] != player->position_x_q16 ||
             transition->compact_observation.values[
@@ -163,7 +187,60 @@ static int verify_transition_contract(
             transition->compact_observation.values[
                 base + UINT16_C(4)] != player->velocity_x_q16 ||
             transition->compact_observation.values[
-                base + UINT16_C(5)] != player->velocity_y_q16)
+                base + UINT16_C(5)] != player->velocity_y_q16 ||
+            transition->compact_observation.values[
+                base + PF_RL_COMPACT_PLAYER_STOCKS_OFFSET] !=
+                (int32_t)player->stocks_remaining ||
+            transition->compact_observation.values[
+                base + PF_RL_COMPACT_PLAYER_RESPAWN_OFFSET] !=
+                (int32_t)player->respawn_ticks ||
+            transition->compact_observation.values[
+                base +
+                PF_RL_COMPACT_PLAYER_INVULNERABILITY_OFFSET] !=
+                (int32_t)player->respawn_invulnerability_ticks ||
+            transition->compact_observation.values[
+                PF_RL_COMPACT_CHARGE_BASE +
+                (uint16_t)player_index] !=
+                (int32_t)player->charge_ticks ||
+            transition->compact_observation.values[
+                PF_RL_COMPACT_SMASH_CHARGE_BASE +
+                (uint16_t)player_index] !=
+                (int32_t)player->smash_charge_ticks ||
+            transition->compact_observation.values[
+                PF_RL_COMPACT_SHIELD_STRENGTH_BASE +
+                (uint16_t)player_index] !=
+                (int32_t)player->shield_strength ||
+            transition->compact_observation.values[
+                PF_RL_COMPACT_SHIELD_HEALTH_BASE +
+                (uint16_t)player_index] !=
+                (int32_t)player->shield_health_q16 ||
+            transition->compact_observation.values[
+                PF_RL_COMPACT_SHIELD_TILT_BASE +
+                (uint16_t)(UINT16_C(2) *
+                           (uint16_t)player_index)] !=
+                (int32_t)player->shield_tilt_x ||
+            transition->compact_observation.values[
+                PF_RL_COMPACT_SHIELD_TILT_BASE +
+                (uint16_t)(UINT16_C(2) *
+                           (uint16_t)player_index) +
+                UINT16_C(1)] !=
+                (int32_t)player->shield_tilt_y ||
+            transition->compact_observation.values[
+                stale_base +
+                PF_RL_COMPACT_STALE_MOVE_MULTIPLIER_OFFSET] !=
+                (int32_t)player->stale_move_multiplier_q16 ||
+            i32_bits(transition->compact_observation.values[
+                stale_base +
+                PF_RL_COMPACT_STALE_MOVE_COUNT_IDS_0_2_OFFSET]) !=
+                stale_count_ids_0_2 ||
+            i32_bits(transition->compact_observation.values[
+                stale_base +
+                PF_RL_COMPACT_STALE_MOVE_IDS_3_6_OFFSET]) !=
+                stale_ids_3_6 ||
+            i32_bits(transition->compact_observation.values[
+                stale_base +
+                PF_RL_COMPACT_STALE_MOVE_IDS_7_8_OFFSET]) !=
+                stale_ids_7_8)
         {
             (void)fprintf(
                 stderr,
@@ -187,6 +264,8 @@ static int run_duel_test(const pf_content_view *content)
     pf_state_hash after_invalid;
     pf_sim_identity identity;
     pf_sim_observation diagnostic_observation;
+    uint64_t charge_tick;
+    uint64_t movement_tick;
 
     if (!expect_status(
             pf_sim_default_config(
@@ -196,6 +275,9 @@ static int run_duel_test(const pf_content_view *content)
             PF_STATUS_OK,
             "duel-config"))
     {
+        (void)fprintf(
+            stderr,
+            "rl-api=fail operation=duel-config-contract\n");
         return 0;
     }
     config.max_ticks = UINT64_C(100);
@@ -211,6 +293,11 @@ static int run_duel_test(const pf_content_view *content)
         identity.player_count != UINT8_C(2) ||
         identity.mode != (uint8_t)PF_SIM_MODE_DUEL ||
         identity.max_ticks != config.max_ticks ||
+        identity.stock_count != PF_SIM_DEFAULT_STOCK_COUNT ||
+        identity.respawn_delay_ticks !=
+            PF_SIM_DEFAULT_RESPAWN_DELAY_TICKS ||
+        identity.respawn_invulnerability_ticks !=
+            PF_SIM_DEFAULT_RESPAWN_INVULNERABILITY_TICKS ||
         memcmp(
             identity.content_hash.bytes,
             content->content_hash.bytes,
@@ -229,6 +316,16 @@ static int run_duel_test(const pf_content_view *content)
         transition.legal_buttons[2] != UINT64_C(0) ||
         transition.reward_q16[0] != INT32_C(0) ||
         transition.reward_q16[1] != INT32_C(0) ||
+        transition.structured_observation.stock_count !=
+            PF_SIM_DEFAULT_STOCK_COUNT ||
+        transition.structured_observation.players[0].stocks_remaining !=
+            PF_SIM_DEFAULT_STOCK_COUNT ||
+        transition.structured_observation.players[1].stocks_remaining !=
+            PF_SIM_DEFAULT_STOCK_COUNT ||
+        transition.structured_observation.players[0].respawn_ticks !=
+            UINT16_C(0) ||
+        transition.structured_observation.players[0].
+                respawn_invulnerability_ticks != UINT16_C(0) ||
         !expect_status(
             pf_sim_observe(sim, &diagnostic_observation),
             PF_STATUS_OK,
@@ -236,6 +333,127 @@ static int run_duel_test(const pf_content_view *content)
         diagnostic_observation.seed !=
             UINT64_C(0xabcdef0123456789))
     {
+        (void)fprintf(
+            stderr,
+            "rl-api=fail operation=duel-initial-contract\n");
+        return 0;
+    }
+
+    initialize_actions(actions);
+    actions[0].left_trigger = TEST_LIGHT_SHIELD_TRIGGER;
+    actions[0].main_stick_x = TEST_SHIELD_TILT_AXIS;
+    actions[0].main_stick_y = -TEST_SHIELD_TILT_AXIS;
+    if (!expect_status(
+            pf_rl_step(sim, actions, (size_t)2, &transition),
+            PF_STATUS_OK,
+            "duel-light-shield-step") ||
+        !verify_transition_contract(
+            &transition,
+            UINT8_C(2),
+            UINT64_C(1)) ||
+        transition.structured_observation.players[0]
+                .shield_strength != TEST_LIGHT_SHIELD_STRENGTH ||
+        transition.compact_observation.values[
+            PF_RL_COMPACT_SHIELD_STRENGTH_BASE] !=
+            (int32_t)TEST_LIGHT_SHIELD_STRENGTH ||
+        transition.structured_observation.players[0].shield_tilt_x <=
+            INT16_C(0) ||
+        transition.structured_observation.players[0].shield_tilt_y >=
+            INT16_C(0) ||
+        transition.compact_observation.values[
+            PF_RL_COMPACT_SHIELD_HEALTH_BASE] !=
+            (int32_t)transition.structured_observation.players[0]
+                .shield_health_q16 ||
+        transition.compact_observation.values[
+            PF_RL_COMPACT_SHIELD_TILT_BASE] !=
+            (int32_t)transition.structured_observation.players[0]
+                .shield_tilt_x ||
+        transition.compact_observation.values[
+            PF_RL_COMPACT_SHIELD_TILT_BASE + UINT16_C(1)] !=
+            (int32_t)transition.structured_observation.players[0]
+                .shield_tilt_y ||
+        !expect_status(
+            pf_rl_reset(
+                sim,
+                UINT64_C(0xabcdef0123456789),
+                &transition),
+            PF_STATUS_OK,
+            "duel-post-light-shield-reset") ||
+        !verify_transition_contract(
+            &transition,
+            UINT8_C(2),
+            UINT64_C(0)))
+    {
+        (void)fprintf(
+            stderr,
+            "rl-api=fail operation=duel-light-shield strength=%u"
+            " compact=%" PRId32 " tilt=(%d,%d) health=%" PRIu32
+            "\n",
+            (unsigned int)transition.structured_observation.players[0]
+                .shield_strength,
+            transition.compact_observation.values[
+                PF_RL_COMPACT_SHIELD_STRENGTH_BASE],
+            (int)transition.structured_observation.players[0]
+                .shield_tilt_x,
+            (int)transition.structured_observation.players[0]
+                .shield_tilt_y,
+            transition.structured_observation.players[0]
+                .shield_health_q16);
+        return 0;
+    }
+
+    initialize_actions(actions);
+    actions[0].buttons = PF_INPUT_BUTTON_ATTACK;
+    actions[0].main_stick_x = INT16_MAX;
+    if (!expect_status(
+            pf_rl_step(sim, actions, (size_t)2, &transition),
+            PF_STATUS_OK,
+            "duel-smash-charge-step") ||
+        !verify_transition_contract(&transition, UINT8_C(2), UINT64_C(1)))
+    {
+        (void)fprintf(stderr, "rl-api=fail operation=duel-smash-entry\n");
+        return 0;
+    }
+    for (charge_tick = UINT64_C(2);
+         charge_tick <= UINT64_C(30) &&
+         transition.structured_observation.players[0]
+                 .smash_charge_ticks == UINT16_C(0);
+         ++charge_tick)
+    {
+        if (!expect_status(
+                pf_rl_step(sim, actions, (size_t)2, &transition),
+                PF_STATUS_OK,
+                "duel-smash-charge-advance") ||
+            !verify_transition_contract(
+                &transition,
+                UINT8_C(2),
+                charge_tick))
+        {
+            return 0;
+        }
+    }
+    if (transition.structured_observation.players[0]
+                .smash_charge_ticks != UINT16_C(1) ||
+        transition.compact_observation.values[
+            PF_RL_COMPACT_SMASH_CHARGE_BASE] != INT32_C(1) ||
+        !expect_status(
+            pf_rl_reset(
+                sim,
+                UINT64_C(0xabcdef0123456789),
+                &transition),
+            PF_STATUS_OK,
+            "duel-post-smash-charge-reset") ||
+        !verify_transition_contract(&transition, UINT8_C(2), UINT64_C(0)))
+    {
+        (void)fprintf(
+            stderr,
+            "rl-api=fail operation=duel-smash-charge tick=%" PRIu64
+            " charge=%u compact=%" PRId32 "\n",
+            transition.structured_observation.tick,
+            (unsigned int)transition.structured_observation.players[0]
+                .smash_charge_ticks,
+            transition.compact_observation.values[
+                PF_RL_COMPACT_SMASH_CHARGE_BASE]);
         return 0;
     }
 
@@ -243,11 +461,24 @@ static int run_duel_test(const pf_content_view *content)
     actions[0].buttons = PF_INPUT_BUTTON_JUMP;
     actions[0].main_stick_x = INT16_MAX;
     actions[1].main_stick_x = INT16_MIN;
-    if (!expect_status(
-            pf_rl_step(sim, actions, (size_t)2, &transition),
-            PF_STATUS_OK,
-            "duel-rl-step") ||
-        !verify_transition_contract(&transition, UINT8_C(2), UINT64_C(1)) ||
+    for (movement_tick = UINT64_C(1);
+         movement_tick <= UINT64_C(5);
+         ++movement_tick)
+    {
+        if (!expect_status(
+                pf_rl_step(sim, actions, (size_t)2, &transition),
+                PF_STATUS_OK,
+                "duel-rl-step") ||
+            !verify_transition_contract(
+                &transition,
+                UINT8_C(2),
+                movement_tick))
+        {
+            return 0;
+        }
+    }
+    if (transition.structured_observation.players[0].grounded !=
+            UINT8_C(0) ||
         transition.structured_observation.players[0].position_y_q16 <=
             INT32_C(0) ||
         transition.reward_q16[0] <= INT32_C(0) ||
@@ -257,6 +488,17 @@ static int run_duel_test(const pf_content_view *content)
             PF_STATUS_OK,
             "duel-before-invalid-hash"))
     {
+        (void)fprintf(
+            stderr,
+            "rl-api=fail operation=duel-movement tick=%" PRIu64
+            " grounded=%u y=%" PRId32 " reward0=%" PRId32
+            " reward1=%" PRId32 "\n",
+            transition.structured_observation.tick,
+            (unsigned int)transition.structured_observation.players[0]
+                .grounded,
+            transition.structured_observation.players[0].position_y_q16,
+            transition.reward_q16[0],
+            transition.reward_q16[1]);
         return 0;
     }
 
@@ -267,7 +509,7 @@ static int run_duel_test(const pf_content_view *content)
             PF_STATUS_INVALID_ARGUMENT,
             "duel-invalid-action") ||
         transition.status != (uint32_t)PF_STATUS_INVALID_ARGUMENT ||
-        transition.structured_observation.tick != UINT64_C(1) ||
+        transition.structured_observation.tick != UINT64_C(5) ||
         !expect_status(
             pf_sim_hash(sim, &after_invalid),
             PF_STATUS_OK,
@@ -286,7 +528,7 @@ static int run_duel_test(const pf_content_view *content)
             pf_rl_step(sim, actions, (size_t)2, &transition),
             PF_STATUS_OK,
             "duel-forfeit") ||
-        transition.tick_result.completed_tick != UINT64_C(2) ||
+        transition.tick_result.completed_tick != UINT64_C(6) ||
         transition.tick_result.terminated != UINT8_C(1) ||
         transition.tick_result.winner_mask != UINT8_C(2) ||
         transition.reward_q16[1] - transition.reward_q16[0] !=
@@ -296,7 +538,17 @@ static int run_duel_test(const pf_content_view *content)
     {
         (void)fprintf(
             stderr,
-            "rl-api=fail operation=duel-terminal-reward\n");
+            "rl-api=fail operation=duel-terminal-reward"
+            " completed=%" PRIu64 " terminated=%u winner=%u"
+            " reward=(%" PRId32 ",%" PRId32 ") legal=(%" PRIu64
+            ",%" PRIu64 ")\n",
+            transition.tick_result.completed_tick,
+            (unsigned int)transition.tick_result.terminated,
+            (unsigned int)transition.tick_result.winner_mask,
+            transition.reward_q16[0],
+            transition.reward_q16[1],
+            transition.legal_buttons[0],
+            transition.legal_buttons[1]);
         return 0;
     }
 
@@ -336,6 +588,7 @@ static int run_team_reward_test(const pf_content_view *content)
             PF_STATUS_OK,
             "team-reset"))
     {
+        (void)fprintf(stderr, "rl-api=fail operation=team-initial-contract\n");
         return 0;
     }
 
@@ -414,6 +667,14 @@ static int run_engagement_shaping_test(
     actions[0].main_stick_x = INT16_MIN;
     actions[1].main_stick_x = INT16_MAX;
     if (!expect_status(
+            pf_rl_step(sim, actions, (size_t)2, &transition),
+            PF_STATUS_OK,
+            "shaping-dash-entry") ||
+        !expect_status(
+            pf_rl_step(sim, actions, (size_t)2, &transition),
+            PF_STATUS_OK,
+            "shaping-dash-impulse") ||
+        !expect_status(
             pf_rl_step(sim, actions, (size_t)2, &transition),
             PF_STATUS_OK,
             "shaping-separate") ||
@@ -632,11 +893,26 @@ int main(void)
         return 1;
     }
 
-    if (!run_duel_test(&content) ||
-        !run_team_reward_test(&content) ||
-        !run_engagement_shaping_test(&content) ||
-        !run_batch_test(&content))
+    if (!run_duel_test(&content))
     {
+        (void)fprintf(stderr, "rl-api=fail operation=duel-test\n");
+        return 1;
+    }
+    if (!run_team_reward_test(&content))
+    {
+        (void)fprintf(stderr, "rl-api=fail operation=team-reward-test\n");
+        return 1;
+    }
+    if (!run_engagement_shaping_test(&content))
+    {
+        (void)fprintf(
+            stderr,
+            "rl-api=fail operation=engagement-shaping-test\n");
+        return 1;
+    }
+    if (!run_batch_test(&content))
+    {
+        (void)fprintf(stderr, "rl-api=fail operation=batch-test\n");
         return 1;
     }
 

@@ -1,0 +1,51 @@
+{
+  "cases": [
+    {
+      "field_exclusions": {
+        "action_ticks": [
+          [
+            0,
+            275
+          ],
+          [
+            373,
+            500
+          ]
+        ]
+      },
+      "id": "passive_depletion",
+      "input_runs": [
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 60
+        },
+        {
+          "input": "0,0,0,0,65535,0,0,0,0",
+          "ticks": 260
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 180
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 500,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded",
+        "position_y_q16_from_origin",
+        "velocity_y_q16",
+        "shield_health_q16",
+        "shield_strength",
+        "invulnerable"
+      ]
+    }
+  ],
+  "domain": "falcon-common-shield-break",
+  "kind": "native-csv-trace-v1",
+  "production_trace_sha256": "d2080f96a9477f5615f777d657e70cab9181015f7058b4257dba8c9c52334cc4",
+  "schema": 1,
+  "source_trace_sha256": "67d6f164a7d94e7171f1b8d4ace195676fac180faf1c9f044351ebeaab3f4ae5"
+}

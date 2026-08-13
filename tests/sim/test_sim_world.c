@@ -7,7 +7,7 @@
 #include <stdalign.h>
 #include <string.h>
 
-#define TEST_MEMORY_BYTES 2048U
+#define TEST_MEMORY_BYTES 4096U
 #define TEST_MEMORY_ALIGNMENT 64U
 
 typedef struct test_sim_storage
@@ -128,6 +128,7 @@ static int run_determinism_test(const pf_content_view *content)
     pf_input_frame inputs[PF_SIM_MAX_PLAYERS];
     pf_input_frame invalid_inputs[PF_SIM_MAX_PLAYERS];
     pf_tick_result result;
+    pf_tick_result forfeit_result;
     uint64_t tick;
 
     if (!expect_status(
@@ -250,12 +251,24 @@ static int run_determinism_test(const pf_content_view *content)
     make_inputs(inputs, UINT8_C(2), UINT64_C(180));
     inputs[0].buttons = PF_INPUT_BUTTON_FORFEIT;
     if (!expect_status(
-            pf_sim_tick(first, inputs, (size_t)2, &result),
+            pf_sim_tick(first, inputs, (size_t)2, &forfeit_result),
             PF_STATUS_OK,
             "forfeit") ||
-        result.terminated != UINT8_C(1) ||
-        result.truncated != UINT8_C(0) ||
-        result.winner_mask != UINT8_C(2) ||
+        forfeit_result.terminated != UINT8_C(1) ||
+        forfeit_result.truncated != UINT8_C(0) ||
+        forfeit_result.winner_mask != UINT8_C(2) ||
+        forfeit_result.event_count != UINT8_C(2) ||
+        forfeit_result.events[0].type !=
+            (uint16_t)PF_SIM_EVENT_FORFEIT ||
+        forfeit_result.events[0].source_player !=
+            PF_SIM_EVENT_NO_PLAYER ||
+        forfeit_result.events[0].target_player !=
+            PF_SIM_EVENT_NO_PLAYER ||
+        forfeit_result.events[0].detail != UINT16_C(1) ||
+        forfeit_result.events[0].tick != UINT64_C(180) ||
+        forfeit_result.events[1].type !=
+            (uint16_t)PF_SIM_EVENT_MATCH_RESULT ||
+        forfeit_result.events[1].detail != UINT16_C(2) ||
         !expect_status(
             pf_sim_tick(first, inputs, (size_t)2, &result),
             PF_STATUS_EPISODE_DONE,
@@ -342,7 +355,11 @@ static int run_truncation_test(const pf_content_view *content)
 
     if (result.completed_tick != UINT64_C(3) ||
         result.terminated != UINT8_C(0) ||
-        result.truncated != UINT8_C(1))
+        result.truncated != UINT8_C(1) ||
+        result.event_count != UINT8_C(1) ||
+        result.events[0].type !=
+            (uint16_t)PF_SIM_EVENT_TIME_LIMIT ||
+        result.events[0].tick != UINT64_C(2))
     {
         (void)fprintf(stderr, "sim-world=fail operation=truncation\n");
         return 0;
@@ -396,10 +413,48 @@ static int run_four_player_test(const pf_content_view *content)
     }
 
     make_inputs(inputs, UINT8_C(4), UINT64_C(0));
-    return expect_status(
-        pf_sim_tick(sim, inputs, (size_t)4, &result),
-        PF_STATUS_OK,
-        "four-player-tick");
+    if (!expect_status(
+            pf_sim_tick(sim, inputs, (size_t)4, &result),
+            PF_STATUS_OK,
+            "four-player-tick") ||
+        result.event_count != UINT8_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "sim-world=fail operation=four-player-neutral-journal\n");
+        return 0;
+    }
+
+    make_inputs(inputs, UINT8_C(4), UINT64_C(1));
+    inputs[0].buttons = PF_INPUT_BUTTON_FORFEIT;
+    inputs[2].buttons = PF_INPUT_BUTTON_FORFEIT;
+    if (!expect_status(
+            pf_sim_tick(sim, inputs, (size_t)4, &result),
+            PF_STATUS_OK,
+            "four-player-forfeit") ||
+        result.terminated != UINT8_C(1) ||
+        result.winner_mask != UINT8_C(10) ||
+        result.event_count != UINT8_C(2) ||
+        result.events[0].type != (uint16_t)PF_SIM_EVENT_FORFEIT ||
+        result.events[0].source_player != PF_SIM_EVENT_NO_PLAYER ||
+        result.events[0].target_player != PF_SIM_EVENT_NO_PLAYER ||
+        result.events[0].value_q16 != UINT32_C(0) ||
+        result.events[0].velocity_x_q16 != INT32_C(0) ||
+        result.events[0].velocity_y_q16 != INT32_C(0) ||
+        result.events[0].flags != UINT16_C(0) ||
+        result.events[0].detail != UINT16_C(5) ||
+        result.events[1].type !=
+            (uint16_t)PF_SIM_EVENT_MATCH_RESULT ||
+        result.events[1].detail != UINT16_C(10) ||
+        result.events[1].sequence !=
+            result.events[0].sequence + UINT32_C(1))
+    {
+        (void)fprintf(
+            stderr,
+            "sim-world=fail operation=four-player-coalesced-forfeit\n");
+        return 0;
+    }
+    return 1;
 }
 
 int main(void)

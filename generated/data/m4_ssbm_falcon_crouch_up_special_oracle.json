@@ -1,0 +1,121 @@
+{
+  "cases": [
+    {
+      "field_exclusions": {},
+      "id": "wait_up",
+      "input_runs": [
+        {
+          "input": "0,32767,0,0,0,0,0,0,0",
+          "ticks": 20
+        },
+        {
+          "input": "0,-32767,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 26,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "wait_diagonal_up",
+      "input_runs": [
+        {
+          "input": "0,32767,0,0,0,0,0,0,0",
+          "ticks": 20
+        },
+        {
+          "input": "22937,-22937,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 26,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "rv_up",
+      "input_runs": [
+        {
+          "input": "0,32767,0,0,0,0,0,0,0",
+          "ticks": 20
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,-32767,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 27,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "rv_diagonal_up",
+      "input_runs": [
+        {
+          "input": "0,32767,0,0,0,0,0,0,0",
+          "ticks": 20
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "22937,-22937,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 27,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
+    }
+  ],
+  "domain": "falcon-crouch-up-special",
+  "kind": "native-csv-trace-v1",
+  "production_trace_sha256": "3117c2767a723556602b43caf5b34cd9a0376f854adcd3f0f4f49d7c1c11bba6",
+  "schema": 1,
+  "source_trace_sha256": "3117c2767a723556602b43caf5b34cd9a0376f854adcd3f0f4f49d7c1c11bba6"
+}

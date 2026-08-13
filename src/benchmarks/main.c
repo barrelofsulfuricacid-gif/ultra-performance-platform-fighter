@@ -221,7 +221,7 @@ static int run_self_test(void)
         return 1;
     }
     (void)printf(
-        "benchmarks-self-test=pass scenarios=%u available=9 "
+        "benchmarks-self-test=pass scenarios=%u available=10 "
         "sqlite=%s schema=%" PRIu32 "\n",
         (unsigned int)PF_BENCHMARK_SCENARIO_COUNT,
         sqlite3_libversion(),
@@ -248,7 +248,7 @@ static int run_profile_workload(void)
         return 1;
     }
     (void)printf(
-        "profile-workload=pass scenarios=13 available=9 "
+        "profile-workload=pass scenarios=13 available=10 "
         "sample_target_ns=%" PRIu64 " repetitions=%" PRIu32 "\n",
         PF_MILESTONE_SAMPLE_TARGET_NS,
         PF_MILESTONE_REPETITIONS);
@@ -300,7 +300,7 @@ static void make_synthetic_results(
         results[scenario_index].sample_count =
             (uint8_t)repetition_count;
         results[scenario_index].state_bytes = UINT64_C(512);
-        results[scenario_index].snapshot_bytes = UINT64_C(305);
+        results[scenario_index].snapshot_bytes = UINT64_C(569);
         results[scenario_index].median_rate = rate;
         results[scenario_index].mad_rate = rate * 0.001;
         results[scenario_index].p50_ns = 1000000000.0 / rate;
@@ -436,7 +436,7 @@ static int run_history_qualification(
             1000000.0,
             &same_commit_repeat,
             error) ||
-        same_commit_repeat.compatible_count != UINT32_C(9) ||
+        same_commit_repeat.compatible_count != UINT32_C(10) ||
         !persist_synthetic_run(
             &paths,
             suspected_commit,
@@ -447,7 +447,7 @@ static int run_history_qualification(
             900000.0,
             &suspected,
             error) ||
-        suspected.suspected_regressions != UINT32_C(9) ||
+        suspected.suspected_regressions != UINT32_C(10) ||
         !persist_synthetic_run(
             &paths,
             milestone_baseline_commit,
@@ -469,7 +469,7 @@ static int run_history_qualification(
             900000.0,
             &confirmed,
             error) ||
-        confirmed.confirmed_regressions != UINT32_C(9) ||
+        confirmed.confirmed_regressions != UINT32_C(10) ||
         !persist_synthetic_run(
             &paths,
             incompatible_commit,
@@ -480,7 +480,7 @@ static int run_history_qualification(
             1000000.0,
             &incompatible,
             error) ||
-        incompatible.invalid_comparisons != UINT32_C(9))
+        incompatible.invalid_comparisons != UINT32_C(10))
     {
         (void)fprintf(
             stderr,

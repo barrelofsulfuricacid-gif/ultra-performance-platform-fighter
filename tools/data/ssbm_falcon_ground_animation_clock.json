@@ -1,0 +1,598 @@
+{
+  "cases": [
+    {
+      "action_state": 1,
+      "id": "walk_slow",
+      "input_x": 9830,
+      "samples": [
+        {
+          "frame_q16": 65536,
+          "rate_q16": 65536,
+          "velocity_x_q16": 992
+        },
+        {
+          "frame_q16": 131072,
+          "rate_q16": 57592,
+          "velocity_x_q16": 1205
+        },
+        {
+          "frame_q16": 188664,
+          "rate_q16": 70014,
+          "velocity_x_q16": 1359
+        },
+        {
+          "frame_q16": 258678,
+          "rate_q16": 78904,
+          "velocity_x_q16": 1468
+        },
+        {
+          "frame_q16": 337583,
+          "rate_q16": 85267,
+          "velocity_x_q16": 1546
+        },
+        {
+          "frame_q16": 422849,
+          "rate_q16": 89820,
+          "velocity_x_q16": 1603
+        },
+        {
+          "frame_q16": 512670,
+          "rate_q16": 93079,
+          "velocity_x_q16": 1643
+        },
+        {
+          "frame_q16": 605749,
+          "rate_q16": 95412,
+          "velocity_x_q16": 1671
+        },
+        {
+          "frame_q16": 701161,
+          "rate_q16": 97081,
+          "velocity_x_q16": 1692
+        },
+        {
+          "frame_q16": 798242,
+          "rate_q16": 98276,
+          "velocity_x_q16": 1707
+        },
+        {
+          "frame_q16": 896518,
+          "rate_q16": 99131,
+          "velocity_x_q16": 1717
+        },
+        {
+          "frame_q16": 995648,
+          "rate_q16": 99743,
+          "velocity_x_q16": 1725
+        },
+        {
+          "frame_q16": 1095391,
+          "rate_q16": 100181,
+          "velocity_x_q16": 1730
+        },
+        {
+          "frame_q16": 1195571,
+          "rate_q16": 100494,
+          "velocity_x_q16": 1734
+        },
+        {
+          "frame_q16": 1296065,
+          "rate_q16": 100718,
+          "velocity_x_q16": 1737
+        },
+        {
+          "frame_q16": 1396784,
+          "rate_q16": 100879,
+          "velocity_x_q16": 1739
+        },
+        {
+          "frame_q16": 1497662,
+          "rate_q16": 100994,
+          "velocity_x_q16": 1740
+        },
+        {
+          "frame_q16": 1598656,
+          "rate_q16": 101076,
+          "velocity_x_q16": 1741
+        },
+        {
+          "frame_q16": 1699732,
+          "rate_q16": 101135,
+          "velocity_x_q16": 1742
+        },
+        {
+          "frame_q16": 1800867,
+          "rate_q16": 101177,
+          "velocity_x_q16": 1743
+        },
+        {
+          "frame_q16": 1902044,
+          "rate_q16": 101207,
+          "velocity_x_q16": 1743
+        },
+        {
+          "frame_q16": 2003250,
+          "rate_q16": 101229,
+          "velocity_x_q16": 1743
+        },
+        {
+          "frame_q16": 2104479,
+          "rate_q16": 101244,
+          "velocity_x_q16": 1743
+        },
+        {
+          "frame_q16": 2205723,
+          "rate_q16": 101255,
+          "velocity_x_q16": 1743
+        },
+        {
+          "frame_q16": 2306978,
+          "rate_q16": 101263,
+          "velocity_x_q16": 1744
+        },
+        {
+          "frame_q16": 2408241,
+          "rate_q16": 101269,
+          "velocity_x_q16": 1744
+        },
+        {
+          "frame_q16": 2509510,
+          "rate_q16": 101273,
+          "velocity_x_q16": 1744
+        },
+        {
+          "frame_q16": 2610782,
+          "rate_q16": 101276,
+          "velocity_x_q16": 1744
+        },
+        {
+          "frame_q16": 2712058,
+          "rate_q16": 101278,
+          "velocity_x_q16": 1744
+        },
+        {
+          "frame_q16": 2813336,
+          "rate_q16": 101279,
+          "velocity_x_q16": 1744
+        },
+        {
+          "frame_q16": 2914615,
+          "rate_q16": 101280,
+          "velocity_x_q16": 1744
+        },
+        {
+          "frame_q16": 3015895,
+          "rate_q16": 101281,
+          "velocity_x_q16": 1744
+        },
+        {
+          "frame_q16": 3117176,
+          "rate_q16": 101282,
+          "velocity_x_q16": 1744
+        },
+        {
+          "frame_q16": 3218458,
+          "rate_q16": 101282,
+          "velocity_x_q16": 1744
+        },
+        {
+          "frame_q16": 3319740,
+          "rate_q16": 101282,
+          "velocity_x_q16": 1744
+        },
+        {
+          "frame_q16": 3421022,
+          "rate_q16": 101282,
+          "velocity_x_q16": 1744
+        },
+        {
+          "frame_q16": 3522304,
+          "rate_q16": 101283,
+          "velocity_x_q16": 1744
+        },
+        {
+          "frame_q16": 84643,
+          "rate_q16": 101283,
+          "velocity_x_q16": 1744
+        },
+        {
+          "frame_q16": 185926,
+          "rate_q16": 101283,
+          "velocity_x_q16": 1744
+        },
+        {
+          "frame_q16": 287208,
+          "rate_q16": 101283,
+          "velocity_x_q16": 1744
+        },
+        {
+          "frame_q16": 388491,
+          "rate_q16": 101283,
+          "velocity_x_q16": 1744
+        },
+        {
+          "frame_q16": 489774,
+          "rate_q16": 101283,
+          "velocity_x_q16": 1744
+        },
+        {
+          "frame_q16": 591057,
+          "rate_q16": 101283,
+          "velocity_x_q16": 1744
+        },
+        {
+          "frame_q16": 692340,
+          "rate_q16": 101283,
+          "velocity_x_q16": 1744
+        },
+        {
+          "frame_q16": 793623,
+          "rate_q16": 101283,
+          "velocity_x_q16": 1744
+        },
+        {
+          "frame_q16": 894905,
+          "rate_q16": 101283,
+          "velocity_x_q16": 1744
+        },
+        {
+          "frame_q16": 996188,
+          "rate_q16": 101283,
+          "velocity_x_q16": 1744
+        },
+        {
+          "frame_q16": 1097471,
+          "rate_q16": 101283,
+          "velocity_x_q16": 1744
+        },
+        {
+          "frame_q16": 1198754,
+          "rate_q16": 101283,
+          "velocity_x_q16": 1744
+        },
+        {
+          "frame_q16": 1300037,
+          "rate_q16": 101283,
+          "velocity_x_q16": 1744
+        },
+        {
+          "frame_q16": 1401320,
+          "rate_q16": 101283,
+          "velocity_x_q16": 1744
+        },
+        {
+          "frame_q16": 1502603,
+          "rate_q16": 101283,
+          "velocity_x_q16": 1744
+        },
+        {
+          "frame_q16": 1603886,
+          "rate_q16": 101283,
+          "velocity_x_q16": 1744
+        },
+        {
+          "frame_q16": 1705168,
+          "rate_q16": 101283,
+          "velocity_x_q16": 1744
+        },
+        {
+          "frame_q16": 1806451,
+          "rate_q16": 101283,
+          "velocity_x_q16": 1744
+        }
+      ],
+      "source_action": "WALK_SLOW",
+      "source_submotion": 7
+    },
+    {
+      "action_state": 1,
+      "id": "walk_middle",
+      "input_x": 16384,
+      "samples": [
+        {
+          "frame_q16": 524288,
+          "rate_q16": 65536,
+          "velocity_x_q16": 2478
+        },
+        {
+          "frame_q16": 589824,
+          "rate_q16": 58339,
+          "velocity_x_q16": 2566
+        },
+        {
+          "frame_q16": 648163,
+          "rate_q16": 60417,
+          "velocity_x_q16": 2636
+        },
+        {
+          "frame_q16": 708580,
+          "rate_q16": 62068,
+          "velocity_x_q16": 2692
+        },
+        {
+          "frame_q16": 770648,
+          "rate_q16": 63379,
+          "velocity_x_q16": 2736
+        },
+        {
+          "frame_q16": 834026,
+          "rate_q16": 64420,
+          "velocity_x_q16": 2771
+        },
+        {
+          "frame_q16": 898446,
+          "rate_q16": 65246,
+          "velocity_x_q16": 2799
+        },
+        {
+          "frame_q16": 963692,
+          "rate_q16": 65903,
+          "velocity_x_q16": 2821
+        },
+        {
+          "frame_q16": 1029595,
+          "rate_q16": 66424,
+          "velocity_x_q16": 2839
+        },
+        {
+          "frame_q16": 1096018,
+          "rate_q16": 66838,
+          "velocity_x_q16": 2853
+        },
+        {
+          "frame_q16": 1162856,
+          "rate_q16": 67166,
+          "velocity_x_q16": 2864
+        },
+        {
+          "frame_q16": 1230023,
+          "rate_q16": 67428,
+          "velocity_x_q16": 2872
+        },
+        {
+          "frame_q16": 1297450,
+          "rate_q16": 67635,
+          "velocity_x_q16": 2879
+        },
+        {
+          "frame_q16": 1365085,
+          "rate_q16": 67799,
+          "velocity_x_q16": 2885
+        },
+        {
+          "frame_q16": 1432884,
+          "rate_q16": 67930,
+          "velocity_x_q16": 2889
+        },
+        {
+          "frame_q16": 1500814,
+          "rate_q16": 68034,
+          "velocity_x_q16": 2893
+        },
+        {
+          "frame_q16": 1568848,
+          "rate_q16": 68116,
+          "velocity_x_q16": 2896
+        },
+        {
+          "frame_q16": 1636965,
+          "rate_q16": 68182,
+          "velocity_x_q16": 2898
+        },
+        {
+          "frame_q16": 1705147,
+          "rate_q16": 68234,
+          "velocity_x_q16": 2900
+        },
+        {
+          "frame_q16": 1773380,
+          "rate_q16": 68275,
+          "velocity_x_q16": 2901
+        },
+        {
+          "frame_q16": 1841656,
+          "rate_q16": 68308,
+          "velocity_x_q16": 2902
+        },
+        {
+          "frame_q16": 1909964,
+          "rate_q16": 68334,
+          "velocity_x_q16": 2903
+        },
+        {
+          "frame_q16": 1978298,
+          "rate_q16": 68355,
+          "velocity_x_q16": 2904
+        },
+        {
+          "frame_q16": 2046652,
+          "rate_q16": 68371,
+          "velocity_x_q16": 2904
+        },
+        {
+          "frame_q16": 2115023,
+          "rate_q16": 68384,
+          "velocity_x_q16": 2905
+        },
+        {
+          "frame_q16": 2183407,
+          "rate_q16": 68394,
+          "velocity_x_q16": 2905
+        },
+        {
+          "frame_q16": 2251802,
+          "rate_q16": 68403,
+          "velocity_x_q16": 2905
+        },
+        {
+          "frame_q16": 2320204,
+          "rate_q16": 68409,
+          "velocity_x_q16": 2906
+        },
+        {
+          "frame_q16": 2388614,
+          "rate_q16": 68414,
+          "velocity_x_q16": 2906
+        },
+        {
+          "frame_q16": 2457028,
+          "rate_q16": 68419,
+          "velocity_x_q16": 2906
+        },
+        {
+          "frame_q16": 2525447,
+          "rate_q16": 68422,
+          "velocity_x_q16": 2906
+        },
+        {
+          "frame_q16": 2593868,
+          "rate_q16": 68424,
+          "velocity_x_q16": 2906
+        },
+        {
+          "frame_q16": 40853,
+          "rate_q16": 68426,
+          "velocity_x_q16": 2906
+        },
+        {
+          "frame_q16": 109279,
+          "rate_q16": 68428,
+          "velocity_x_q16": 2906
+        },
+        {
+          "frame_q16": 177708,
+          "rate_q16": 68429,
+          "velocity_x_q16": 2906
+        }
+      ],
+      "source_action": "WALK_MIDDLE",
+      "source_submotion": 8
+    },
+    {
+      "action_state": 3,
+      "id": "run",
+      "input_x": 32767,
+      "samples": [
+        {
+          "frame_q16": 324305,
+          "rate_q16": 64692,
+          "velocity_x_q16": 15729
+        },
+        {
+          "frame_q16": 388997,
+          "rate_q16": 64692,
+          "velocity_x_q16": 15729
+        },
+        {
+          "frame_q16": 453689,
+          "rate_q16": 64692,
+          "velocity_x_q16": 15729
+        },
+        {
+          "frame_q16": 518381,
+          "rate_q16": 64692,
+          "velocity_x_q16": 15729
+        },
+        {
+          "frame_q16": 583074,
+          "rate_q16": 64692,
+          "velocity_x_q16": 15729
+        },
+        {
+          "frame_q16": 647766,
+          "rate_q16": 64692,
+          "velocity_x_q16": 15729
+        },
+        {
+          "frame_q16": 712458,
+          "rate_q16": 64692,
+          "velocity_x_q16": 15729
+        },
+        {
+          "frame_q16": 777150,
+          "rate_q16": 64692,
+          "velocity_x_q16": 15729
+        },
+        {
+          "frame_q16": 841842,
+          "rate_q16": 64692,
+          "velocity_x_q16": 15729
+        },
+        {
+          "frame_q16": 906534,
+          "rate_q16": 64692,
+          "velocity_x_q16": 15729
+        },
+        {
+          "frame_q16": 971227,
+          "rate_q16": 64692,
+          "velocity_x_q16": 15729
+        },
+        {
+          "frame_q16": 1035919,
+          "rate_q16": 64692,
+          "velocity_x_q16": 15729
+        },
+        {
+          "frame_q16": 1100611,
+          "rate_q16": 64692,
+          "velocity_x_q16": 15729
+        },
+        {
+          "frame_q16": 1165303,
+          "rate_q16": 64692,
+          "velocity_x_q16": 15729
+        },
+        {
+          "frame_q16": 1229996,
+          "rate_q16": 64692,
+          "velocity_x_q16": 15729
+        },
+        {
+          "frame_q16": 1294688,
+          "rate_q16": 64692,
+          "velocity_x_q16": 15729
+        },
+        {
+          "frame_q16": 48660,
+          "rate_q16": 64692,
+          "velocity_x_q16": 15729
+        },
+        {
+          "frame_q16": 113352,
+          "rate_q16": 64692,
+          "velocity_x_q16": 15729
+        },
+        {
+          "frame_q16": 178044,
+          "rate_q16": 64692,
+          "velocity_x_q16": 15729
+        },
+        {
+          "frame_q16": 242737,
+          "rate_q16": 64692,
+          "velocity_x_q16": 15729
+        },
+        {
+          "frame_q16": 307429,
+          "rate_q16": 64692,
+          "velocity_x_q16": 15729
+        }
+      ],
+      "source_action": "RUNNING",
+      "source_submotion": 13
+    }
+  ],
+  "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
+  "dolphin_release_artifact_sha256": "87e9ef6d80ed03354a1647d0616016dbc91399aa9e86a69ae5a398edd0a0c2bd",
+  "domain": "falcon-ground-animation-clock",
+  "fighter": "CPTFALCON",
+  "q16_tolerances": {
+    "frame": 1200,
+    "rate": 128,
+    "velocity_x": 4
+  },
+  "schema": 1,
+  "semantic_sha256": "5919aafa202482ae3fb7bb446beade8fdfa5c515b10831932905873dc90705e9",
+  "source_capture_sha256": "0651712d514246b4cd8c01c2606adca1e561d31cf076f60610f7a8c2d2d5680b"
+}

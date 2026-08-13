@@ -1,0 +1,103 @@
+{
+  "cases": [
+    {
+      "field_exclusions": {
+        "action_ticks": [
+          [
+            0,
+            60
+          ],
+          [
+            125,
+            197
+          ],
+          [
+            281,
+            357
+          ],
+          [
+            451,
+            520
+          ]
+        ]
+      },
+      "id": "battlefield_jump_landings",
+      "input_runs": [
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 60
+        },
+        {
+          "input": "-13107,0,0,0,0,0,1,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "-13107,0,0,0,0,0,0,0,0",
+          "ticks": 6
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 130
+        },
+        {
+          "input": "0,0,0,0,0,0,1,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 8
+        },
+        {
+          "input": "0,0,0,0,0,0,1,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 150
+        },
+        {
+          "input": "0,0,0,0,0,0,1,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 8
+        },
+        {
+          "input": "-13107,0,0,0,0,0,1,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "-13107,0,0,0,0,0,0,0,0",
+          "ticks": 3
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 150
+        }
+      ],
+      "runner_arguments": [
+        "--platform"
+      ],
+      "sample_count": 520,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded",
+        "support",
+        "surface_normal_source_x_q16",
+        "surface_normal_source_y_q16",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
+      ]
+    }
+  ],
+  "domain": "falcon-common-airborne-landing",
+  "kind": "native-csv-trace-v1",
+  "production_trace_sha256": "9b3c14c53cc4eb7ca9832cae1741baa553b21f464af5350bfad6b367088faf21",
+  "schema": 1,
+  "source_trace_sha256": "4b36cab9936996b419d526c5923525c48c766aa2a8408f3e9c7798cc65af80bb"
+}

@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "scope": "ssbm-hurt-pose-import",
+  "fighter": "CPTFALCON",
+  "profile": "tools/data/ssbm_falcon_ledge_hurt.json",
+  "profile_sha256": "2630b5be93c7f55b869ac1da64aaa4e4716b35e601ec6e8a47fc5d8e4ef91ff7",
+  "capture_sha256": "3055455eb02949e15c240f563a49648578b6c5affa4dc5dd7ca62f2c7b19c1e3",
+  "semantic_sha256": "9125200e3e162822131fd8805ae1551371c4ebf0abc2256bba9a167cc181103a",
+  "symbol_prefix": "pf_m4_falcon_ledge_hurt",
+  "enum_prefix": "PF_M4_FALCON_LEDGE_HURT",
+  "expected_pose_count": 434,
+  "expected_unique_pose_count": 434,
+  "expected_capsule_count": 4774,
+  "live_collision_qualification": {
+    "capture_sha256": "f31de47e694e46bf2269945747c97238ce443ddf88cbadc0a8e4214026f2785d",
+    "semantic_sha256": "fbe0cf877402bf82aba10d8ae3dceecb4e431caa87d9b75b5844bfb7b132af2d",
+    "case_ids": [
+      "quick_climb_collision_hit",
+      "quick_climb_collision_miss"
+    ],
+    "target_track": "ledge_climb_quick",
+    "target_displayed_frame": 29,
+    "attacker_action": "NEUTRAL_ATTACK_1",
+    "attacker_displayed_frame": 4,
+    "attacker_hitboxes_q16": [
+      [0, 3, 131072, 24040, 80, 100, 20, 0, 0, 72548, 73843, 0, 72548, 73843, 0],
+      [0, 3, 131072, 24040, 80, 100, 20, 0, 0, 36274, 82912, 0, 36274, 82912, 0],
+      [0, 3, 131072, 16027, 80, 100, 20, 0, 0, 12955, 73843, 0, 12955, 73843, 0]
+    ],
+    "positive_damage_action": "DAMAGE_NEUTRAL_2",
+    "expected_rows": 143,
+    "shards": 2,
+    "warm_budget_seconds": 8.0,
+    "cold_budget_seconds": 9.0
+  },
+  "tracks": [
+    { "id": "ledge_climb_quick", "enum": "CLIMB_QUICK", "frame_count": 32 },
+    { "id": "ledge_climb_slow", "enum": "CLIMB_SLOW", "frame_count": 58 },
+    { "id": "ledge_roll_quick", "enum": "ROLL_QUICK", "frame_count": 48 },
+    { "id": "ledge_roll_slow", "enum": "ROLL_SLOW", "frame_count": 78 },
+    { "id": "ledge_attack_quick", "enum": "ATTACK_QUICK", "frame_count": 54 },
+    { "id": "ledge_attack_slow", "enum": "ATTACK_SLOW", "frame_count": 68 },
+    { "id": "ledge_jump_quick_1", "enum": "JUMP_QUICK_1", "frame_count": 11 },
+    { "id": "ledge_jump_quick_2", "enum": "JUMP_QUICK_2", "frame_count": 32 },
+    { "id": "ledge_jump_slow_1", "enum": "JUMP_SLOW_1", "frame_count": 18 },
+    { "id": "ledge_jump_slow_2", "enum": "JUMP_SLOW_2", "frame_count": 35 }
+  ]
+}

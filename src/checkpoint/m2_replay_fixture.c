@@ -57,6 +57,57 @@ void pf_m2_replay_make_tick_inputs(
         (tick % UINT64_C(29)) < UINT64_C(15)
             ? INT16_C(-24576)
             : INT16_C(12288);
+    inputs[0].main_stick_y =
+        (tick % UINT64_C(16)) >= UINT64_C(8) &&
+                (tick % UINT64_C(16)) < UINT64_C(12)
+            ? INT16_MIN
+            : INT16_C(0);
+    inputs[1].main_stick_y =
+        (tick % UINT64_C(18)) >= UINT64_C(9) &&
+                (tick % UINT64_C(18)) < UINT64_C(13)
+            ? INT16_MIN
+            : INT16_C(0);
+    inputs[2].main_stick_y =
+        (tick % UINT64_C(20)) >= UINT64_C(10) &&
+                (tick % UINT64_C(20)) < UINT64_C(14)
+            ? INT16_MIN
+            : INT16_C(0);
+    inputs[3].main_stick_y =
+        (tick % UINT64_C(22)) >= UINT64_C(11) &&
+                (tick % UINT64_C(22)) < UINT64_C(15)
+            ? INT16_MIN
+            : INT16_C(0);
+
+    if (tick % UINT64_C(41) == UINT64_C(7))
+    {
+        inputs[0].left_trigger = UINT16_MAX;
+    }
+    if (tick % UINT64_C(43) == UINT64_C(11))
+    {
+        inputs[1].left_trigger = UINT16_MAX;
+    }
+    if (tick % UINT64_C(47) == UINT64_C(13))
+    {
+        inputs[2].left_trigger = UINT16_MAX;
+    }
+    if (tick % UINT64_C(53) == UINT64_C(17))
+    {
+        inputs[3].left_trigger = UINT16_MAX;
+    }
+
+    if (tick < UINT64_C(27))
+    {
+        inputs[0].main_stick_x = INT16_C(32767);
+        inputs[1].main_stick_x = INT16_C(-32767);
+        inputs[2].main_stick_x = INT16_C(32767);
+        inputs[3].main_stick_x = INT16_C(-32767);
+    }
+    if (tick == UINT64_C(0))
+    {
+        inputs[0].left_trigger = UINT16_MAX;
+        inputs[1].main_stick_y = INT16_MAX;
+        inputs[1].left_trigger = UINT16_MAX;
+    }
 
     if (tick == UINT64_C(8) || tick == UINT64_C(87))
     {
@@ -74,8 +125,149 @@ void pf_m2_replay_make_tick_inputs(
     {
         inputs[3].buttons |= PF_INPUT_BUTTON_JUMP;
     }
+    if (tick == UINT64_C(144))
+    {
+        inputs[3].main_stick_x = INT16_C(0);
+        inputs[3].main_stick_y = INT16_C(8192);
+        inputs[3].left_trigger = UINT16_MAX;
+    }
+    if (tick == UINT64_C(155))
+    {
+        inputs[3].buttons |= PF_INPUT_BUTTON_JUMP;
+    }
+    if (tick == UINT64_C(158))
+    {
+        inputs[3].main_stick_x = INT16_C(0);
+        inputs[3].main_stick_y = -INT16_C(8192);
+        inputs[3].left_trigger = UINT16_MAX;
+    }
+    if (tick % UINT64_C(13) == UINT64_C(4))
+    {
+        inputs[0].buttons |= PF_INPUT_BUTTON_ATTACK;
+    }
+    if (tick % UINT64_C(17) == UINT64_C(6))
+    {
+        inputs[1].buttons |= PF_INPUT_BUTTON_ATTACK;
+    }
+    if (tick % UINT64_C(19) == UINT64_C(8))
+    {
+        inputs[2].buttons |= PF_INPUT_BUTTON_ATTACK;
+    }
+    if (tick % UINT64_C(23) == UINT64_C(10))
+    {
+        inputs[3].buttons |= PF_INPUT_BUTTON_ATTACK;
+    }
+    if (tick == UINT64_C(27))
+    {
+        inputs[0].buttons |= PF_INPUT_BUTTON_ATTACK;
+        inputs[2].buttons |= PF_INPUT_BUTTON_ATTACK;
+    }
+    if (tick >= UINT64_C(20) && tick <= UINT64_C(50))
+    {
+        inputs[2].main_stick_x = INT16_C(0);
+        inputs[2].main_stick_y = INT16_C(0);
+        inputs[2].buttons = UINT64_C(0);
+        inputs[2].left_trigger = UINT16_C(0);
+        inputs[3].main_stick_x =
+            tick < UINT64_C(35) ? INT16_MIN : INT16_C(0);
+        inputs[3].main_stick_y = INT16_C(0);
+        inputs[3].buttons =
+            tick == UINT64_C(34)
+                ? PF_INPUT_BUTTON_ATTACK
+                : UINT64_C(0);
+        inputs[3].left_trigger = UINT16_C(0);
+    }
+    if (tick == UINT64_C(39))
+    {
+        inputs[2].main_stick_x = INT16_MAX;
+    }
+    if (tick == UINT64_C(46))
+    {
+        inputs[2].buttons = PF_INPUT_BUTTON_ATTACK;
+    }
+    if (tick == UINT64_C(50))
+    {
+        inputs[3].main_stick_x = INT16_MIN;
+    }
+    if (tick == UINT64_C(72))
+    {
+        inputs[1].main_stick_x = INT16_MAX;
+    }
+    if (tick == UINT64_C(113))
+    {
+        inputs[0].main_stick_x = INT16_MIN;
+    }
+    if (tick <= UINT64_C(5))
+    {
+        inputs[2].main_stick_x = INT16_C(0);
+        inputs[2].main_stick_y = INT16_C(0);
+        inputs[2].buttons =
+            tick == UINT64_C(0)
+                ? PF_INPUT_BUTTON_JUMP
+                : UINT64_C(0);
+        inputs[2].left_trigger =
+            tick == UINT64_C(5) ? UINT16_MAX : UINT16_C(0);
+    }
+    if (tick >= UINT64_C(35) && tick <= UINT64_C(80))
+    {
+        inputs[0].main_stick_x =
+            tick < UINT64_C(70) ? INT16_MAX : INT16_C(0);
+        inputs[0].main_stick_y = INT16_C(0);
+        inputs[0].buttons =
+            tick == UINT64_C(70)
+                ? PF_INPUT_BUTTON_ATTACK
+                : UINT64_C(0);
+        inputs[0].left_trigger = UINT16_C(0);
+        inputs[1].main_stick_x =
+            tick == UINT64_C(74) ? INT16_MAX : INT16_C(0);
+        inputs[1].main_stick_y = INT16_C(0);
+        inputs[1].buttons = UINT64_C(0);
+        inputs[1].left_trigger = UINT16_C(0);
+    }
+    if (tick == UINT64_C(159))
+    {
+        inputs[0].main_stick_x = INT16_C(0);
+        inputs[1].main_stick_x = INT16_C(0);
+        inputs[1].main_stick_y = INT16_C(0);
+    }
+    if (tick == UINT64_C(160))
+    {
+        inputs[0].main_stick_x = INT16_MIN;
+        inputs[1].main_stick_x = INT16_MAX;
+        inputs[1].main_stick_y = INT16_MAX;
+    }
+    if (tick == UINT64_C(183))
+    {
+        inputs[0].main_stick_x = INT16_C(0);
+        inputs[0].main_stick_y = INT16_C(0);
+        inputs[0].buttons = UINT64_C(0);
+        inputs[0].left_trigger = UINT16_MAX;
+    }
+    if (tick == UINT64_C(184))
+    {
+        inputs[0].main_stick_x = INT16_MAX;
+        inputs[0].main_stick_y = INT16_C(0);
+        inputs[0].buttons = UINT64_C(0);
+        inputs[0].left_trigger = UINT16_MAX;
+    }
     if (tick + UINT64_C(1) == PF_M2_REPLAY_TICKS)
     {
         inputs[3].buttons |= PF_INPUT_BUTTON_FORFEIT;
+    }
+    if (tick == UINT64_C(0))
+    {
+        const pf_input_raw_pad raw_pad = {
+            INT8_C(1),
+            -INT8_C(2),
+            INT8_C(0),
+            INT8_C(0)};
+
+        /* Exercise the schema-6 replay codec with authoritative PADStatus
+         * bytes that cannot be reconstructed from the processed axes. The
+         * resulting raw history is future-affecting UCF state, so replay hash
+         * verification proves the field-by-field LE round trip. */
+        pf_input_set_raw_pad(&inputs[2], raw_pad);
+        inputs[2].raw_axis_valid_mask =
+            PF_INPUT_RAW_MAIN_X_VALID | PF_INPUT_RAW_MAIN_Y_VALID;
     }
 }

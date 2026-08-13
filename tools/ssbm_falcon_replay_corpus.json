@@ -1,0 +1,63 @@
+{
+  "schema": "ssbm-replay-corpus-v1",
+  "id": "public-falcon-battlefield-smoke-v1",
+  "description": "Small CC0 legacy diagnostic corpus. Its Slippi 2.0.1 files declare only the broad UCF family, do not prove the disc or UCF revision, and serialize raw main X but not raw main Y; the exact-reference gate must reject them before production comparison.",
+  "parser": {
+    "package": "@slippi/slippi-js",
+    "version": "9.1.2",
+    "license": "LGPL-3.0-or-later",
+    "audited_upstream_commit": "626f8fb0dfa08133f3244d58bebe7002bddd44bf"
+  },
+  "entries": [
+    {
+      "local_name": "candidate-01.slp",
+      "source": "erickfm/slippi-public-dataset-v3.7",
+      "revision": "6b995d97f3120111e2adaaf88a131deb4f06b41e",
+      "license": "CC0-1.0",
+      "path": "CPTFALCON/13_40_21 Captain Falcon + [OASI] Captain Falcon (BF).slp",
+      "url": "https://huggingface.co/datasets/erickfm/slippi-public-dataset-v3.7/resolve/6b995d97f3120111e2adaaf88a131deb4f06b41e/CPTFALCON/13_40_21%20Captain%20Falcon%20%2B%20%5BOASI%5D%20Captain%20Falcon%20%28BF%29.slp?download=true",
+      "size": 1452426,
+      "sha256": "332e403a112a4460173f6be86eae9235d2fffcc8b6610711d228bf932ca2c340"
+    },
+    {
+      "local_name": "candidate-02.slp",
+      "source": "erickfm/slippi-public-dataset-v3.7",
+      "revision": "6b995d97f3120111e2adaaf88a131deb4f06b41e",
+      "license": "CC0-1.0",
+      "path": "CPTFALCON/12_32_16 Captain Falcon + [CAPT] Captain Falcon (BF).slp",
+      "url": "https://huggingface.co/datasets/erickfm/slippi-public-dataset-v3.7/resolve/6b995d97f3120111e2adaaf88a131deb4f06b41e/CPTFALCON/12_32_16%20Captain%20Falcon%20%2B%20%5BCAPT%5D%20Captain%20Falcon%20%28BF%29.slp?download=true",
+      "size": 1476555,
+      "sha256": "784089c07b9154613250dc86d657f972eb91008b826a1cc85c65553ffde869fa"
+    },
+    {
+      "local_name": "candidate-03.slp",
+      "source": "erickfm/slippi-public-dataset-v3.7",
+      "revision": "6b995d97f3120111e2adaaf88a131deb4f06b41e",
+      "license": "CC0-1.0",
+      "path": "CPTFALCON/12_57_02 Captain Falcon + [OASI] Captain Falcon (BF).slp",
+      "url": "https://huggingface.co/datasets/erickfm/slippi-public-dataset-v3.7/resolve/6b995d97f3120111e2adaaf88a131deb4f06b41e/CPTFALCON/12_57_02%20Captain%20Falcon%20%2B%20%5BOASI%5D%20Captain%20Falcon%20%28BF%29.slp?download=true",
+      "size": 1622018,
+      "sha256": "3ea96ccf2642c2218f1327308bd5d70f2be6a93409543765ab17b9e1cefa9aef"
+    },
+    {
+      "local_name": "candidate-05.slp",
+      "source": "erickfm/slippi-public-dataset-v3.7",
+      "revision": "6b995d97f3120111e2adaaf88a131deb4f06b41e",
+      "license": "CC0-1.0",
+      "path": "CPTFALCON/12_46_37 Captain Falcon + [OASI] Captain Falcon (BF).slp",
+      "url": "https://huggingface.co/datasets/erickfm/slippi-public-dataset-v3.7/resolve/6b995d97f3120111e2adaaf88a131deb4f06b41e/CPTFALCON/12_46_37%20Captain%20Falcon%20%2B%20%5BOASI%5D%20Captain%20Falcon%20%28BF%29.slp?download=true",
+      "size": 1749154,
+      "sha256": "f20e15d1edf018e3dc92287c683fb684775c8b9323b2030e37d515fe5ddf4854"
+    },
+    {
+      "local_name": "candidate-07.slp",
+      "source": "erickfm/slippi-public-dataset-v3.7",
+      "revision": "6b995d97f3120111e2adaaf88a131deb4f06b41e",
+      "license": "CC0-1.0",
+      "path": "CPTFALCON/13_34_31 Captain Falcon + Captain Falcon (BF).slp",
+      "url": "https://huggingface.co/datasets/erickfm/slippi-public-dataset-v3.7/resolve/6b995d97f3120111e2adaaf88a131deb4f06b41e/CPTFALCON/13_34_31%20Captain%20Falcon%20%2B%20Captain%20Falcon%20%28BF%29.slp?download=true",
+      "size": 1772123,
+      "sha256": "d13f23e36d045e42c93387c7bac1a5bdd9fc29074c97aa702566116227307b66"
+    }
+  ]
+}

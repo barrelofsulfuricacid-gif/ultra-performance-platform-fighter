@@ -1,0 +1,121 @@
+{
+  "cases": [
+    {
+      "field_exclusions": {},
+      "id": "teeter_neutral",
+      "input_runs": [
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [
+        "--teeter-special"
+      ],
+      "sample_count": 7,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "teeter_side",
+      "input_runs": [
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "32767,0,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [
+        "--teeter-special"
+      ],
+      "sample_count": 7,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "teeter_up",
+      "input_runs": [
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,-32767,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [
+        "--teeter-special"
+      ],
+      "sample_count": 7,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "teeter_down",
+      "input_runs": [
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,32767,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [
+        "--teeter-special"
+      ],
+      "sample_count": 7,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
+    }
+  ],
+  "domain": "falcon-common-teeter-special-acquisition",
+  "kind": "native-csv-trace-v1",
+  "production_trace_sha256": "2065e789ba0285f8b3d878bdc2615bf0a7e983ee02da356f6f46d0b924a6908e",
+  "schema": 1,
+  "source_trace_sha256": "2065e789ba0285f8b3d878bdc2615bf0a7e983ee02da356f6f46d0b924a6908e"
+}

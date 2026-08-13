@@ -1,0 +1,154 @@
+{
+  "schema": 1,
+  "scope": "falcon-common-battlefield-bounce-recontact",
+  "domain": "falcon-common-battlefield-bounce-recontact",
+  "character": "falcon",
+  "oracle": "SSBM GALE01 NTSC-U revision 2",
+  "checkpoint_pack": {
+    "protocol": "rebased-slippi-state-file-control-v1",
+    "expected_rows": 304,
+    "warm_budget_seconds": 2.0,
+    "capture_sha256": "f1989a139185635d41d5cc2a51b0f88d41c1a26cf24c57fa82614feed6fda1c2",
+    "capture_plan": {
+      "stage": "BATTLEFIELD",
+      "source_random_seed_before_attack": 3,
+      "surface_response_cases": [
+        {
+          "id": "ceiling_bounce_long",
+          "damage_percent": 200.0,
+          "target_start": [30.0, 27.2001],
+          "opponent_start": [55.0, 27.2001],
+          "approach_main": -32767,
+          "settle_ticks": 30,
+          "approach_ticks": 4,
+          "post_hit_ticks": 8,
+          "impact_waypoints": [[100.0, 30.0], [100.0, -30.0], [50.0, -30.0]],
+          "response_start_position": [0.0, 180.0],
+          "response_zero_velocity": true,
+          "observe_ticks": 80,
+          "impact_main": [0, 0]
+        },
+        {
+          "id": "wall_bounce_long",
+          "damage_percent": 200.0,
+          "target_start": [30.0, 27.2001],
+          "opponent_start": [55.0, 27.2001],
+          "approach_main": -32767,
+          "settle_ticks": 30,
+          "approach_ticks": 4,
+          "post_hit_ticks": 8,
+          "impact_waypoints": [[100.0, 30.0], [100.0, -32.0], [41.0, -32.0]],
+          "response_start_position": [0.0, 180.0],
+          "response_zero_velocity": true,
+          "observe_ticks": 80,
+          "impact_main": [0, 0]
+        }
+      ]
+    }
+  },
+  "checkpoint_cases": [
+    {
+      "id": "ceiling-bounce-long",
+      "start_label": "surface_response_ceiling_bounce_long_setup"
+    },
+    {
+      "id": "wall-bounce-long",
+      "start_label": "surface_response_wall_bounce_long_setup"
+    }
+  ],
+  "selection": {
+    "paths": [
+      "generated/data/m4_falcon_ntsc102_frame_data.inc",
+      "generated/data/m4_ssbm_falcon_battlefield_bounce_recontact_oracle.inc",
+      "generated/data/m4_ssbm_ntsc102_battlefield_collision.inc",
+      "src/sim/sim_falcon_frame_data.c",
+      "src/sim/sim_falcon_frame_data.h",
+      "src/sim/sim_movement.c",
+      "tests/sim/ssbm_stored_oracle.c",
+      "tests/sim/ssbm_stored_oracle.h",
+      "tests/sim/test_m4_combat.c",
+      "tools/capture_ssbm_movement.py",
+      "tools/data/ssbm_falcon_bounce_ecb.json",
+      "tools/extract_ssbm_ecb_pose_tracks.py",
+      "tools/generate_ssbm_stored_trace_oracle.py",
+      "tools/import_ssbm_falcon_frame_data.py",
+      "tools/ssbm_ecb_pose.py",
+      "tools/ssbm_falcon_battlefield_bounce_recontact_coverage.json",
+      "tools/verify_ssbm_falcon_battlefield_bounce_recontact.py"
+    ]
+  },
+  "source_profile": {
+    "path": "tools/data/ssbm_falcon_bounce_ecb.json",
+    "sha256": "d6ccb5701f0bada0d7de1874004281e8ca46fcc0070db94e529d84d3fc637608",
+    "semantic_q16_sha256": "9d162fe7917f0c23894ad1fe54a1a665d5c8e446d5ca439180811d706b2431a5"
+  },
+  "live_recontacts": {
+    "ceiling_bounce_long": {
+      "source_bounce_action": "BOUNCE_CEILING",
+      "source_landing_action": "TECH_MISS_DOWN",
+      "production_bounce_action": 31,
+      "production_landing_action": 15,
+      "source_facing": -1,
+      "landing_sample": 57,
+      "landing_line": 3
+    },
+    "wall_bounce_long": {
+      "source_bounce_action": "BOUNCE_WALL",
+      "source_landing_action": "TECH_MISS_DOWN",
+      "production_bounce_action": 30,
+      "production_landing_action": 15,
+      "source_facing": 1,
+      "landing_sample": 54,
+      "landing_line": 3
+    }
+  },
+  "stored_oracle": {
+    "kind": "numeric-trace-v1",
+    "source_trace_sha256": "4e9a0ad3222bd0d6b6d7ab7def0177cf4b5c361bded3826abfe2e91f9210dd5a",
+    "production_trace_sha256": "79cc9ff8118443815d4b8d20a8666f9858602c32dc1472a8a6aec440c8084fae",
+    "samples_per_case": 57,
+    "serialized_fields": [
+      "position_x",
+      "position_y",
+      "self_velocity_x",
+      "self_velocity_y",
+      "knockback_velocity_x",
+      "knockback_velocity_y",
+      "action_ticks",
+      "hitstun_ticks",
+      "action_state",
+      "grounded",
+      "invulnerable",
+      "facing"
+    ],
+    "cases": [
+      {
+        "id": "ceiling_bounce_long",
+        "initial_state_variant": 1,
+        "initial_facing": -1,
+        "sample_count": 57
+      },
+      {
+        "id": "wall_bounce_long",
+        "initial_state_variant": 2,
+        "initial_facing": 1,
+        "sample_count": 54
+      }
+    ],
+    "c": {
+      "symbol_prefix": "pf_m4_ssbm_falcon_battlefield_bounce_recontact",
+      "macro_prefix": "PF_M4_SSBM_FALCON_BATTLEFIELD_BOUNCE_RECONTACT"
+    },
+    "generator": {
+      "script": "tools/generate_ssbm_stored_trace_oracle.py",
+      "output": "generated/data/m4_ssbm_falcon_battlefield_bounce_recontact_oracle.inc"
+    },
+    "runner": {
+      "executable": "m4_combat_test",
+      "arguments": [
+        "--ssbm-oracle",
+        "falcon-common-battlefield-bounce-recontact"
+      ]
+    }
+  }
+}

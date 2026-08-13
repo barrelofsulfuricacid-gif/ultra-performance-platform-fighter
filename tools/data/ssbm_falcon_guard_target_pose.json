@@ -1,0 +1,1690 @@
+{
+  "fighter": "CPTFALCON",
+  "joints": [
+    {
+      "parent_index": -1,
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 0,
+      "target_part_index": 1,
+      "translation": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "parent_index": 0,
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 1,
+      "target_part_index": 2,
+      "translation": [
+        0.0,
+        13.84749698638916,
+        3.000000106112566e-06
+      ]
+    },
+    {
+      "parent_index": 1,
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 2,
+      "target_part_index": 3,
+      "translation": [
+        2.0,
+        -3.4000000953674316,
+        -0.800000011920929
+      ]
+    },
+    {
+      "parent_index": 2,
+      "rotation": [
+        0.907571017742157,
+        -2.1118481159210205,
+        -1.0995570421218872
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 3,
+      "target_part_index": 4,
+      "translation": [
+        0.0,
+        -1.1878010034561157,
+        0.013953999616205692
+      ]
+    },
+    {
+      "parent_index": 3,
+      "rotation": [
+        0.3527120053768158,
+        -0.01260599959641695,
+        -0.13755500316619873
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 4,
+      "target_part_index": 5,
+      "translation": [
+        -1.7268040180206299,
+        0.45197299122810364,
+        -0.1355070024728775
+      ]
+    },
+    {
+      "parent_index": 3,
+      "rotation": [
+        -1.570796012878418,
+        -0.0,
+        -1.570796012878418
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 5,
+      "target_part_index": 6,
+      "translation": [
+        1.1050269603729248,
+        -0.6517720222473145,
+        -0.07348699867725372
+      ]
+    },
+    {
+      "parent_index": 5,
+      "rotation": [
+        -0.9437159895896912,
+        -0.49030598998069763,
+        -0.40867799520492554
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 6,
+      "target_part_index": 7,
+      "translation": [
+        -0.0,
+        0.0,
+        -0.0
+      ]
+    },
+    {
+      "parent_index": 6,
+      "rotation": [
+        0.0,
+        0.0,
+        1.6776520013809204
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 7,
+      "target_part_index": 8,
+      "translation": [
+        4.680233001708984,
+        0.0,
+        -0.0
+      ]
+    },
+    {
+      "parent_index": 7,
+      "rotation": [
+        0.0003600000054575503,
+        0.00043399998685345054,
+        -1.3907029628753662
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 8,
+      "target_part_index": 9,
+      "translation": [
+        5.961377143859863,
+        -0.02765199914574623,
+        0.17793400585651398
+      ]
+    },
+    {
+      "parent_index": 8,
+      "rotation": [
+        -0.3733440041542053,
+        -0.37297800183296204,
+        0.060846999287605286
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 9,
+      "target_part_index": 10,
+      "translation": [
+        -0.0,
+        -9.999999974752427e-07,
+        -0.0
+      ]
+    },
+    {
+      "parent_index": 9,
+      "rotation": [
+        0.0,
+        -0.0,
+        -0.3499999940395355
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 10,
+      "target_part_index": 11,
+      "translation": [
+        1.5910840034484863,
+        0.42568299174308777,
+        -0.015225999988615513
+      ]
+    },
+    {
+      "parent_index": 3,
+      "rotation": [
+        -1.570796012878418,
+        -0.0,
+        -1.570796012878418
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 11,
+      "target_part_index": 12,
+      "translation": [
+        -1.1050000190734863,
+        -0.6517590284347534,
+        -0.07353399693965912
+      ]
+    },
+    {
+      "parent_index": 11,
+      "rotation": [
+        -1.0541050434112549,
+        0.24496500194072723,
+        -0.824895977973938
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 12,
+      "target_part_index": 13,
+      "translation": [
+        0.0,
+        -0.0,
+        -0.0
+      ]
+    },
+    {
+      "parent_index": 12,
+      "rotation": [
+        0.0,
+        0.0,
+        1.7810529470443726
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 13,
+      "target_part_index": 14,
+      "translation": [
+        4.662980079650879,
+        0.0,
+        -0.0
+      ]
+    },
+    {
+      "parent_index": 13,
+      "rotation": [
+        -0.0,
+        0.0,
+        -1.3885749578475952
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 14,
+      "target_part_index": 15,
+      "translation": [
+        5.947356224060059,
+        0.009207000024616718,
+        -0.05888399854302406
+      ]
+    },
+    {
+      "parent_index": 14,
+      "rotation": [
+        0.5377010107040405,
+        -0.15992200374603271,
+        0.05710599943995476
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 15,
+      "target_part_index": 16,
+      "translation": [
+        0.0,
+        -1.9999999949504854e-06,
+        0.0
+      ]
+    },
+    {
+      "parent_index": 15,
+      "rotation": [
+        -0.0,
+        -0.0,
+        -0.7190660238265991
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 16,
+      "target_part_index": 17,
+      "translation": [
+        1.588992953300476,
+        0.412898987531662,
+        0.003731000004336238
+      ]
+    },
+    {
+      "parent_index": 3,
+      "rotation": [
+        0.6108649969100952,
+        0.19547699391841888,
+        -0.6108649969100952
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 17,
+      "target_part_index": 18,
+      "translation": [
+        -0.0,
+        1.4302970170974731,
+        -0.04059499874711037
+      ]
+    },
+    {
+      "parent_index": 17,
+      "rotation": [
+        0.26179900765419006,
+        0.08377599716186523,
+        -0.26179900765419006
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 18,
+      "target_part_index": 19,
+      "translation": [
+        0.0,
+        1.380944013595581,
+        -0.010704999789595604
+      ]
+    },
+    {
+      "parent_index": 18,
+      "rotation": [
+        -0.3665190041065216,
+        0.20943999290466309,
+        -0.15707999467849731
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 19,
+      "target_part_index": 20,
+      "translation": [
+        0.0,
+        2.4869720935821533,
+        -0.38677099347114563
+      ]
+    },
+    {
+      "parent_index": 18,
+      "rotation": [
+        -0.05235999822616577,
+        0.03839699923992157,
+        -0.05235999822616577
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 20,
+      "target_part_index": 21,
+      "translation": [
+        1.0,
+        2.308271884918213,
+        -0.2451300024986267
+      ]
+    },
+    {
+      "parent_index": 20,
+      "rotation": [
+        -1.570796012878418,
+        0.0,
+        -0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 21,
+      "target_part_index": 22,
+      "translation": [
+        2.299999952316284,
+        0.045177001506090164,
+        -0.017392000183463097
+      ]
+    },
+    {
+      "parent_index": 21,
+      "rotation": [
+        -1.6017869710922241,
+        0.009740999899804592,
+        -1.2961900234222412
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 22,
+      "target_part_index": 23,
+      "translation": [
+        -4.999999873689376e-06,
+        0.0,
+        3.999999989900971e-06
+      ]
+    },
+    {
+      "parent_index": 22,
+      "rotation": [
+        0.0,
+        0.0,
+        -1.966562032699585
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 23,
+      "target_part_index": 24,
+      "translation": [
+        2.7748289108276367,
+        -0.0,
+        1.9999999949504854e-06
+      ]
+    },
+    {
+      "parent_index": 23,
+      "rotation": [
+        -1.2265340089797974,
+        0.14493000507354736,
+        -1.2447509765625
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 24,
+      "target_part_index": 25,
+      "translation": [
+        3.602916955947876,
+        -0.006910999771207571,
+        0.01450200006365776
+      ]
+    },
+    {
+      "parent_index": 24,
+      "rotation": [
+        0.0,
+        1.3089970350265503,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 25,
+      "target_part_index": 26,
+      "translation": [
+        1.8457319736480713,
+        -0.4204550087451935,
+        0.39403799176216125
+      ]
+    },
+    {
+      "parent_index": 25,
+      "rotation": [
+        -0.0,
+        1.3962630033493042,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 26,
+      "target_part_index": 27,
+      "translation": [
+        0.6649529933929443,
+        -0.007044999860227108,
+        -0.061709001660346985
+      ]
+    },
+    {
+      "parent_index": 24,
+      "rotation": [
+        0.0,
+        1.3613569736480713,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 27,
+      "target_part_index": 28,
+      "translation": [
+        1.7746200561523438,
+        -0.09325200319290161,
+        0.37792500853538513
+      ]
+    },
+    {
+      "parent_index": 27,
+      "rotation": [
+        0.0,
+        1.3962630033493042,
+        -0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 28,
+      "target_part_index": 29,
+      "translation": [
+        0.7604609727859497,
+        0.01432000007480383,
+        -0.012427999638020992
+      ]
+    },
+    {
+      "parent_index": 24,
+      "rotation": [
+        0.0,
+        1.4311699867248535,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 29,
+      "target_part_index": 30,
+      "translation": [
+        1.7830770015716553,
+        0.2674970030784607,
+        0.32815098762512207
+      ]
+    },
+    {
+      "parent_index": 29,
+      "rotation": [
+        0.0,
+        1.3962630033493042,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 30,
+      "target_part_index": 31,
+      "translation": [
+        0.6187559962272644,
+        0.013148000463843346,
+        -0.061542998999357224
+      ]
+    },
+    {
+      "parent_index": 24,
+      "rotation": [
+        0.0,
+        1.483530044555664,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 31,
+      "target_part_index": 32,
+      "translation": [
+        1.7125400304794312,
+        0.7108190059661865,
+        0.3742839992046356
+      ]
+    },
+    {
+      "parent_index": 31,
+      "rotation": [
+        -0.0,
+        1.3962630033493042,
+        -0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 32,
+      "target_part_index": 33,
+      "translation": [
+        0.5458490252494812,
+        -0.022419000044465065,
+        -0.13757599890232086
+      ]
+    },
+    {
+      "parent_index": 24,
+      "rotation": [
+        -0.0,
+        -0.5,
+        -0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 33,
+      "target_part_index": 34,
+      "translation": [
+        -0.16499799489974976,
+        -0.002096999902278185,
+        0.014918999746441841
+      ]
+    },
+    {
+      "parent_index": 24,
+      "rotation": [
+        0.0,
+        0.6981319785118103,
+        0.26179900765419006
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 34,
+      "target_part_index": 35,
+      "translation": [
+        0.9830250144004822,
+        -0.8078740239143372,
+        -0.19222800433635712
+      ]
+    },
+    {
+      "parent_index": 34,
+      "rotation": [
+        0.0,
+        -0.0,
+        0.6981319785118103
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 35,
+      "target_part_index": 36,
+      "translation": [
+        0.663087010383606,
+        -0.006990000139921904,
+        0.005243999883532524
+      ]
+    },
+    {
+      "parent_index": 20,
+      "rotation": [
+        -0.0,
+        -0.0,
+        -0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 36,
+      "target_part_index": 37,
+      "translation": [
+        1.8292570114135742,
+        -0.092569999396801,
+        -0.0136329997330904
+      ]
+    },
+    {
+      "parent_index": 18,
+      "rotation": [
+        -1.2608000040054321,
+        1.1068079471588135,
+        -1.2558079957962036
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 37,
+      "target_part_index": 38,
+      "translation": [
+        -0.15000000596046448,
+        3.299999952316284,
+        -0.20000000298023224
+      ]
+    },
+    {
+      "parent_index": 37,
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 38,
+      "target_part_index": 39,
+      "translation": [
+        0.0,
+        0.6585710048675537,
+        0.19060400128364563
+      ]
+    },
+    {
+      "parent_index": 38,
+      "rotation": [
+        0.0,
+        -0.0,
+        -0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 39,
+      "target_part_index": 40,
+      "translation": [
+        0.0,
+        0.30495700240135193,
+        0.41047701239585876
+      ]
+    },
+    {
+      "parent_index": 38,
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 40,
+      "target_part_index": 41,
+      "translation": [
+        0.0,
+        0.30495700240135193,
+        0.41047701239585876
+      ]
+    },
+    {
+      "parent_index": 18,
+      "rotation": [
+        -0.4188790023326874,
+        0.6108649969100952,
+        -0.6108649969100952
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 41,
+      "target_part_index": 42,
+      "translation": [
+        -1.0,
+        2.308271884918213,
+        -0.2451300024986267
+      ]
+    },
+    {
+      "parent_index": 41,
+      "rotation": [
+        -0.5222989916801453,
+        -0.481003999710083,
+        -0.30624300241470337
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 42,
+      "target_part_index": 43,
+      "translation": [
+        -0.8289309740066528,
+        0.652580976486206,
+        -0.06612300127744675
+      ]
+    },
+    {
+      "parent_index": 41,
+      "rotation": [
+        -1.570796012878418,
+        0.0,
+        -3.1415929794311523
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 43,
+      "target_part_index": 44,
+      "translation": [
+        -2.299999952316284,
+        0.045180000364780426,
+        -0.017420999705791473
+      ]
+    },
+    {
+      "parent_index": 43,
+      "rotation": [
+        0.826894998550415,
+        -0.15376900136470795,
+        -1.593906044960022
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 44,
+      "target_part_index": 45,
+      "translation": [
+        -9.999999974752427e-07,
+        -0.0,
+        -9.999999974752427e-07
+      ]
+    },
+    {
+      "parent_index": 44,
+      "rotation": [
+        0.0,
+        0.0,
+        -1.3113869428634644
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 45,
+      "target_part_index": 46,
+      "translation": [
+        2.7661850452423096,
+        -0.0,
+        -7.999999979801942e-06
+      ]
+    },
+    {
+      "parent_index": 45,
+      "rotation": [
+        0.8819490075111389,
+        0.19924800097942352,
+        -0.9607030153274536
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 46,
+      "target_part_index": 47,
+      "translation": [
+        3.7233080863952637,
+        0.0002739999908953905,
+        -0.005133999977260828
+      ]
+    },
+    {
+      "parent_index": 46,
+      "rotation": [
+        0.006333000026643276,
+        -1.3089970350265503,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 47,
+      "target_part_index": 48,
+      "translation": [
+        1.7474160194396973,
+        -0.5133169889450073,
+        -0.36306101083755493
+      ]
+    },
+    {
+      "parent_index": 47,
+      "rotation": [
+        0.0033420000690966845,
+        -1.3962630033493042,
+        0.02265400066971779
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 48,
+      "target_part_index": 49,
+      "translation": [
+        0.6330810189247131,
+        0.0045449999161064625,
+        0.07655999809503555
+      ]
+    },
+    {
+      "parent_index": 46,
+      "rotation": [
+        -0.007034999784082174,
+        -1.370082974433899,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 49,
+      "target_part_index": 50,
+      "translation": [
+        1.6818979978561401,
+        -0.18264299631118774,
+        -0.3362860083580017
+      ]
+    },
+    {
+      "parent_index": 49,
+      "rotation": [
+        0.0,
+        -1.3962630033493042,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 50,
+      "target_part_index": 51,
+      "translation": [
+        0.7205780148506165,
+        0.033250998705625534,
+        0.013989999890327454
+      ]
+    },
+    {
+      "parent_index": 46,
+      "rotation": [
+        -0.006051999982446432,
+        -1.4224430322647095,
+        -0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 51,
+      "target_part_index": 52,
+      "translation": [
+        1.6346310377120972,
+        0.26438501477241516,
+        -0.32239601016044617
+      ]
+    },
+    {
+      "parent_index": 51,
+      "rotation": [
+        -0.0,
+        -1.3962630033493042,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 52,
+      "target_part_index": 53,
+      "translation": [
+        0.6510499715805054,
+        0.03106899932026863,
+        0.009712999686598778
+      ]
+    },
+    {
+      "parent_index": 46,
+      "rotation": [
+        0.006333000026643276,
+        -1.483530044555664,
+        -0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 53,
+      "target_part_index": 54,
+      "translation": [
+        1.5641249418258667,
+        0.6918699741363525,
+        -0.29657599329948425
+      ]
+    },
+    {
+      "parent_index": 53,
+      "rotation": [
+        -0.0,
+        -1.3962630033493042,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 54,
+      "target_part_index": 55,
+      "translation": [
+        0.5791919827461243,
+        -0.0019409999949857593,
+        0.013322999700903893
+      ]
+    },
+    {
+      "parent_index": 46,
+      "rotation": [
+        -0.0,
+        0.36000001430511475,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 55,
+      "target_part_index": 56,
+      "translation": [
+        -0.23459500074386597,
+        -0.0014309999532997608,
+        -0.06370999664068222
+      ]
+    },
+    {
+      "parent_index": 46,
+      "rotation": [
+        0.0,
+        -1.570796012878418,
+        3.2288589477539062
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 56,
+      "target_part_index": 57,
+      "translation": [
+        1.481052041053772,
+        -0.14579500257968903,
+        0.0897120013833046
+      ]
+    },
+    {
+      "parent_index": 46,
+      "rotation": [
+        0.17453299462795258,
+        -0.6981319785118103,
+        -0.0872659981250763
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 57,
+      "target_part_index": 58,
+      "translation": [
+        0.8824729919433594,
+        -0.9252539873123169,
+        0.13152000308036804
+      ]
+    },
+    {
+      "parent_index": 57,
+      "rotation": [
+        -0.0,
+        0.0,
+        0.8726649880409241
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 58,
+      "target_part_index": 59,
+      "translation": [
+        0.6653730273246765,
+        0.03877900168299675,
+        -0.01699100062251091
+      ]
+    },
+    {
+      "parent_index": 41,
+      "rotation": [
+        -0.0,
+        0.0,
+        -0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 59,
+      "target_part_index": 60,
+      "translation": [
+        -1.8508909940719604,
+        -3.999999989900971e-06,
+        0.007313000038266182
+      ]
+    },
+    {
+      "parent_index": 2,
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 60,
+      "target_part_index": 61,
+      "translation": [
+        -2.0,
+        0.0,
+        1.0
+      ]
+    },
+    {
+      "parent_index": -1,
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_index": 61,
+      "target_part_index": 62,
+      "translation": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  ],
+  "pose": "guard_target",
+  "schema": 1,
+  "scope": "ssbm-static-hsd-joint-pose",
+  "skipped_part_indices": [],
+  "source": {
+    "capture_sha256": "52596486fbb21163005caf60df2f9194f28316f5099a7966d6e298904b8f0ae1",
+    "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
+    "oracle": "SSBM GALE01 NTSC-U revision 2 with UCF 0.84 via Dolphin/Slippi",
+    "oracle_gameplay_policy": {
+      "authorized_local_groups": [
+        "$Optional: Allow Bot Input Overrides",
+        "$Optional: Extract Menu Info",
+        "$Optional: FFW VS Mode"
+      ],
+      "dolphin_executable_sha256": "9eb024aa9347648f020e2a76666e5c5597b77b32ef26752f563c99f0772b1e82",
+      "exi_input_transport_enabled": true,
+      "exiai_dolphin_revision": "bf1aec4de4856eab412996137287f447daa8ae17",
+      "exiai_game_settings_revision": "a144bd0f77d4193b322427fc7d359ae1da0092c3",
+      "fast_forward_enabled": true,
+      "fast_forward_hooks": [
+        {
+          "address": 2149208076,
+          "annotation": "AI/LoopMainEngine/ForceContinueLoop.asm",
+          "code_type": "C2",
+          "group": "$Optional: FFW VS Mode",
+          "runtime_proof_bytes": "3c60804880639d305463443e2c0302024082005c3c60804880639d602c030001",
+          "runtime_proof_offset": 0,
+          "source_payload_sha256": "e04c94953fb0eda751c1b9718c78e5affb11ef8ee34273eb45fde1589dc1e153"
+        },
+        {
+          "address": 2149207464,
+          "annotation": "AI/LoopMainEngine/ForceStartLoop.asm",
+          "code_type": "C2",
+          "group": "$Optional: FFW VS Mode",
+          "runtime_proof_bytes": "3c60804880639d305463443e2c0302024082001c3b4000003b6000013d80801a",
+          "runtime_proof_offset": 0,
+          "source_payload_sha256": "a411b4c795d3b7290bb16443da4a649cb13c0c7fab87b715c4f99356be1d4a5e"
+        },
+        {
+          "address": 2151118148,
+          "annotation": "AI/LoopMainEngine/IncrementPadIndex.asm",
+          "code_type": "C2",
+          "group": "$Optional: FFW VS Mode",
+          "runtime_proof_bytes": "40a2000c38000001",
+          "runtime_proof_offset": 0,
+          "source_payload_sha256": "21d96b544882044adeb71eb4fcb53f7875e7801bd8e116d2443217ce3dfa565d"
+        },
+        {
+          "address": 2151115400,
+          "annotation": "AI/LoopMainEngine/PadAlwaysUseMasterIndex.asm",
+          "code_type": "04",
+          "group": "$Optional: FFW VS Mode",
+          "runtime_proof_bytes": "881f0001",
+          "runtime_proof_offset": 0,
+          "source_payload_sha256": "33eb0c588f465290c49617ccc59c705aa484c06101005e5d4b7637558b28fc23"
+        },
+        {
+          "address": 2147587596,
+          "annotation": "AI/LoopMainEngine/PreventControllerReads.asm",
+          "code_type": "C2",
+          "group": "$Optional: FFW VS Mode",
+          "runtime_proof_bytes": "3c60804880639d305463443e2c030202408200143d808001618c96187d8903a6",
+          "runtime_proof_offset": 0,
+          "source_payload_sha256": "38e0296355d2a83b96a1cafeb384055a44685ec604f720c36c728786a3da2d8a"
+        },
+        {
+          "address": 2151206924,
+          "annotation": "AI/LoopMainEngine/SkipSounds.asm",
+          "code_type": "C2",
+          "group": "$Optional: FFW VS Mode",
+          "runtime_proof_bytes": "3ae300003c60804880639d305463443e2c030202408200143d808038618cd29c",
+          "runtime_proof_offset": 0,
+          "source_payload_sha256": "ab8bf3c4a30c755e50b1e202c529458a08ff001eda39a28f6d82f8d475849d69"
+        }
+      ],
+      "global_config_sha256": "2097aba3d629401e669bf4461e6d4dc591011330270e46c6778713c4dfe64cf0",
+      "libmelee_template_sha256": "6ec648b95f1b9b18a0a984c64482d2c0e0f8ae8eef8418e22d05bef0701a5ab6",
+      "libmelee_version": "0.47.2",
+      "local_config_normalized_sha256_before_policy": "e9eeafdf5233248d6725dfa399b0249899c163d36fa86032c93b0a423adf2b3a",
+      "local_config_sha256": "7f93d6c4a84c6717c26c5ffe56d3925f726e1f0c9691e555116b2384c7c98db5",
+      "local_config_sha256_before_policy": "e9eeafdf5233248d6725dfa399b0249899c163d36fa86032c93b0a423adf2b3a",
+      "netplay_inventory_sha256": "0cb411a3c49a652a9d26933cdc5358c1cfe85c6f4d402613011bdea08b6622cb",
+      "observer_initializers": [
+        {
+          "address": 2147913452,
+          "annotation": "Common/Initialize Player Data/Init Player Data.asm",
+          "code_type": "C2",
+          "group": "$Required: Slippi Recording",
+          "metadata_codetype": "Auto",
+          "original_word": "3c808046",
+          "runtime_proof_bytes": "3bc300003c80804560848fd0808400203d808000618cc1607d8903a64e800421",
+          "runtime_proof_offset": 0,
+          "source_payload_sha256": "dd0e4beabdd3243570f7e0c9658d1c46cb58589843e8d7c196acc5a140656cb7"
+        },
+        {
+          "address": 2149324108,
+          "annotation": "Common/Initialize Stage Data/Init Stage Data.asm",
+          "code_type": "C2",
+          "group": "$Required: Slippi Recording",
+          "metadata_codetype": "Auto",
+          "original_word": "281a0000",
+          "runtime_proof_bytes": "388002043d808000618cc1607d8903a64e800421281a0000",
+          "runtime_proof_offset": 0,
+          "source_payload_sha256": "e20c7eeef65406a63b049defcd76f642cedfcc512cee7a83ac85a1cd77e3ec24"
+        }
+      ],
+      "observer_transport_hooks": [
+        {
+          "address": 2149207972,
+          "annotation": "Common/ExtractMenuInfo/SendMenuFrame.asm",
+          "code_type": "C2",
+          "group": "$Optional: Extract Menu Info",
+          "runtime_proof_bytes": "7c0802a6900100049421ff5cbe8100743d00804881089d305508443e2c080202",
+          "runtime_proof_offset": 0,
+          "source_payload_sha256": "79f2a1434c0be394103b050ecaa0b71d433bca7aec457a2fe550a73564ae5dfc"
+        },
+        {
+          "address": 2151118232,
+          "annotation": "AI/OverwriteInputs/OverwriteInputs.asm",
+          "code_type": "C2",
+          "group": "$Optional: Allow Bot Input Overrides",
+          "runtime_proof_bytes": "480000104e800021",
+          "runtime_proof_offset": 0,
+          "source_payload_sha256": "589826780e193e2e536aff0a217cd03d2a3e564350078db399bde79b12fb14ea"
+        }
+      ],
+      "policy_group": "$Oracle: NTSC 1.02 + UCF 0.84 Gameplay Only",
+      "policy_sha256": "a8368a3901828602833fba82f2c1e2490df6537151ff5cd6a216419a6051b7cc",
+      "restored_hooks": [
+        {
+          "address": 2147575212,
+          "annotation": "Online/Core/Hacks/Stadium/StadiumFileLoad.asm",
+          "code_type": "C2",
+          "group": "$Required: Slippi Online",
+          "metadata_codetype": "Auto",
+          "original_word": "7c7b1b78",
+          "runtime_proof_bytes": "7c0802a6900100049421ff20be8100b07c7b1b78386000023d80801c618c2ba4",
+          "runtime_proof_offset": 0,
+          "source_payload_sha256": "565d2a01247fac5ddf12b10ce51af1d89e9520041aa765dec3f1c0266cee5128"
+        },
+        {
+          "address": 2147920000,
+          "annotation": "Online/Core/BrawlOffscreenDamage.asm",
+          "code_type": "C2",
+          "group": "$Required: Slippi Online",
+          "metadata_codetype": "Auto",
+          "original_word": "48292119",
+          "runtime_proof_bytes": "7c0802a6900100049421ff20be8100b03c60804880639d305463443e2c030120",
+          "runtime_proof_offset": 0,
+          "source_payload_sha256": "5e4fe81bb4dd73657aff21e63b1c4fde41b6fb9b6cad5640868ab4f217eff1b5"
+        },
+        {
+          "address": 2148011648,
+          "annotation": "Online/Core/FreezeDeadUpFallPhysics/UpdateModelPos.asm",
+          "code_type": "C2",
+          "group": "$Required: Slippi Online",
+          "metadata_codetype": "Auto",
+          "original_word": "4bfb0239",
+          "runtime_proof_bytes": "7c0802a6900100049421ff20be8100b03d808003618c10b87d8903a64e800421",
+          "runtime_proof_offset": 0,
+          "source_payload_sha256": "914baa50496ba63c53800d0e7f0221203d87063e0707ad5e23148b48851fdd35"
+        },
+        {
+          "address": 2148033852,
+          "annotation": "Online/Core/WhispyBlowDirFix/WhispyBlowDirFix.asm",
+          "code_type": "C2",
+          "group": "$Required: Slippi Online",
+          "metadata_codetype": "Auto",
+          "original_word": "c0210020",
+          "runtime_proof_bytes": "819d002c806c00102c03000b41810018380000003d808008618c655c7d8903a6",
+          "runtime_proof_offset": 0,
+          "source_payload_sha256": "69e2b426348616ab955c56dcb03ca4bd9d227bc3d79fbfa6161764de21cacf16"
+        },
+        {
+          "address": 2148069520,
+          "annotation": "External/PreventWobbling/Wobble Check.asm",
+          "code_type": "C2",
+          "group": "$Required: Slippi Online",
+          "metadata_codetype": "Auto",
+          "original_word": "801b0010",
+          "runtime_proof_bytes": "807b00102c0300df418001d82c0300e4418101d0807b1a582c030000418201c4",
+          "runtime_proof_offset": 0,
+          "source_payload_sha256": "c45126eaaf568507928ebcd75176a101f35007d4292991ce00891db10c8c6e75"
+        },
+        {
+          "address": 2148189624,
+          "annotation": "Common/NanaDeterminism/NanaDeterminism.asm",
+          "code_type": "C2",
+          "group": "$Required: Slippi Online",
+          "metadata_codetype": "Auto",
+          "original_word": "7c7d1b78",
+          "runtime_proof_bytes": "7c7d1b783bc00000",
+          "runtime_proof_offset": 0,
+          "source_payload_sha256": "3ed07a02e52c368dbea16f090f2ea767af315e78957c609a9f37646a90d63338"
+        },
+        {
+          "address": 2148355100,
+          "annotation": "Online/Core/FreezeDeadUpFallPhysics/InitHitVelocity.asm",
+          "code_type": "C2",
+          "group": "$Required: Slippi Online",
+          "metadata_codetype": "Auto",
+          "original_word": "901f2344",
+          "runtime_proof_bytes": "901f2344c01e0030d01f2348c01e003cd01f234c38600000907f0080907f0084",
+          "runtime_proof_offset": 0,
+          "source_payload_sha256": "fdd8c4b311366f505f4fc00c3aa09232f749be689086c4a135a6ea34fd917515"
+        },
+        {
+          "address": 2148355432,
+          "annotation": "Online/Core/FreezeDeadUpFallPhysics/UpdateFallVelocity.asm",
+          "code_type": "C2",
+          "group": "$Required: Slippi Online",
+          "metadata_codetype": "Auto",
+          "original_word": "c03e0034",
+          "runtime_proof_bytes": "c03e0034c05e0038c07f2348fc630828fc401050fc03104041810008fc601090",
+          "runtime_proof_offset": 0,
+          "source_payload_sha256": "5beea754a079f690ddca9be9fe5cc5870ee850df203fdc63e411600f49539d65"
+        },
+        {
+          "address": 2148382848,
+          "annotation": "External/PreventWobbling/Init Wobble Count Air.asm",
+          "code_type": "C2",
+          "group": "$Required: Slippi Online",
+          "metadata_codetype": "Auto",
+          "original_word": "8001005c",
+          "runtime_proof_bytes": "38600000987d23843860ffffb07d2386",
+          "runtime_proof_offset": 0,
+          "source_payload_sha256": "f11c21a96498c0d11813a50272e7bab7005ff28f79b2621e58a89e78f81ca5e8"
+        },
+        {
+          "address": 2148383700,
+          "annotation": "External/PreventWobbling/Init Wobble Count Ground.asm",
+          "code_type": "C2",
+          "group": "$Required: Slippi Online",
+          "metadata_codetype": "Auto",
+          "original_word": "8001005c",
+          "runtime_proof_bytes": "38600000987d23843860ffffb07d2386",
+          "runtime_proof_offset": 0,
+          "source_payload_sha256": "f11c21a96498c0d11813a50272e7bab7005ff28f79b2621e58a89e78f81ca5e8"
+        },
+        {
+          "address": 2148678056,
+          "annotation": "External/FreezeGlitchFix/FreezeGlitchFix.asm",
+          "code_type": "04",
+          "group": "$Required: General Codes",
+          "metadata_codetype": "Auto",
+          "original_word": "901f1a5c",
+          "runtime_proof_bytes": "",
+          "runtime_proof_offset": 0,
+          "source_payload_sha256": "2baaed212bebc4ebeeb19752c47ff7c4420adf7806f577722b487a08b605ee13"
+        },
+        {
+          "address": 2148984080,
+          "annotation": "External/NeutralSpawn/NeutralSpawn.asm",
+          "code_type": "C2",
+          "group": "$Required: General Codes",
+          "metadata_codetype": "Auto",
+          "original_word": "881f24d0",
+          "runtime_proof_bytes": "7c0802a6900100049421ff20be8100b03d808016618cb41c7d8903a64e800421",
+          "runtime_proof_offset": 0,
+          "source_payload_sha256": "c62dc00d53b60d5403df43756aaa6fc03cf629c0629ee1a8ceb0aedf1d3eda71"
+        },
+        {
+          "address": 2149344712,
+          "annotation": "Online/Core/Hacks/Stadium/CustomZeroBuffer.asm",
+          "code_type": "C2",
+          "group": "$Required: Slippi Online",
+          "metadata_codetype": "Auto",
+          "original_word": "809f0000",
+          "runtime_proof_bytes": "7c7f1b7941820068809f00003c0400012800ffff41820040801f0000807f0004",
+          "runtime_proof_offset": 0,
+          "source_payload_sha256": "457d4cf454b8e850d31044b9b897052762a8f754f07ae4ce76feeeb94c7eec5d"
+        },
+        {
+          "address": 2149393660,
+          "annotation": "Common/PSCameraIndependentMonitor/PSCameraIndependentMonitor.asm",
+          "code_type": "C2",
+          "group": "$Required: Slippi Online",
+          "metadata_codetype": "Auto",
+          "original_word": "48000dd5",
+          "runtime_proof_bytes": "480000184e800021c2f0000042f0000042a00000c1a000007c0802a690010004",
+          "runtime_proof_offset": 0,
+          "source_payload_sha256": "dc3ed8f25ca0b07d8acba9912ee8730281e65d992ed6c83ec5f570336ab1fc1e"
+        },
+        {
+          "address": 2149401980,
+          "annotation": "Online/Core/Hacks/Stadium/IngameCheckIfFrozen.asm",
+          "code_type": "C2",
+          "group": "$Required: Slippi Online",
+          "metadata_codetype": "Auto",
+          "original_word": "4bfb3ea1",
+          "runtime_proof_bytes": "4800000c4e800021000000003d808018618c841c7d8903a64e8004212c030000",
+          "runtime_proof_offset": 0,
+          "source_payload_sha256": "f8aa23e6d28b8860508df46836d33b4d5c75a1893bb6ed3b64277a6042310bb5"
+        },
+        {
+          "address": 2149402464,
+          "annotation": "Online/Core/Hacks/Stadium/GrPsxIsValid.asm",
+          "code_type": "C2",
+          "group": "$Required: Slippi Online",
+          "metadata_codetype": "Auto",
+          "original_word": "4bfffb59",
+          "runtime_proof_bytes": "386000023d80801c618c2ba47d8903a64e8004218063002c806300143d80801c",
+          "runtime_proof_offset": 0,
+          "source_payload_sha256": "8d29fdede121a73eb5e0ad94bc53125bad494f010c84943f4e4dc78f8c495e59"
+        },
+        {
+          "address": 2149690084,
+          "annotation": "Online/Core/Hacks/FD/DesyncProofBGTransformations.asm",
+          "code_type": "C2",
+          "group": "$Required: Slippi Online",
+          "metadata_codetype": "Auto",
+          "original_word": "48000805",
+          "runtime_proof_bytes": "3c60804d83e35f907fc3f3783d808021618cb2e87d8903a64e8004213c60804d",
+          "runtime_proof_offset": 0,
+          "source_payload_sha256": "9d3ae455be40ecac8c61b6321eef1afb25baa7d9e1b46f453b314903029ed075"
+        }
+      ],
+      "runtime_verified": true,
+      "scenario_setup_hooks": [],
+      "schema": "ssbm-ntsc102-ucf084-oracle-v2",
+      "slippi_asm_payload_mirror_revision": "fcf47f10dc244152c2ebaa3a9dec142ea42243b7",
+      "target": "GALE01 NTSC-U revision 2 with UCF 0.84",
+      "ucf_hooks": [
+        {
+          "address": 2147923040,
+          "annotation": "External/UCF 0.84/UCF/UCF Pad Buffer + 1.0 Cardinals.asm",
+          "code_type": "C2",
+          "group": "$Required: General Codes",
+          "metadata_codetype": "Auto",
+          "original_word": "887f0678",
+          "runtime_proof_bytes": "9421ffc0bf210024938100147f8802a63d20800a7fe3fb78392920407d2903a6",
+          "runtime_proof_offset": 176,
+          "source_payload_sha256": "9ea55801318273f13e30cc9ce88e146aa8e89f65879cccefc59e7ce0e3db4a71"
+        },
+        {
+          "address": 2148066636,
+          "annotation": "External/UCF 0.84/UCF/UCF SDI.asm",
+          "code_type": "C2",
+          "group": "$Required: General Codes",
+          "metadata_codetype": "Auto",
+          "original_word": "7c002800",
+          "runtime_proof_bytes": "7c002800418000dc892306732809000140810014892306743d40600028090001",
+          "runtime_proof_offset": 0,
+          "source_payload_sha256": "1cb712dbad7d767a1da3245e7566b78e633f7fb1ffcbbdf7fcf7d853d3d99bb3"
+        },
+        {
+          "address": 2148075764,
+          "annotation": "External/UCF 0.84/UCF/UCF Tumble.asm",
+          "code_type": "C2",
+          "group": "$Required: General Codes",
+          "metadata_codetype": "Auto",
+          "original_word": "7c030000",
+          "runtime_proof_bytes": "2c0300014082008cc19f06283d406000fd806210fc0c0000408000743d008007",
+          "runtime_proof_offset": 0,
+          "source_payload_sha256": "bd8c7cff9df0ea63d68c05219bffb3f2dfe7b50771db3f76e6519033ec4612af"
+        },
+        {
+          "address": 2148086420,
+          "annotation": "External/UCF 0.84/UCF/UCF Shield SDI.asm",
+          "code_type": "C2",
+          "group": "$Required: General Codes",
+          "metadata_codetype": "Auto",
+          "original_word": "7c030000",
+          "runtime_proof_bytes": "7c03000041800094892406733cc060002809000141810080c1840628c00504b0",
+          "runtime_proof_offset": 0,
+          "source_payload_sha256": "5eaf15910060c0fbdbae49571d97a8119589ab13df3320c2108f14eb517a10f1"
+        },
+        {
+          "address": 2148112548,
+          "annotation": "External/UCF 0.84/UCF/UCF Shield Drop.asm",
+          "code_type": "C2",
+          "group": "$Required: General Codes",
+          "metadata_codetype": "Auto",
+          "original_word": "8083002c",
+          "runtime_proof_bytes": "8083002c7cc802a680adaeb4c004063cc0250314fc0008404081007088040670",
+          "runtime_proof_offset": 60,
+          "source_payload_sha256": "d92c49506c96cb9dbf65e39d49c807121259b1a84aa50eb2d3e93ce0e331d363"
+        },
+        {
+          "address": 2148114616,
+          "annotation": "External/UCF 0.84/UCF/UCF Shield Drop Extended.asm",
+          "code_type": "C2",
+          "group": "$Required: General Codes",
+          "metadata_codetype": "Auto",
+          "original_word": "4c401382",
+          "runtime_proof_bytes": "4c4013824182003c3d208007890406183929ad10814907501d08000c39290754",
+          "runtime_proof_offset": 0,
+          "source_payload_sha256": "1d7729b313ccd56b88f0e208739c0530423344a304ab922584e816a3b1251d3f"
+        },
+        {
+          "address": 2148309572,
+          "annotation": "External/UCF 0.84/UCF/UCF Dashback.asm",
+          "code_type": "C2",
+          "group": "$Required: General Codes",
+          "metadata_codetype": "Auto",
+          "original_word": "d01f002c",
+          "runtime_proof_bytes": "893f221fd01f002c71290008408200f0815f08943d2040007c0a4800408200e0",
+          "runtime_proof_offset": 0,
+          "source_payload_sha256": "0a98c56e2c6f34ed99dc126661189c4f22c4c482792082d2b2252ba313a304e6"
+        },
+        {
+          "address": 2148361708,
+          "annotation": "External/UCF 0.84/UCF/UCF DBOOC SquatRv Fix.asm",
+          "code_type": "C2",
+          "group": "$Required: General Codes",
+          "metadata_codetype": "Auto",
+          "original_word": "c0040094",
+          "runtime_proof_bytes": "c00400947c8802a688c506702c0600014080002cc02506204bffffc57c0631d6",
+          "runtime_proof_offset": 60,
+          "source_payload_sha256": "c1f2abe4f10ac15a391eeff53b57984bf56a2dbce56384497005d57f190d7ccb"
+        }
+      ],
+      "ucf_inventory_sha256": "9defe647d99cf3338ef304febbd8bf5323d8a2619ddbb5d2b0503bd63d7bf66b",
+      "ucf_official_release_revision": "01122231ea97683cf7adea43d732ce0a4784c849",
+      "ucf_official_release_tag": "ucf0.84_2024-06-27",
+      "ucf_version": "0.84"
+    },
+    "probe": {
+      "engine_version": "1.3.1",
+      "fields": {
+        "ceiling": "fighter+0x878",
+        "contact": "fighter+0x830",
+        "ecb_source": "fighter+0x7f4",
+        "ecb_source_joint_srt_and_matrix": "HSD_JObj+0x14..0x73",
+        "ecb_source_joints": "fighter+0x7fc..0x810",
+        "environment_flags": "fighter+0x824",
+        "fighter_animation_blend_frames": "fighter+0x8a4",
+        "fighter_animation_blend_progress": "fighter+0x8a8",
+        "fighter_animation_frame": "fighter+0x894",
+        "fighter_animation_id": "fighter+0x14",
+        "fighter_animation_rate": "fighter+0x89c",
+        "fighter_costume_id": "fighter+0x619",
+        "fighter_costume_joint": "fighter+0x108",
+        "fighter_motion_id": "fighter+0x10",
+        "fighter_parts": "fighter+0x5e8",
+        "floor": "fighter+0x83c",
+        "guard_target_joint_tree": "((HSD_Joint**)fighter->ft_data->x20->x0)[2]",
+        "left_facing_wall": "fighter+0x850",
+        "right_facing_wall": "fighter+0x864"
+      },
+      "player_slot_address": "0x80453080",
+      "schema": 2
+    }
+  },
+  "target_parts_count": 63
+}

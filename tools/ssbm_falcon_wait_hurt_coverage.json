@@ -1,0 +1,72 @@
+{
+  "schema": 1,
+  "scope": "falcon-wait-hurt-geometry",
+  "domain": "falcon-wait-hurt",
+  "character": "falcon",
+  "oracle": "SSBM GALE01 NTSC-U revision 2",
+  "checkpoint_pack": {
+    "protocol": "rebased-slippi-state-file-control-v1",
+    "expected_rows": 70,
+    "warm_budget_seconds": 3.0,
+    "capture_plan": {
+      "trace_start_label": "common_hurt_wait_place",
+      "record_actions_by_label": {
+        "common_hurt_wait_release": ["CROUCH_END"],
+        "common_hurt_wait_hold": ["STANDING"]
+      },
+      "command_limits_by_label": {
+        "common_hurt_wait_release": 10,
+        "common_hurt_wait_hold": 60
+      },
+      "always_record_prefixes": [],
+      "command_overrides": []
+    }
+  },
+  "selection": {
+    "paths": [
+      "generated/data/m4_ssbm_falcon_ground_loop_hsd.inc",
+      "generated/data/m4_ssbm_falcon_wait_hsd_oracle.inc",
+      "generated/data/m4_ssbm_falcon_wait_transition_hsd_oracle.inc",
+      "include/pf/sim.h",
+      "src/sim/sim_combat.c",
+      "src/sim/sim_falcon_frame_data.h",
+      "src/sim/sim_hsd_pose.c",
+      "src/sim/sim_hsd_pose.h",
+      "src/sim/sim_internal.h",
+      "src/sim/sim_movement.c",
+      "src/sim/sim_snapshot.c",
+      "src/sim/sim_tick.c",
+      "tests/sim/test_m4_combat.c",
+      "tools/capture_ssbm_movement.py",
+      "tools/generate_ssbm_dynamic_hurt_oracle.py",
+      "tools/generate_ssbm_dynamic_hurt_pose_include.py",
+      "tools/ssbm_falcon_ground_loop_hurt_import.json",
+      "tools/ssbm_falcon_wait_hurt_coverage.json",
+      "tools/verify_ssbm_hsd_action_hurt_source.py",
+      "tools/verify_ssbm_hsd_transition_source.py"
+    ]
+  },
+  "checkpoint_cases": [
+    {
+      "id": "wait-poses",
+      "start_label": "common_hurt_wait_place"
+    }
+  ],
+  "live_qualification": {
+    "capture_sha256": "0146d99544d0908fc60d962d53cb7356a347175023804e3a49e8e56303e7f1f0",
+    "repeat_capture_sha256": "60b2dc3cd36d630cfd7b9d0414ff47d6220cb6a6e27915d44c20be30b00d81c9",
+    "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
+    "dolphin_release_artifact_sha256": "87e9ef6d80ed03354a1647d0616016dbc91399aa9e86a69ae5a398edd0a0c2bd",
+    "source_joint_indices": [
+      0, 1, 2, 3, 4, 6, 7, 8, 12, 13, 14, 18, 19, 21, 22, 23, 24, 25,
+      38, 39, 42, 44, 45, 46, 47
+    ],
+    "blend_start_source_index": 4,
+    "local_tolerance": 0.00001,
+    "quaternion_tolerance": 0.00001,
+    "semantic_sha256": "0c7ba43ab7022bc2e88bcb369e4fcb9812ebf2397abd7afddfed931e61734983",
+    "converged_suffix_counts": {
+      "common_hurt_wait_hold": 60
+    }
+  }
+}

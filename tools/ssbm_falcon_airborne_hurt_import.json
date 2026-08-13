@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "scope": "ssbm-hurt-pose-import",
+  "fighter": "CPTFALCON",
+  "profile": "tools/data/ssbm_falcon_airborne_hurt.json",
+  "profile_sha256": "3eda3f573971b3f66e0e10e1087db444eb939cf67f6fb53ca72968ea730afb38",
+  "capture_sha256": "cf458d593451c210b69fe45305c7affa992bf179d14aa2e3ce0b00e81d150a26",
+  "semantic_sha256": "71c9e643816604f9d2e90cfc226b907e7ce7cb48edc4fa2fea51d6797013ee7f",
+  "symbol_prefix": "pf_m4_falcon_airborne_hurt",
+  "enum_prefix": "PF_M4_FALCON_AIRBORNE_HURT",
+  "expected_pose_count": 186,
+  "expected_unique_pose_count": 186,
+  "expected_capsule_count": 2046,
+  "tracks": [
+    { "id": "jump_forward", "enum": "JUMP_FORWARD", "frame_count": 35 },
+    { "id": "jump_backward", "enum": "JUMP_BACKWARD", "frame_count": 50 },
+    { "id": "jump_aerial_forward", "enum": "JUMP_AERIAL_FORWARD", "frame_count": 50 },
+    { "id": "jump_aerial_backward", "enum": "JUMP_AERIAL_BACKWARD", "frame_count": 35 },
+    { "id": "fall", "enum": "FALL", "frame_count": 8 },
+    { "id": "fall_aerial", "enum": "FALL_AERIAL", "frame_count": 8 }
+  ]
+}

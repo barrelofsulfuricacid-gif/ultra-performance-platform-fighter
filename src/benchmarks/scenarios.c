@@ -1,6 +1,7 @@
 #include "benchmark.h"
 
 #include "m2_replay_fixture.h"
+#include "pf/m4.h"
 #include "pf/profile.h"
 #include "pf/replay.h"
 #include "pf/rl.h"
@@ -18,16 +19,18 @@
 #include <windows.h>
 #endif
 
-#define PF_BENCH_MEMORY_BYTES 2048U
+#define PF_BENCH_MEMORY_BYTES 4096U
 #define PF_BENCH_MEMORY_ALIGNMENT 64U
 #define PF_BENCH_STORAGE_COUNT 72U
 #define PF_BENCH_RL_ENVIRONMENTS 64U
-#define PF_BENCH_SAVE_CAPACITY 512U
-#define PF_BENCH_REPLAY_CAPACITY 32768U
-#define PF_BENCH_REPLAY_INPUT_COUNT 720U
-#define PF_BENCH_REPLAY_HASH_COUNT 181U
+#define PF_BENCH_SAVE_CAPACITY 2048U
+#define PF_BENCH_REPLAY_CAPACITY 65536U
+#define PF_BENCH_REPLAY_INPUT_COUNT 960U
+#define PF_BENCH_REPLAY_HASH_COUNT 241U
 #define PF_BENCH_ROLLBACK_DEPTH UINT64_C(8)
 #define PF_BENCH_PREPARE_TICKS UINT64_C(64)
+#define PF_BENCH_M4_REPRESENTATIVE_CYCLE_TICKS UINT64_C(240)
+#define PF_BENCH_M4_MAXIMUM_CYCLE_TICKS UINT64_C(16)
 #define PF_BENCH_MAX_ITERATIONS (UINT64_C(1) << 34U)
 
 typedef struct pf_bench_storage
@@ -73,10 +76,10 @@ static const pf_benchmark_descriptor pf_benchmark_descriptors[
         },
         {
             "representative_1v1",
-            UINT32_C(1),
+            UINT32_C(2),
             UINT64_C(31002),
             "logical_ticks_per_second",
-            "M3",
+            "M4",
             NULL,
             NULL,
         },
@@ -95,8 +98,8 @@ static const pf_benchmark_descriptor pf_benchmark_descriptors[
             UINT64_C(31004),
             "logical_ticks_per_second",
             "M4",
-            "capability-not-implemented",
-            "Hitbox, hurtbox, projectile, and effect entities enter in M4.",
+            NULL,
+            NULL,
         },
         {
             "hazard_heavy_four_player",
@@ -185,6 +188,8 @@ static pf_bench_storage pf_benchmark_storage[PF_BENCH_STORAGE_COUNT];
 static pf_sim *pf_duel_sim;
 static pf_sim *pf_restore_sim;
 static pf_sim *pf_team_sim;
+static pf_sim *pf_m4_duel_sim;
+static pf_sim *pf_m4_maximum_sim;
 static pf_sim *pf_replay_initial_sim;
 static pf_sim *pf_replay_source_sim;
 static pf_sim *pf_replay_target_sim;
@@ -200,6 +205,10 @@ static pf_state_hash pf_replay_hashes[PF_BENCH_REPLAY_HASH_COUNT];
 static uint8_t pf_replay_bytes[PF_BENCH_REPLAY_CAPACITY];
 static size_t pf_replay_size;
 static uint64_t pf_state_bytes;
+static pf_m4_content pf_benchmark_m4_duel_content;
+static pf_m4_content pf_benchmark_m4_maximum_content;
+static pf_content_view pf_benchmark_m4_duel_view;
+static pf_content_view pf_benchmark_m4_maximum_view;
 
 _Static_assert(
     PF_BENCH_REPLAY_INPUT_COUNT ==
@@ -284,6 +293,63 @@ static pf_content_view make_content(void)
     return content;
 }
 
+static int make_m4_benchmark_content(
+    pf_m4_content *content,
+    pf_content_view *view,
+    int maximum_entities,
+    char error[PF_BENCHMARK_ERROR_CAPACITY])
+{
+    pf_status status;
+
+    status = pf_m4_default_content(content);
+    if (status != PF_STATUS_OK)
+    {
+        set_error(error, "default M4 content", status);
+        return 0;
+    }
+    content->item.enabled = UINT8_C(1);
+    content->item.lifetime_ticks = UINT16_C(3600);
+    content->projectile.enabled = UINT8_C(1);
+    content->projectile.spawn_offset_y_q16 =
+        -INT32_C(4) * PF_Q16_ONE;
+    content->reflector.enabled = UINT8_C(1);
+    content->charge.enabled = UINT8_C(1);
+    content->recovery.enabled = UINT8_C(1);
+
+    /* Both benchmark views exercise the authored projectile, reflector,
+     * charge, recovery, and item systems rather than Falcon equivalence. */
+    content->fighter.reference_frame_data_enabled = UINT8_C(0);
+
+    if (maximum_entities != 0)
+    {
+        content->stage.spawn_spacing_q16 = PF_Q16_ONE;
+        content->stage.platform_center_x_q16 =
+            -INT32_C(20) * PF_Q16_ONE;
+        content->stage.platform_motion_amplitude_q16 = INT32_C(0);
+        content->item.spawn_x_q16 =
+            -(INT32_C(3) * PF_Q16_ONE) / INT32_C(2);
+        content->item.spawn_y_q16 =
+            content->stage.floor_y_q16 -
+            content->item.half_height_q16;
+        content->projectile.fire_recovery_ticks = UINT16_C(2);
+    }
+    else
+    {
+        content->stage.spawn_spacing_q16 = PF_Q16_ONE;
+        content->stage.platform_center_x_q16 =
+            -INT32_C(20) * PF_Q16_ONE;
+        content->stage.platform_motion_amplitude_q16 = INT32_C(0);
+    }
+
+    status = pf_m4_make_content_view(content, view);
+    if (status != PF_STATUS_OK)
+    {
+        set_error(error, "make M4 content view", status);
+        return 0;
+    }
+    return 1;
+}
+
 static int initialize_sim(
     size_t storage_index,
     const pf_content_view *content,
@@ -303,6 +369,7 @@ static int initialize_sim(
         return 0;
     }
     config.max_ticks = UINT64_C(1000000000);
+    config.stock_count = UINT8_C(0);
     status = pf_sim_query_memory(&config, &requirements);
     if (status != PF_STATUS_OK)
     {
@@ -387,6 +454,132 @@ static void make_inputs(
     }
 }
 
+static void make_m4_representative_inputs(
+    pf_input_frame inputs[PF_SIM_MAX_PLAYERS],
+    uint64_t tick)
+{
+    uint32_t player_index;
+
+    make_inputs(inputs, UINT8_C(2), tick, 1);
+    for (player_index = UINT32_C(0);
+         player_index < UINT32_C(2);
+         ++player_index)
+    {
+        const uint64_t phase =
+            tick + (uint64_t)player_index * UINT64_C(13);
+
+        inputs[player_index].secondary_stick_x =
+            player_index == UINT32_C(0) ? INT16_MAX : INT16_MIN;
+        if (phase % UINT64_C(113) == UINT64_C(7))
+        {
+            const uint64_t special_route =
+                (phase / UINT64_C(113)) % UINT64_C(3);
+
+            inputs[player_index].buttons = PF_INPUT_BUTTON_SPECIAL;
+            if (special_route == UINT64_C(1))
+            {
+                inputs[player_index].main_stick_y = INT16_MAX;
+            }
+            else if (special_route == UINT64_C(2))
+            {
+                inputs[player_index].main_stick_y = INT16_MIN;
+            }
+            else
+            {
+                inputs[player_index].main_stick_y = INT16_C(0);
+            }
+        }
+        else if (phase % UINT64_C(79) == UINT64_C(5))
+        {
+            inputs[player_index].buttons =
+                PF_INPUT_BUTTON_STRONG_ATTACK;
+        }
+        else if (phase % UINT64_C(47) == UINT64_C(2))
+        {
+            inputs[player_index].buttons = PF_INPUT_BUTTON_ATTACK;
+        }
+        else if (phase % UINT64_C(61) == UINT64_C(4))
+        {
+            inputs[player_index].buttons = PF_INPUT_BUTTON_JUMP;
+        }
+        else if (phase % UINT64_C(211) == UINT64_C(19))
+        {
+            inputs[player_index].buttons = PF_INPUT_BUTTON_TAUNT;
+        }
+        if (phase % UINT64_C(97) >= UINT64_C(20) &&
+            phase % UINT64_C(97) <= UINT64_C(25))
+        {
+            inputs[player_index].left_trigger = UINT16_MAX;
+        }
+    }
+    if (tick == UINT64_C(0))
+    {
+        inputs[0].buttons = PF_INPUT_BUTTON_SPECIAL;
+        inputs[0].main_stick_y = INT16_C(0);
+        inputs[1].buttons = PF_INPUT_BUTTON_ATTACK;
+    }
+}
+
+static void make_m4_maximum_inputs(
+    pf_input_frame inputs[PF_SIM_MAX_PLAYERS],
+    uint64_t tick)
+{
+    uint32_t player_index;
+
+    (void)memset(inputs, 0, sizeof(*inputs) * (size_t)PF_SIM_MAX_PLAYERS);
+    for (player_index = UINT32_C(0);
+         player_index < (uint32_t)PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        inputs[player_index].tick = tick;
+        inputs[player_index].schema_version =
+            PF_SIM_INPUT_SCHEMA_VERSION;
+        inputs[player_index].player_slot = (uint8_t)player_index;
+        inputs[player_index].secondary_stick_x =
+            player_index < UINT32_C(2) ? INT16_MAX : INT16_MIN;
+    }
+
+    if (tick == UINT64_C(0))
+    {
+        inputs[0].buttons = PF_INPUT_BUTTON_ATTACK;
+        inputs[0].left_trigger = UINT16_MAX;
+        inputs[1].buttons = PF_INPUT_BUTTON_SPECIAL;
+    }
+    else if (tick == UINT64_C(2))
+    {
+        inputs[0].buttons = PF_INPUT_BUTTON_STRONG_ATTACK;
+        for (player_index = UINT32_C(2);
+             player_index < (uint32_t)PF_SIM_MAX_PLAYERS;
+             ++player_index)
+        {
+            inputs[player_index].buttons = PF_INPUT_BUTTON_ATTACK;
+        }
+    }
+    else if (tick == UINT64_C(3))
+    {
+        inputs[1].buttons = PF_INPUT_BUTTON_ATTACK;
+    }
+    else if (tick == UINT64_C(8))
+    {
+        for (player_index = UINT32_C(0);
+             player_index < (uint32_t)PF_SIM_MAX_PLAYERS;
+             ++player_index)
+        {
+            inputs[player_index].buttons =
+                PF_INPUT_BUTTON_STRONG_ATTACK;
+        }
+    }
+    else if (tick >= UINT64_C(11) && tick <= UINT64_C(13))
+    {
+        for (player_index = UINT32_C(0);
+             player_index < (uint32_t)PF_SIM_MAX_PLAYERS;
+             ++player_index)
+        {
+            inputs[player_index].left_trigger = UINT16_MAX;
+        }
+    }
+}
+
 static int64_t hash_checksum(
     pf_sim *sim,
     char error[PF_BENCHMARK_ERROR_CAPACITY])
@@ -426,7 +619,10 @@ static int complete_sample(
         rate_count == UINT64_C(0) ||
         checksum < INT64_C(0))
     {
-        set_text_error(error, "invalid benchmark timing or checksum");
+        if (error[0] == '\0')
+        {
+            set_text_error(error, "invalid benchmark timing or checksum");
+        }
         return 0;
     }
     sample->iterations = iterations;
@@ -498,6 +694,299 @@ static int run_tick_case(
         error);
 }
 
+static int run_m4_tick_case(
+    pf_sim *sim,
+    uint64_t seed,
+    uint8_t player_count,
+    int maximum_entities,
+    uint64_t iterations,
+    pf_benchmark_sample *sample,
+    char error[PF_BENCHMARK_ERROR_CAPACITY])
+{
+    const uint64_t cycle_ticks =
+        maximum_entities != 0
+            ? PF_BENCH_M4_MAXIMUM_CYCLE_TICKS
+            : PF_BENCH_M4_REPRESENTATIVE_CYCLE_TICKS;
+    pf_input_frame inputs[PF_SIM_MAX_PLAYERS];
+    pf_tick_result result;
+    uint64_t iteration;
+    uint64_t started;
+    uint64_t finished;
+    int64_t checksum;
+    pf_status status = pf_sim_reset(sim, seed);
+
+    if (status != PF_STATUS_OK)
+    {
+        set_error(error, "reset M4 tick scenario", status);
+        return 0;
+    }
+    started = clock_nanoseconds();
+    for (iteration = UINT64_C(0);
+         iteration < iterations;
+         ++iteration)
+    {
+        const uint64_t cycle_tick = iteration % cycle_ticks;
+
+        if (iteration != UINT64_C(0) && cycle_tick == UINT64_C(0))
+        {
+            /* Keep long calibrated samples in the same bounded live trace
+             * instead of timing a post-KO or exhausted-resource idle state. */
+            status = pf_sim_reset(sim, seed);
+            if (status != PF_STATUS_OK)
+            {
+                set_error(error, "cycle-reset M4 tick scenario", status);
+                return 0;
+            }
+        }
+        if (maximum_entities != 0)
+        {
+            make_m4_maximum_inputs(inputs, cycle_tick);
+        }
+        else
+        {
+            make_m4_representative_inputs(inputs, cycle_tick);
+        }
+        status = pf_sim_tick(
+            sim,
+            inputs,
+            (size_t)player_count,
+            &result);
+        if (status != PF_STATUS_OK)
+        {
+            set_error(error, "run M4 tick scenario", status);
+            return 0;
+        }
+    }
+    finished = clock_nanoseconds();
+    checksum = hash_checksum(sim, error);
+    return complete_sample(
+        sample,
+        iterations,
+        iterations,
+        started,
+        finished,
+        checksum,
+        error);
+}
+
+static int validate_m4_maximum_workload(
+    char error[PF_BENCHMARK_ERROR_CAPACITY])
+{
+    pf_input_frame inputs[PF_SIM_MAX_PLAYERS];
+    pf_tick_result result;
+    pf_m4_inspection inspection;
+    uint64_t tick;
+    uint32_t maximum_hurtboxes = UINT32_C(0);
+    uint32_t maximum_fighter_hitboxes = UINT32_C(0);
+    uint32_t maximum_attack_entities = UINT32_C(0);
+    uint32_t maximum_events = UINT32_C(0);
+    int saw_item_hitbox = 0;
+    int saw_projectile_hitbox = 0;
+    int saw_item_projectile_overlap = 0;
+    pf_status status = pf_sim_reset(
+        pf_m4_maximum_sim,
+        pf_benchmark_descriptors[PF_BENCH_MAXIMUM_COMBAT_ENTITIES].seed);
+
+    if (status != PF_STATUS_OK)
+    {
+        set_error(error, "reset maximum-combat preflight", status);
+        return 0;
+    }
+    for (tick = UINT64_C(0);
+         tick < PF_BENCH_M4_MAXIMUM_CYCLE_TICKS;
+         ++tick)
+    {
+        uint32_t player_index;
+        uint32_t hurtboxes = UINT32_C(0);
+        uint32_t fighter_hitboxes = UINT32_C(0);
+        uint32_t attack_entities;
+
+        make_m4_maximum_inputs(inputs, tick);
+        status = pf_sim_tick(
+            pf_m4_maximum_sim,
+            inputs,
+            (size_t)PF_SIM_MAX_PLAYERS,
+            &result);
+        if (status != PF_STATUS_OK)
+        {
+            set_error(error, "run maximum-combat preflight", status);
+            return 0;
+        }
+        status = pf_m4_inspect(pf_m4_maximum_sim, &inspection);
+        if (status != PF_STATUS_OK)
+        {
+            set_error(error, "inspect maximum-combat preflight", status);
+            return 0;
+        }
+        for (player_index = UINT32_C(0);
+             player_index < (uint32_t)PF_SIM_MAX_PLAYERS;
+             ++player_index)
+        {
+            hurtboxes += inspection.players[player_index].active != UINT8_C(0)
+                             ? UINT32_C(1)
+                             : UINT32_C(0);
+            fighter_hitboxes +=
+                inspection.players[player_index].hitbox_active != UINT8_C(0)
+                    ? UINT32_C(1)
+                    : UINT32_C(0);
+        }
+        saw_item_hitbox =
+            saw_item_hitbox != 0 ||
+            inspection.item.hitbox_active != UINT8_C(0);
+        saw_projectile_hitbox =
+            saw_projectile_hitbox != 0 ||
+            inspection.projectile.hitbox_active != UINT8_C(0);
+        saw_item_projectile_overlap =
+            saw_item_projectile_overlap != 0 ||
+            (inspection.item.hitbox_active != UINT8_C(0) &&
+             inspection.projectile.hitbox_active != UINT8_C(0));
+        attack_entities =
+            fighter_hitboxes +
+            (inspection.item.hitbox_active != UINT8_C(0)
+                 ? UINT32_C(1)
+                 : UINT32_C(0)) +
+            (inspection.projectile.hitbox_active != UINT8_C(0)
+                 ? UINT32_C(1)
+                 : UINT32_C(0));
+        if (hurtboxes > maximum_hurtboxes)
+        {
+            maximum_hurtboxes = hurtboxes;
+        }
+        if (fighter_hitboxes > maximum_fighter_hitboxes)
+        {
+            maximum_fighter_hitboxes = fighter_hitboxes;
+        }
+        if (attack_entities > maximum_attack_entities)
+        {
+            maximum_attack_entities = attack_entities;
+        }
+        if ((uint32_t)result.event_count > maximum_events)
+        {
+            maximum_events = (uint32_t)result.event_count;
+        }
+    }
+
+    if (maximum_hurtboxes != (uint32_t)PF_SIM_MAX_PLAYERS ||
+        maximum_fighter_hitboxes < UINT32_C(2) ||
+        maximum_attack_entities < UINT32_C(4) ||
+        maximum_events == UINT32_C(0) ||
+        saw_item_hitbox == 0 || saw_projectile_hitbox == 0 ||
+        saw_item_projectile_overlap == 0)
+    {
+        (void)snprintf(
+            error,
+            PF_BENCHMARK_ERROR_CAPACITY,
+            "maximum-combat preflight lacked coverage: hurtboxes=%" PRIu32
+            " fighter_hitboxes=%" PRIu32 " attack_entities=%" PRIu32
+            " events=%" PRIu32 " item=%d projectile=%d overlap=%d",
+            maximum_hurtboxes,
+            maximum_fighter_hitboxes,
+            maximum_attack_entities,
+            maximum_events,
+            saw_item_hitbox,
+            saw_projectile_hitbox,
+            saw_item_projectile_overlap);
+        return 0;
+    }
+    return 1;
+}
+
+static int validate_m4_representative_workload(
+    char error[PF_BENCHMARK_ERROR_CAPACITY])
+{
+    pf_input_frame inputs[PF_SIM_MAX_PLAYERS];
+    pf_tick_result result;
+    pf_m4_inspection inspection;
+    uint64_t tick;
+    uint32_t combat_events = UINT32_C(0);
+    int saw_fighter_hitbox = 0;
+    int saw_projectile = 0;
+    int saw_shield = 0;
+    pf_status status = pf_sim_reset(
+        pf_m4_duel_sim,
+        pf_benchmark_descriptors[PF_BENCH_REPRESENTATIVE_1V1].seed);
+
+    if (status != PF_STATUS_OK)
+    {
+        set_error(error, "reset representative-M4 preflight", status);
+        return 0;
+    }
+    for (tick = UINT64_C(0);
+         tick < PF_BENCH_M4_REPRESENTATIVE_CYCLE_TICKS;
+         ++tick)
+    {
+        uint32_t event_index;
+        uint32_t player_index;
+
+        make_m4_representative_inputs(inputs, tick);
+        status = pf_sim_tick(
+            pf_m4_duel_sim,
+            inputs,
+            (size_t)2,
+            &result);
+        if (status != PF_STATUS_OK)
+        {
+            (void)snprintf(
+                error,
+                PF_BENCHMARK_ERROR_CAPACITY,
+                "run representative-M4 preflight at tick %" PRIu64 ": %s",
+                tick,
+                pf_status_name(status));
+            return 0;
+        }
+        status = pf_m4_inspect(pf_m4_duel_sim, &inspection);
+        if (status != PF_STATUS_OK)
+        {
+            set_error(error, "inspect representative-M4 preflight", status);
+            return 0;
+        }
+        saw_projectile =
+            saw_projectile != 0 ||
+            inspection.projectile.hitbox_active != UINT8_C(0);
+        for (player_index = UINT32_C(0);
+             player_index < UINT32_C(2);
+             ++player_index)
+        {
+            saw_fighter_hitbox =
+                saw_fighter_hitbox != 0 ||
+                inspection.players[player_index].hitbox_active != UINT8_C(0);
+            saw_shield =
+                saw_shield != 0 ||
+                inspection.players[player_index].shield_held != UINT8_C(0);
+        }
+        for (event_index = UINT32_C(0);
+             event_index < (uint32_t)result.event_count;
+             ++event_index)
+        {
+            const uint16_t type = result.events[event_index].type;
+
+            if (type == (uint16_t)PF_SIM_EVENT_HIT ||
+                type == (uint16_t)PF_SIM_EVENT_SHIELD_BLOCK ||
+                type == (uint16_t)PF_SIM_EVENT_ITEM_HIT ||
+                type == (uint16_t)PF_SIM_EVENT_PROJECTILE_HIT)
+            {
+                ++combat_events;
+            }
+        }
+    }
+
+    if (combat_events == UINT32_C(0) || saw_fighter_hitbox == 0 ||
+        saw_projectile == 0 || saw_shield == 0)
+    {
+        (void)snprintf(
+            error,
+            PF_BENCHMARK_ERROR_CAPACITY,
+            "representative-M4 preflight lacked coverage: combat_events=%"
+            PRIu32 " fighter_hitbox=%d projectile=%d shield=%d",
+            combat_events,
+            saw_fighter_hitbox,
+            saw_projectile,
+            saw_shield);
+        return 0;
+    }
+    return 1;
+}
+
 static int run_empty_tick(
     uint64_t iterations,
     pf_benchmark_sample *sample,
@@ -518,10 +1007,25 @@ static int run_representative_1v1(
     pf_benchmark_sample *sample,
     char error[PF_BENCHMARK_ERROR_CAPACITY])
 {
-    return run_tick_case(
-        pf_duel_sim,
+    return run_m4_tick_case(
+        pf_m4_duel_sim,
         pf_benchmark_descriptors[PF_BENCH_REPRESENTATIVE_1V1].seed,
         UINT8_C(2),
+        0,
+        iterations,
+        sample,
+        error);
+}
+
+static int run_maximum_combat_entities(
+    uint64_t iterations,
+    pf_benchmark_sample *sample,
+    char error[PF_BENCHMARK_ERROR_CAPACITY])
+{
+    return run_m4_tick_case(
+        pf_m4_maximum_sim,
+        pf_benchmark_descriptors[PF_BENCH_MAXIMUM_COMBAT_ENTITIES].seed,
+        PF_SIM_MAX_PLAYERS,
         1,
         iterations,
         sample,
@@ -1040,6 +1544,8 @@ static pf_benchmark_case benchmark_case_for_index(size_t index)
             return run_representative_1v1;
         case PF_BENCH_REPRESENTATIVE_2V2:
             return run_representative_2v2;
+        case PF_BENCH_MAXIMUM_COMBAT_ENTITIES:
+            return run_maximum_combat_entities;
         case PF_BENCH_SNAPSHOT_SAVE:
             return run_snapshot_save;
         case PF_BENCH_SNAPSHOT_RESTORE:
@@ -1066,7 +1572,17 @@ static int initialize_benchmark_worlds(
     size_t action_index;
 
     pf_state_bytes = UINT64_C(0);
-    if (!initialize_sim(
+    if (!make_m4_benchmark_content(
+            &pf_benchmark_m4_duel_content,
+            &pf_benchmark_m4_duel_view,
+            0,
+            error) ||
+        !make_m4_benchmark_content(
+            &pf_benchmark_m4_maximum_content,
+            &pf_benchmark_m4_maximum_view,
+            1,
+            error) ||
+        !initialize_sim(
             (size_t)0,
             &content,
             UINT8_C(2),
@@ -1107,6 +1623,20 @@ static int initialize_benchmark_worlds(
             PF_M2_REPLAY_PLAYERS,
             PF_SIM_MODE_TEAMS,
             &pf_replay_target_sim,
+            error) ||
+        !initialize_sim(
+            (size_t)70,
+            &pf_benchmark_m4_duel_view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &pf_m4_duel_sim,
+            error) ||
+        !initialize_sim(
+            (size_t)71,
+            &pf_benchmark_m4_maximum_view,
+            PF_SIM_MAX_PLAYERS,
+            PF_SIM_MODE_TEAMS,
+            &pf_m4_maximum_sim,
             error))
     {
         return 0;
@@ -1152,7 +1682,9 @@ static int initialize_benchmark_worlds(
             INT16_C(-24576);
     }
 
-    if (!prepare_snapshot(error) || !prepare_replay(error))
+    if (!prepare_snapshot(error) || !prepare_replay(error) ||
+        !validate_m4_representative_workload(error) ||
+        !validate_m4_maximum_workload(error))
     {
         return 0;
     }
@@ -1366,6 +1898,15 @@ int pf_benchmark_run_all(
         PF_PROFILE_FRAME_MARK();
         if (scenario_succeeded == 0)
         {
+            char detail[PF_BENCHMARK_ERROR_CAPACITY];
+
+            (void)snprintf(detail, sizeof(detail), "%s", error);
+            (void)snprintf(
+                error,
+                PF_BENCHMARK_ERROR_CAPACITY,
+                "%.48s: %.180s",
+                results[scenario_index].descriptor->name,
+                detail);
             return 0;
         }
     }
@@ -1415,7 +1956,7 @@ int pf_benchmark_run_self_test(
             return 0;
         }
     }
-    if (available_count != UINT32_C(9))
+    if (available_count != UINT32_C(10))
     {
         set_text_error(error, "self-test available scenario count changed");
         return 0;

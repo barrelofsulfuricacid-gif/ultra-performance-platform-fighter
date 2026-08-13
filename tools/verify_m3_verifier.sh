@@ -61,6 +61,15 @@ git -C "$root" \
     printf 'm2-replay\tpass\tqualification fixture\n'
     printf 'm3-performance\tpass\tqualification fixture\n'
     printf 'm3-regression-qualification\tpass\tqualification fixture\n'
+    printf 'mechanical-oracle\tpass\tqualification fixture\n'
+    printf 'm4-combat\tpass\tqualification fixture\n'
+    printf 'm4-projectile\tpass\tqualification fixture\n'
+    printf 'm4-reflector\tpass\tqualification fixture\n'
+    printf 'm4-charge\tpass\tqualification fixture\n'
+    printf 'browser-runtime\tpass\tqualification fixture\n'
+    printf 'browser-collision-interaction\tdeferred\towner interaction fixture\n'
+    printf 'browser-match-flow-interaction\tdeferred\towner interaction fixture\n'
+    printf 'browser-replay-interaction\tdeferred\towner interaction fixture\n'
 } >"$pass_checks"
 
 "$verifier" \
@@ -142,4 +151,4 @@ coverage_issue=$(
 )
 grep -Fq 'acceptance:M3-PERFORMANCE' "$coverage_issue"
 
-echo "m3-verifier-qualification=pass internal=3 seeded_defects=4 issue_lifecycle=1 acceptance_coverage=1"
+echo "m3-verifier-qualification=pass internal=4 seeded_defects=4 issue_lifecycle=1 acceptance_coverage=1"

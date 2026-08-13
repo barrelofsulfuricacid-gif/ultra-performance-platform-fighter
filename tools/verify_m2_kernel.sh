@@ -24,121 +24,146 @@ common_flags="
     -Wwrite-strings
 "
 
-# shellcheck disable=SC2086
-"$compiler" $common_flags \
-    -I"$root/include" \
-    -I"$root/src/sim" \
-    "$root/src/sim/sim.c" \
-    "$root/src/sim/sim_replay.c" \
-    "$root/src/sim/sim_rl.c" \
-    "$root/src/sim/sim_sha256.c" \
-    "$root/src/sim/sim_snapshot.c" \
-    "$root/src/sim/sim_tick.c" \
-    "$root/tests/sim/test_sim_world.c" \
-    -o "$output_dir/sim_world_test"
+compile_sim_test()
+{
+    output=$1
+    shift
+    # shellcheck disable=SC2086
+    "$compiler" $common_flags \
+        -I"$root/include" \
+        -I"$root/src/checkpoint" \
+        -I"$root/src/sim" \
+        "$root/src/sim/sim.c" \
+        "$root/src/sim/sim_combat.c" \
+        "$root/src/sim/sim_content.c" \
+        "$root/src/sim/sim_falcon_frame_data.c" \
+        "$root/src/sim/sim_fixed_math.c" \
+        "$root/src/sim/sim_hsd_pose.c" \
+        "$root/src/sim/sim_ssbm_common_data.c" \
+        "$root/src/sim/sim_ssbm_stage_data.c" \
+        "$root/src/sim/sim_ssbm_damage.c" \
+        "$root/src/sim/sim_event.c" \
+        "$root/src/sim/sim_item.c" \
+        "$root/src/sim/sim_projectile.c" \
+        "$root/src/sim/sim_reflector.c" \
+        "$root/src/sim/sim_charge.c" \
+        "$root/src/sim/sim_movement.c" \
+        "$root/src/sim/sim_replay.c" \
+        "$root/src/sim/sim_rl.c" \
+        "$root/src/sim/sim_sha256.c" \
+        "$root/src/sim/sim_snapshot.c" \
+        "$root/src/sim/sim_tick.c" \
+        "$@" \
+        -o "$output"
+}
+
+compile_sim_test \
+    "$output_dir/sim_world_test" \
+    "$root/tests/sim/test_sim_world.c"
 
 "$output_dir/sim_world_test" >"$output_dir/sim_world.txt"
 grep -Fqx \
     'sim-world=pass players=4 deterministic_ticks=180' \
     "$output_dir/sim_world.txt"
 
-# shellcheck disable=SC2086
-"$compiler" $common_flags \
-    -I"$root/include" \
-    -I"$root/src/sim" \
-    "$root/src/sim/sim.c" \
-    "$root/src/sim/sim_replay.c" \
-    "$root/src/sim/sim_rl.c" \
-    "$root/src/sim/sim_sha256.c" \
-    "$root/src/sim/sim_snapshot.c" \
-    "$root/src/sim/sim_tick.c" \
-    "$root/tests/sim/test_sim_snapshot.c" \
-    -o "$output_dir/sim_snapshot_test"
+compile_sim_test \
+    "$output_dir/sim_snapshot_test" \
+    "$root/tests/sim/test_sim_snapshot.c"
 
 "$output_dir/sim_snapshot_test" >"$output_dir/sim_snapshot.txt"
 grep -Fqx \
-    'sim-snapshot=pass bytes=305 hash_algorithm=sha256' \
+    'sim-snapshot=pass bytes=1787 hash_algorithm=sha256' \
     "$output_dir/sim_snapshot.txt"
 
-# shellcheck disable=SC2086
-"$compiler" $common_flags \
-    -I"$root/include" \
-    -I"$root/src/sim" \
-    "$root/src/sim/sim.c" \
-    "$root/src/sim/sim_replay.c" \
-    "$root/src/sim/sim_rl.c" \
-    "$root/src/sim/sim_sha256.c" \
-    "$root/src/sim/sim_snapshot.c" \
-    "$root/src/sim/sim_tick.c" \
-    "$root/tests/sim/test_rl_api.c" \
-    -o "$output_dir/rl_api_test"
+compile_sim_test \
+    "$output_dir/rl_api_test" \
+    "$root/tests/sim/test_rl_api.c"
 
 "$output_dir/rl_api_test" >"$output_dir/rl_api.txt"
 grep -Fqx \
-    'rl-api=pass compact_values=36 batch_environments=6 reward_q16=65536 engagement_limit_q16=16384 schema=2' \
+    'rl-api=pass compact_values=102 batch_environments=6 reward_q16=65536 engagement_limit_q16=16384 schema=14' \
     "$output_dir/rl_api.txt"
 
-# shellcheck disable=SC2086
-"$compiler" $common_flags \
-    -I"$root/include" \
-    -I"$root/src/checkpoint" \
-    -I"$root/src/sim" \
-    "$root/src/sim/sim.c" \
-    "$root/src/sim/sim_replay.c" \
-    "$root/src/sim/sim_rl.c" \
-    "$root/src/sim/sim_sha256.c" \
-    "$root/src/sim/sim_snapshot.c" \
-    "$root/src/sim/sim_tick.c" \
+compile_sim_test \
+    "$output_dir/replay_corpus" \
     "$root/src/checkpoint/m2_replay_fixture.c" \
-    "$root/tests/sim/test_replay_corpus.c" \
-    -o "$output_dir/replay_corpus"
+    "$root/tests/sim/test_replay_corpus.c"
 
 "$output_dir/replay_corpus" >"$output_dir/replay_corpus.txt"
 grep -Fqx \
-    'sim-replay=pass ticks=180 players=4 bytes=30997 corpus_sha256=fd86a7c0801302d9a5feb203792a6feef939724054a9b3551aeca99f7d11066e final_sha256=7571f4ec1375cecbde2c6dc1b9e8ea00a8d368c876bda87e8adcdb354af83ea7' \
+    'sim-replay=pass ticks=240 players=4 bytes=42559 corpus_sha256=fb0f4e7251e70f7660801222b5b5a2627e9c45e1b56b7d5763035947cb553d1c final_sha256=5a7db4a5e899b1af31909f7997dcb1a08226aec79f4f09fab7422fe9602f246f events_sha256=787d63c5edf270cdc72d93dbe857c487bdc1ab7bdde59a1975299f1973fa7256' \
     "$output_dir/replay_corpus.txt"
 
-# shellcheck disable=SC2086
-"$compiler" $common_flags \
-    -I"$root/include" \
-    -c "$root/src/sim/sim.c" \
-    -o "$output_dir/sim.o"
+compile_sim_object()
+{
+    # shellcheck disable=SC2086
+    "$compiler" $common_flags \
+        -I"$root/include" \
+        -I"$root/src/sim" \
+        -c "$1" \
+        -o "$2"
+}
 
-# shellcheck disable=SC2086
-"$compiler" $common_flags \
-    -I"$root/include" \
-    -c "$root/src/sim/sim_tick.c" \
-    -o "$output_dir/sim_tick.o"
-
-# shellcheck disable=SC2086
-"$compiler" $common_flags \
-    -I"$root/include" \
-    -I"$root/src/sim" \
-    -c "$root/src/sim/sim_replay.c" \
-    -o "$output_dir/sim_replay.o"
-
-# shellcheck disable=SC2086
-"$compiler" $common_flags \
-    -I"$root/include" \
-    -I"$root/src/sim" \
-    -c "$root/src/sim/sim_rl.c" \
-    -o "$output_dir/sim_rl.o"
-
-# shellcheck disable=SC2086
-"$compiler" $common_flags \
-    -I"$root/include" \
-    -c "$root/src/sim/sim_sha256.c" \
-    -o "$output_dir/sim_sha256.o"
-
-# shellcheck disable=SC2086
-"$compiler" $common_flags \
-    -I"$root/include" \
-    -c "$root/src/sim/sim_snapshot.c" \
-    -o "$output_dir/sim_snapshot.o"
+compile_sim_object "$root/src/sim/sim.c" "$output_dir/sim.o"
+compile_sim_object \
+    "$root/src/sim/sim_combat.c" "$output_dir/sim_combat.o"
+compile_sim_object \
+    "$root/src/sim/sim_content.c" "$output_dir/sim_content.o"
+compile_sim_object \
+    "$root/src/sim/sim_falcon_frame_data.c" \
+    "$output_dir/sim_falcon_frame_data.o"
+compile_sim_object \
+    "$root/src/sim/sim_fixed_math.c" "$output_dir/sim_fixed_math.o"
+compile_sim_object \
+    "$root/src/sim/sim_hsd_pose.c" "$output_dir/sim_hsd_pose.o"
+compile_sim_object \
+    "$root/src/sim/sim_ssbm_common_data.c" \
+    "$output_dir/sim_ssbm_common_data.o"
+compile_sim_object \
+    "$root/src/sim/sim_ssbm_stage_data.c" \
+    "$output_dir/sim_ssbm_stage_data.o"
+compile_sim_object \
+    "$root/src/sim/sim_ssbm_damage.c" "$output_dir/sim_ssbm_damage.o"
+compile_sim_object \
+    "$root/src/sim/sim_event.c" "$output_dir/sim_event.o"
+compile_sim_object \
+    "$root/src/sim/sim_item.c" "$output_dir/sim_item.o"
+compile_sim_object \
+    "$root/src/sim/sim_projectile.c" "$output_dir/sim_projectile.o"
+compile_sim_object \
+    "$root/src/sim/sim_reflector.c" "$output_dir/sim_reflector.o"
+compile_sim_object \
+    "$root/src/sim/sim_charge.c" "$output_dir/sim_charge.o"
+compile_sim_object \
+    "$root/src/sim/sim_movement.c" "$output_dir/sim_movement.o"
+compile_sim_object \
+    "$root/src/sim/sim_tick.c" "$output_dir/sim_tick.o"
+compile_sim_object \
+    "$root/src/sim/sim_replay.c" "$output_dir/sim_replay.o"
+compile_sim_object \
+    "$root/src/sim/sim_rl.c" "$output_dir/sim_rl.o"
+compile_sim_object \
+    "$root/src/sim/sim_sha256.c" "$output_dir/sim_sha256.o"
+compile_sim_object \
+    "$root/src/sim/sim_snapshot.c" "$output_dir/sim_snapshot.o"
 
 if command -v nm >/dev/null 2>&1; then
     nm -u \
         "$output_dir/sim.o" \
+        "$output_dir/sim_combat.o" \
+        "$output_dir/sim_content.o" \
+        "$output_dir/sim_falcon_frame_data.o" \
+        "$output_dir/sim_fixed_math.o" \
+        "$output_dir/sim_hsd_pose.o" \
+        "$output_dir/sim_ssbm_common_data.o" \
+        "$output_dir/sim_ssbm_stage_data.o" \
+        "$output_dir/sim_ssbm_damage.o" \
+        "$output_dir/sim_event.o" \
+        "$output_dir/sim_item.o" \
+        "$output_dir/sim_projectile.o" \
+        "$output_dir/sim_reflector.o" \
+        "$output_dir/sim_charge.o" \
+        "$output_dir/sim_movement.o" \
         "$output_dir/sim_replay.o" \
         "$output_dir/sim_rl.o" \
         "$output_dir/sim_sha256.o" \
@@ -156,4 +181,4 @@ else
     echo "m2-forbidden-symbol-validation=skipped reason=nm-not-on-path"
 fi
 
-echo "m2-kernel-verification=pass deterministic_ticks=180 replay_ticks=180 rl_batch=6 players=4 abi=2"
+echo "m2-kernel-verification=pass deterministic_ticks=180 replay_ticks=240 rl_batch=6 players=4 abi=5"

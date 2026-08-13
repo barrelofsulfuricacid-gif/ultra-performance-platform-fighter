@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "scope": "ssbm-hurt-pose-import",
+  "fighter": "CPTFALCON",
+  "profile": "tools/data/ssbm_falcon_turn_hurt.json",
+  "profile_sha256": "6addc920dda39acf06df2f8bcecee7ee23a3200c128b6545d0232c58c5704ea6",
+  "capture_sha256": "e0240567b226cdd1802a3b7ad14384cf5096df9c8b323b383020c0a1844cf901",
+  "semantic_sha256": "1cc3543b1363ecb5c7427c36f4d8d8a2826f9fb7c5281877f54108e1ffe281a2",
+  "symbol_prefix": "pf_m4_falcon_turn_hurt",
+  "enum_prefix": "PF_M4_FALCON_TURN_HURT",
+  "expected_pose_count": 33,
+  "expected_unique_pose_count": 33,
+  "expected_capsule_count": 363,
+  "tracks": [
+    { "id": "standing_turn", "enum": "STANDING_TURN", "frame_count": 11 },
+    { "id": "run_turnaround", "enum": "RUN_TURNAROUND", "frame_count": 22 }
+  ]
+}

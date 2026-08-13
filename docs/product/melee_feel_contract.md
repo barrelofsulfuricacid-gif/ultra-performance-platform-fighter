@@ -9,7 +9,10 @@ expression or extracted implementation data.
 The governing fidelity choice is D1-A: every playable SSBM fighter/form gets an
 original mechanical counterpart with substantially the same move functions and
 matchup identity. Names, characters, worlds, visual/audio assets, lore,
-animation, presentation, and implementation data remain original.
+animation and presentation remain original. The 2026-08-03 owner-approved M4
+exception permits provenance-recorded numeric gameplay tables and formulas for
+behavioral fidelity; it does not permit importing expressive assets or game
+code.
 
 ## Core feel
 
@@ -50,8 +53,8 @@ The game must feel:
 | Initial dash | A brief, commitment-bearing initial dash supports dash-dancing, pivots, and character-specific dash lengths. |
 | Dash-dance and foxtrot | Reversing during the initial-dash window and chaining dashes provide deliberate spacing tools. |
 | Traction and momentum | Ground friction is fighter-specific and affects slides, landings, wavedashes, and punish options. |
-| Crouch | Crouch changes profile and enables intentional dash/run cancellation and crouch-cancel interactions. |
-| Jump squat | Jump has a fighter-specific grounded startup. Short/full hop selection is input-duration based. |
+| Crouch | Crouch changes profile and supports Melee's ordered ground-state callbacks, including Run-to-RunBrake-to-Squat, plus damage crouch-cancel interactions. |
+| Jump squat | Jump has a fighter-specific grounded startup. Ground traction continues during it, then takeoff combines scaled ground momentum with the current horizontal stick contribution under an authored cap. Reversing the stick during jump squat can therefore produce an almost in-place jump. Releasing during jump squat selects one short-hop launch; holding through jump squat selects one full-hop launch. Hold duration after launch never scales either height. |
 | Air movement | Gravity, fall speed, fast-fall speed, air acceleration, air-speed cap, and jumps are fighter-specific. |
 | Fast fall | A deliberate downward input after the apex accelerates descent and interacts with aerial timing. |
 | Pass-through platforms | Landing, dropping through, shield dropping if retained, platform movement, and edge cases are deterministic. |
@@ -106,7 +109,7 @@ The game must feel:
 The following are designed and tested as supported mechanics because they
 materially shape Melee-like feel:
 
-- Dash-dance, foxtrot, pivot, run/crouch cancel, and platform movement.
+- Dash-dance, foxtrot, pivot, exact RunBrake-to-crouch acquisition, and platform movement.
 - Short-hop fast-fall aerial pressure.
 - L-cancel-like landing-lag reduction with a precise pre-landing input window.
 - Wavedash, waveland, ledgedash, edge cancel, and momentum transfer.

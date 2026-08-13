@@ -1,0 +1,1360 @@
+{
+  "cases": [
+    {
+      "field_exclusions": {},
+      "id": "turn_neutral",
+      "input_runs": [
+        {
+          "input": "-16384,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 7,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "turn_side",
+      "input_runs": [
+        {
+          "input": "-16384,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "-32767,0,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 7,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "turn_up",
+      "input_runs": [
+        {
+          "input": "-16384,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,-32767,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 7,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "turn_down",
+      "input_runs": [
+        {
+          "input": "-16384,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,32767,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 7,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
+    },
+    {
+      "field_exclusions": {
+        "action_ticks": [
+          [
+            0,
+            1
+          ]
+        ]
+      },
+      "id": "turn_ucf_raw_delta_76",
+      "input_runs": [
+        {
+          "input": "0,0,0,0,0,0,0,0,0,0,0,3",
+          "ticks": 1
+        },
+        {
+          "input": "-16384,0,0,0,0,0,0,0,0,-40,0,3",
+          "ticks": 1
+        },
+        {
+          "input": "-31129,0,0,0,0,0,0,0,0,-76,0,3",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0,0,0,3",
+          "ticks": 1
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 4,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "tilt_x_age",
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "turn_delayed_pending_dash",
+      "input_runs": [
+        {
+          "input": "-16384,0,0,0,0,0,0,0,0,-40,0,3",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0,0,0,3",
+          "ticks": 1
+        },
+        {
+          "input": "-32767,0,0,0,0,0,0,0,0,-80,0,3",
+          "ticks": 6
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0,0,0,3",
+          "ticks": 1
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 9,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "tilt_x_age",
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
+      ]
+    },
+    {
+      "field_exclusions": {
+        "action_ticks": [
+          [
+            0,
+            1
+          ]
+        ]
+      },
+      "id": "turn_ucf_raw_delta_75_release",
+      "input_runs": [
+        {
+          "input": "0,0,0,0,0,0,0,0,0,0,0,3",
+          "ticks": 1
+        },
+        {
+          "input": "-16384,0,0,0,0,0,0,0,0,-40,0,3",
+          "ticks": 1
+        },
+        {
+          "input": "-30719,0,0,0,0,0,0,0,0,-75,0,3",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0,0,0,3",
+          "ticks": 6
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 9,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "tilt_x_age",
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "dash_ordinary_early_attack",
+      "input_runs": [
+        {
+          "input": "32767,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "32767,0,0,0,0,0,2,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 4
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 6,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
+      ]
+    },
+    {
+      "field_exclusions": {
+        "position_x_q16_from_origin": [
+          [
+            9,
+            13
+          ]
+        ]
+      },
+      "id": "dash_turn_origin_early_attack",
+      "input_runs": [
+        {
+          "input": "-16384,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "-32767,0,0,0,0,0,0,0,0",
+          "ticks": 6
+        },
+        {
+          "input": "-32767,0,0,0,0,0,2,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 4
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 13,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
+      ]
+    },
+    {
+      "field_exclusions": {
+        "position_x_q16_from_origin": [
+          [
+            2,
+            6
+          ]
+        ]
+      },
+      "id": "dash_ordinary_early_shield",
+      "input_runs": [
+        {
+          "input": "32767,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "32767,0,0,0,65535,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 4
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 6,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
+      ]
+    },
+    {
+      "field_exclusions": {
+        "action_ticks": [
+          [
+            8,
+            13
+          ]
+        ]
+      },
+      "id": "dash_turn_origin_early_shield",
+      "input_runs": [
+        {
+          "input": "-16384,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "-32767,0,0,0,0,0,0,0,0",
+          "ticks": 6
+        },
+        {
+          "input": "-32767,0,0,0,65535,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 4
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 13,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "dash_ordinary_early_taunt",
+      "input_runs": [
+        {
+          "input": "32767,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "32767,0,0,0,0,0,16,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 4
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 6,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "squat_wait_down",
+      "input_runs": [
+        {
+          "input": "0,32767,0,0,0,0,0,0,0",
+          "ticks": 20
+        },
+        {
+          "input": "0,32767,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 26,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "squat_wait_diagonal_down",
+      "input_runs": [
+        {
+          "input": "0,32767,0,0,0,0,0,0,0",
+          "ticks": 20
+        },
+        {
+          "input": "22937,22937,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 26,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "squat_rv_down",
+      "input_runs": [
+        {
+          "input": "0,32767,0,0,0,0,0,0,0",
+          "ticks": 20
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,32767,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 27,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "squat_rv_diagonal_down",
+      "input_runs": [
+        {
+          "input": "0,32767,0,0,0,0,0,0,0",
+          "ticks": 20
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "22937,22937,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 27,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "walk_grab_special_priority",
+      "input_runs": [
+        {
+          "input": "11878,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "11878,0,0,0,65535,0,10,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [
+        "--walk-acquisition"
+      ],
+      "sample_count": 7,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
+    },
+    {
+      "field_exclusions": {
+        "position_x_q16_from_origin": [
+          [
+            0,
+            7
+          ]
+        ]
+      },
+      "id": "walk_side_special",
+      "input_runs": [
+        {
+          "input": "11878,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "11878,0,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [
+        "--walk-acquisition"
+      ],
+      "sample_count": 7,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
+      ]
+    },
+    {
+      "field_exclusions": {
+        "position_x_q16_from_origin": [
+          [
+            0,
+            7
+          ]
+        ],
+        "velocity_x_q16": [
+          [
+            1,
+            7
+          ]
+        ]
+      },
+      "id": "walk_up_special",
+      "input_runs": [
+        {
+          "input": "11878,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,-32767,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [
+        "--walk-acquisition"
+      ],
+      "sample_count": 7,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
+      ]
+    },
+    {
+      "field_exclusions": {
+        "position_x_q16_from_origin": [
+          [
+            0,
+            7
+          ]
+        ]
+      },
+      "id": "walk_neutral_special",
+      "input_runs": [
+        {
+          "input": "11878,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [
+        "--walk-acquisition"
+      ],
+      "sample_count": 7,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
+      ]
+    },
+    {
+      "field_exclusions": {
+        "position_x_q16_from_origin": [
+          [
+            0,
+            7
+          ]
+        ]
+      },
+      "id": "walk_down_special",
+      "input_runs": [
+        {
+          "input": "11878,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,32767,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [
+        "--walk-acquisition"
+      ],
+      "sample_count": 7,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
+      ]
+    },
+    {
+      "field_exclusions": {
+        "action_ticks": [
+          [
+            1,
+            3
+          ]
+        ]
+      },
+      "id": "walk_reverse_tilt_wait",
+      "input_runs": [
+        {
+          "input": "11878,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "-11878,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        }
+      ],
+      "runner_arguments": [
+        "--walk-acquisition"
+      ],
+      "sample_count": 3,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "walk_fresh_reverse_turn",
+      "input_runs": [
+        {
+          "input": "11878,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "-32767,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        }
+      ],
+      "runner_arguments": [
+        "--walk-acquisition"
+      ],
+      "sample_count": 3,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "wait_grab_special_priority",
+      "input_runs": [
+        {
+          "input": "0,0,0,0,65535,0,10,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 6,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "wait_up_special_attack_priority",
+      "input_runs": [
+        {
+          "input": "0,-32767,0,0,0,0,10,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 6,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "dash_side",
+      "input_runs": [
+        {
+          "input": "32767,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "32767,0,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 7,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "tilt_x_age",
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
+      ]
+    },
+    {
+      "field_exclusions": {
+        "position_x_q16_from_origin": [
+          [
+            4,
+            7
+          ]
+        ]
+      },
+      "id": "dash_neutral",
+      "input_runs": [
+        {
+          "input": "32767,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 7,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "tilt_x_age",
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
+      ]
+    },
+    {
+      "field_exclusions": {
+        "position_x_q16_from_origin": [
+          [
+            3,
+            7
+          ]
+        ],
+        "velocity_x_q16": [
+          [
+            4,
+            5
+          ]
+        ]
+      },
+      "id": "dash_up",
+      "input_runs": [
+        {
+          "input": "32767,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,-32767,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 7,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "tilt_x_age",
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
+      ]
+    },
+    {
+      "field_exclusions": {
+        "position_x_q16_from_origin": [
+          [
+            4,
+            7
+          ]
+        ]
+      },
+      "id": "dash_down",
+      "input_runs": [
+        {
+          "input": "32767,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,32767,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 7,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "tilt_x_age",
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
+      ]
+    },
+    {
+      "field_exclusions": {
+        "action_ticks": [
+          [
+            15,
+            25
+          ]
+        ],
+        "position_x_q16_from_origin": [
+          [
+            4,
+            31
+          ]
+        ]
+      },
+      "id": "run_side_special",
+      "input_runs": [
+        {
+          "input": "32767,0,0,0,0,0,0,0,0",
+          "ticks": 25
+        },
+        {
+          "input": "32767,0,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 31,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
+      ]
+    },
+    {
+      "field_exclusions": {
+        "action_ticks": [
+          [
+            15,
+            25
+          ]
+        ],
+        "position_x_q16_from_origin": [
+          [
+            4,
+            31
+          ]
+        ],
+        "velocity_x_q16": [
+          [
+            25,
+            31
+          ]
+        ]
+      },
+      "id": "run_up_special",
+      "input_runs": [
+        {
+          "input": "32767,0,0,0,0,0,0,0,0",
+          "ticks": 25
+        },
+        {
+          "input": "0,-32767,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 31,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
+      ]
+    },
+    {
+      "field_exclusions": {
+        "action_ticks": [
+          [
+            15,
+            25
+          ]
+        ],
+        "position_x_q16_from_origin": [
+          [
+            4,
+            31
+          ]
+        ]
+      },
+      "id": "run_neutral_special",
+      "input_runs": [
+        {
+          "input": "32767,0,0,0,0,0,0,0,0",
+          "ticks": 25
+        },
+        {
+          "input": "0,0,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 31,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
+      ]
+    },
+    {
+      "field_exclusions": {
+        "action_ticks": [
+          [
+            15,
+            25
+          ]
+        ],
+        "position_x_q16_from_origin": [
+          [
+            4,
+            31
+          ]
+        ]
+      },
+      "id": "run_down_special",
+      "input_runs": [
+        {
+          "input": "32767,0,0,0,0,0,0,0,0",
+          "ticks": 25
+        },
+        {
+          "input": "0,32767,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 5
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 31,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16"
+      ]
+    },
+    {
+      "field_exclusions": {
+        "action_ticks": [
+          [
+            0,
+            26
+          ]
+        ]
+      },
+      "id": "run_guard_dash_grab_hit",
+      "input_runs": [
+        {
+          "input": "32767,0,0,0,0,0,0,0,0",
+          "ticks": 25
+        },
+        {
+          "input": "0,0,0,0,65535,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,65535,0,2,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 28,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
+    },
+    {
+      "field_exclusions": {
+        "action_ticks": [
+          [
+            0,
+            1
+          ]
+        ]
+      },
+      "id": "wait_guard_ordinary_grab",
+      "input_runs": [
+        {
+          "input": "0,0,0,0,65535,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,65535,0,2,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 3,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
+    },
+    {
+      "field_exclusions": {
+        "action_ticks": [
+          [
+            0,
+            29
+          ]
+        ]
+      },
+      "id": "run_guard_dash_grab_expired",
+      "input_runs": [
+        {
+          "input": "32767,0,0,0,0,0,0,0,0",
+          "ticks": 25
+        },
+        {
+          "input": "0,0,0,0,65535,0,0,0,0",
+          "ticks": 4
+        },
+        {
+          "input": "0,0,0,0,65535,0,2,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 31,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "jump_terminal_edge_neutral_history",
+      "input_runs": [
+        {
+          "input": "0,0,0,0,0,0,1,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 3
+        },
+        {
+          "input": "32767,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 6,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded",
+        "velocity_x_q16",
+        "velocity_y_q16"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "jump_terminal_edge_held_history",
+      "input_runs": [
+        {
+          "input": "0,0,0,0,0,0,1,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "32767,0,0,0,0,0,0,0,0",
+          "ticks": 4
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 6,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded",
+        "velocity_x_q16",
+        "velocity_y_q16"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "dash_turn_origin_early_reverse",
+      "input_runs": [
+        {
+          "input": "-16384,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "-32767,0,0,0,0,0,0,0,0",
+          "ticks": 8
+        },
+        {
+          "input": "32767,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 12,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded",
+        "velocity_x_q16",
+        "velocity_y_q16"
+      ]
+    }
+  ],
+  "domain": "falcon-common-special-acquisition",
+  "kind": "native-csv-trace-v1",
+  "production_trace_sha256": "dfdf53934818d7436fa02fc265e3febb129e97f34b1573d0b670cfc66075a6c6",
+  "schema": 1,
+  "source_trace_sha256": "c68d3bc9cd830283648f98b210502a471ca0724fc3b5197caea5b71aaa29a07b"
+}

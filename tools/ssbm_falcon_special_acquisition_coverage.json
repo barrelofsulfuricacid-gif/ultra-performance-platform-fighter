@@ -1,0 +1,1151 @@
+{
+  "schema": 1,
+  "scope": "falcon-common-special-acquisition",
+  "domain": "falcon-common-special-acquisition",
+  "character": "falcon",
+  "oracle": "SSBM GALE01 NTSC-U revision 2 with UCF 0.84",
+  "live_source": {
+    "capture_sha256": "c2f6deed8346eb1729a9ee3d8444b77d9426e8fd457fb2b931a4978dc783704c",
+    "repeat_capture_sha256": "97095e1ebdc2fc5c022feec9d9fc6635c94988526576bf9cc76c22b2753dbb85",
+    "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
+    "release_artifact_sha256": "87e9ef6d80ed03354a1647d0616016dbc91399aa9e86a69ae5a398edd0a0c2bd",
+    "launcher_sha256": "9eb024aa9347648f020e2a76666e5c5597b77b32ef26752f563c99f0772b1e82",
+    "decomp_revision": "9509dc04406fb2028bfab01243841ba4787c0fb7",
+    "current_decomp_revision": "d882af94175e3c880ad51039e2979aa9a50aea09",
+    "dolphin_version": "3.5.1",
+    "libmelee_version": "0.47.2",
+    "capture_schema": 13,
+    "oracle": "SSBM GALE01 NTSC-U revision 2 with UCF 0.84 via Dolphin/Slippi",
+    "oracle_gameplay_policy": {
+      "schema": "ssbm-ntsc102-ucf084-oracle-v2",
+      "target": "GALE01 NTSC-U revision 2 with UCF 0.84",
+      "ucf_version": "0.84",
+      "ucf_official_release_tag": "ucf0.84_2024-06-27",
+      "ucf_official_release_revision": "01122231ea97683cf7adea43d732ce0a4784c849",
+      "policy_sha256": "a8368a3901828602833fba82f2c1e2490df6537151ff5cd6a216419a6051b7cc"
+    },
+    "stage": "FINAL_DESTINATION",
+    "row_count": 491
+  },
+  "checkpoint_pack": {
+    "protocol": "immutable-multislot-slippi-state-file-control-v2",
+    "expected_rows": 491,
+    "warm_budget_seconds": 16.0,
+    "cold_budget_seconds": 20.0,
+    "capture_route": "special-acquisition",
+    "capture_shards": [
+      [
+        "turn_neutral", "turn_side", "turn_up", "turn_down",
+        "turn_ucf_raw_delta_76", "turn_delayed_pending_dash",
+        "turn_ucf_raw_delta_75_release", "squat_wait_down",
+        "squat_wait_diagonal_down", "squat_rv_down",
+        "squat_rv_diagonal_down"
+      ],
+      [
+        "run_side_special", "run_up_special", "run_neutral_special",
+        "run_down_special",
+        "run_guard_dash_grab_expired"
+      ],
+      [
+        "dash_ordinary_early_attack", "dash_turn_origin_early_attack",
+        "dash_ordinary_early_shield", "dash_turn_origin_early_shield",
+        "dash_ordinary_early_taunt", "walk_grab_special_priority",
+        "walk_side_special", "walk_up_special", "walk_neutral_special",
+        "walk_down_special", "walk_reverse_tilt_wait",
+        "walk_fresh_reverse_turn", "wait_grab_special_priority",
+        "wait_up_special_attack_priority", "dash_side", "dash_neutral",
+        "dash_up", "dash_down", "run_guard_dash_grab_hit",
+        "wait_guard_ordinary_grab"
+      ],
+      [
+        "jump_terminal_edge_neutral_history",
+        "jump_terminal_edge_held_history",
+        "dash_turn_origin_early_reverse"
+      ]
+    ],
+    "merge_setup_suffixes": ["setup", "release", "edge", "observe"],
+    "capture_plan": {
+      "batch_exi_inputs": false,
+      "checkpoint_slot_count": 16,
+      "special_acquisition_cases": [
+        {
+          "id": "turn_neutral",
+          "checkpoint_slot": 0,
+          "source_state": "turn",
+          "edge_main": [0, 0],
+          "observe_ticks": 5
+        },
+        {
+          "id": "turn_side",
+          "checkpoint_slot": 1,
+          "source_state": "turn",
+          "edge_main": [-32767, 0],
+          "observe_ticks": 5
+        },
+        {
+          "id": "turn_up",
+          "checkpoint_slot": 2,
+          "source_state": "turn",
+          "edge_main": [0, -32767],
+          "observe_ticks": 5
+        },
+        {
+          "id": "turn_down",
+          "checkpoint_slot": 3,
+          "source_state": "turn",
+          "edge_main": [0, 32767],
+          "observe_ticks": 5
+        },
+        {
+          "id": "turn_ucf_raw_delta_76",
+          "checkpoint_slot": 0,
+          "source_state": "turn",
+          "pre_source_phases": [
+            { "ticks": 1 }
+          ],
+          "edge_main": [-31129, 0],
+          "edge_action": "none",
+          "observe_ticks": 1
+        },
+        {
+          "id": "turn_delayed_pending_dash",
+          "checkpoint_slot": 1,
+          "source_state": "turn",
+          "pre_edge_phases": [
+            { "ticks": 1 },
+            { "ticks": 5, "main": [-32767, 0] }
+          ],
+          "edge_main": [-32767, 0],
+          "edge_action": "none",
+          "observe_ticks": 1
+        },
+        {
+          "id": "turn_ucf_raw_delta_75_release",
+          "checkpoint_slot": 2,
+          "source_state": "turn",
+          "pre_source_phases": [
+            { "ticks": 1 }
+          ],
+          "edge_main": [-30719, 0],
+          "edge_action": "none",
+          "observe_ticks": 6
+        },
+        {
+          "id": "dash_ordinary_early_attack",
+          "checkpoint_slot": 3,
+          "source_state": "dash",
+          "edge_main": [32767, 0],
+          "edge_action": "attack",
+          "observe_ticks": 4
+        },
+        {
+          "id": "dash_turn_origin_early_attack",
+          "checkpoint_slot": 4,
+          "source_state": "turn",
+          "pre_edge_phases": [
+            { "ticks": 1 },
+            { "ticks": 6, "main": [-32767, 0] }
+          ],
+          "edge_main": [-32767, 0],
+          "edge_action": "attack",
+          "observe_ticks": 4
+        },
+        {
+          "id": "dash_ordinary_early_shield",
+          "checkpoint_slot": 5,
+          "source_state": "dash",
+          "edge_main": [32767, 0],
+          "edge_action": "none",
+          "edge_left_trigger": 65535,
+          "edge_digital_left": true,
+          "observe_ticks": 4
+        },
+        {
+          "id": "dash_turn_origin_early_shield",
+          "checkpoint_slot": 6,
+          "source_state": "turn",
+          "pre_edge_phases": [
+            { "ticks": 1 },
+            { "ticks": 6, "main": [-32767, 0] }
+          ],
+          "edge_main": [-32767, 0],
+          "edge_action": "none",
+          "edge_left_trigger": 65535,
+          "edge_digital_left": true,
+          "observe_ticks": 4
+        },
+        {
+          "id": "dash_ordinary_early_taunt",
+          "checkpoint_slot": 7,
+          "source_state": "dash",
+          "edge_main": [32767, 0],
+          "edge_action": "taunt",
+          "observe_ticks": 4
+        },
+        {
+          "id": "squat_wait_down",
+          "checkpoint_slot": 4,
+          "source_state": "squat_wait",
+          "edge_main": [0, 32767],
+          "observe_ticks": 5
+        },
+        {
+          "id": "squat_wait_diagonal_down",
+          "checkpoint_slot": 5,
+          "source_state": "squat_wait",
+          "edge_main": [32767, 32767],
+          "observe_ticks": 5
+        },
+        {
+          "id": "squat_rv_down",
+          "checkpoint_slot": 6,
+          "source_state": "squat_rv",
+          "edge_main": [0, 32767],
+          "observe_ticks": 5
+        },
+        {
+          "id": "squat_rv_diagonal_down",
+          "checkpoint_slot": 7,
+          "source_state": "squat_rv",
+          "edge_main": [32767, 32767],
+          "observe_ticks": 5
+        },
+        {
+          "id": "walk_grab_special_priority",
+          "checkpoint_slot": 8,
+          "source_state": "walk",
+          "edge_main": [12000, 0],
+          "edge_actions": ["grab", "special"],
+          "observe_ticks": 5
+        },
+        {
+          "id": "walk_side_special",
+          "checkpoint_slot": 9,
+          "source_state": "walk",
+          "edge_main": [12000, 0],
+          "observe_ticks": 5
+        },
+        {
+          "id": "walk_up_special",
+          "checkpoint_slot": 10,
+          "source_state": "walk",
+          "edge_main": [0, -32767],
+          "observe_ticks": 5
+        },
+        {
+          "id": "walk_neutral_special",
+          "checkpoint_slot": 11,
+          "source_state": "walk",
+          "edge_main": [0, 0],
+          "observe_ticks": 5
+        },
+        {
+          "id": "walk_down_special",
+          "checkpoint_slot": 12,
+          "source_state": "walk",
+          "edge_main": [0, 32767],
+          "observe_ticks": 5
+        },
+        {
+          "id": "walk_reverse_tilt_wait",
+          "checkpoint_slot": 10,
+          "source_state": "walk",
+          "edge_main": [-12000, 0],
+          "edge_action": "none",
+          "observe_ticks": 1
+        },
+        {
+          "id": "walk_fresh_reverse_turn",
+          "checkpoint_slot": 11,
+          "source_state": "walk",
+          "edge_main": [-32767, 0],
+          "edge_action": "none",
+          "observe_ticks": 1
+        },
+        {
+          "id": "wait_grab_special_priority",
+          "checkpoint_slot": 10,
+          "source_state": "wait",
+          "edge_main": [0, 0],
+          "edge_actions": ["grab", "special"],
+          "observe_ticks": 5
+        },
+        {
+          "id": "wait_up_special_attack_priority",
+          "checkpoint_slot": 11,
+          "source_state": "wait",
+          "edge_main": [0, -32767],
+          "edge_actions": ["attack", "special"],
+          "observe_ticks": 5
+        },
+        {
+          "id": "dash_side",
+          "checkpoint_slot": 12,
+          "source_state": "dash",
+          "edge_main": [32767, 0],
+          "observe_ticks": 5
+        },
+        {
+          "id": "dash_neutral",
+          "checkpoint_slot": 13,
+          "source_state": "dash",
+          "edge_main": [0, 0],
+          "observe_ticks": 5
+        },
+        {
+          "id": "dash_up",
+          "checkpoint_slot": 14,
+          "source_state": "dash",
+          "edge_main": [0, -32767],
+          "observe_ticks": 5
+        },
+        {
+          "id": "dash_down",
+          "checkpoint_slot": 15,
+          "source_state": "dash",
+          "edge_main": [0, 32767],
+          "observe_ticks": 5
+        },
+        {
+          "id": "run_side_special",
+          "checkpoint_slot": 11,
+          "source_state": "dash",
+          "pre_edge_phases": [
+            { "ticks": 24, "main": [32767, 0] }
+          ],
+          "edge_main": [32767, 0],
+          "observe_ticks": 5
+        },
+        {
+          "id": "run_up_special",
+          "checkpoint_slot": 12,
+          "source_state": "dash",
+          "pre_edge_phases": [
+            { "ticks": 24, "main": [32767, 0] }
+          ],
+          "edge_main": [0, -32767],
+          "observe_ticks": 5
+        },
+        {
+          "id": "run_neutral_special",
+          "checkpoint_slot": 13,
+          "source_state": "dash",
+          "pre_edge_phases": [
+            { "ticks": 24, "main": [32767, 0] }
+          ],
+          "edge_main": [0, 0],
+          "observe_ticks": 5
+        },
+        {
+          "id": "run_down_special",
+          "checkpoint_slot": 14,
+          "source_state": "dash",
+          "pre_edge_phases": [
+            { "ticks": 24, "main": [32767, 0] }
+          ],
+          "edge_main": [0, 32767],
+          "observe_ticks": 5
+        },
+        {
+          "id": "run_guard_dash_grab_hit",
+          "checkpoint_slot": 0,
+          "source_state": "wait",
+          "pre_edge_phases": [
+            { "ticks": 25, "main": [32767, 0] },
+            { "ticks": 1, "left_trigger": 65535, "digital_left": true }
+          ],
+          "edge_main": [0, 0],
+          "edge_action": "attack",
+          "edge_left_trigger": 65535,
+          "edge_digital_left": true,
+          "observe_ticks": 1
+        },
+        {
+          "id": "wait_guard_ordinary_grab",
+          "checkpoint_slot": 1,
+          "source_state": "wait",
+          "pre_edge_phases": [
+            { "ticks": 1, "left_trigger": 65535, "digital_left": true }
+          ],
+          "edge_main": [0, 0],
+          "edge_action": "attack",
+          "edge_left_trigger": 65535,
+          "edge_digital_left": true,
+          "observe_ticks": 1
+        },
+        {
+          "id": "run_guard_dash_grab_expired",
+          "checkpoint_slot": 2,
+          "source_state": "wait",
+          "pre_edge_phases": [
+            { "ticks": 25, "main": [32767, 0] },
+            { "ticks": 4, "left_trigger": 65535, "digital_left": true }
+          ],
+          "edge_main": [0, 0],
+          "edge_action": "attack",
+          "edge_left_trigger": 65535,
+          "edge_digital_left": true,
+          "observe_ticks": 1
+        },
+        {
+          "id": "jump_terminal_edge_neutral_history",
+          "checkpoint_slot": 3,
+          "source_state": "wait",
+          "pre_edge_phases": [
+            { "ticks": 1, "actions": ["jump"] },
+            { "ticks": 3 }
+          ],
+          "edge_main": [32767, 0],
+          "edge_action": "none",
+          "observe_ticks": 1
+        },
+        {
+          "id": "jump_terminal_edge_held_history",
+          "checkpoint_slot": 4,
+          "source_state": "wait",
+          "pre_edge_phases": [
+            { "ticks": 1, "actions": ["jump"] },
+            { "ticks": 3, "main": [32767, 0] }
+          ],
+          "edge_main": [32767, 0],
+          "edge_action": "none",
+          "observe_ticks": 1
+        },
+        {
+          "id": "dash_turn_origin_early_reverse",
+          "checkpoint_slot": 5,
+          "source_state": "turn",
+          "pre_edge_phases": [
+            { "ticks": 1 },
+            { "ticks": 8, "main": [-32767, 0] }
+          ],
+          "edge_main": [32767, 0],
+          "edge_action": "none",
+          "observe_ticks": 1
+        }
+      ]
+    }
+  },
+  "checkpoint_cases": [
+    { "id": "turn_neutral", "start_label": "special_acquisition_turn_neutral_setup" },
+    { "id": "turn_side", "start_label": "special_acquisition_turn_side_setup" },
+    { "id": "turn_up", "start_label": "special_acquisition_turn_up_setup" },
+    { "id": "turn_down", "start_label": "special_acquisition_turn_down_setup" },
+    { "id": "turn_ucf_raw_delta_76", "start_label": "special_acquisition_turn_ucf_raw_delta_76_setup" },
+    { "id": "turn_delayed_pending_dash", "start_label": "special_acquisition_turn_delayed_pending_dash_setup" },
+    { "id": "turn_ucf_raw_delta_75_release", "start_label": "special_acquisition_turn_ucf_raw_delta_75_release_setup" },
+    { "id": "dash_ordinary_early_attack", "start_label": "special_acquisition_dash_ordinary_early_attack_setup" },
+    { "id": "dash_turn_origin_early_attack", "start_label": "special_acquisition_dash_turn_origin_early_attack_setup" },
+    { "id": "dash_ordinary_early_shield", "start_label": "special_acquisition_dash_ordinary_early_shield_setup" },
+    { "id": "dash_turn_origin_early_shield", "start_label": "special_acquisition_dash_turn_origin_early_shield_setup" },
+    { "id": "dash_ordinary_early_taunt", "start_label": "special_acquisition_dash_ordinary_early_taunt_setup" },
+    { "id": "squat_wait_down", "start_label": "special_acquisition_squat_wait_down_setup" },
+    { "id": "squat_wait_diagonal_down", "start_label": "special_acquisition_squat_wait_diagonal_down_setup" },
+    { "id": "squat_rv_down", "start_label": "special_acquisition_squat_rv_down_setup" },
+    { "id": "squat_rv_diagonal_down", "start_label": "special_acquisition_squat_rv_diagonal_down_setup" },
+    { "id": "walk_grab_special_priority", "start_label": "special_acquisition_walk_grab_special_priority_setup" },
+    { "id": "walk_side_special", "start_label": "special_acquisition_walk_side_special_setup" },
+    { "id": "walk_up_special", "start_label": "special_acquisition_walk_up_special_setup" },
+    { "id": "walk_neutral_special", "start_label": "special_acquisition_walk_neutral_special_setup" },
+    { "id": "walk_down_special", "start_label": "special_acquisition_walk_down_special_setup" },
+    { "id": "walk_reverse_tilt_wait", "start_label": "special_acquisition_walk_reverse_tilt_wait_setup" },
+    { "id": "walk_fresh_reverse_turn", "start_label": "special_acquisition_walk_fresh_reverse_turn_setup" },
+    { "id": "wait_grab_special_priority", "start_label": "special_acquisition_wait_grab_special_priority_setup" },
+    { "id": "wait_up_special_attack_priority", "start_label": "special_acquisition_wait_up_special_attack_priority_setup" },
+    { "id": "dash_side", "start_label": "special_acquisition_dash_side_setup" },
+    { "id": "dash_neutral", "start_label": "special_acquisition_dash_neutral_setup" },
+    { "id": "dash_up", "start_label": "special_acquisition_dash_up_setup" },
+    { "id": "dash_down", "start_label": "special_acquisition_dash_down_setup" },
+    { "id": "run_side_special", "start_label": "special_acquisition_run_side_special_setup" },
+    { "id": "run_up_special", "start_label": "special_acquisition_run_up_special_setup" },
+    { "id": "run_neutral_special", "start_label": "special_acquisition_run_neutral_special_setup" },
+    { "id": "run_down_special", "start_label": "special_acquisition_run_down_special_setup" },
+    { "id": "run_guard_dash_grab_hit", "start_label": "special_acquisition_run_guard_dash_grab_hit_setup" },
+    { "id": "wait_guard_ordinary_grab", "start_label": "special_acquisition_wait_guard_ordinary_grab_setup" },
+    { "id": "run_guard_dash_grab_expired", "start_label": "special_acquisition_run_guard_dash_grab_expired_setup" },
+    { "id": "jump_terminal_edge_neutral_history", "start_label": "special_acquisition_jump_terminal_edge_neutral_history_setup" },
+    { "id": "jump_terminal_edge_held_history", "start_label": "special_acquisition_jump_terminal_edge_held_history_setup" },
+    { "id": "dash_turn_origin_early_reverse", "start_label": "special_acquisition_dash_turn_origin_early_reverse_setup" }
+  ],
+  "selection": {
+    "paths": [
+      "generated/data/m4_ssbm_falcon_special_acquisition_oracle.json",
+      "src/sim/sim_movement.c",
+      "src/tools/m4_movement_trace.c",
+      "tests/sim/test_m4_movement.c",
+      "tools/bootstrap_ssbm_checkpoint_oracle.sh",
+      "tools/capture_ssbm_movement.py",
+      "tools/compare_ssbm_movement.py",
+      "tools/generate_ssbm_stored_trace_oracle.py",
+      "tools/ssbm_exiai_checkpoint.patch",
+      "tools/ssbm_falcon_special_acquisition_coverage.json",
+      "tools/ssbm_live_trace.py",
+      "tools/ssbm_natural_movement_domain.py",
+      "tools/ssbm_ucf_oracle.py",
+      "tools/verify_ssbm_falcon_special_acquisition.py"
+    ]
+  },
+  "stored_oracle": {
+    "kind": "native-csv-trace-v1",
+    "source_trace_sha256": "c68d3bc9cd830283648f98b210502a471ca0724fc3b5197caea5b71aaa29a07b",
+    "production_trace_sha256": "dfdf53934818d7436fa02fc265e3febb129e97f34b1573d0b670cfc66075a6c6",
+    "require_exact_source_match": false,
+    "serialized_fields": [
+      "action_state",
+      "action_ticks",
+      "facing",
+      "grounded"
+    ],
+    "action_mapping": {
+      "TURNING": { "action_state": 103, "action_tick_offset": 0 },
+      "SWORD_DANCE_1": { "action_state": 109, "action_tick_offset": 0 },
+      "SWORD_DANCE_3_MID": { "action_state": 117, "action_tick_offset": 0 },
+      "SWORD_DANCE_4_LOW": { "action_state": 123, "action_tick_offset": 0 },
+      "WALK_SLOW": { "action_state": 1, "action_tick_offset": 0 },
+      "WALK_MIDDLE": { "action_state": 1, "action_tick_offset": 0 },
+      "WALK_FAST": { "action_state": 1, "action_tick_offset": 0 },
+      "DASHING": { "action_state": 2, "action_tick_offset": 0 },
+      "DASH_ATTACK": { "action_state": 57, "action_tick_offset": 0 },
+      "ROLL_FORWARD": { "action_state": 38, "action_tick_offset": 0 },
+      "SHIELD_START": { "action_state": 18, "action_tick_offset": 0 },
+      "SHIELD_REFLECT": { "action_state": 18, "action_tick_offset": 1 },
+      "TAUNT_RIGHT": { "action_state": 75, "action_tick_offset": 0 },
+      "TAUNT_LEFT": { "action_state": 75, "action_tick_offset": 0 },
+      "GRAB": { "action_state": 49, "action_tick_offset": 0 },
+      "GRAB_RUNNING": { "action_state": 106, "action_tick_offset": 0 }
+    },
+    "cases": [
+      {
+        "id": "turn_neutral",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_turn_neutral_",
+        "sample_count": 7,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "main": [-16384, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "buttons": ["special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "turn_side",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_turn_side_",
+        "sample_count": 7,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "main": [-16384, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [-32767, 0], "buttons": ["special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "turn_up",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_turn_up_",
+        "sample_count": 7,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "main": [-16384, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [0, 32767], "buttons": ["special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "turn_down",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_turn_down_",
+        "sample_count": 7,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "main": [-16384, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [0, -32767], "buttons": ["special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "turn_ucf_raw_delta_76",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_turn_ucf_raw_delta_76_",
+        "sample_count": 4,
+        "serialized_fields": [
+          "action_state", "action_ticks", "facing", "tilt_x_age", "grounded",
+          "position_x_q16_from_origin", "position_y_q16_from_origin",
+          "velocity_x_q16", "velocity_y_q16"
+        ],
+        "field_exclusions": {
+          "action_ticks": [[0, 1]]
+        },
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "raw_main": [0, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [-16384, 0], "raw_main": [-40, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [-31129, 0], "raw_main": [-76, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "raw_main": [0, 0] }, {}] }
+        ]
+      },
+      {
+        "id": "turn_delayed_pending_dash",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_turn_delayed_pending_dash_",
+        "sample_count": 9,
+        "serialized_fields": [
+          "action_state", "action_ticks", "facing", "tilt_x_age", "grounded",
+          "position_x_q16_from_origin", "position_y_q16_from_origin",
+          "velocity_x_q16", "velocity_y_q16"
+        ],
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "main": [-16384, 0], "raw_main": [-40, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "raw_main": [0, 0] }, {}] },
+          { "ticks": 6, "lanes": [{ "main": [-32767, 0], "raw_main": [-80, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "raw_main": [0, 0] }, {}] }
+        ]
+      },
+      {
+        "id": "turn_ucf_raw_delta_75_release",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_turn_ucf_raw_delta_75_release_",
+        "sample_count": 9,
+        "serialized_fields": [
+          "action_state", "action_ticks", "facing", "tilt_x_age", "grounded",
+          "position_x_q16_from_origin", "position_y_q16_from_origin",
+          "velocity_x_q16", "velocity_y_q16"
+        ],
+        "field_exclusions": {
+          "action_ticks": [[0, 1]]
+        },
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "raw_main": [0, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [-16384, 0], "raw_main": [-40, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [-30719, 0], "raw_main": [-75, 0] }, {}] },
+          { "ticks": 6, "lanes": [{ "raw_main": [0, 0] }, {}] }
+        ]
+      },
+      {
+        "id": "dash_ordinary_early_attack",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_dash_ordinary_early_attack_",
+        "sample_count": 6,
+        "serialized_fields": [
+          "action_state", "action_ticks", "facing", "grounded",
+          "position_x_q16_from_origin", "position_y_q16_from_origin",
+          "velocity_x_q16", "velocity_y_q16"
+        ],
+        "action_mapping": {
+          "FSMASH_MID": { "action_state": 91, "action_tick_offset": 0 }
+        },
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "main": [32767, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [32767, 0], "buttons": ["attack"] }, {}] },
+          { "ticks": 4, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "dash_turn_origin_early_attack",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_dash_turn_origin_early_attack_",
+        "sample_count": 13,
+        "serialized_fields": [
+          "action_state", "action_ticks", "facing", "grounded",
+          "position_x_q16_from_origin", "position_y_q16_from_origin",
+          "velocity_x_q16", "velocity_y_q16"
+        ],
+        "field_exclusions": {
+          "position_x_q16_from_origin": [[9, 13]]
+        },
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "main": [-16384, 0] }, {}] },
+          { "ticks": 1, "lanes": [{}, {}] },
+          { "ticks": 6, "lanes": [{ "main": [-32767, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [-32767, 0], "buttons": ["attack"] }, {}] },
+          { "ticks": 4, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "dash_ordinary_early_shield",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_dash_ordinary_early_shield_",
+        "sample_count": 6,
+        "serialized_fields": [
+          "action_state", "action_ticks", "facing", "grounded",
+          "position_x_q16_from_origin", "position_y_q16_from_origin",
+          "velocity_x_q16", "velocity_y_q16"
+        ],
+        "field_exclusions": {
+          "position_x_q16_from_origin": [[2, 6]]
+        },
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "main": [32767, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [32767, 0], "left_trigger": 65535 }, {}] },
+          { "ticks": 4, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "dash_turn_origin_early_shield",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_dash_turn_origin_early_shield_",
+        "sample_count": 13,
+        "serialized_fields": [
+          "action_state", "action_ticks", "facing", "grounded",
+          "position_x_q16_from_origin", "position_y_q16_from_origin",
+          "velocity_x_q16", "velocity_y_q16"
+        ],
+        "field_exclusions": {
+          "action_ticks": [[8, 13]]
+        },
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "main": [-16384, 0] }, {}] },
+          { "ticks": 1, "lanes": [{}, {}] },
+          { "ticks": 6, "lanes": [{ "main": [-32767, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [-32767, 0], "left_trigger": 65535 }, {}] },
+          { "ticks": 4, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "dash_ordinary_early_taunt",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_dash_ordinary_early_taunt_",
+        "sample_count": 6,
+        "serialized_fields": [
+          "action_state", "action_ticks", "facing", "grounded",
+          "position_x_q16_from_origin", "position_y_q16_from_origin",
+          "velocity_x_q16", "velocity_y_q16"
+        ],
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "main": [32767, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [32767, 0], "buttons": ["taunt"] }, {}] },
+          { "ticks": 4, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "squat_wait_down",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_squat_wait_down_",
+        "sample_count": 26,
+        "input_phases": [
+          { "ticks": 20, "lanes": [{ "main": [0, -32767] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [0, -32767], "buttons": ["special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "squat_wait_diagonal_down",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_squat_wait_diagonal_down_",
+        "sample_count": 26,
+        "input_phases": [
+          { "ticks": 20, "lanes": [{ "main": [0, -32767] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [22937, -22937], "buttons": ["special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "squat_rv_down",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_squat_rv_down_",
+        "sample_count": 27,
+        "input_phases": [
+          { "ticks": 20, "lanes": [{ "main": [0, -32767] }, {}] },
+          { "ticks": 1, "lanes": [{}, {}] },
+          { "ticks": 1, "lanes": [{ "main": [0, -32767], "buttons": ["special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "squat_rv_diagonal_down",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_squat_rv_diagonal_down_",
+        "sample_count": 27,
+        "input_phases": [
+          { "ticks": 20, "lanes": [{ "main": [0, -32767] }, {}] },
+          { "ticks": 1, "lanes": [{}, {}] },
+          { "ticks": 1, "lanes": [{ "main": [22937, -22937], "buttons": ["special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "walk_grab_special_priority",
+        "runner_arguments": ["--walk-acquisition"],
+        "source_label_prefix": "special_acquisition_walk_grab_special_priority_",
+        "sample_count": 7,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "main": [11878, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [11878, 0], "left_trigger": 65535, "buttons": ["attack", "special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "walk_side_special",
+        "runner_arguments": ["--walk-acquisition"],
+        "source_label_prefix": "special_acquisition_walk_side_special_",
+        "sample_count": 7,
+        "serialized_fields": [
+          "action_state", "action_ticks", "facing", "grounded",
+          "position_x_q16_from_origin", "position_y_q16_from_origin",
+          "velocity_x_q16", "velocity_y_q16"
+        ],
+        "field_exclusions": {
+          "position_x_q16_from_origin": [[0, 7]]
+        },
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "main": [11878, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [11878, 0], "buttons": ["special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "walk_up_special",
+        "runner_arguments": ["--walk-acquisition"],
+        "source_label_prefix": "special_acquisition_walk_up_special_",
+        "sample_count": 7,
+        "serialized_fields": [
+          "action_state", "action_ticks", "facing", "grounded",
+          "position_x_q16_from_origin", "position_y_q16_from_origin",
+          "velocity_x_q16", "velocity_y_q16"
+        ],
+        "field_exclusions": {
+          "position_x_q16_from_origin": [[0, 7]],
+          "velocity_x_q16": [[1, 7]]
+        },
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "main": [11878, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [0, 32767], "buttons": ["special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "walk_neutral_special",
+        "runner_arguments": ["--walk-acquisition"],
+        "source_label_prefix": "special_acquisition_walk_neutral_special_",
+        "sample_count": 7,
+        "serialized_fields": [
+          "action_state", "action_ticks", "facing", "grounded",
+          "position_x_q16_from_origin", "position_y_q16_from_origin",
+          "velocity_x_q16", "velocity_y_q16"
+        ],
+        "field_exclusions": {
+          "position_x_q16_from_origin": [[0, 7]]
+        },
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "main": [11878, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "buttons": ["special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "walk_down_special",
+        "runner_arguments": ["--walk-acquisition"],
+        "source_label_prefix": "special_acquisition_walk_down_special_",
+        "sample_count": 7,
+        "serialized_fields": [
+          "action_state", "action_ticks", "facing", "grounded",
+          "position_x_q16_from_origin", "position_y_q16_from_origin",
+          "velocity_x_q16", "velocity_y_q16"
+        ],
+        "field_exclusions": {
+          "position_x_q16_from_origin": [[0, 7]]
+        },
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "main": [11878, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [0, -32767], "buttons": ["special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "walk_reverse_tilt_wait",
+        "runner_arguments": ["--walk-acquisition"],
+        "source_label_prefix": "special_acquisition_walk_reverse_tilt_wait_",
+        "sample_count": 3,
+        "field_exclusions": {
+          "action_ticks": [[1, 3]]
+        },
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "main": [11878, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [-11878, 0] }, {}] },
+          { "ticks": 1, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "walk_fresh_reverse_turn",
+        "runner_arguments": ["--walk-acquisition"],
+        "source_label_prefix": "special_acquisition_walk_fresh_reverse_turn_",
+        "sample_count": 3,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "main": [11878, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [-32767, 0] }, {}] },
+          { "ticks": 1, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "wait_grab_special_priority",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_wait_grab_special_priority_",
+        "sample_count": 6,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "left_trigger": 65535, "buttons": ["attack", "special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "wait_up_special_attack_priority",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_wait_up_special_attack_priority_",
+        "sample_count": 6,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "main": [0, 32767], "buttons": ["attack", "special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "dash_side",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_dash_side_",
+        "sample_count": 7,
+        "serialized_fields": [
+          "action_state", "action_ticks", "facing", "tilt_x_age", "grounded",
+          "position_x_q16_from_origin", "position_y_q16_from_origin",
+          "velocity_x_q16", "velocity_y_q16"
+        ],
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "main": [32767, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [32767, 0], "buttons": ["special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "dash_neutral",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_dash_neutral_",
+        "sample_count": 7,
+        "serialized_fields": [
+          "action_state", "action_ticks", "facing", "tilt_x_age", "grounded",
+          "position_x_q16_from_origin", "position_y_q16_from_origin",
+          "velocity_x_q16", "velocity_y_q16"
+        ],
+        "field_exclusions": {
+          "position_x_q16_from_origin": [[4, 7]]
+        },
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "main": [32767, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "buttons": ["special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "dash_up",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_dash_up_",
+        "sample_count": 7,
+        "serialized_fields": [
+          "action_state", "action_ticks", "facing", "tilt_x_age", "grounded",
+          "position_x_q16_from_origin", "position_y_q16_from_origin",
+          "velocity_x_q16", "velocity_y_q16"
+        ],
+        "field_exclusions": {
+          "position_x_q16_from_origin": [[3, 7]],
+          "velocity_x_q16": [[4, 5]]
+        },
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "main": [32767, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [0, 32767], "buttons": ["special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "dash_down",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_dash_down_",
+        "sample_count": 7,
+        "serialized_fields": [
+          "action_state", "action_ticks", "facing", "tilt_x_age", "grounded",
+          "position_x_q16_from_origin", "position_y_q16_from_origin",
+          "velocity_x_q16", "velocity_y_q16"
+        ],
+        "field_exclusions": {
+          "position_x_q16_from_origin": [[4, 7]]
+        },
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "main": [32767, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [0, -32767], "buttons": ["special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "run_side_special",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_run_side_special_",
+        "sample_count": 31,
+        "serialized_fields": [
+          "action_state", "action_ticks", "facing", "grounded",
+          "position_x_q16_from_origin", "position_y_q16_from_origin",
+          "velocity_x_q16", "velocity_y_q16"
+        ],
+        "field_exclusions": {
+          "action_ticks": [[15, 25]],
+          "position_x_q16_from_origin": [[4, 31]]
+        },
+        "input_phases": [
+          { "ticks": 25, "lanes": [{ "main": [32767, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [32767, 0], "buttons": ["special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "run_up_special",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_run_up_special_",
+        "sample_count": 31,
+        "serialized_fields": [
+          "action_state", "action_ticks", "facing", "grounded",
+          "position_x_q16_from_origin", "position_y_q16_from_origin",
+          "velocity_x_q16", "velocity_y_q16"
+        ],
+        "field_exclusions": {
+          "action_ticks": [[15, 25]],
+          "position_x_q16_from_origin": [[4, 31]],
+          "velocity_x_q16": [[25, 31]]
+        },
+        "input_phases": [
+          { "ticks": 25, "lanes": [{ "main": [32767, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [0, 32767], "buttons": ["special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "run_neutral_special",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_run_neutral_special_",
+        "sample_count": 31,
+        "serialized_fields": [
+          "action_state", "action_ticks", "facing", "grounded",
+          "position_x_q16_from_origin", "position_y_q16_from_origin",
+          "velocity_x_q16", "velocity_y_q16"
+        ],
+        "field_exclusions": {
+          "action_ticks": [[15, 25]],
+          "position_x_q16_from_origin": [[4, 31]]
+        },
+        "input_phases": [
+          { "ticks": 25, "lanes": [{ "main": [32767, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "buttons": ["special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "run_down_special",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_run_down_special_",
+        "sample_count": 31,
+        "serialized_fields": [
+          "action_state", "action_ticks", "facing", "grounded",
+          "position_x_q16_from_origin", "position_y_q16_from_origin",
+          "velocity_x_q16", "velocity_y_q16"
+        ],
+        "field_exclusions": {
+          "action_ticks": [[15, 25]],
+          "position_x_q16_from_origin": [[4, 31]]
+        },
+        "input_phases": [
+          { "ticks": 25, "lanes": [{ "main": [32767, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [0, -32767], "buttons": ["special"] }, {}] },
+          { "ticks": 5, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "run_guard_dash_grab_hit",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_run_guard_dash_grab_hit_",
+        "sample_count": 28,
+        "field_exclusions": {
+          "action_ticks": [[0, 26]]
+        },
+        "input_phases": [
+          { "ticks": 25, "lanes": [{ "main": [32767, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "left_trigger": 65535 }, {}] },
+          { "ticks": 1, "lanes": [{ "left_trigger": 65535, "buttons": ["attack"] }, {}] },
+          { "ticks": 1, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "wait_guard_ordinary_grab",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_wait_guard_ordinary_grab_",
+        "sample_count": 3,
+        "field_exclusions": {
+          "action_ticks": [[0, 1]]
+        },
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "left_trigger": 65535 }, {}] },
+          { "ticks": 1, "lanes": [{ "left_trigger": 65535, "buttons": ["attack"] }, {}] },
+          { "ticks": 1, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "run_guard_dash_grab_expired",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_run_guard_dash_grab_expired_",
+        "sample_count": 31,
+        "field_exclusions": {
+          "action_ticks": [[0, 29]]
+        },
+        "input_phases": [
+          { "ticks": 25, "lanes": [{ "main": [32767, 0] }, {}] },
+          { "ticks": 4, "lanes": [{ "left_trigger": 65535 }, {}] },
+          { "ticks": 1, "lanes": [{ "left_trigger": 65535, "buttons": ["attack"] }, {}] },
+          { "ticks": 1, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "jump_terminal_edge_neutral_history",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_jump_terminal_edge_neutral_history_",
+        "sample_count": 6,
+        "serialized_fields": [
+          "action_state", "action_ticks", "facing", "grounded",
+          "velocity_x_q16", "velocity_y_q16"
+        ],
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "buttons": ["jump"] }, {}] },
+          { "ticks": 3, "lanes": [{}, {}] },
+          { "ticks": 1, "lanes": [{ "main": [32767, 0] }, {}] },
+          { "ticks": 1, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "jump_terminal_edge_held_history",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_jump_terminal_edge_held_history_",
+        "sample_count": 6,
+        "serialized_fields": [
+          "action_state", "action_ticks", "facing", "grounded",
+          "velocity_x_q16", "velocity_y_q16"
+        ],
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "buttons": ["jump"] }, {}] },
+          { "ticks": 4, "lanes": [{ "main": [32767, 0] }, {}] },
+          { "ticks": 1, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "dash_turn_origin_early_reverse",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_dash_turn_origin_early_reverse_",
+        "sample_count": 12,
+        "serialized_fields": [
+          "action_state", "action_ticks", "facing", "grounded",
+          "velocity_x_q16", "velocity_y_q16"
+        ],
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "main": [-16384, 0] }, {}] },
+          { "ticks": 1, "lanes": [{}, {}] },
+          { "ticks": 8, "lanes": [{ "main": [-32767, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [32767, 0] }, {}] },
+          { "ticks": 1, "lanes": [{}, {}] }
+        ]
+      }
+    ],
+    "generator": {
+      "script": "tools/generate_ssbm_stored_trace_oracle.py",
+      "output": "generated/data/m4_ssbm_falcon_special_acquisition_oracle.json"
+    },
+    "runner": {
+      "executable": "pf_m4_movement_trace",
+      "arguments": []
+    }
+  }
+}
