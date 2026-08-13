@@ -555,7 +555,13 @@ static void canonicalize_source_animation_state(
         }
         if (!action_uses_ground_animation_clock(
                 scratch->action_state[player_index],
-                scratch->hitlag_resume_action[player_index]))
+                scratch->hitlag_resume_action[player_index]) &&
+            !(effective_action_state(
+                  scratch->action_state[player_index],
+                  scratch->hitlag_resume_action[player_index]) ==
+                  (uint8_t)PF_M4_ACTION_SHIELD &&
+              scratch->source_submotion[player_index] ==
+                  (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD_ON))
         {
             (void)memset(
                 &scratch->ground_blend_pose[player_index],

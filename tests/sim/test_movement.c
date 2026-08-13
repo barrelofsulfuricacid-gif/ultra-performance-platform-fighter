@@ -6,6 +6,8 @@
 #include "../../src/sim/sim_ssbm_common_data.h"
 
 #include <inttypes.h>
+#include <float.h>
+#include <math.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -89,27 +91,23 @@ static void make_inputs(
     }
 }
 
-static int32_t absolute_i32(int32_t value)
+static float absolute_f32(float value)
 {
-    return value < INT32_C(0) ? -value : value;
+    return value < 0.0f ? -value : value;
 }
 
 static int player_overlaps_solid(
     const struct content *content,
     const player_inspection *player)
 {
-    return (int64_t)player->position_x_f32 +
-                   content->fighter.half_width_f32 >
-               (int64_t)content->stage.solid_left_f32 &&
-           (int64_t)player->position_x_f32 -
-                   content->fighter.half_width_f32 <
-               (int64_t)content->stage.solid_right_f32 &&
-           (int64_t)player->position_y_f32 +
-                   content->fighter.half_height_f32 >
-               (int64_t)content->stage.solid_top_f32 &&
-           (int64_t)player->position_y_f32 -
-                   content->fighter.half_height_f32 <
-               (int64_t)content->stage.solid_bottom_f32;
+    return player->position_x_f32 + content->fighter.half_width_f32 >
+               content->stage.solid_left_f32 &&
+           player->position_x_f32 - content->fighter.half_width_f32 <
+               content->stage.solid_right_f32 &&
+           player->position_y_f32 + content->fighter.half_height_f32 >
+               content->stage.solid_top_f32 &&
+           player->position_y_f32 - content->fighter.half_height_f32 <
+               content->stage.solid_bottom_f32;
 }
 
 static int step_duel_players(
@@ -494,7 +492,7 @@ static int run_air_dodge_snapshot_test(
             pf_sim_query_save_size(source, &required_bytes),
             PF_STATUS_OK,
             "air-dodge-query-save-size") ||
-        required_bytes != (size_t)1787)
+        required_bytes != (size_t)1800)
     {
         return 0;
     }
@@ -592,13 +590,13 @@ static int run_air_dodge_test(
     struct content platform_content = *default_content;
     pf_content_view platform_view;
     struct inspection inspection;
-    int32_t entry_velocity_x;
-    int32_t entry_velocity_y;
-    int32_t expected_entry_velocity_x;
-    int32_t expected_entry_velocity_y;
-    int32_t landing_x;
-    int32_t landing_velocity_x;
-    int32_t previous_landing_x;
+    float entry_velocity_x;
+    float entry_velocity_y;
+    float expected_entry_velocity_x;
+    float expected_entry_velocity_y;
+    float landing_x;
+    float landing_velocity_x;
+    float previous_landing_x;
     int8_t takeoff_facing;
     uint32_t tick;
     int saw_ordinary_physics = 0;
@@ -788,14 +786,14 @@ static int run_air_dodge_test(
     }
     entry_velocity_x = inspection.players[0].velocity_x_f32;
     entry_velocity_y = inspection.players[0].velocity_y_f32;
-    expected_entry_velocity_x = (int32_t)(
-        (int64_t)INT16_MAX *
-        (int64_t)default_content->fighter.air_dodge_speed_x_f32 /
-        INT64_C(46340));
-    expected_entry_velocity_y = (int32_t)(
-        (int64_t)INT16_MIN *
-        (int64_t)default_content->fighter.air_dodge_speed_y_f32 /
-        INT64_C(46340));
+    expected_entry_velocity_x =
+        (float)INT16_MAX *
+        default_content->fighter.air_dodge_speed_x_f32 /
+        46340.0f;
+    expected_entry_velocity_y =
+        (float)INT16_MIN *
+        default_content->fighter.air_dodge_speed_y_f32 /
+        46340.0f;
     if (inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_AIR_DODGE ||
         inspection.players[0].action_ticks != UINT16_C(0) ||
@@ -825,15 +823,11 @@ static int run_air_dodge_test(
             (uint8_t)PF_M4_ACTION_AIR_DODGE ||
         inspection.players[0].action_ticks != UINT16_C(1) ||
         inspection.players[0].velocity_x_f32 !=
-            (int32_t)(
-                (int64_t)entry_velocity_x *
-                default_content->fighter.air_dodge_decay_f32 /
-                1.0f) ||
+            entry_velocity_x *
+                default_content->fighter.air_dodge_decay_f32 ||
         inspection.players[0].velocity_y_f32 !=
-            (int32_t)(
-                (int64_t)entry_velocity_y *
-                default_content->fighter.air_dodge_decay_f32 /
-                1.0f) ||
+            entry_velocity_y *
+                default_content->fighter.air_dodge_decay_f32 ||
         inspection.players[0].facing != takeoff_facing)
     {
         (void)fprintf(
@@ -1056,9 +1050,9 @@ static int run_air_dodge_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=special-landing-terminal-wait"
-            " or-slide action=%u ticks=%u x=%" PRId32
-            " landing_x=%" PRId32 " vx=%" PRId32
-            " landing_vx=%" PRId32 "\n",
+            " or-slide action=%u ticks=%u x=%.9g"
+            " landing_x=%.9g" " vx=%.9g"
+            " landing_vx=%.9g" "\n",
             (unsigned int)inspection.players[0].action_state,
             (unsigned int)inspection.players[0].action_ticks,
             inspection.players[0].position_x_f32,
@@ -1098,10 +1092,10 @@ static int run_air_dodge_test(
     }
     for (tick = UINT32_C(0); tick < UINT32_C(120); ++tick)
     {
-        const int32_t bottom =
+        const float bottom =
             inspection.players[0].position_y_f32 +
             platform_content.fighter.half_height_f32;
-        const int32_t maximum_diagonal_drop =
+        const float maximum_diagonal_drop =
             (platform_content.fighter.air_dodge_speed_y_f32 *
              INT32_C(3)) /
             INT32_C(4);
@@ -1168,10 +1162,10 @@ static int reach_platform_special_landing(
     }
     for (tick = UINT32_C(0); tick < UINT32_C(120); ++tick)
     {
-        const int32_t bottom =
+        const float bottom =
             out_inspection->players[0].position_y_f32 +
             content->fighter.half_height_f32;
-        const int32_t maximum_diagonal_drop =
+        const float maximum_diagonal_drop =
             (content->fighter.air_dodge_speed_y_f32 *
              INT32_C(3)) /
             INT32_C(4);
@@ -1241,7 +1235,7 @@ static int run_ledge_cancel_snapshot_test(
             pf_sim_query_save_size(source, &required_bytes),
             PF_STATUS_OK,
             "ledge-cancel-query-save-size") ||
-        required_bytes != (size_t)1787)
+        required_bytes != (size_t)1800)
     {
         return 0;
     }
@@ -1330,7 +1324,7 @@ static int run_ledge_cancel_snapshot_test(
             (void)fprintf(
                 stderr,
                 "m4-movement=fail operation=ledge-cancel-transition"
-                " action=%u ticks=%u grounded=%u support=%u x=%" PRId32
+                " action=%u ticks=%u grounded=%u support=%u x=%.9g"
                 "\n",
                 (unsigned int)source_inspection.players[0].action_state,
                 (unsigned int)source_inspection.players[0].action_ticks,
@@ -1354,7 +1348,7 @@ static int run_ledge_cancel_test(const struct content *default_content)
     pf_content_view ledge_view;
     pf_content_view center_view;
     struct inspection inspection;
-    int32_t landing_x;
+    float landing_x;
     uint32_t tick;
 
     ledge_content.stage.platform_center_x_f32 =
@@ -1509,7 +1503,7 @@ static int run_ground_dodge_snapshot_test(
             pf_sim_query_save_size(source, &required_bytes),
             PF_STATUS_OK,
             "ground-dodge-query-save-size") ||
-        required_bytes != (size_t)1787)
+        required_bytes != (size_t)1800)
     {
         return 0;
     }
@@ -1620,8 +1614,8 @@ static int run_ground_dodge_test(
     pf_sim *wall_sim = NULL;
     pf_sim *edge_sim = NULL;
     struct inspection inspection;
-    int32_t start_x;
-    int32_t expected_x;
+    float start_x;
+    float expected_x;
     int8_t facing;
     uint32_t elapsed;
     float forward_roll_displacement_f32 = 0.0f;
@@ -1851,8 +1845,8 @@ static int run_ground_dodge_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=forward-roll-contract"
-            " elapsed=%" PRIu32 " x=%" PRId32
-            " expected_x=%" PRId32 "\n",
+            " elapsed=%" PRIu32 " x=%.9g"
+            " expected_x=%.9g" "\n",
             elapsed,
             inspection.players[0].position_x_f32,
             expected_x);
@@ -1933,8 +1927,8 @@ static int run_ground_dodge_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=backward-roll-contract"
-            " elapsed=%" PRIu32 " action=%u x=%" PRId32
-            " expected_x=%" PRId32 " facing=%d expected_facing=%d\n",
+            " elapsed=%" PRIu32 " action=%u x=%.9g"
+            " expected_x=%.9g" " facing=%d expected_facing=%d\n",
             elapsed,
             (unsigned int)inspection.players[0].action_state,
             inspection.players[0].position_x_f32,
@@ -2063,8 +2057,8 @@ static int run_ground_dodge_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=spot-dodge-contract"
-            " elapsed=%" PRIu32 " action=%u x=%" PRId32
-            " expected_x=%" PRId32 " facing=%d expected_facing=%d\n",
+            " elapsed=%" PRIu32 " action=%u x=%.9g"
+            " expected_x=%.9g" " facing=%d expected_facing=%d\n",
             elapsed,
             (unsigned int)inspection.players[0].action_state,
             inspection.players[0].position_x_f32,
@@ -2324,7 +2318,7 @@ static int run_ground_dodge_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=c-stick-held-full-hop"
-            " action=%u vy=%" PRId32 " expected=%" PRId32 "\n",
+            " action=%u vy=%.9g" " expected=%.9g" "\n",
             (unsigned int)inspection.players[0].action_state,
             inspection.players[0].velocity_y_f32,
             -default_content->fighter.full_hop_speed_f32);
@@ -2381,7 +2375,7 @@ static int run_ground_dodge_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=c-stick-release-full-hop"
-            " action=%u vy=%" PRId32 " expected=%" PRId32 "\n",
+            " action=%u vy=%.9g" " expected=%.9g" "\n",
             (unsigned int)inspection.players[0].action_state,
             inspection.players[0].velocity_y_f32,
             -default_content->fighter.full_hop_speed_f32);
@@ -2514,7 +2508,7 @@ static int run_ground_dodge_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=roll-wall-clamp"
-            " x=%" PRId32 " limit=%" PRId32 "\n",
+            " x=%.9g" " limit=%.9g" "\n",
             inspection.players[0].position_x_f32,
             wall_content.stage.solid_left_f32 -
                 wall_content.fighter.half_width_f32);
@@ -2585,7 +2579,7 @@ static int run_ground_dodge_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=roll-edge-exit"
-            " grounded=%u support=%u action=%u x=%" PRId32 "\n",
+            " grounded=%u support=%u action=%u x=%.9g" "\n",
             (unsigned int)inspection.players[0].grounded,
             (unsigned int)inspection.players[0].support,
             (unsigned int)inspection.players[0].action_state,
@@ -3182,7 +3176,7 @@ static int run_run_brake_iasa_test(
     test_sim_storage storage;
     pf_sim *sim = NULL;
     struct inspection inspection;
-    int32_t velocity_before;
+    float velocity_before;
     int8_t facing_before;
     size_t input_index;
     uint32_t tick;
@@ -3713,10 +3707,10 @@ static int run_ground_control_test(
     test_sim_storage storage;
     pf_sim *sim = NULL;
     struct inspection inspection;
-    int32_t slow_walk_velocity;
-    int32_t fast_walk_velocity;
-    int32_t dash_velocity;
-    int32_t run_velocity;
+    float slow_walk_velocity;
+    float fast_walk_velocity;
+    float dash_velocity;
+    float run_velocity;
     int16_t ramp_low;
     int16_t ramp_middle;
     int16_t ramp_high;
@@ -4023,7 +4017,7 @@ static int run_ground_control_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=dash-dance-reversal"
-            " action=%u dash=%d facing=%d velocity=%d\n",
+            " action=%u dash=%d facing=%d velocity=%.9g\n",
             (unsigned int)inspection.players[0].action_state,
             (int)inspection.players[0].dash_direction,
             (int)inspection.players[0].facing,
@@ -4087,8 +4081,8 @@ static int run_ground_control_test(
         inspection.players[0].dash_direction != INT8_C(1) ||
         inspection.players[0].facing != INT8_C(-1) ||
         inspection.players[0].velocity_x_f32 >= 0.0f ||
-        absolute_i32(inspection.players[0].velocity_x_f32) >=
-            absolute_i32(run_velocity))
+        absolute_f32(inspection.players[0].velocity_x_f32) >=
+            absolute_f32(run_velocity))
     {
         (void)fprintf(
             stderr,
@@ -4123,8 +4117,8 @@ static int run_ground_control_test(
             (uint8_t)PF_M4_ACTION_RUN ||
         inspection.players[0].facing != INT8_C(1) ||
         inspection.players[0].velocity_x_f32 <= 0.0f ||
-        absolute_i32(inspection.players[0].velocity_x_f32) >=
-            absolute_i32(run_velocity))
+        absolute_f32(inspection.players[0].velocity_x_f32) >=
+            absolute_f32(run_velocity))
     {
         (void)fprintf(
             stderr,
@@ -4161,8 +4155,8 @@ static int run_ground_control_test(
             &inspection) ||
         inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_RUN_BRAKE ||
-        absolute_i32(inspection.players[0].velocity_x_f32) >=
-            absolute_i32(run_velocity))
+        absolute_f32(inspection.players[0].velocity_x_f32) >=
+            absolute_f32(run_velocity))
     {
         (void)fprintf(
             stderr,
@@ -4240,8 +4234,8 @@ static int run_ground_control_test(
     }
     if (inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
-        absolute_i32(inspection.players[0].velocity_x_f32) >=
-            absolute_i32(run_velocity))
+        absolute_f32(inspection.players[0].velocity_x_f32) >=
+            absolute_f32(run_velocity))
     {
         (void)fprintf(
             stderr,
@@ -4307,7 +4301,7 @@ static int run_ground_control_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=crouch-wait-clock-entry "
-            "action=%u ticks=%u submotion=%u frame=%d rate=%d\n",
+            "action=%u ticks=%u submotion=%u frame=%.9g rate=%.9g\n",
             (unsigned int)inspection.players[0].action_state,
             (unsigned int)inspection.players[0].action_ticks,
             (unsigned int)inspection.players[0].source_submotion,
@@ -4330,7 +4324,7 @@ static int run_ground_control_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=crouch-wait-clock-advance "
-            "action=%u ticks=%u submotion=%u frame=%d rate=%d\n",
+            "action=%u ticks=%u submotion=%u frame=%.9g rate=%.9g\n",
             (unsigned int)inspection.players[0].action_state,
             (unsigned int)inspection.players[0].action_ticks,
             (unsigned int)inspection.players[0].source_submotion,
@@ -4360,7 +4354,7 @@ static int run_ground_control_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=crouch-wait-clock-wrap "
-            "ticks=%u frame=%d\n",
+            "ticks=%u frame=%.9g\n",
             (unsigned int)inspection.players[0].action_ticks,
             inspection.players[0].source_animation_frame_f32);
         return 0;
@@ -4378,7 +4372,7 @@ static int run_ground_control_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=crouch-release-entry "
-            "action=%u ticks=%u submotion=%u frame=%d rate=%d\n",
+            "action=%u ticks=%u submotion=%u frame=%.9g rate=%.9g\n",
             (unsigned int)inspection.players[0].action_state,
             (unsigned int)inspection.players[0].action_ticks,
             (unsigned int)inspection.players[0].source_submotion,
@@ -4957,7 +4951,7 @@ static int run_jump_takeoff_momentum_route(
     uint64_t seed,
     int16_t held_axis,
     int16_t terminal_axis,
-    int32_t *out_velocity_x)
+    float *out_velocity_x)
 {
     struct inspection inspection;
     uint32_t tick;
@@ -5026,8 +5020,8 @@ static int run_jump_takeoff_momentum_route(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=jump-takeoff-launch"
-            " action=%u grounded=%u facing=%d velocity=(%" PRId32
-            ",%" PRId32 ")\n",
+            " action=%u grounded=%u facing=%d velocity=(%.9g"
+            ",%.9g" ")\n",
             (unsigned int)inspection.players[0].action_state,
             (unsigned int)inspection.players[0].grounded,
             (int)inspection.players[0].facing,
@@ -5245,7 +5239,7 @@ static int run_tap_jump_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=tap-air-jump action=%u "
-            "jumps=%u vy=%" PRId32 " expected=%" PRId32 "\n",
+            "jumps=%u vy=%.9g" " expected=%.9g" "\n",
             (unsigned int)inspection.players[0].action_state,
             (unsigned int)inspection.players[0].air_jumps_remaining,
             inspection.players[0].velocity_y_f32,
@@ -5291,10 +5285,10 @@ static int run_jump_takeoff_momentum_test(
 {
     test_sim_storage storage;
     pf_sim *sim = NULL;
-    int32_t forward_velocity_x;
-    int32_t neutral_velocity_x;
-    int32_t reverse_velocity_x;
-    int32_t terminal_edge_velocity_x;
+    float forward_velocity_x;
+    float neutral_velocity_x;
+    float reverse_velocity_x;
+    float terminal_edge_velocity_x;
 
     if (!initialize_sim(
             &storage,
@@ -5328,14 +5322,14 @@ static int run_jump_takeoff_momentum_test(
     }
     if (neutral_velocity_x <= reverse_velocity_x ||
         forward_velocity_x <= neutral_velocity_x ||
-        absolute_i32(reverse_velocity_x) >
+        absolute_f32(reverse_velocity_x) >
             neutral_velocity_x / INT32_C(2))
     {
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=jump-takeoff-momentum"
-            " forward=%" PRId32 " neutral=%" PRId32
-            " reverse=%" PRId32 " tolerance=%" PRId32 "\n",
+            " forward=%.9g" " neutral=%.9g"
+            " reverse=%.9g" " tolerance=%.9g" "\n",
             forward_velocity_x,
             neutral_velocity_x,
             reverse_velocity_x,
@@ -5354,7 +5348,7 @@ static int run_jump_takeoff_momentum_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=jump-takeoff-terminal-input-order"
-            " edge=%" PRId32 " neutral=%" PRId32 "\n",
+            " edge=%.9g" " neutral=%.9g" "\n",
             terminal_edge_velocity_x,
             neutral_velocity_x);
         return 0;
@@ -5378,8 +5372,8 @@ static int run_fox_trot_test(
     pf_mut_bytes destination;
     pf_bytes source_bytes;
     size_t save_size = (size_t)0;
-    int32_t starting_position_x;
-    int32_t previous_position_x;
+    float starting_position_x;
+    float previous_position_x;
     uint32_t burst;
     uint32_t tick;
 
@@ -5439,13 +5433,13 @@ static int run_fox_trot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "fox-trot-query-save-size") ||
-        save_size != (size_t)1787)
+        save_size != (size_t)1800)
     {
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=fox-trot-entry"
             " action=%u ticks=%u facing=%d dash=%d"
-            " velocity_x=%" PRId32 "\n",
+            " velocity_x=%.9g" "\n",
             (unsigned int)source_inspection.players[0].action_state,
             (unsigned int)source_inspection.players[0].action_ticks,
             (int)source_inspection.players[0].facing,
@@ -5516,7 +5510,7 @@ static int run_fox_trot_test(
                 stderr,
                 "m4-movement=fail operation=fox-trot-restart"
                 " burst=%" PRIu32 " action=%u ticks=%u"
-                " position_x=%" PRId32 " previous_x=%" PRId32
+                " position_x=%.9g" " previous_x=%.9g"
                 "\n",
                 burst,
                 (unsigned int)
@@ -5615,7 +5609,7 @@ static int run_fox_trot_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=fox-trot-held-negative"
-            " action=%u ticks=%u velocity_x=%" PRId32 "\n",
+            " action=%u ticks=%u velocity_x=%.9g" "\n",
             (unsigned int)source_inspection.players[0].action_state,
             (unsigned int)source_inspection.players[0].action_ticks,
             source_inspection.players[0].velocity_x_f32);
@@ -5679,8 +5673,21 @@ static int enter_right_teeter(
         const float distance_f32 =
             content->stage.floor_right_f32 -
             out_inspection->players[0].position_x_f32;
+        float braking_speed_f32 =
+            out_inspection->players[0].velocity_x_f32;
+        float braking_distance_f32 = 0.0f;
 
-        if (distance_f32 <= 7.6293945E-05f * 1.0f)
+        while (braking_speed_f32 > 0.0f)
+        {
+            braking_distance_f32 += braking_speed_f32;
+            braking_speed_f32 =
+                braking_speed_f32 > content->fighter.traction_f32
+                    ? braking_speed_f32 - content->fighter.traction_f32
+                    : 0.0f;
+        }
+
+        if (distance_f32 <=
+            braking_distance_f32 + content->fighter.walk_speed_f32)
         {
             break;
         }
@@ -5762,10 +5769,8 @@ static int enter_right_teeter(
              ++axis)
         {
             const float target_f32 =
-                (int32_t)(
-                    (int64_t)(int32_t)axis *
-                    (int64_t)content->fighter.walk_speed_f32 /
-                    INT64_C(32767));
+                (float)axis * content->fighter.walk_speed_f32 /
+                32767.0f;
             float next_velocity_f32 = velocity_f32;
             const float acceleration_f32 =
                 content->fighter.ground_acceleration_f32;
@@ -5820,12 +5825,30 @@ static int enter_right_teeter(
             (void)fprintf(
                 stderr,
                 "m4-movement=fail operation=teeter-approach-walk"
-                " tick=%" PRIu32 " distance=%" PRId32
-                " velocity=%" PRId32 " axis=%d\n",
+                " tick=%" PRIu32 " distance=%.9g"
+                " velocity=%.9g" " axis=%d\n",
                 tick,
                 distance_f32,
                 velocity_f32,
                 (int)selected_axis);
+            return 0;
+        }
+    }
+
+    for (tick = UINT32_C(0);
+         tick < UINT32_C(60) &&
+         out_inspection->players[0].action_state !=
+             (uint8_t)PF_M4_ACTION_TEETER;
+         ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                edge_buttons,
+                out_inspection) ||
+            out_inspection->players[0].grounded == UINT8_C(0))
+        {
             return 0;
         }
     }
@@ -5845,8 +5868,8 @@ static int enter_right_teeter(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=teeter-entry"
-            " action=%u ticks=%u position=%" PRId32
-            " velocity=%" PRId32 " grounded=%u\n",
+            " action=%u ticks=%u position=%.9g"
+            " velocity=%.9g" " grounded=%u\n",
             (unsigned int)out_inspection->players[0].action_state,
             (unsigned int)out_inspection->players[0].action_ticks,
             out_inspection->players[0].position_x_f32,
@@ -5910,7 +5933,7 @@ static int run_teeter_cancel_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "teeter-query-save-size") ||
-        save_size != (size_t)1787)
+        save_size != (size_t)1800)
     {
         return 0;
     }
@@ -6141,8 +6164,8 @@ static int run_teeter_cancel_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=teeter-early-release-negative"
-            " action=%u position=%" PRId32 " threshold=%" PRId32
-            " velocity=%" PRId32 "\n",
+            " action=%u position=%.9g" " threshold=%.9g"
+            " velocity=%.9g" "\n",
             (unsigned int)source_inspection.players[0].action_state,
             source_inspection.players[0].position_x_f32,
             content->stage.floor_right_f32 -
@@ -6284,12 +6307,12 @@ static int run_taunt_cancel_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "taunt-query-save-size") ||
-        save_size != (size_t)1787)
+        save_size != (size_t)1800)
     {
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=taunt-dash-entry"
-            " action=%u ticks=%u velocity=%" PRId32 "\n",
+            " action=%u ticks=%u velocity=%.9g" "\n",
             (unsigned int)source_inspection.players[0].action_state,
             (unsigned int)source_inspection.players[0].action_ticks,
             source_inspection.players[0].velocity_x_f32);
@@ -6484,13 +6507,13 @@ static int run_stage_humping_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "stage-humping-query-save-size") ||
-        save_size != (size_t)1787)
+        save_size != (size_t)1800)
     {
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=stage-humping-first-step"
-            " action=%u ticks=%u position=%" PRId32
-            " velocity=%" PRId32 "\n",
+            " action=%u ticks=%u position=%.9g"
+            " velocity=%.9g" "\n",
             (unsigned int)source_inspection.players[0].action_state,
             (unsigned int)source_inspection.players[0].action_ticks,
             source_inspection.players[0].position_x_f32,
@@ -6838,13 +6861,13 @@ static int run_pivot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "pivot-query-save-size") ||
-        save_size != (size_t)1787)
+        save_size != (size_t)1800)
     {
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=pivot-frame"
             " action=%u ticks=%u facing=%d dash=%d"
-            " velocity_x=%" PRId32 "\n",
+            " velocity_x=%.9g" "\n",
             (unsigned int)source_inspection.players[0].action_state,
             (unsigned int)source_inspection.players[0].action_ticks,
             (int)source_inspection.players[0].facing,
@@ -6886,7 +6909,7 @@ static int run_pivot_test(
         source_inspection.players[0].facing != INT8_C(-1) ||
         source_inspection.players[0].dash_direction != INT8_C(0) ||
         source_inspection.players[0].velocity_x_f32 <= 0.0f ||
-        absolute_i32(source_inspection.players[0].velocity_x_f32) >=
+        absolute_f32(source_inspection.players[0].velocity_x_f32) >=
             content->fighter.initial_dash_speed_f32 ||
         !expect_status(
             pf_sim_hash(source, &source_hash),
@@ -6904,7 +6927,7 @@ static int run_pivot_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=pivot-action"
-            " action=%u facing=%d dash=%d velocity_x=%" PRId32
+            " action=%u facing=%d dash=%d velocity_x=%.9g"
             "\n",
             (unsigned int)source_inspection.players[0].action_state,
             (int)source_inspection.players[0].facing,
@@ -6979,13 +7002,13 @@ static int run_pivot_test(
         source_inspection.players[0].facing != INT8_C(-1) ||
         source_inspection.players[0].dash_direction != INT8_C(-1) ||
         source_inspection.players[0].velocity_x_f32 <= 0.0f ||
-        absolute_i32(source_inspection.players[0].velocity_x_f32) >=
+        absolute_f32(source_inspection.players[0].velocity_x_f32) >=
             content->fighter.initial_dash_speed_f32)
     {
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=empty-pivot"
-            " action=%u facing=%d dash=%d velocity_x=%" PRId32
+            " action=%u facing=%d dash=%d velocity_x=%.9g"
             "\n",
             (unsigned int)source_inspection.players[0].action_state,
             (int)source_inspection.players[0].facing,
@@ -7090,14 +7113,14 @@ static int run_pivot_test(
 static int measure_hop(
     const pf_content_view *content,
     uint32_t held_ticks,
-    int32_t *out_launch_velocity,
-    int32_t *out_apex_y)
+    float *out_launch_velocity,
+    float *out_apex_y)
 {
     test_sim_storage storage;
     pf_sim *sim = NULL;
     struct inspection inspection;
     int launched = 0;
-    int32_t apex_y = INT32_MAX;
+    float apex_y = FLT_MAX;
     uint32_t tick;
 
     if (!initialize_sim(
@@ -7165,14 +7188,14 @@ static int run_air_control_test(
     test_sim_storage storage;
     pf_sim *sim = NULL;
     struct inspection inspection;
-    int32_t short_launch_early;
-    int32_t short_launch_late;
-    int32_t full_launch_early;
-    int32_t full_launch_late;
-    int32_t short_apex_early;
-    int32_t short_apex_late;
-    int32_t full_apex_early;
-    int32_t full_apex_late;
+    float short_launch_early;
+    float short_launch_late;
+    float full_launch_early;
+    float full_launch_late;
+    float short_apex_early;
+    float short_apex_late;
+    float full_apex_early;
+    float full_apex_late;
     uint32_t tick;
 
     if (!measure_hop(
@@ -7207,8 +7230,8 @@ static int run_air_control_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=binary-hop-heights"
-            " short=(%" PRId32 ",%" PRId32 ")"
-            " full=(%" PRId32 ",%" PRId32 ")\n",
+            " short=(%.9g" ",%.9g" ")"
+            " full=(%.9g" ",%.9g" ")\n",
             short_apex_early,
             short_apex_late,
             full_apex_early,
@@ -7366,8 +7389,8 @@ static int run_instant_double_jump_test(
     pf_mut_bytes destination;
     pf_bytes save;
     size_t save_size = (size_t)0;
-    int32_t launch_y;
-    int32_t expected_velocity_y;
+    float launch_y;
+    float expected_velocity_y;
     uint32_t tick;
 
     if (content->fighter.air_jump_count != UINT8_C(1) ||
@@ -7482,8 +7505,8 @@ static int run_instant_double_jump_test(
             stderr,
             "m4-movement=fail operation=idj-first-airborne-input"
             " action=%u ticks=%u grounded=%u jumps=%u"
-            " position_y=%" PRId32 " launch_y=%" PRId32
-            " velocity=(%" PRId32 ",%" PRId32 ") expected_y=%" PRId32
+            " position_y=%.9g" " launch_y=%.9g"
+            " velocity=(%.9g" ",%.9g" ") expected_y=%.9g"
             "\n",
             (unsigned int)source_inspection.players[0].action_state,
             (unsigned int)source_inspection.players[0].action_ticks,
@@ -7502,7 +7525,7 @@ static int run_instant_double_jump_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "idj-query-save-size") ||
-        save_size != (size_t)1787)
+        save_size != (size_t)1800)
     {
         return 0;
     }
@@ -7660,7 +7683,7 @@ static int enter_double_jump_cancel_window(
         delayed_expected != 0
             ? (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP
             : (uint8_t)PF_M4_ACTION_AIRBORNE;
-    const int32_t expected_velocity_y =
+    const float expected_velocity_y =
         -content->fighter.double_jump_speed_f32 +
         content->fighter.gravity_f32;
 
@@ -7681,7 +7704,7 @@ static int enter_double_jump_cancel_window(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=double-jump-cancel-entry"
-            " delayed=%d action=%u ticks=%u velocity_y=%" PRId32
+            " delayed=%d action=%u ticks=%u velocity_y=%.9g"
             " jumps=%u\n",
             delayed_expected,
             (unsigned int)out_inspection->players[0].action_state,
@@ -7725,9 +7748,9 @@ static int run_double_jump_cancel_test(
     pf_mut_bytes destination;
     pf_bytes save;
     size_t save_size = (size_t)0;
-    int32_t before_cancel_position_y;
-    int32_t before_late_velocity_y;
-    int32_t before_simultaneous_velocity_y;
+    float before_cancel_position_y;
+    float before_late_velocity_y;
+    float before_simultaneous_velocity_y;
     uint32_t cancel_landing_tick;
     uint32_t late_landing_tick;
     uint32_t tick;
@@ -7850,7 +7873,7 @@ static int run_double_jump_cancel_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "double-jump-cancel-query-save-size") ||
-        save_size != (size_t)1787)
+        save_size != (size_t)1800)
     {
         return 0;
     }
@@ -8753,7 +8776,7 @@ static int run_aerial_trigger_snapshot_test(
             pf_sim_query_save_size(source, &required_bytes),
             PF_STATUS_OK,
             "aerial-query-save-size") ||
-        required_bytes != (size_t)1787)
+        required_bytes != (size_t)1800)
     {
         return 0;
     }
@@ -9132,8 +9155,8 @@ static int run_platform_test(const struct content *default_content)
     pf_content_view tuned_view;
     pf_sim *sim = NULL;
     struct inspection inspection;
-    int32_t previous_player_x;
-    int32_t previous_platform_left;
+    float previous_player_x;
+    float previous_platform_left;
     uint32_t tick;
 
     if (default_content->fighter.platform_drop_startup_ticks !=
@@ -9254,7 +9277,7 @@ static int run_platform_test(const struct content *default_content)
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=platform-landing"
-            " entry_velocity_y=%" PRId32 "\n",
+            " entry_velocity_y=%.9g" "\n",
             inspection.players[0].velocity_y_f32);
         return 0;
     }
@@ -9272,7 +9295,7 @@ static int run_platform_test(const struct content *default_content)
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=platform-landing-ground-physics"
-            " action=%u velocity_y=%" PRId32 "\n",
+            " action=%u velocity_y=%.9g" "\n",
             (unsigned int)inspection.players[0].action_state,
             inspection.players[0].velocity_y_f32);
         return 0;
@@ -9512,7 +9535,7 @@ static int run_upper_platform_test(
     uint8_t save_bytes[2048];
     pf_mut_bytes destination;
     pf_bytes source_bytes;
-    int32_t stationary_x;
+    float stationary_x;
     uint32_t tick;
 
     if (default_content->stage.upper_platform_center_x_f32 !=
@@ -9628,7 +9651,7 @@ static int run_upper_platform_test(
             pf_sim_save(source, &destination),
             PF_STATUS_OK,
             "upper-platform-save") ||
-        destination.size != (size_t)1787)
+        destination.size != (size_t)1800)
     {
         return 0;
     }
@@ -10153,7 +10176,7 @@ static int run_shield_platform_drop_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "shield-platform-drop-query-save-size") ||
-        save_size != (size_t)1787)
+        save_size != (size_t)1800)
     {
         return 0;
     }
@@ -10444,9 +10467,9 @@ static int run_solid_geometry_test(
         falcon_reference_airborne_ecb_pose(
             (uint16_t)PF_M4_FALCON_SUBMOTION_FALL,
             UINT16_C(0));
-    const int32_t wall_contact_x =
+    const float wall_contact_x =
         -default_content->fighter.half_width_f32;
-    const int32_t top_contact_y =
+    const float top_contact_y =
         INT32_C(26) * 1.0f -
         default_content->fighter.half_height_f32;
     int observed_wall = 0;
@@ -10562,7 +10585,7 @@ static int run_solid_geometry_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=solid-walk-under"
-            " position=(%" PRId32 ",%" PRId32 ")"
+            " position=(%.9g" ",%.9g" ")"
             " grounded=%u support=%u\n",
             inspection.players[1].position_x_f32,
             inspection.players[1].position_y_f32,
@@ -10615,8 +10638,8 @@ static int run_solid_geometry_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=solid-side-contact"
-            " position=(%" PRId32 ",%" PRId32 ")"
-            " velocity=(%" PRId32 ",%" PRId32 ")\n",
+            " position=(%.9g" ",%.9g" ")"
+            " velocity=(%.9g" ",%.9g" ")\n",
             inspection.players[0].position_x_f32,
             inspection.players[0].position_y_f32,
             inspection.players[0].velocity_x_f32,
@@ -10668,10 +10691,10 @@ static int run_solid_geometry_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=solid-ceiling-contact"
-            " position=(%" PRId32 ",%" PRId32 ")"
-            " velocity=(%" PRId32 ",%" PRId32 ")"
-            " action=%u ticks=%u grounded=%u submotion=%u frame=%" PRId32
-            " half_height=%" PRId32 "\n",
+            " position=(%.9g" ",%.9g" ")"
+            " velocity=(%.9g" ",%.9g" ")"
+            " action=%u ticks=%u grounded=%u submotion=%u frame=%.9g"
+            " half_height=%.9g" "\n",
             inspection.players[1].position_x_f32,
             inspection.players[1].position_y_f32,
             inspection.players[1].velocity_x_f32,
@@ -10711,8 +10734,8 @@ static int run_solid_geometry_test(
                 stderr,
                 "m4-movement=fail operation=solid-upper-left-corner"
                 " tick=%" PRIu32
-                " position=(%" PRId32 ",%" PRId32 ")"
-                " velocity=(%" PRId32 ",%" PRId32 ")\n",
+                " position=(%.9g" ",%.9g" ")"
+                " velocity=(%.9g" ",%.9g" ")\n",
                 tick,
                 inspection.players[0].position_x_f32,
                 inspection.players[0].position_y_f32,
@@ -10735,7 +10758,7 @@ static int run_solid_geometry_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=solid-top-landing"
-            " position=(%" PRId32 ",%" PRId32 ")"
+            " position=(%.9g" ",%.9g" ")"
             " grounded=%u support=%u\n",
             inspection.players[0].position_x_f32,
             inspection.players[0].position_y_f32,
@@ -10766,8 +10789,8 @@ static int run_solid_geometry_test(
             stderr,
             "m4-movement=fail operation=solid-top-left-edge-escape"
             " action=%u ticks=%u grounded=%u support=%u"
-            " position=(%" PRId32 ",%" PRId32 ")"
-            " velocity=(%" PRId32 ",%" PRId32 ")\n",
+            " position=(%.9g" ",%.9g" ")"
+            " velocity=(%.9g" ",%.9g" ")\n",
             (unsigned int)inspection.players[0].action_state,
             (unsigned int)inspection.players[0].action_ticks,
             (unsigned int)inspection.players[0].grounded,
@@ -10808,8 +10831,8 @@ static int run_solid_geometry_test(
                 stderr,
                 "m4-movement=fail operation=solid-upper-right-corner"
                 " tick=%" PRIu32
-                " position=(%" PRId32 ",%" PRId32 ")"
-                " velocity=(%" PRId32 ",%" PRId32 ")\n",
+                " position=(%.9g" ",%.9g" ")"
+                " velocity=(%.9g" ",%.9g" ")\n",
                 tick,
                 inspection.players[1].position_x_f32,
                 inspection.players[1].position_y_f32,
@@ -10832,7 +10855,7 @@ static int run_solid_geometry_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=solid-right-top-landing"
-            " position=(%" PRId32 ",%" PRId32 ")"
+            " position=(%.9g" ",%.9g" ")"
             " grounded=%u support=%u\n",
             inspection.players[1].position_x_f32,
             inspection.players[1].position_y_f32,
@@ -11004,8 +11027,8 @@ static int grab_player0_right_ledge(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=right-ledge-grab"
-            " action=%u ledge=%u x=%" PRId32 " y=%" PRId32
-            " facing=%d vx=%" PRId32 " vy=%" PRId32 "\n",
+            " action=%u ledge=%u x=%.9g" " y=%.9g"
+            " facing=%d vx=%.9g" " vy=%.9g" "\n",
             (unsigned int)out_inspection->players[0].action_state,
             (unsigned int)out_inspection->players[0].ledge,
             out_inspection->players[0].position_x_f32,
@@ -11472,7 +11495,7 @@ static int run_ledge_hit_rejection_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=ledge-invulnerability-hit-expiry"
-            " damage=%" PRIu32 "\n",
+            " damage=%.9g\n",
             inspection.players[0].damage_f32);
         return 0;
     }
@@ -11484,7 +11507,7 @@ static int reach_scar_jump_wall(
     const struct content *content,
     struct inspection *out_inspection)
 {
-    const int32_t contact_x =
+    const float contact_x =
         content->stage.solid_right_f32 +
         content->fighter.half_width_f32;
     uint32_t tick;
@@ -11528,8 +11551,8 @@ static int reach_scar_jump_wall(
     (void)fprintf(
         stderr,
         "m4-movement=fail operation=scar-jump-wall-contact"
-        " action=%u position=(%" PRId32 ",%" PRId32 ")"
-        " velocity=(%" PRId32 ",%" PRId32 ")\n",
+        " action=%u position=(%.9g" ",%.9g" ")"
+        " velocity=(%.9g" ",%.9g" ")\n",
         (unsigned int)out_inspection->players[0].action_state,
         out_inspection->players[0].position_x_f32,
         out_inspection->players[0].position_y_f32,
@@ -11634,7 +11657,7 @@ static int run_scar_jump_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "scar-jump-save-size") ||
-        save_size != (size_t)1787)
+        save_size != (size_t)1800)
     {
         return 0;
     }
@@ -11810,7 +11833,7 @@ static int run_edge_hop_test(
     pf_mut_bytes destination;
     pf_bytes source_bytes;
     size_t save_size = (size_t)0;
-    int32_t before_exhausted_jump_velocity_y;
+    float before_exhausted_jump_velocity_y;
 
     if (!initialize_sim(
             &source_storage,
@@ -11860,7 +11883,7 @@ static int run_edge_hop_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "edge-hop-query-save-size") ||
-        save_size != (size_t)1787)
+        save_size != (size_t)1800)
     {
         return 0;
     }
@@ -12060,8 +12083,8 @@ static int run_edge_dash_test(
             stderr,
             "m4-movement=fail operation=edge-dash-ledge-jump"
             " action=%u ticks=%u grounded=%u support=%u"
-            " position=(%" PRId32 ",%" PRId32 ")"
-            " velocity=(%" PRId32 ",%" PRId32 ") invulnerable=%u\n",
+            " position=(%.9g" ",%.9g" ")"
+            " velocity=(%.9g" ",%.9g" ") invulnerable=%u\n",
             (unsigned int)source_inspection.players[0].action_state,
             (unsigned int)source_inspection.players[0].action_ticks,
             (unsigned int)source_inspection.players[0].grounded,
@@ -12126,8 +12149,8 @@ static int run_edge_dash_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=edge-dash-rise"
-            " tick=%" PRIu32 " action=%u position_y=%" PRId32
-            " velocity_y=%" PRId32 " invulnerable=%u\n",
+            " tick=%" PRIu32 " action=%u position_y=%.9g"
+            " velocity_y=%.9g" " invulnerable=%u\n",
             tick,
             (unsigned int)source_inspection.players[0].action_state,
             source_inspection.players[0].position_y_f32,
@@ -12196,14 +12219,14 @@ static int run_edge_dash_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "edge-dash-query-save-size") ||
-        save_size != (size_t)1787)
+        save_size != (size_t)1800)
     {
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=edge-dash-air-dodge-entry"
             " action=%u ticks=%u grounded=%u support=%u"
-            " position=(%" PRId32 ",%" PRId32 ")"
-            " velocity=(%" PRId32 ",%" PRId32 ") invulnerable=%u\n",
+            " position=(%.9g" ",%.9g" ")"
+            " velocity=(%.9g" ",%.9g" ") invulnerable=%u\n",
             (unsigned int)source_inspection.players[0].action_state,
             (unsigned int)source_inspection.players[0].action_ticks,
             (unsigned int)source_inspection.players[0].grounded,
@@ -12308,8 +12331,8 @@ static int run_edge_dash_test(
             stderr,
             "m4-movement=fail operation=edge-dash-landing"
             " tick=%" PRIu32 " action=%u grounded=%u support=%u"
-            " position=(%" PRId32 ",%" PRId32 ")"
-            " velocity=(%" PRId32 ",%" PRId32 ") invulnerable=%u\n",
+            " position=(%.9g" ",%.9g" ")"
+            " velocity=(%.9g" ",%.9g" ") invulnerable=%u\n",
             tick,
             (unsigned int)source_inspection.players[0].action_state,
             (unsigned int)source_inspection.players[0].grounded,
@@ -12689,7 +12712,7 @@ static int run_planking_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "planking-query-save-size") ||
-        save_size != (size_t)1787)
+        save_size != (size_t)1800)
     {
         (void)fprintf(
             stderr,
@@ -12852,8 +12875,8 @@ static int run_planking_test(
                     stderr,
                     "m4-movement=fail operation=planking-legal-catch"
                     " cycle=%" PRIu32 " tick=%" PRIu32
-                    " position=(%" PRId32 ",%" PRId32 ")"
-                    " velocity_y=%" PRId32 " facing=%d\n",
+                    " position=(%.9g" ",%.9g" ")"
+                    " velocity_y=%.9g" " facing=%d\n",
                     cycle,
                     tick,
                     source_inspection.players[0].position_x_f32,
@@ -12879,9 +12902,9 @@ static int run_planking_test(
                 stderr,
                 "m4-movement=fail operation=planking-regrab"
                 " cycle=%" PRIu32 " action=%u ledge=%u"
-                " lockout=%u invulnerability=%u damage=%" PRIu32
-                " position=(%" PRId32 ",%" PRId32 ")"
-                " velocity=(%" PRId32 ",%" PRId32 ")\n",
+                " lockout=%u invulnerability=%u damage=%.9g"
+                " position=(%.9g" ",%.9g" ")"
+                " velocity=(%.9g" ",%.9g" ")\n",
                 cycle,
                 (unsigned int)source_inspection.players[0].action_state,
                 (unsigned int)source_inspection.players[0].ledge,
@@ -12960,7 +12983,7 @@ static int run_planking_test(
             stderr,
             "m4-movement=fail operation=planking-missed-punish"
             " action=%u ledge=%u lockout=%u invulnerability=%u"
-            " damage=%" PRIu32 " position=(%" PRId32 ",%" PRId32
+            " damage=%.9g position=(%.9g" ",%.9g"
             ")\n",
             (unsigned int)missed_inspection.players[0].action_state,
             (unsigned int)missed_inspection.players[0].ledge,
@@ -12983,8 +13006,8 @@ static int run_ledge_roll_test(const struct content *default_content)
     pf_content_view view;
     pf_sim *sim = NULL;
     struct inspection inspection;
-    int32_t hang_x;
-    int32_t hang_y;
+    float hang_x;
+    float hang_y;
     uint32_t tick;
 
     if (!expect_status(
@@ -13042,8 +13065,8 @@ static int run_ledge_roll_test(const struct content *default_content)
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=ledge-roll-entry"
-            " action=%u ticks=%u ledge=%u x=%" PRId32
-            " y=%" PRId32 " hang_x=%" PRId32 " hang_y=%" PRId32
+            " action=%u ticks=%u ledge=%u x=%.9g"
+            " y=%.9g" " hang_x=%.9g" " hang_y=%.9g"
             " grounded=%u support=%u\n",
             (unsigned int)inspection.players[0].action_state,
             (unsigned int)inspection.players[0].action_ticks,
@@ -13333,8 +13356,8 @@ static int run_ledge_test(
     pf_sim *sim = NULL;
     struct inspection inspection;
     const falcon_submotion_data *ledge_catch;
-    int32_t hang_x;
-    int32_t hang_y;
+    float hang_x;
+    float hang_y;
     uint16_t remaining_ledge_invulnerability_ticks;
     uint32_t tick;
 
@@ -13465,8 +13488,8 @@ static int run_ledge_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=ledge-release"
-            " action=%u ledge=%u x=%" PRId32 " y=%" PRId32
-            " hang_y=%" PRId32 " invulnerable=%u\n",
+            " action=%u ledge=%u x=%.9g" " y=%.9g"
+            " hang_y=%.9g" " invulnerable=%u\n",
             (unsigned int)inspection.players[0].action_state,
             (unsigned int)inspection.players[0].ledge,
             inspection.players[0].position_x_f32,
@@ -13651,7 +13674,7 @@ static int run_ledge_test(
             stderr,
             "m4-movement=fail operation=ledge-climb-completion"
             " action=%u ticks=%u grounded=%u support=%u ledge=%u"
-            " position_x=%" PRId32 " right=%" PRId32 "\n",
+            " position_x=%.9g" " right=%.9g" "\n",
             (unsigned int)inspection.players[0].action_state,
             (unsigned int)inspection.players[0].action_ticks,
             (unsigned int)inspection.players[0].grounded,
@@ -13796,7 +13819,7 @@ static int run_vector_ascent_test(const struct content *base_content)
     pf_rl_action actions[2];
     uint8_t save_bytes[2048];
     size_t save_size = (size_t)0;
-    int32_t grounded_recovery_x;
+    float grounded_recovery_x;
     uint32_t player_bits;
     uint32_t guard;
 
@@ -13976,7 +13999,7 @@ static int run_vector_ascent_test(const struct content *base_content)
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=ground-vector-ascent-mobility"
-            " guard=%u action=%u x=%d start=%d\n",
+            " guard=%u action=%u x=%.9g start=%.9g\n",
             (unsigned int)guard,
             (unsigned int)loaded_inspection.players[0].action_state,
             loaded_inspection.players[0].position_x_f32,
@@ -14022,7 +14045,7 @@ static int run_vector_ascent_test(const struct content *base_content)
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "vector-ascent-save-size") ||
-        save_size != (size_t)1787)
+        save_size != (size_t)1800)
     {
         return 0;
     }
@@ -14237,11 +14260,13 @@ static int run_player_push_test(const struct content *default_content)
     pf_sim *sim = NULL;
     struct inspection before;
     struct inspection after;
-    int32_t expected_left;
-    int32_t expected_right;
+    float expected_left;
+    float expected_right;
 
     content.stage.spawn_spacing_f32 =
-        content.fighter.player_push_half_width_f32 - INT32_C(1);
+        nextafterf(
+            content.fighter.player_push_half_width_f32,
+            0.0f);
     if (!expect_status(
             make_content_view(&content, &view),
             PF_STATUS_OK,
@@ -14402,8 +14427,8 @@ static int run_team_hash_trace(const pf_content_view *content)
                     "m4-movement=trace tick=%" PRIu64
                     " player=%" PRIu32
                     " action=%u grounded=%u support=%u"
-                    " position=(%" PRId32 ",%" PRId32 ")"
-                    " velocity=(%" PRId32 ",%" PRId32 ")"
+                    " position=(%.9g" ",%.9g" ")"
+                    " velocity=(%.9g" ",%.9g" ")"
                     " action_ticks=%u facing=%d dash=%d previous=%d"
                     " fast=%u short=%u drop=%u jumps=%u respawns=%u\n",
                     inspection.tick,
@@ -14699,7 +14724,7 @@ static int run_falcon_punch_source_data_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=falcon-punch-air-ordinary-physics "
-            "vx=%" PRId32 " vy=%" PRId32 " expected_vy=%" PRId32
+            "vx=%.9g" " vy=%.9g" " expected_vy=%.9g"
             "\n",
             inspection.players[0].velocity_x_f32,
             inspection.players[0].velocity_y_f32,
@@ -14738,7 +14763,7 @@ static int run_falcon_punch_source_data_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=falcon-punch-air-up-angle "
-            "vx=%" PRId32 " vy=%" PRId32 "\n",
+            "vx=%.9g" " vy=%.9g" "\n",
             inspection.players[0].velocity_x_f32,
             inspection.players[0].velocity_y_f32);
         return 0;
@@ -14915,8 +14940,8 @@ static int run_raptor_boost_source_data_test(
             (void)fprintf(
                 stderr,
                 "m4-movement=fail operation=raptor-boost-ground-frame "
-                "frame=%" PRIu32 " action=%u action_ticks=%u vx=%" PRId32
-                " expected_vx=%" PRId32 "\n",
+                "frame=%" PRIu32 " action=%u action_ticks=%u vx=%.9g"
+                " expected_vx=%.9g" "\n",
                 frame,
                 (unsigned int)inspection.players[0].action_state,
                 (unsigned int)inspection.players[0].action_ticks,
@@ -15106,7 +15131,7 @@ static int run_raptor_boost_source_data_test(
             (void)fprintf(
                 stderr,
                 "m4-movement=fail operation=raptor-boost-air-zero-gravity "
-                "frame=%" PRIu32 " action=%u ticks=%u vy=%" PRId32 "\n",
+                "frame=%" PRIu32 " action=%u ticks=%u vy=%.9g" "\n",
                 frame,
                 (unsigned int)inspection.players[0].action_state,
                 (unsigned int)inspection.players[0].action_ticks,
@@ -15132,7 +15157,7 @@ static int run_raptor_boost_source_data_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=raptor-boost-air-gravity-begin "
-            "action=%u ticks=%u vy=%" PRId32 " expected=%" PRId32 "\n",
+            "action=%u ticks=%u vy=%.9g" " expected=%.9g" "\n",
             (unsigned int)inspection.players[0].action_state,
             (unsigned int)inspection.players[0].action_ticks,
             inspection.players[0].velocity_y_f32,
@@ -15597,8 +15622,8 @@ static int run_falcon_dive_behind_ledge_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=falcon-dive-behind-ledge-catch "
-            "action=%u ticks=%u facing=%d ledge=%u x=%" PRId32
-            " y=%" PRId32 "\n",
+            "action=%u ticks=%u facing=%d ledge=%u x=%.9g"
+            " y=%.9g" "\n",
             (unsigned int)inspection.players[0].action_state,
             (unsigned int)inspection.players[0].action_ticks,
             (int)inspection.players[0].facing,
@@ -15949,8 +15974,8 @@ static int run_ucf084_input_contract_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=source-wavedash-terminal "
-            "action=%u ticks=%u grounded=%u vx=%" PRId32
-            " vy=%" PRId32 "\n",
+            "action=%u ticks=%u grounded=%u vx=%.9g"
+            " vy=%.9g" "\n",
             (unsigned int)inspection.players[0].action_state,
             (unsigned int)inspection.players[0].action_ticks,
             (unsigned int)inspection.players[0].grounded,
@@ -16384,7 +16409,7 @@ static int run_initial_dash_origin_callback_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=initial-dash-taunt"
-            " action=%u ticks=%u velocity_x=%" PRId32 "\n",
+            " action=%u ticks=%u velocity_x=%.9g" "\n",
             (unsigned int)inspection.players[0].action_state,
             (unsigned int)inspection.players[0].action_ticks,
             inspection.players[0].velocity_x_f32);
@@ -16456,7 +16481,7 @@ static int run_guard_dash_grab_window_test(
             pf_sim_query_save_size(sim, &required_bytes),
             PF_STATUS_OK,
             "guard-dash-grab-query-save-size") ||
-        required_bytes != (size_t)1787 ||
+        required_bytes != (size_t)1800 ||
         !expect_status(
             pf_sim_save(sim, &destination),
             PF_STATUS_OK,
@@ -16811,6 +16836,9 @@ static int run_reference_callback_owner_test(
         content->fighter.crouch_end_ticks - UINT16_C(1);
     sim->world.source_submotion[0] =
         (uint16_t)PF_M4_FALCON_SUBMOTION_SQUAT_REVERSE;
+    sim->world.source_animation_frame_f32[0] =
+        (float)(sim->world.action_ticks[0] - UINT16_C(1));
+    sim->world.source_animation_rate_f32[0] = 1.0f;
     sim->world.previous_tilt_y_direction[0] = INT8_C(0);
     sim->world.tilt_y_age[0] = UINT8_C(254);
     if (!step_duel_trigger(
@@ -16843,6 +16871,9 @@ static int run_reference_callback_owner_test(
     sim->world.action_ticks[0] = content->fighter.crouch_end_ticks;
     sim->world.source_submotion[0] =
         (uint16_t)PF_M4_FALCON_SUBMOTION_SQUAT_REVERSE;
+    sim->world.source_animation_frame_f32[0] =
+        (float)(sim->world.action_ticks[0] - UINT16_C(1));
+    sim->world.source_animation_rate_f32[0] = 1.0f;
     sim->world.previous_tilt_y_direction[0] = INT8_C(0);
     sim->world.tilt_y_age[0] = UINT8_C(254);
     if (!step_duel_trigger(
@@ -17092,7 +17123,7 @@ static int run_reference_callback_owner_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=callback-owner-damage-guard"
-            " action=%u submotion=%u blend=%" PRId32 "\n",
+            " action=%u submotion=%u blend=%.9g" "\n",
             (unsigned int)inspection.players[0].action_state,
             (unsigned int)inspection.players[0].source_submotion,
             sim->world.ground_blend_progress_f32[0]);

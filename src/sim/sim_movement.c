@@ -858,6 +858,22 @@ static int falcon_ground_blend_source_pose(
                 : landing->animation_frame_count - UINT16_C(1)) *
             1.0f;
     }
+    else if (previous_action == (uint8_t)PF_M4_ACTION_CROUCH_START)
+    {
+        const falcon_submotion_data *squat =
+            falcon_reference_submotion(PF_M4_FALCON_SUBMOTION_SQUAT);
+
+        if (squat == NULL || squat->animation_frame_count == UINT16_C(0))
+        {
+            return 0;
+        }
+        source_submotion = (uint16_t)PF_M4_FALCON_SUBMOTION_SQUAT;
+        source_frame_f32 = (float)(
+            world->action_ticks[player_index] + UINT16_C(1) <
+                    squat->animation_frame_count
+                ? world->action_ticks[player_index] + UINT16_C(1)
+                : squat->animation_frame_count - UINT16_C(1));
+    }
     else if (previous_action == (uint8_t)PF_M4_ACTION_STANDING_TURN)
     {
         const falcon_submotion_data *turn =
@@ -1042,7 +1058,20 @@ static pf_status evaluate_falcon_ground_blend_pose(
             if (!falcon_ground_blend_source_pose(
                     world, player_index, data, result))
             {
-                return PF_STATUS_DETERMINISTIC_FAULT;
+                /* Squat and SquatWait are not yet present in the compact
+                 * full-joint corpus. GuardOn still owns this update, so use
+                 * its exact target pose rather than rejecting a valid input
+                 * transition or reconstructing an integerized source. */
+                if (previous_action !=
+                        (uint8_t)PF_M4_ACTION_CROUCH_START &&
+                    previous_action != (uint8_t)PF_M4_ACTION_CROUCH)
+                {
+                    return PF_STATUS_DETERMINISTIC_FAULT;
+                }
+                (void)memcpy(
+                    result,
+                    guard_target,
+                    sizeof(*guard_target) * data->joint_count);
             }
         }
         else
@@ -7390,7 +7419,7 @@ reference_project_callback_owner(
                  &move_index) &&
              (move = falcon_reference_move(move_index)) != NULL &&
              (uint32_t)action_ticks >=
-                 (uint32_t)move->total_frames + UINT32_C(1))
+                 (uint32_t)move->total_frames)
     {
         /* AttackLw3_Anim enters SquatWait; the other represented Falcon
          * ground attacks and both Catch variants enter Wait. The newly

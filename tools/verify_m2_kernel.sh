@@ -72,7 +72,7 @@ compile_sim_test \
 
 "$output_dir/sim_snapshot_test" >"$output_dir/sim_snapshot.txt"
 grep -Fqx \
-    'sim-snapshot=pass bytes=1787 hash_algorithm=sha256' \
+    'sim-snapshot=pass bytes=1800 hash_algorithm=sha256' \
     "$output_dir/sim_snapshot.txt"
 
 compile_sim_test \

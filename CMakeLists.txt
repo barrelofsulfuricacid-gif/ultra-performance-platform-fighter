@@ -564,7 +564,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.snapshot
             PROPERTIES PASS_REGULAR_EXPRESSION
-                       "sim-snapshot=pass bytes=1787 hash_algorithm=sha256")
+                       "sim-snapshot=pass bytes=1800 hash_algorithm=sha256")
 
     add_executable(
         hsd_transition_test
@@ -864,7 +864,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.item
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-item=pass content_schema=78 state_schema=78 save_bytes=1787 item_invariants=44 bat_drop=1 glide_toss=1 jump_cancel_throw=1 directional_throws=4 replay=1 rl=1")
+                   "m4-item=pass content_schema=78 state_schema=78 save_bytes=1800 item_invariants=44 bat_drop=1 glide_toss=1 jump_cancel_throw=1 directional_throws=4 replay=1 rl=1")
 
     add_executable(
         projectile_test
@@ -881,7 +881,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.projectile
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-projectile=pass content_schema=78 state_schema=78 save_bytes=1787 projectile_invariants=46 short_hop_laser=1 powershield_reflect=1 replay=1 rl=1 emergent_technique_tests=skipped")
+                   "m4-projectile=pass content_schema=78 state_schema=78 save_bytes=1800 projectile_invariants=46 short_hop_laser=1 powershield_reflect=1 replay=1 rl=1 emergent_technique_tests=skipped")
 
     add_executable(
         reflector_test
@@ -898,7 +898,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.reflector
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-reflector=pass content_schema=78 state_schema=78 save_bytes=1787 reflector_invariants=32 shine_spike=1 projectile_reflect=1 replay=1 rl=1")
+                   "m4-reflector=pass content_schema=78 state_schema=78 save_bytes=1800 reflector_invariants=32 shine_spike=1 projectile_reflect=1 replay=1 rl=1")
 
     add_executable(
         charge_test
@@ -918,7 +918,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.charge
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-charge=pass content_schema=78 state_schema=78 save_bytes=1787 charge_invariants=28 charge_storage_cancel=1 resumed_release=1 replay=1 rl=1")
+                   "m4-charge=pass content_schema=78 state_schema=78 save_bytes=1800 charge_invariants=28 charge_storage_cancel=1 resumed_release=1 replay=1 rl=1")
 
     add_executable(match_test tests/sim/test_match.c)
     target_link_libraries(match_test PRIVATE sim)

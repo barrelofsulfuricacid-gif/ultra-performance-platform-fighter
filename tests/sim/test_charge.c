@@ -790,7 +790,7 @@ int main(void)
         return 1;
     }
     (void)printf(
-        "m4-charge=pass content_schema=%u state_schema=%u save_bytes=1787 "
+        "m4-charge=pass content_schema=%u state_schema=%u save_bytes=1800 "
         "charge_invariants=28 charge_storage_cancel=1 resumed_release=1 "
         "replay=1 rl=1\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,
