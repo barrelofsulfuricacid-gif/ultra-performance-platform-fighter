@@ -62,7 +62,7 @@ Save formats are fixed, field-by-field little-endian encodings:
 | 50 | 51 | 140 | 647 | 787 | Four previous X/Y tilt directions and four X/Y tilt ages make dash and fast-fall input timing canonical |
 | 51 | 52 | 140 | 647 | 787 | No payload-layout change; distinct forward/back/up/down aerial landing and L-cancel action semantics fail closed |
 | 52 | 54 | 140 | 647 | 787 | No payload-layout change; imported Falcon common movement, action-clock, and shield semantics fail closed |
-| 53 | 56 | 140 | 663 | 803 | One signed Q16.16 attacker shield-recoil component per player; exact shield-hit continuation semantics |
+| 53 | 56 | 140 | 663 | 803 | One signed float32 attacker shield-recoil component per player; exact shield-hit continuation semantics |
 | 54 | 57 | 140 | 663 | 803 | Existing shield-tilt bytes are reinterpreted as source angle/magnitude; joint-derived geometry semantics fail closed |
 | 55 | 59 | 140 | 663 | 803 | No payload-layout change; imported Falcon Dive lifecycle/action semantics fail closed |
 | 56 | 60 | 140 | 667 | 807 | One Falcon Kick hit-count byte per player; wall-rebound and hit-decay continuation semantics |
@@ -155,8 +155,8 @@ before rejecting malformed packed state atomically.
 Format 49 retains that exact 631-byte payload and 771-byte checkpoint while
 making the complete action-transition journal contract fail closed under
 state schema 50. Event type 24 uses system endpoints, packs each active
-player's previous action byte into `velocity_x_q16`, packs the final action
-bytes into `value_q16`, and uses `detail` as the nonzero changed-player mask;
+player's previous action byte into `velocity_x_f32`, packs the final action
+bytes into `value_f32`, and uses `detail` as the nonzero changed-player mask;
 unused player bytes are zero. Simultaneous forfeits likewise use one system
 event whose `detail` is the nonzero forfeiting-player mask. These records
 remain transient output, but their meaning affects deterministic replay and
@@ -318,7 +318,7 @@ silently reinterpret action 78 or event type 22.
 Format 37 retains the same payload while making crouch-cancel reaction semantics
 fail closed under schema 38. A grounded defender already in `CROUCH` qualifies
 eligible fighter, item, or projectile hits only when post-hit damage is at or
-below the authored ceiling. Damage and hitlag remain ordinary; authored Q16.16
+below the authored ceiling. Damage and hitlag remain ordinary; authored float32
 scales modify both launch components and hitstun, a nonzero result retains a
 one-tick hitstun floor, tumble is derived afterward, and event flag bit 4 marks
 the reaction. Standing, airborne, throw, shield, armor/reset, and over-ceiling
@@ -362,7 +362,7 @@ Format 42 appends one little-endian `uint16_t` smash-charge value for each of
 the four fixed player slots. Full directional light input enters action 91,
 92, or 93 from a legal grounded route; holding light advances the canonical
 timer through tick 60, release starts the matching directional strong early,
-and tick 60 releases automatically. The authored Q16.16 bonus scales damage
+and tick 60 releases automatically. The authored float32 bonus scales damage
 linearly to +50% at the default cap. Loading requires charge-action and timer
 equality, rejects a charge action at zero or the auto-release boundary,
 permits a nonzero timer only during charge, released strong, or its attacker

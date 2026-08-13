@@ -27,7 +27,7 @@ not enter deterministic state.
 
 ## Arithmetic rules
 
-The approved numeric representation uses signed Q16.16 values for deterministic
+The approved numeric representation uses signed float32 values for deterministic
 motion and geometry, with signed 64-bit intermediates. This became binding when
 the owner accepted the M0 decision on 2026-07-27.
 

@@ -182,8 +182,8 @@ def stored_pose_tracks(
                 if (
                     not isinstance(frame, dict)
                     or frame.get("displayed_frame") != first + frame_offset
-                    or not isinstance(frame.get("capsules_q16"), list)
-                    or len(frame["capsules_q16"])
+                    or not isinstance(frame.get("capsules_f32"), list)
+                    or len(frame["capsules_f32"])
                     != expected_capsules_per_pose
                 ):
                     raise ValueError(
@@ -446,7 +446,7 @@ def generate(
                 target_action,
                 target_submotion_expression,
             )
-            geometry = case.get("geometry_q16")
+            geometry = case.get("geometry_f32")
             if geometry is None:
                 distance = require_int(
                     case.get("distance_hundredths"),
@@ -485,53 +485,53 @@ def generate(
                 )
             else:
                 if not isinstance(geometry, dict):
-                    raise ValueError(f"{case_id}.geometry_q16 must be an object")
+                    raise ValueError(f"{case_id}.geometry_f32 must be an object")
                 move_name = geometry.get("attacker_move")
                 if not isinstance(move_name, str) or move_name not in moves:
                     raise ValueError(
-                        f"{case_id}.geometry_q16.attacker_move is unsupported"
+                        f"{case_id}.geometry_f32.attacker_move is unsupported"
                     )
                 attacker_frame = require_int(
                     geometry.get("attacker_action_frame"),
-                    f"{case_id}.geometry_q16.attacker_action_frame",
+                    f"{case_id}.geometry_f32.attacker_action_frame",
                     1,
                     65535,
                 )
-                offset = geometry.get("target_offset_q16")
+                offset = geometry.get("target_offset_f32")
                 if not isinstance(offset, list) or len(offset) != 2:
                     raise ValueError(
-                        f"{case_id}.geometry_q16.target_offset_q16 must have two values"
+                        f"{case_id}.geometry_f32.target_offset_f32 must have two values"
                     )
                 offset_x = require_int(
                     offset[0],
-                    f"{case_id}.geometry_q16.target_offset_q16[0]",
+                    f"{case_id}.geometry_f32.target_offset_f32[0]",
                     -(1 << 31),
                     (1 << 31) - 1,
                 )
                 offset_y = require_int(
                     offset[1],
-                    f"{case_id}.geometry_q16.target_offset_q16[1]",
+                    f"{case_id}.geometry_f32.target_offset_f32[1]",
                     -(1 << 31),
                     (1 << 31) - 1,
                 )
                 attacker_facing = require_int(
                     geometry.get("attacker_facing"),
-                    f"{case_id}.geometry_q16.attacker_facing",
+                    f"{case_id}.geometry_f32.attacker_facing",
                     -1,
                     1,
                 )
                 target_facing = require_int(
                     geometry.get("target_facing"),
-                    f"{case_id}.geometry_q16.target_facing",
+                    f"{case_id}.geometry_f32.target_facing",
                     -1,
                     1,
                 )
                 if attacker_facing == 0 or target_facing == 0:
-                    raise ValueError(f"{case_id}.geometry_q16 facing may not be zero")
+                    raise ValueError(f"{case_id}.geometry_f32 facing may not be zero")
                 grabbable_only = geometry.get("grabbable_only")
                 if not isinstance(grabbable_only, bool):
                     raise ValueError(
-                        f"{case_id}.geometry_q16.grabbable_only must be boolean"
+                        f"{case_id}.geometry_f32.grabbable_only must be boolean"
                     )
                 values = (
                     "PF_SSBM_STORED_GEOMETRY",

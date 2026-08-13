@@ -13,8 +13,8 @@ from compare_ssbm_movement import (
     GALE01_NTSC102_SHA256,
     SSBM_TO_M4_ACTION,
     expected_action_ticks,
-    scaled_q16,
-    scaled_y_q16,
+    scaled_f32,
+    scaled_y_f32,
 )
 
 
@@ -108,18 +108,18 @@ def physics(
     velocity_key = "ground_velocity_x" if bool(row.get("grounded")) else "air_velocity_x"
     result.update(
         {
-            "position_x_q16": horizontal_mirror
-            * scaled_q16(
+            "position_x_f32": horizontal_mirror
+            * scaled_f32(
                 float(row.get("position_x_from_origin", 0.0))
                 - float(anchor.get("position_x_from_origin", 0.0))
             ),
-            "position_y_q16": scaled_y_q16(
+            "position_y_f32": scaled_y_f32(
                 float(row.get("position_y", 0.0))
                 - float(anchor.get("position_y", 0.0))
             ),
-            "self_velocity_x_q16": horizontal_mirror
-            * scaled_q16(float(row.get(velocity_key, 0.0))),
-            "self_velocity_y_q16": scaled_y_q16(
+            "self_velocity_x_f32": horizontal_mirror
+            * scaled_f32(float(row.get(velocity_key, 0.0))),
+            "self_velocity_y_f32": scaled_y_f32(
                 float(row.get("velocity_y", 0.0))
             ),
         }

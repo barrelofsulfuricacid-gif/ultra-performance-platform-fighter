@@ -257,8 +257,8 @@
           "knockback_velocity_x",
           "knockback_velocity_y"
         ],
-        "velocity_tolerance_q16": 32,
-        "position_tolerance_q16": 192,
+        "velocity_tolerance_f32": 32,
+        "position_tolerance_f32": 192,
         "excluded_fields": [
           "post_wall_contact_position_x",
           "standing_loop_animation_clock"
@@ -286,9 +286,9 @@
           "knockback_velocity_x",
           "knockback_velocity_y"
         ],
-        "velocity_tolerance_q16": 32,
-        "position_tolerance_q16": 0,
-        "position_drift_per_tick_q16": 32,
+        "velocity_tolerance_f32": 32,
+        "position_tolerance_f32": 0,
+        "position_drift_per_tick_f32": 32,
         "excluded_fields": [],
         "exclusion_reason": "The nearest controller sample above x480 enters all seven CliffCatch frames and CliffWait."
       },
@@ -312,9 +312,9 @@
           "knockback_velocity_x",
           "knockback_velocity_y"
         ],
-        "velocity_tolerance_q16": 32,
-        "position_tolerance_q16": 0,
-        "position_drift_per_tick_q16": 32,
+        "velocity_tolerance_f32": 32,
+        "position_tolerance_f32": 0,
+        "position_drift_per_tick_f32": 32,
         "excluded_fields": [],
         "exclusion_reason": "The nearest controller sample at or below x480 remains in Fall without acquiring the ledge."
       }

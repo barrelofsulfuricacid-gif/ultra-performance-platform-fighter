@@ -128,10 +128,10 @@ static int make_projectile_content(
     {
         return 0;
     }
-    content->stage.spawn_spacing_q16 = INT32_C(2) * PF_Q16_ONE;
-    content->stage.platform_center_x_q16 =
-        -INT32_C(20) * PF_Q16_ONE;
-    content->stage.platform_motion_amplitude_q16 = INT32_C(0);
+    content->stage.spawn_spacing_f32 = INT32_C(2) * PF_F32_ONE;
+    content->stage.platform_center_x_f32 =
+        -INT32_C(20) * PF_F32_ONE;
+    content->stage.platform_motion_amplitude_f32 = INT32_C(0);
     content->fighter.reference_frame_data_enabled = UINT8_C(0);
     content->projectile.enabled = UINT8_C(1);
     return expect_status(
@@ -280,7 +280,7 @@ static int run_content_contract(void)
         return 0;
     }
     invalid = enabled;
-    invalid.projectile.speed_q16 = INT32_C(0);
+    invalid.projectile.speed_f32 = INT32_C(0);
     if (!expect_status(
             validate_content(&invalid),
             PF_STATUS_INVALID_CONFIG,
@@ -328,7 +328,7 @@ static int run_ground_hit_contract(
             (uint8_t)PF_M4_PROJECTILE_STATE_ACTIVE ||
         inspection.projectile.owner != UINT8_C(0) ||
         inspection.projectile.hitbox_active != UINT8_C(1) ||
-        inspection.projectile.velocity_x_q16 <= INT32_C(0))
+        inspection.projectile.velocity_x_f32 <= INT32_C(0))
     {
         (void)fprintf(
             stderr,
@@ -345,7 +345,7 @@ static int run_ground_hit_contract(
             (unsigned int)inspection.projectile.state,
             (unsigned int)inspection.projectile.owner,
             (unsigned int)inspection.projectile.hitbox_active,
-            inspection.projectile.velocity_x_q16);
+            inspection.projectile.velocity_x_f32);
         return fail("simultaneous-slot-order");
     }
 
@@ -364,8 +364,8 @@ static int run_ground_hit_contract(
     }
     if (event == NULL || event->source_player != UINT8_C(0) ||
         event->target_player != UINT8_C(1) ||
-        event->value_q16 == UINT32_C(0) ||
-        inspection.players[1].damage_q16 == UINT32_C(0) ||
+        event->value_f32 == UINT32_C(0) ||
+        inspection.players[1].damage_f32 == UINT32_C(0) ||
         inspection.projectile.state !=
             (uint8_t)PF_M4_PROJECTILE_STATE_INACTIVE ||
         inspection.projectile.hitbox_active != UINT8_C(0) ||
@@ -414,9 +414,9 @@ static int run_shield_contract(
         find_event(&result, PF_SIM_EVENT_PROJECTILE_REFLECT) != NULL ||
         event->source_player != UINT8_C(0) ||
         event->target_player != UINT8_C(1) ||
-        inspection.players[1].damage_q16 != UINT32_C(0) ||
-        inspection.players[1].shield_health_q16 >=
-            content->fighter.shield_health_q16 ||
+        inspection.players[1].damage_f32 != UINT32_C(0) ||
+        inspection.players[1].shield_health_f32 >=
+            content->fighter.shield_health_f32 ||
         inspection.projectile.state !=
             (uint8_t)PF_M4_PROJECTILE_STATE_INACTIVE)
     {
@@ -448,10 +448,10 @@ static int run_reflect_contract(
     for (guard = UINT32_C(0); guard < UINT32_C(32); ++guard)
     {
         const int32_t target_left =
-            inspection.players[1].position_x_q16 -
-            content->fighter.half_width_q16;
+            inspection.players[1].position_x_f32 -
+            content->fighter.half_width_f32;
 
-        if (inspection.projectile.hitbox_right_q16 >= target_left)
+        if (inspection.projectile.hitbox_right_f32 >= target_left)
         {
             break;
         }
@@ -469,10 +469,10 @@ static int run_reflect_contract(
     event = find_event(&result, PF_SIM_EVENT_PROJECTILE_REFLECT);
     if (event == NULL || event->source_player != UINT8_C(1) ||
         event->target_player != UINT8_C(0) ||
-        inspection.players[1].damage_q16 != UINT32_C(0) ||
+        inspection.players[1].damage_f32 != UINT32_C(0) ||
         inspection.players[1].powershield != UINT8_C(1) ||
         inspection.projectile.owner != UINT8_C(1) ||
-        inspection.projectile.velocity_x_q16 >= INT32_C(0) ||
+        inspection.projectile.velocity_x_f32 >= INT32_C(0) ||
         inspection.projectile.state !=
             (uint8_t)PF_M4_PROJECTILE_STATE_ACTIVE)
     {
@@ -494,7 +494,7 @@ static int run_reflect_contract(
     }
     if (event == NULL || event->source_player != UINT8_C(1) ||
         event->target_player != UINT8_C(0) ||
-        inspection.players[0].damage_q16 == UINT32_C(0) ||
+        inspection.players[0].damage_f32 == UINT32_C(0) ||
         inspection.projectile.state !=
             (uint8_t)PF_M4_PROJECTILE_STATE_INACTIVE ||
         inspection.players[1].stale_move_count != UINT8_C(1) ||
@@ -575,9 +575,9 @@ typedef struct camping_trace
     uint32_t projectile_fires;
     uint32_t projectile_hits;
     uint32_t approach_hits;
-    uint32_t camper_damage_q16;
-    uint32_t approacher_damage_q16;
-    int32_t minimum_separation_q16;
+    float camper_damage_f32;
+    float approacher_damage_f32;
+    float minimum_separation_f32;
     uint64_t completed_ticks;
 } camping_trace;
 
@@ -603,14 +603,14 @@ static int run_camping_trace(
         return 0;
     }
     (void)memset(out_trace, 0, sizeof(*out_trace));
-    out_trace->minimum_separation_q16 = INT32_MAX;
+    out_trace->minimum_separation_f32 = INT32_MAX;
     for (tick = UINT32_C(0); tick < UINT32_C(180); ++tick)
     {
-        const int32_t separation_q16 =
-            inspection.players[1].position_x_q16 -
-            inspection.players[0].position_x_q16;
+        const float separation_f32 =
+            inspection.players[1].position_x_f32 -
+            inspection.players[0].position_x_f32;
         const int approach_attack_requested =
-            separation_q16 <= INT32_C(2) * PF_Q16_ONE &&
+            separation_f32 <= INT32_C(2) * PF_F32_ONE &&
             (tick & UINT32_C(1)) == UINT32_C(0);
         const int special_requested =
             fire_projectiles != 0 &&
@@ -635,9 +635,9 @@ static int run_camping_trace(
             UINT16_C(0)};
         uint32_t event_index;
 
-        if (separation_q16 < out_trace->minimum_separation_q16)
+        if (separation_f32 < out_trace->minimum_separation_f32)
         {
-            out_trace->minimum_separation_q16 = separation_q16;
+            out_trace->minimum_separation_f32 = separation_f32;
         }
         if (!step_sim(
                 sim,
@@ -681,10 +681,10 @@ static int run_camping_trace(
             return fail("camping-unexpected-match-end");
         }
     }
-    out_trace->camper_damage_q16 =
-        inspection.players[0].damage_q16;
-    out_trace->approacher_damage_q16 =
-        inspection.players[1].damage_q16;
+    out_trace->camper_damage_f32 =
+        inspection.players[0].damage_f32;
+    out_trace->approacher_damage_f32 =
+        inspection.players[1].damage_f32;
     out_trace->completed_ticks = inspection.tick;
     return 1;
 }
@@ -705,8 +705,8 @@ static int run_camping_contract(void)
     }
     content.fighter.reference_frame_data_enabled = UINT8_C(0);
     content.projectile.enabled = UINT8_C(1);
-    content.stage.spawn_spacing_q16 = INT32_C(8) * PF_Q16_ONE;
-    content.stage.platform_motion_amplitude_q16 = INT32_C(0);
+    content.stage.spawn_spacing_f32 = INT32_C(8) * PF_F32_ONE;
+    content.stage.platform_motion_amplitude_f32 = INT32_C(0);
     if (!expect_status(
             make_content_view(&content, &view),
             PF_STATUS_OK,
@@ -720,18 +720,18 @@ static int run_camping_contract(void)
         camping.projectile_fires != UINT32_C(7) ||
         camping.projectile_hits != UINT32_C(6) ||
         camping.approach_hits != UINT32_C(0) ||
-        camping.camper_damage_q16 != UINT32_C(0) ||
-        camping.approacher_damage_q16 <
+        camping.camper_damage_f32 != UINT32_C(0) ||
+        camping.approacher_damage_f32 <
             UINT32_C(18) * UINT32_C(65536) ||
-        camping.minimum_separation_q16 !=
+        camping.minimum_separation_f32 !=
             TEST_CAMPING_MINIMUM_SEPARATION_Q16 ||
         no_fire.completed_ticks != UINT64_C(180) ||
         no_fire.projectile_fires != UINT32_C(0) ||
         no_fire.projectile_hits != UINT32_C(0) ||
         no_fire.approach_hits != UINT32_C(3) ||
-        no_fire.camper_damage_q16 == UINT32_C(0) ||
-        no_fire.minimum_separation_q16 >=
-            camping.minimum_separation_q16)
+        no_fire.camper_damage_f32 == UINT32_C(0) ||
+        no_fire.minimum_separation_f32 >=
+            camping.minimum_separation_f32)
     {
         (void)fprintf(
             stderr,
@@ -748,22 +748,22 @@ static int run_camping_contract(void)
             camping.projectile_fires,
             camping.projectile_hits,
             camping.approach_hits,
-            camping.camper_damage_q16,
-            camping.approacher_damage_q16,
-            camping.minimum_separation_q16,
+            camping.camper_damage_f32,
+            camping.approacher_damage_f32,
+            camping.minimum_separation_f32,
             no_fire.approach_hits,
-            no_fire.camper_damage_q16,
-            no_fire.minimum_separation_q16);
+            no_fire.camper_damage_f32,
+            no_fire.minimum_separation_f32);
         return fail("camping-route");
     }
     (void)printf(
         "m4-camping=pass ticks=180 fires=%" PRIu32
         " projectile_hits=%" PRIu32
-        " minimum_separation_q16=%" PRId32
+        " minimum_separation_f32=%" PRId32
         " no_fire_approach_hits=%" PRIu32 "\n",
         camping.projectile_fires,
         camping.projectile_hits,
-        camping.minimum_separation_q16,
+        camping.minimum_separation_f32,
         no_fire.approach_hits);
     return 1;
 }
@@ -976,11 +976,11 @@ static int run_save_replay_rl_contract(
             UINT64_C(0) ||
         transition.structured_observation.projectile.state !=
             (uint8_t)PF_M4_PROJECTILE_STATE_ACTIVE ||
-        transition.structured_observation.projectile.velocity_x_q16 !=
-            content->projectile.speed_q16 ||
+        transition.structured_observation.projectile.velocity_x_f32 !=
+            content->projectile.speed_f32 ||
         transition.compact_observation.values[
             PF_RL_COMPACT_PROJECTILE_BASE + UINT16_C(2)] !=
-            content->projectile.speed_q16 ||
+            content->projectile.speed_f32 ||
         (uint32_t)transition.compact_observation.values[
             PF_RL_COMPACT_PROJECTILE_BASE +
             PF_RL_COMPACT_PROJECTILE_STATE_BITS_OFFSET] !=

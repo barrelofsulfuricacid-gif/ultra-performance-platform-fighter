@@ -81,7 +81,7 @@ The implemented adapter:
   defining game logic in Python.
 - Uses Gymnasium 1.3 next-step autoreset.
 - Selects one configurable player for Gymnasium's scalar shaped/outcome reward
-  while retaining exact four-player Q16.16 rewards in `info`.
+  while retaining exact four-player float32 rewards in `info`.
 - Crosses Python-to-C once per active batch rather than once per environment.
 
 Repeated M2 Linux qualification runs with 64 duel environments measured an

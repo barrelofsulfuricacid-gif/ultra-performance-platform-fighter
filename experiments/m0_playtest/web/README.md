@@ -7,7 +7,7 @@ Open the owner-only hosted playtest:
 The browser build preserves the native checkpoint boundary:
 
 - `../movement_model.c` and `../movement_model.h` remain the canonical pure-C
-  float32 and Q16.16 implementations.
+  float32 and float32 implementations.
 - `native/movement_web.c` is a narrow C ABI that randomizes Candidate A/B and
   exposes movement state without moving simulation policy into JavaScript.
 - `public/movement_core.wasm` is compiled from those C sources. Its adjacent

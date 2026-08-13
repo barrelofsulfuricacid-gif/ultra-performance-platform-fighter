@@ -14,7 +14,7 @@ extern "C"
 #define PF_RL_SCHEMA_VERSION UINT16_C(14)
 #define PF_RL_ACTION_SCHEMA_VERSION UINT16_C(1)
 #define PF_RL_TRANSITION_SCHEMA_VERSION UINT16_C(12)
-#define PF_RL_COMPACT_OBSERVATION_SCHEMA_VERSION UINT16_C(13)
+#define PF_RL_COMPACT_OBSERVATION_SCHEMA_VERSION UINT16_C(14)
 #define PF_RL_COMPACT_GLOBAL_VALUES UINT16_C(8)
 #define PF_RL_COMPACT_PLAYER_STRIDE UINT16_C(10)
 #define PF_RL_COMPACT_ITEM_VALUES UINT16_C(8)
@@ -37,8 +37,8 @@ extern "C"
 
 #define PF_RL_REWARD_COMPONENT_TERMINAL (UINT8_C(1) << 0U)
 #define PF_RL_REWARD_COMPONENT_ENGAGEMENT (UINT8_C(1) << 1U)
-#define PF_RL_ENGAGEMENT_POTENTIAL_LIMIT_Q16 INT32_C(16384)
-#define PF_RL_ENGAGEMENT_REFERENCE_DISTANCE_Q16 INT32_C(8388608)
+#define PF_RL_ENGAGEMENT_POTENTIAL_LIMIT_F32 0.25f
+#define PF_RL_ENGAGEMENT_REFERENCE_DISTANCE_F32 128.0f
 
 #define PF_RL_COMPACT_TICK_LOW_INDEX UINT16_C(0)
 #define PF_RL_COMPACT_TICK_HIGH_INDEX UINT16_C(1)
@@ -99,8 +99,8 @@ typedef struct pf_rl_spec
     int16_t axis_maximum;
     uint16_t trigger_minimum;
     uint16_t trigger_maximum;
-    int32_t terminal_reward_one_q16;
-    int32_t engagement_potential_limit_q16;
+    float terminal_reward_one_f32;
+    float engagement_potential_limit_f32;
 } pf_rl_spec;
 
 typedef struct pf_rl_compact_observation
@@ -121,7 +121,7 @@ typedef struct pf_rl_transition
     pf_tick_result tick_result;
     pf_sim_observation structured_observation;
     pf_rl_compact_observation compact_observation;
-    int32_t reward_q16[PF_SIM_MAX_PLAYERS];
+    float reward_f32[PF_SIM_MAX_PLAYERS];
     uint64_t legal_buttons[PF_SIM_MAX_PLAYERS];
 } pf_rl_transition;
 

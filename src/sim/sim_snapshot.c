@@ -13,8 +13,8 @@
 #define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)1660)
 #define PF_SIM_SAVE_TOTAL_BYTES \
     (PF_SIM_SAVE_HEADER_BYTES + PF_SIM_SAVE_PAYLOAD_BYTES)
-#define PF_M4_SNAPSHOT_GROUND_BLEND_REPLAY_TAG INT32_C(0x40000000)
-#define PF_M4_SNAPSHOT_GROUND_BLEND_PROGRESS_MASK INT32_C(0x3fffffff)
+#define PF_M4_SNAPSHOT_GROUND_BLEND_REPLAY_TAG UINT32_C(0x80000000)
+#define PF_M4_SNAPSHOT_GROUND_BLEND_PROGRESS_MASK UINT32_C(0x7fffffff)
 
 typedef struct pf_byte_writer
 {
@@ -115,9 +115,12 @@ static void pf_writer_u64(pf_byte_writer *writer, uint64_t value)
     pf_writer_bytes(writer, bytes, sizeof(bytes));
 }
 
-static void pf_writer_i32(pf_byte_writer *writer, int32_t value)
+static void pf_writer_f32(pf_byte_writer *writer, float value)
 {
-    pf_writer_u32(writer, (uint32_t)value);
+    uint32_t bits;
+
+    (void)memcpy(&bits, &value, sizeof(bits));
+    pf_writer_u32(writer, bits);
 }
 
 static void pf_writer_i16(pf_byte_writer *writer, int16_t value)
@@ -220,10 +223,10 @@ static uint64_t pf_reader_u64(pf_byte_reader *reader)
     return value;
 }
 
-static int32_t pf_reader_i32(pf_byte_reader *reader)
+static float pf_reader_f32(pf_byte_reader *reader)
 {
     const uint32_t bits = pf_reader_u32(reader);
-    int32_t value;
+    float value;
 
     (void)memcpy(&value, &bits, sizeof(value));
     return value;
@@ -283,7 +286,7 @@ static uint16_t snapshot_canonical_source_submotion(
                : (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT;
 }
 
-static int32_t snapshot_canonical_source_animation_frame_q16(
+static float snapshot_canonical_source_animation_frame_f32(
     const pf_world_state *world,
     uint32_t player_index)
 {
@@ -291,11 +294,11 @@ static int32_t snapshot_canonical_source_animation_frame_q16(
                    action_uses_source_animation_clock(
                        world->action_state[player_index],
                        world->hitlag_resume_action[player_index])
-               ? world->source_animation_frame_q16[player_index]
+               ? world->source_animation_frame_f32[player_index]
                : INT32_C(0);
 }
 
-static int32_t snapshot_canonical_source_animation_rate_q16(
+static float snapshot_canonical_source_animation_rate_f32(
     const pf_world_state *world,
     uint32_t player_index)
 {
@@ -303,11 +306,11 @@ static int32_t snapshot_canonical_source_animation_rate_q16(
                    action_uses_source_animation_clock(
                        world->action_state[player_index],
                        world->hitlag_resume_action[player_index])
-               ? world->source_animation_rate_q16[player_index]
+               ? world->source_animation_rate_f32[player_index]
                : INT32_C(0);
 }
 
-static int32_t snapshot_canonical_fall_animation_blend_q16(
+static float snapshot_canonical_fall_animation_blend_f32(
     const pf_world_state *world,
     uint32_t player_index)
 {
@@ -316,7 +319,7 @@ static int32_t snapshot_canonical_fall_animation_blend_q16(
                        effective_action_state(
                            world->action_state[player_index],
                            world->hitlag_resume_action[player_index]))
-               ? world->fall_animation_blend_q16[player_index]
+               ? world->fall_animation_blend_f32[player_index]
                : INT32_C(0);
 }
 
@@ -324,7 +327,7 @@ static uint8_t snapshot_canonical_fall_animation_target_switched(
     const pf_world_state *world,
     uint32_t player_index)
 {
-    return snapshot_canonical_fall_animation_blend_q16(
+    return snapshot_canonical_fall_animation_blend_f32(
                world, player_index) != INT32_C(0)
                ? world->fall_animation_target_switched[player_index]
                : UINT8_C(0);
@@ -345,8 +348,8 @@ static void pf_write_payload(
     pf_writer_u16(writer, world->arithmetic_version);
     pf_writer_u16(writer, world->rng_version);
     pf_writer_u16(writer, world->input_schema_version);
-    pf_writer_i32(writer, world->arena_half_width_q16);
-    pf_writer_i32(writer, world->arena_ceiling_q16);
+    pf_writer_f32(writer, world->arena_half_width_f32);
+    pf_writer_f32(writer, world->arena_ceiling_f32);
     pf_writer_u16(writer, world->respawn_delay_config_ticks);
     pf_writer_u16(
         writer,
@@ -370,25 +373,25 @@ static void pf_write_payload(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
-        pf_writer_i32(writer, world->position_x_q16[player_index]);
+        pf_writer_f32(writer, world->position_x_f32[player_index]);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
-        pf_writer_i32(writer, world->position_y_q16[player_index]);
+        pf_writer_f32(writer, world->position_y_f32[player_index]);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
-        pf_writer_i32(writer, world->velocity_x_q16[player_index]);
+        pf_writer_f32(writer, world->velocity_x_f32[player_index]);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
-        pf_writer_i32(writer, world->velocity_y_q16[player_index]);
+        pf_writer_f32(writer, world->velocity_y_f32[player_index]);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
@@ -401,9 +404,9 @@ static void pf_write_payload(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
-        pf_writer_i32(
+        pf_writer_f32(
             writer,
-            world->shield_recoil_x_q16[player_index]);
+            world->shield_recoil_x_f32[player_index]);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
@@ -426,18 +429,19 @@ static void pf_write_payload(
          ++player_index)
     {
         const int active =
-            world->ground_blend_progress_q16[player_index] > INT32_C(0);
+            world->ground_blend_progress_f32[player_index] > INT32_C(0);
         uint8_t rotation_index;
 
-        pf_writer_i32(
+        pf_writer_u32(
             writer,
             active != 0
-                ? world->ground_blend_progress_q16[player_index] |
+                ? pf_sim_f32_bits(
+                      world->ground_blend_progress_f32[player_index]) |
                       (world->ground_blend_pose[player_index].mode ==
                                (uint8_t)PF_M4_HSD_COMPACT_POSE_REPLAY
                            ? PF_M4_SNAPSHOT_GROUND_BLEND_REPLAY_TAG
-                           : INT32_C(0))
-                : INT32_C(0));
+                           : UINT32_C(0))
+                : UINT32_C(0));
         for (rotation_index = UINT8_C(0);
              rotation_index < PF_M4_HSD_COMPACT_ROTATION_CAPACITY;
              ++rotation_index)
@@ -462,11 +466,11 @@ static void pf_write_payload(
 
             for (component = UINT8_C(0); component < UINT8_C(3); ++component)
             {
-                pf_writer_i32(
+                pf_writer_f32(
                     writer,
                     active != 0
                         ? world->ground_blend_pose[player_index]
-                              .translation_q16[translation_index][component]
+                              .translation_f32[translation_index][component]
                         : INT32_C(0));
             }
         }
@@ -475,9 +479,9 @@ static void pf_write_payload(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
-        pf_writer_i32(
+        pf_writer_f32(
             writer,
-            snapshot_canonical_source_animation_frame_q16(
+            snapshot_canonical_source_animation_frame_f32(
                 world,
                 player_index));
     }
@@ -485,9 +489,9 @@ static void pf_write_payload(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
-        pf_writer_i32(
+        pf_writer_f32(
             writer,
-            snapshot_canonical_source_animation_rate_q16(
+            snapshot_canonical_source_animation_rate_f32(
                 world,
                 player_index));
     }
@@ -495,9 +499,9 @@ static void pf_write_payload(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
-        pf_writer_i32(
+        pf_writer_f32(
             writer,
-            snapshot_canonical_fall_animation_blend_q16(
+            snapshot_canonical_fall_animation_blend_f32(
                 world,
                 player_index));
     }
@@ -515,11 +519,11 @@ static void pf_write_payload(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
-        pf_writer_i32(
+        pf_writer_f32(
             writer,
             world->active[player_index] != UINT8_C(0) &&
                     world->ecb_bottom_lock_ticks[player_index] != UINT8_C(0)
-                ? world->ecb_locked_bottom_y_q16[player_index]
+                ? world->ecb_locked_bottom_y_f32[player_index]
                 : INT32_C(0));
         pf_writer_u8(
             writer,
@@ -790,31 +794,31 @@ static void pf_write_payload(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
-        pf_writer_u32(writer, world->damage_q16[player_index]);
+        pf_writer_f32(writer, world->damage_f32[player_index]);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
-        pf_writer_i32(
+        pf_writer_f32(
             writer,
-            world->knockback_velocity_x_q16[player_index]);
+            world->knockback_velocity_x_f32[player_index]);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
-        pf_writer_i32(
+        pf_writer_f32(
             writer,
-            world->knockback_velocity_y_q16[player_index]);
+            world->knockback_velocity_y_f32[player_index]);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
-        pf_writer_i32(
+        pf_writer_f32(
             writer,
-            world->ground_knockback_velocity_q16[player_index]);
+            world->ground_knockback_velocity_f32[player_index]);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
@@ -832,9 +836,9 @@ static void pf_write_payload(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
-        pf_writer_u32(
+        pf_writer_f32(
             writer,
-            world->last_hit_damage_q16[player_index]);
+            world->last_hit_damage_f32[player_index]);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
@@ -938,7 +942,7 @@ static void pf_write_payload(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
-        pf_writer_u32(writer, world->shield_health_q16[player_index]);
+        pf_writer_f32(writer, world->shield_health_f32[player_index]);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
@@ -1092,10 +1096,10 @@ static void pf_write_payload(
     {
         pf_writer_u8(writer, world->grab_owner_slot[player_index]);
     }
-    pf_writer_i32(writer, world->item_position_x_q16);
-    pf_writer_i32(writer, world->item_position_y_q16);
-    pf_writer_i32(writer, world->item_velocity_x_q16);
-    pf_writer_i32(writer, world->item_velocity_y_q16);
+    pf_writer_f32(writer, world->item_position_x_f32);
+    pf_writer_f32(writer, world->item_position_y_f32);
+    pf_writer_f32(writer, world->item_velocity_x_f32);
+    pf_writer_f32(writer, world->item_velocity_y_f32);
     pf_writer_u16(writer, world->item_lifetime_ticks);
     pf_writer_u16(writer, world->item_respawn_ticks);
     pf_writer_u16(writer, world->item_pickup_lockout_ticks);
@@ -1105,10 +1109,10 @@ static void pf_write_payload(
     pf_writer_u8(writer, world->item_hit_mask);
     pf_writer_u8(writer, world->item_stale_registered);
     pf_writer_u8(writer, world->item_throw_direction);
-    pf_writer_i32(writer, world->projectile_position_x_q16);
-    pf_writer_i32(writer, world->projectile_position_y_q16);
-    pf_writer_i32(writer, world->projectile_velocity_x_q16);
-    pf_writer_i32(writer, world->projectile_velocity_y_q16);
+    pf_writer_f32(writer, world->projectile_position_x_f32);
+    pf_writer_f32(writer, world->projectile_position_y_f32);
+    pf_writer_f32(writer, world->projectile_velocity_x_f32);
+    pf_writer_f32(writer, world->projectile_velocity_y_f32);
     pf_writer_u16(writer, world->projectile_lifetime_ticks);
     pf_writer_u8(writer, world->projectile_state);
     pf_writer_u8(writer, world->projectile_owner_slot);
@@ -1129,8 +1133,8 @@ static void pf_read_payload(
     world->arithmetic_version = pf_reader_u16(reader);
     world->rng_version = pf_reader_u16(reader);
     world->input_schema_version = pf_reader_u16(reader);
-    world->arena_half_width_q16 = pf_reader_i32(reader);
-    world->arena_ceiling_q16 = pf_reader_i32(reader);
+    world->arena_half_width_f32 = pf_reader_f32(reader);
+    world->arena_ceiling_f32 = pf_reader_f32(reader);
     world->respawn_delay_config_ticks = pf_reader_u16(reader);
     world->respawn_invulnerability_config_ticks =
         pf_reader_u16(reader);
@@ -1153,25 +1157,25 @@ static void pf_read_payload(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
-        world->position_x_q16[player_index] = pf_reader_i32(reader);
+        world->position_x_f32[player_index] = pf_reader_f32(reader);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
-        world->position_y_q16[player_index] = pf_reader_i32(reader);
+        world->position_y_f32[player_index] = pf_reader_f32(reader);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
-        world->velocity_x_q16[player_index] = pf_reader_i32(reader);
+        world->velocity_x_f32[player_index] = pf_reader_f32(reader);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
-        world->velocity_y_q16[player_index] = pf_reader_i32(reader);
+        world->velocity_y_f32[player_index] = pf_reader_f32(reader);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
@@ -1185,9 +1189,9 @@ static void pf_read_payload(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
-        world->shield_recoil_x_q16[player_index] =
-            pf_reader_i32(reader);
-        if (world->shield_recoil_x_q16[player_index] != INT32_C(0))
+        world->shield_recoil_x_f32[player_index] =
+            pf_reader_f32(reader);
+        if (world->shield_recoil_x_f32[player_index] != INT32_C(0))
         {
             world->shield_recoil_mask =
                 (uint8_t)(
@@ -1213,20 +1217,22 @@ static void pf_read_payload(
     {
         uint8_t rotation_index;
 
-        const int32_t encoded_progress_q16 = pf_reader_i32(reader);
+        const uint32_t encoded_progress = pf_reader_u32(reader);
 
-        if (encoded_progress_q16 < INT32_C(0))
+        if ((encoded_progress & PF_M4_SNAPSHOT_GROUND_BLEND_PROGRESS_MASK) >
+            UINT32_C(0x7f7fffff))
         {
             reader->failed = 1;
         }
         world->ground_blend_pose[player_index].mode =
-            (encoded_progress_q16 &
-             PF_M4_SNAPSHOT_GROUND_BLEND_REPLAY_TAG) != INT32_C(0)
+            (encoded_progress & PF_M4_SNAPSHOT_GROUND_BLEND_REPLAY_TAG) !=
+                    UINT32_C(0)
                 ? (uint8_t)PF_M4_HSD_COMPACT_POSE_REPLAY
                 : (uint8_t)PF_M4_HSD_COMPACT_POSE_PACKED;
-        world->ground_blend_progress_q16[player_index] =
-            encoded_progress_q16 &
-            PF_M4_SNAPSHOT_GROUND_BLEND_PROGRESS_MASK;
+        world->ground_blend_progress_f32[player_index] =
+            pf_sim_f32_from_bits(
+                encoded_progress &
+                PF_M4_SNAPSHOT_GROUND_BLEND_PROGRESS_MASK);
         for (rotation_index = UINT8_C(0);
              rotation_index < PF_M4_HSD_COMPACT_ROTATION_CAPACITY;
              ++rotation_index)
@@ -1249,8 +1255,8 @@ static void pf_read_payload(
             for (component = UINT8_C(0); component < UINT8_C(3); ++component)
             {
                 world->ground_blend_pose[player_index]
-                    .translation_q16[translation_index][component] =
-                    pf_reader_i32(reader);
+                    .translation_f32[translation_index][component] =
+                    pf_reader_f32(reader);
             }
         }
     }
@@ -1258,22 +1264,22 @@ static void pf_read_payload(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
-        world->source_animation_frame_q16[player_index] =
-            pf_reader_i32(reader);
+        world->source_animation_frame_f32[player_index] =
+            pf_reader_f32(reader);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
-        world->source_animation_rate_q16[player_index] =
-            pf_reader_i32(reader);
+        world->source_animation_rate_f32[player_index] =
+            pf_reader_f32(reader);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
-        world->fall_animation_blend_q16[player_index] =
-            pf_reader_i32(reader);
+        world->fall_animation_blend_f32[player_index] =
+            pf_reader_f32(reader);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
@@ -1286,8 +1292,8 @@ static void pf_read_payload(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
-        world->ecb_locked_bottom_y_q16[player_index] =
-            pf_reader_i32(reader);
+        world->ecb_locked_bottom_y_f32[player_index] =
+            pf_reader_f32(reader);
         world->ecb_bottom_lock_ticks[player_index] = pf_reader_u8(reader);
     }
     for (player_index = UINT32_C(0);
@@ -1537,28 +1543,28 @@ static void pf_read_payload(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
-        world->damage_q16[player_index] = pf_reader_u32(reader);
+        world->damage_f32[player_index] = pf_reader_f32(reader);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
-        world->knockback_velocity_x_q16[player_index] =
-            pf_reader_i32(reader);
+        world->knockback_velocity_x_f32[player_index] =
+            pf_reader_f32(reader);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
-        world->knockback_velocity_y_q16[player_index] =
-            pf_reader_i32(reader);
+        world->knockback_velocity_y_f32[player_index] =
+            pf_reader_f32(reader);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
-        world->ground_knockback_velocity_q16[player_index] =
-            pf_reader_i32(reader);
+        world->ground_knockback_velocity_f32[player_index] =
+            pf_reader_f32(reader);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
@@ -1577,8 +1583,8 @@ static void pf_read_payload(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
-        world->last_hit_damage_q16[player_index] =
-            pf_reader_u32(reader);
+        world->last_hit_damage_f32[player_index] =
+            pf_reader_f32(reader);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
@@ -1683,8 +1689,8 @@ static void pf_read_payload(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
-        world->shield_health_q16[player_index] =
-            pf_reader_u32(reader);
+        world->shield_health_f32[player_index] =
+            pf_reader_f32(reader);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
@@ -1847,10 +1853,10 @@ static void pf_read_payload(
     {
         world->grab_owner_slot[player_index] = pf_reader_u8(reader);
     }
-    world->item_position_x_q16 = pf_reader_i32(reader);
-    world->item_position_y_q16 = pf_reader_i32(reader);
-    world->item_velocity_x_q16 = pf_reader_i32(reader);
-    world->item_velocity_y_q16 = pf_reader_i32(reader);
+    world->item_position_x_f32 = pf_reader_f32(reader);
+    world->item_position_y_f32 = pf_reader_f32(reader);
+    world->item_velocity_x_f32 = pf_reader_f32(reader);
+    world->item_velocity_y_f32 = pf_reader_f32(reader);
     world->item_lifetime_ticks = pf_reader_u16(reader);
     world->item_respawn_ticks = pf_reader_u16(reader);
     world->item_pickup_lockout_ticks = pf_reader_u16(reader);
@@ -1860,10 +1866,10 @@ static void pf_read_payload(
     world->item_hit_mask = pf_reader_u8(reader);
     world->item_stale_registered = pf_reader_u8(reader);
     world->item_throw_direction = pf_reader_u8(reader);
-    world->projectile_position_x_q16 = pf_reader_i32(reader);
-    world->projectile_position_y_q16 = pf_reader_i32(reader);
-    world->projectile_velocity_x_q16 = pf_reader_i32(reader);
-    world->projectile_velocity_y_q16 = pf_reader_i32(reader);
+    world->projectile_position_x_f32 = pf_reader_f32(reader);
+    world->projectile_position_y_f32 = pf_reader_f32(reader);
+    world->projectile_velocity_x_f32 = pf_reader_f32(reader);
+    world->projectile_velocity_y_f32 = pf_reader_f32(reader);
     world->projectile_lifetime_ticks = pf_reader_u16(reader);
     world->projectile_state = pf_reader_u8(reader);
     world->projectile_owner_slot = pf_reader_u8(reader);
@@ -1890,8 +1896,8 @@ void pf_sim_snapshot_config_hash(
     pf_writer_u8(&writer, world->player_count);
     pf_writer_u8(&writer, world->mode);
     pf_writer_u64(&writer, world->max_ticks);
-    pf_writer_i32(&writer, world->arena_half_width_q16);
-    pf_writer_i32(&writer, world->arena_ceiling_q16);
+    pf_writer_f32(&writer, world->arena_half_width_f32);
+    pf_writer_f32(&writer, world->arena_ceiling_f32);
     pf_writer_u8(&writer, world->stock_count);
     pf_writer_u8(&writer, UINT8_C(0));
     pf_writer_u16(&writer, world->respawn_delay_config_ticks);
@@ -2004,8 +2010,8 @@ static int pf_world_identity_equal(
            left->arithmetic_version == right->arithmetic_version &&
            left->rng_version == right->rng_version &&
            left->input_schema_version == right->input_schema_version &&
-           left->arena_half_width_q16 == right->arena_half_width_q16 &&
-           left->arena_ceiling_q16 == right->arena_ceiling_q16 &&
+           left->arena_half_width_f32 == right->arena_half_width_f32 &&
+           left->arena_ceiling_f32 == right->arena_ceiling_f32 &&
            left->stock_count == right->stock_count &&
            left->respawn_delay_config_ticks ==
                right->respawn_delay_config_ticks &&
@@ -2292,7 +2298,7 @@ static const attack_data *snapshot_ground_attack_data(
     }
 }
 
-static int32_t snapshot_revival_platform_y(
+static float snapshot_revival_platform_y(
     const stage_data *stage,
     uint16_t action_ticks)
 {
@@ -2304,14 +2310,13 @@ static int32_t snapshot_revival_platform_y(
         physics_ticks < stage->revival_platform_descent_ticks
             ? physics_ticks
             : stage->revival_platform_descent_ticks;
-    const int64_t distance =
-        (int64_t)stage->revival_platform_end_y_q16 -
-        (int64_t)stage->revival_platform_start_y_q16;
+    const float distance =
+        stage->revival_platform_end_y_f32 -
+        stage->revival_platform_start_y_f32;
 
-    return stage->revival_platform_start_y_q16 +
-           (int32_t)(
-               distance * (int64_t)elapsed /
-               (int64_t)stage->revival_platform_descent_ticks);
+    return stage->revival_platform_start_y_f32 +
+           distance * (float)elapsed /
+               (float)stage->revival_platform_descent_ticks;
 }
 
 static int snapshot_source_submotion_valid_for_action(
@@ -2422,7 +2427,7 @@ static int snapshot_source_submotion_valid_for_action(
     else if (action_uses_direct_hsd_pose(effective_action))
     {
         uint16_t expected_submotion = UINT16_C(0);
-        int32_t ignored_frame_q16 = INT32_C(0);
+        float ignored_frame_f32 = INT32_C(0);
 
         return reference_frame_data_enabled != UINT8_C(0) &&
                falcon_reference_direct_hsd_pose(
@@ -2430,7 +2435,7 @@ static int snapshot_source_submotion_valid_for_action(
                    action_ticks,
                    grounded,
                    &expected_submotion,
-                   &ignored_frame_q16) &&
+                   &ignored_frame_f32) &&
                submotion == expected_submotion;
     }
     else if (action_is_damage(effective_action))
@@ -2570,14 +2575,14 @@ static int snapshot_source_submotion_valid_for_action(
     {
         uint16_t expected_holder_submotion;
         uint16_t victim_submotion;
-        int32_t animation_rate_q16;
+        float animation_rate_f32;
 
         return reference_frame_data_enabled != UINT8_C(0) &&
                falcon_reference_throw_motions(
                    effective_action,
                    &expected_holder_submotion,
                    &victim_submotion,
-                   &animation_rate_q16) &&
+                   &animation_rate_f32) &&
                submotion == expected_holder_submotion &&
                action_ticks <= UINT16_C(600);
     }
@@ -2659,8 +2664,8 @@ static int snapshot_source_animation_clock_valid(
     uint8_t action,
     uint8_t resume_action,
     uint16_t submotion,
-    int32_t frame_q16,
-    int32_t rate_q16)
+    float frame_f32,
+    float rate_f32)
 {
     const falcon_submotion_data *motion;
 
@@ -2670,16 +2675,16 @@ static int snapshot_source_animation_clock_valid(
             action,
             resume_action))
     {
-        return frame_q16 == INT32_C(0) && rate_q16 == INT32_C(0);
+        return frame_f32 == INT32_C(0) && rate_f32 == INT32_C(0);
     }
     motion = falcon_reference_submotion(submotion);
     return motion != NULL &&
            motion->animation_frame_count != UINT16_C(0) &&
-           frame_q16 >= INT32_C(0) &&
-           rate_q16 >= INT32_C(0) &&
-           (int64_t)frame_q16 <
+           frame_f32 >= INT32_C(0) &&
+           rate_f32 >= INT32_C(0) &&
+           (int64_t)frame_f32 <
                (int64_t)motion->animation_frame_count *
-                   (int64_t)PF_Q16_ONE;
+                   (int64_t)PF_F32_ONE;
 }
 
 static int snapshot_ground_blend_valid(
@@ -2687,8 +2692,8 @@ static int snapshot_ground_blend_valid(
     const pf_world_state *world,
     uint32_t player_index)
 {
-    const int32_t progress_q16 =
-        world->ground_blend_progress_q16[player_index];
+    const float progress_f32 =
+        world->ground_blend_progress_f32[player_index];
     const hsd_compact_pose *compact =
         &world->ground_blend_pose[player_index];
     uint8_t rotation_index;
@@ -2702,7 +2707,7 @@ static int snapshot_ground_blend_valid(
             (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD_ON &&
         compact->mode == (uint8_t)PF_M4_HSD_COMPACT_POSE_PACKED;
 
-    if (progress_q16 == INT32_C(0))
+    if (progress_f32 == INT32_C(0))
     {
         if (compact->mode !=
             (uint8_t)PF_M4_HSD_COMPACT_POSE_PACKED)
@@ -2732,7 +2737,7 @@ static int snapshot_ground_blend_valid(
                  component < UINT8_C(3);
                  ++component)
             {
-                if (compact->translation_q16[translation_index][component] !=
+                if (compact->translation_f32[translation_index][component] !=
                     INT32_C(0))
                 {
                     return 0;
@@ -2747,11 +2752,11 @@ static int snapshot_ground_blend_valid(
          !action_uses_ground_animation_clock(
              world->action_state[player_index],
              world->hitlag_resume_action[player_index])) ||
-        progress_q16 <= INT32_C(0) ||
+        progress_f32 <= INT32_C(0) ||
         (guard_on_pose
-             ? progress_q16 >
-                   (int32_t)PF_M4_FALCON_GUARD_ON_FRAME_COUNT * PF_Q16_ONE
-             : progress_q16 >= INT32_C(6) * PF_Q16_ONE))
+             ? progress_f32 >
+                   (int32_t)PF_M4_FALCON_GUARD_ON_FRAME_COUNT * PF_F32_ONE
+             : progress_f32 >= INT32_C(6) * PF_F32_ONE))
     {
         return 0;
     }
@@ -2765,8 +2770,8 @@ static int snapshot_ground_blend_valid(
 
         if (compact->mode == (uint8_t)PF_M4_HSD_COMPACT_POSE_REPLAY)
         {
-            const int32_t *const replay_words =
-                &compact->translation_q16[0][0];
+            const float *const replay_words =
+                &compact->translation_f32[0][0];
             uint8_t replay_word_index;
 
             if (compact->replay.reserved != UINT16_C(0))
@@ -2794,7 +2799,7 @@ static int snapshot_ground_blend_valid(
                          PF_M4_HSD_COMPACT_TRANSLATION_CAPACITY * UINT8_C(3));
                  ++replay_word_index)
             {
-                if (replay_words[replay_word_index] != INT32_C(0))
+                if (replay_words[replay_word_index] != 0.0f)
                 {
                     return 0;
                 }
@@ -2804,8 +2809,8 @@ static int snapshot_ground_blend_valid(
         return data != NULL &&
                falcon_resolve_compact_hsd_pose(
                    world->source_submotion[player_index],
-                   world->source_animation_frame_q16[player_index],
-                   progress_q16,
+                   world->source_animation_frame_f32[player_index],
+                   progress_f32,
                    compact,
                    pose) &&
                falcon_reference_hsd_hurt_capsules_from_local_pose(
@@ -2819,20 +2824,20 @@ static int snapshot_fall_animation_blend_valid(
     const pf_world_state *world,
     uint32_t player_index)
 {
-    const int32_t blend_q16 =
-        world->fall_animation_blend_q16[player_index];
+    const float blend_f32 =
+        world->fall_animation_blend_f32[player_index];
     const uint8_t target_switched =
         world->fall_animation_target_switched[player_index];
     const uint8_t effective_action = effective_action_state(
         world->action_state[player_index],
         world->hitlag_resume_action[player_index]);
 
-    if (blend_q16 < INT32_C(0) || blend_q16 > PF_Q16_ONE ||
+    if (blend_f32 < INT32_C(0) || blend_f32 > PF_F32_ONE ||
         target_switched > UINT8_C(1))
     {
         return 0;
     }
-    if (blend_q16 == INT32_C(0))
+    if (blend_f32 == INT32_C(0))
     {
         return target_switched == UINT8_C(0);
     }
@@ -2936,8 +2941,8 @@ static int snapshot_content_state_consistent(
                 action,
                 resume_action,
                 source_submotion,
-                world->source_animation_frame_q16[player_index],
-                world->source_animation_rate_q16[player_index]))
+                world->source_animation_frame_f32[player_index],
+                world->source_animation_rate_f32[player_index]))
         {
             return 0;
         }
@@ -2981,7 +2986,7 @@ static int snapshot_content_state_consistent(
                  : falcon_reference_attack_matches(
                        action,
                        ground_attack_timing,
-                       ground_attack->damage_q16));
+                       ground_attack->damage_f32));
         const uint16_t smash_charge_ticks =
             world->smash_charge_ticks[player_index];
         const int smash_charge_action =
@@ -3007,17 +3012,17 @@ static int snapshot_content_state_consistent(
         const uint32_t revival_ticks =
             (uint32_t)content->stage.revival_platform_descent_ticks +
             (uint32_t)content->stage.revival_platform_hold_ticks;
-        const int32_t revival_x =
-            ssbm_revival_platform_x_q16(
+        const float revival_x =
+            ssbm_revival_platform_x_f32(
                 content->stage.reference_collision_profile,
                 world->player_count,
                 (uint8_t)player_index,
-                content->stage.spawn_spacing_q16);
-        const int32_t revival_y =
+                content->stage.spawn_spacing_f32);
+        const float revival_y =
             snapshot_revival_platform_y(
                 &content->stage,
                 action_ticks) -
-            content->fighter.half_height_q16;
+            content->fighter.half_height_f32;
 
         if (world->charge_ticks[player_index] >
                 charge->max_charge_ticks ||
@@ -3042,8 +3047,8 @@ static int snapshot_content_state_consistent(
              (shield_strength_action != 0)) ||
             (action ==
                  (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN &&
-             world->shield_health_q16[player_index] !=
-                 content->fighter.shield_reset_health_q16) ||
+             world->shield_health_f32[player_index] !=
+                 content->fighter.shield_reset_health_f32) ||
             ((world->shield_angle_turn[player_index] != UINT16_C(0) ||
               world->shield_magnitude[player_index] != UINT16_C(0)) &&
              shield_strength == UINT16_C(0)) ||
@@ -3066,7 +3071,7 @@ static int snapshot_content_state_consistent(
                   charge->release_startup_ticks +
                       charge->release_active_ticks)) ||
             (action == (uint8_t)PF_M4_ACTION_TEETER &&
-             world->velocity_x_q16[player_index] != INT32_C(0)) ||
+             world->velocity_x_f32[player_index] != INT32_C(0)) ||
             (action == (uint8_t)PF_M4_ACTION_CROUCH_STEP &&
              action_ticks >= content->fighter.crouch_step_ticks) ||
             (action == (uint8_t)PF_M4_ACTION_CROUCH_START &&
@@ -3114,8 +3119,8 @@ static int snapshot_content_state_consistent(
                   world->facing[player_index]) == NULL)) ||
             (revival_action &&
              ((uint32_t)action_ticks > revival_ticks ||
-              world->position_x_q16[player_index] != revival_x ||
-              world->position_y_q16[player_index] != revival_y ||
+              world->position_x_f32[player_index] != revival_x ||
+              world->position_y_f32[player_index] != revival_y ||
               world->respawn_invulnerability_ticks[player_index] !=
                   UINT16_C(0))) ||
             (recovery->enabled == UINT8_C(0) &&
@@ -3150,9 +3155,9 @@ static int player_state_consistent(
         return (waiting || eliminated) &&
                grounded == UINT8_C(0) &&
                support == (uint8_t)PF_M4_SURFACE_NONE &&
-               world->velocity_x_q16[player_index] == INT32_C(0) &&
-               world->velocity_y_q16[player_index] == INT32_C(0) &&
-               world->shield_recoil_x_q16[player_index] ==
+               world->velocity_x_f32[player_index] == INT32_C(0) &&
+               world->velocity_y_f32[player_index] == INT32_C(0) &&
+               world->shield_recoil_x_f32[player_index] ==
                    INT32_C(0) &&
                world->fast_fall[player_index] == UINT8_C(0) &&
                world->dash_direction[player_index] == INT8_C(0) &&
@@ -3160,9 +3165,9 @@ static int player_state_consistent(
                world->hitstun_ticks[player_index] == UINT16_C(0) &&
                world->shield_stun_ticks[player_index] == UINT16_C(0) &&
                world->hitlag_resume_action[player_index] == UINT8_C(0) &&
-               world->knockback_velocity_x_q16[player_index] ==
+               world->knockback_velocity_x_f32[player_index] ==
                    INT32_C(0) &&
-               world->knockback_velocity_y_q16[player_index] ==
+               world->knockback_velocity_y_f32[player_index] ==
                    INT32_C(0) &&
                world->respawn_invulnerability_ticks[player_index] ==
                    UINT16_C(0) &&
@@ -3193,9 +3198,9 @@ static int player_state_consistent(
         return grounded == UINT8_C(0) &&
                support ==
                    (uint8_t)PF_M4_SURFACE_REVIVAL_PLATFORM &&
-               world->velocity_x_q16[player_index] == INT32_C(0) &&
-               world->velocity_y_q16[player_index] == INT32_C(0) &&
-               world->shield_recoil_x_q16[player_index] ==
+               world->velocity_x_f32[player_index] == INT32_C(0) &&
+               world->velocity_y_f32[player_index] == INT32_C(0) &&
+               world->shield_recoil_x_f32[player_index] ==
                    INT32_C(0) &&
                world->fast_fall[player_index] == UINT8_C(0) &&
                world->recovery_available[player_index] == UINT8_C(1);
@@ -3239,7 +3244,7 @@ static int player_state_consistent(
                action != (uint8_t)PF_M4_ACTION_REFLECTOR_AIR &&
                action != (uint8_t)PF_M4_ACTION_LEDGE_CATCH &&
                action != (uint8_t)PF_M4_ACTION_LEDGE_HANG &&
-               (world->velocity_y_q16[player_index] == INT32_C(0) ||
+               (world->velocity_y_f32[player_index] == INT32_C(0) ||
                  action == (uint8_t)PF_M4_ACTION_LEDGE_CLIMB ||
                  action == (uint8_t)PF_M4_ACTION_LEDGE_ROLL ||
                  action == (uint8_t)PF_M4_ACTION_LEDGE_ATTACK ||
@@ -3264,7 +3269,7 @@ static int player_state_consistent(
         /* DownBound retains its source floor line while the animated ECB has
          * no active floor contact on displayed frames 5 through 22. */
         return support != (uint8_t)PF_M4_SURFACE_NONE &&
-               world->velocity_y_q16[player_index] == INT32_C(0) &&
+               world->velocity_y_f32[player_index] == INT32_C(0) &&
                world->fast_fall[player_index] == UINT8_C(0) &&
                world->recovery_available[player_index] == UINT8_C(1);
     }
@@ -3301,9 +3306,9 @@ static int player_state_consistent(
             action == (uint8_t)PF_M4_ACTION_LEDGE_CLIMB ||
             action == (uint8_t)PF_M4_ACTION_LEDGE_ROLL ||
             action == (uint8_t)PF_M4_ACTION_LEDGE_ATTACK) &&
-               world->velocity_x_q16[player_index] == INT32_C(0) &&
-               world->velocity_y_q16[player_index] == INT32_C(0) &&
-               world->shield_recoil_x_q16[player_index] ==
+               world->velocity_x_f32[player_index] == INT32_C(0) &&
+               world->velocity_y_f32[player_index] == INT32_C(0) &&
+               world->shield_recoil_x_f32[player_index] ==
                    INT32_C(0) &&
            world->fast_fall[player_index] == UINT8_C(0) &&
            world->recovery_available[player_index] == UINT8_C(1);
@@ -3343,10 +3348,10 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
          world->player_count != UINT8_C(4)) ||
         (world->mode != (uint8_t)PF_SIM_MODE_DUEL &&
          world->mode != (uint8_t)PF_SIM_MODE_TEAMS) ||
-        world->arena_half_width_q16 < INT32_C(16) * PF_Q16_ONE ||
-        world->arena_half_width_q16 > INT32_C(4096) * PF_Q16_ONE ||
-        world->arena_ceiling_q16 < INT32_C(16) * PF_Q16_ONE ||
-        world->arena_ceiling_q16 > INT32_C(4096) * PF_Q16_ONE ||
+        world->arena_half_width_f32 < INT32_C(16) * PF_F32_ONE ||
+        world->arena_half_width_f32 > INT32_C(4096) * PF_F32_ONE ||
+        world->arena_ceiling_f32 < INT32_C(16) * PF_F32_ONE ||
+        world->arena_ceiling_f32 > INT32_C(4096) * PF_F32_ONE ||
         world->stock_count > PF_SIM_MAX_STOCK_COUNT ||
         world->respawn_delay_config_ticks > PF_SIM_MAX_RESPAWN_TICKS ||
         world->respawn_invulnerability_config_ticks >
@@ -3376,7 +3381,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
-        if (world->shield_recoil_x_q16[player_index] != INT32_C(0))
+        if (world->shield_recoil_x_f32[player_index] != INT32_C(0))
         {
             expected_shield_recoil_mask =
                 (uint8_t)(
@@ -3400,20 +3405,20 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
         return PF_STATUS_INVALID_STATE;
     }
 
-    if (world->item_position_x_q16 <
-            -world->arena_half_width_q16 ||
-        world->item_position_x_q16 > world->arena_half_width_q16 ||
+    if (world->item_position_x_f32 <
+            -world->arena_half_width_f32 ||
+        world->item_position_x_f32 > world->arena_half_width_f32 ||
         !pf_sim_vertical_coordinate_is_within_arena(
-            world->item_position_y_q16,
-            world->arena_ceiling_q16) ||
-        world->item_velocity_x_q16 <
-            -PF_SIM_MAX_MOTION_SPEED_Q16 ||
-        world->item_velocity_x_q16 >
-            PF_SIM_MAX_MOTION_SPEED_Q16 ||
-        world->item_velocity_y_q16 <
-            -PF_SIM_MAX_MOTION_SPEED_Q16 ||
-        world->item_velocity_y_q16 >
-            PF_SIM_MAX_MOTION_SPEED_Q16 ||
+            world->item_position_y_f32,
+            world->arena_ceiling_f32) ||
+        world->item_velocity_x_f32 <
+            -PF_SIM_MAX_MOTION_SPEED_F32 ||
+        world->item_velocity_x_f32 >
+            PF_SIM_MAX_MOTION_SPEED_F32 ||
+        world->item_velocity_y_f32 <
+            -PF_SIM_MAX_MOTION_SPEED_F32 ||
+        world->item_velocity_y_f32 >
+            PF_SIM_MAX_MOTION_SPEED_F32 ||
         world->item_lifetime_ticks > UINT16_C(3600) ||
         world->item_respawn_ticks > UINT16_C(3600) ||
         world->item_pickup_lockout_ticks > UINT16_C(240) ||
@@ -3431,10 +3436,10 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                     ((uint32_t)world->item_source_slot -
                      UINT32_C(1)))) != UINT8_C(0)) ||
         (world->item_state == (uint8_t)PF_M4_ITEM_STATE_INACTIVE &&
-         (world->item_position_x_q16 != INT32_C(0) ||
-          world->item_position_y_q16 != INT32_C(0) ||
-          world->item_velocity_x_q16 != INT32_C(0) ||
-          world->item_velocity_y_q16 != INT32_C(0) ||
+         (world->item_position_x_f32 != INT32_C(0) ||
+          world->item_position_y_f32 != INT32_C(0) ||
+          world->item_velocity_x_f32 != INT32_C(0) ||
+          world->item_velocity_y_f32 != INT32_C(0) ||
           world->item_lifetime_ticks != UINT16_C(0) ||
           world->item_respawn_ticks != UINT16_C(0) ||
           world->item_pickup_lockout_ticks != UINT16_C(0) ||
@@ -3445,8 +3450,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
           world->item_throw_direction !=
               (uint8_t)PF_M4_ITEM_THROW_NONE)) ||
         (world->item_state == (uint8_t)PF_M4_ITEM_STATE_GROUND &&
-         (world->item_velocity_x_q16 != INT32_C(0) ||
-          world->item_velocity_y_q16 != INT32_C(0) ||
+         (world->item_velocity_x_f32 != INT32_C(0) ||
+          world->item_velocity_y_f32 != INT32_C(0) ||
           world->item_lifetime_ticks == UINT16_C(0) ||
           world->item_respawn_ticks != UINT16_C(0) ||
           world->item_holder_slot != UINT8_C(0) ||
@@ -3456,8 +3461,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
           world->item_throw_direction !=
               (uint8_t)PF_M4_ITEM_THROW_NONE)) ||
         (world->item_state == (uint8_t)PF_M4_ITEM_STATE_HELD &&
-         (world->item_velocity_x_q16 != INT32_C(0) ||
-          world->item_velocity_y_q16 != INT32_C(0) ||
+         (world->item_velocity_x_f32 != INT32_C(0) ||
+          world->item_velocity_y_f32 != INT32_C(0) ||
           world->item_lifetime_ticks == UINT16_C(0) ||
           world->item_respawn_ticks != UINT16_C(0) ||
           world->item_pickup_lockout_ticks != UINT16_C(0) ||
@@ -3480,10 +3485,10 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
            world->item_hit_mask == UINT8_C(0)))) ||
         (world->item_state ==
              (uint8_t)PF_M4_ITEM_STATE_RESPAWN_WAIT &&
-         (world->item_position_x_q16 != INT32_C(0) ||
-          world->item_position_y_q16 != INT32_C(0) ||
-          world->item_velocity_x_q16 != INT32_C(0) ||
-          world->item_velocity_y_q16 != INT32_C(0) ||
+         (world->item_position_x_f32 != INT32_C(0) ||
+          world->item_position_y_f32 != INT32_C(0) ||
+          world->item_velocity_x_f32 != INT32_C(0) ||
+          world->item_velocity_y_f32 != INT32_C(0) ||
           world->item_lifetime_ticks != UINT16_C(0) ||
           world->item_respawn_ticks == UINT16_C(0) ||
           world->item_pickup_lockout_ticks != UINT16_C(0) ||
@@ -3497,37 +3502,37 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
         return PF_STATUS_INVALID_STATE;
     }
 
-    if (world->projectile_position_x_q16 <
-            -world->arena_half_width_q16 ||
-        world->projectile_position_x_q16 >
-            world->arena_half_width_q16 ||
+    if (world->projectile_position_x_f32 <
+            -world->arena_half_width_f32 ||
+        world->projectile_position_x_f32 >
+            world->arena_half_width_f32 ||
         !pf_sim_vertical_coordinate_is_within_arena(
-            world->projectile_position_y_q16,
-            world->arena_ceiling_q16) ||
-        world->projectile_velocity_x_q16 <
-            -PF_SIM_MAX_MOTION_SPEED_Q16 ||
-        world->projectile_velocity_x_q16 >
-            PF_SIM_MAX_MOTION_SPEED_Q16 ||
-        world->projectile_velocity_y_q16 <
-            -PF_SIM_MAX_MOTION_SPEED_Q16 ||
-        world->projectile_velocity_y_q16 >
-            PF_SIM_MAX_MOTION_SPEED_Q16 ||
+            world->projectile_position_y_f32,
+            world->arena_ceiling_f32) ||
+        world->projectile_velocity_x_f32 <
+            -PF_SIM_MAX_MOTION_SPEED_F32 ||
+        world->projectile_velocity_x_f32 >
+            PF_SIM_MAX_MOTION_SPEED_F32 ||
+        world->projectile_velocity_y_f32 <
+            -PF_SIM_MAX_MOTION_SPEED_F32 ||
+        world->projectile_velocity_y_f32 >
+            PF_SIM_MAX_MOTION_SPEED_F32 ||
         world->projectile_lifetime_ticks > UINT16_C(3600) ||
         world->projectile_state >
             (uint8_t)PF_M4_PROJECTILE_STATE_ACTIVE ||
         world->projectile_owner_slot > world->player_count ||
         (world->projectile_state ==
              (uint8_t)PF_M4_PROJECTILE_STATE_INACTIVE &&
-         (world->projectile_position_x_q16 != INT32_C(0) ||
-          world->projectile_position_y_q16 != INT32_C(0) ||
-          world->projectile_velocity_x_q16 != INT32_C(0) ||
-          world->projectile_velocity_y_q16 != INT32_C(0) ||
+         (world->projectile_position_x_f32 != INT32_C(0) ||
+          world->projectile_position_y_f32 != INT32_C(0) ||
+          world->projectile_velocity_x_f32 != INT32_C(0) ||
+          world->projectile_velocity_y_f32 != INT32_C(0) ||
           world->projectile_lifetime_ticks != UINT16_C(0) ||
           world->projectile_owner_slot != UINT8_C(0))) ||
         (world->projectile_state !=
              (uint8_t)PF_M4_PROJECTILE_STATE_INACTIVE &&
-         (world->projectile_velocity_x_q16 == INT32_C(0) ||
-          world->projectile_velocity_y_q16 != INT32_C(0) ||
+         (world->projectile_velocity_x_f32 == INT32_C(0) ||
+          world->projectile_velocity_y_f32 != INT32_C(0) ||
           world->projectile_lifetime_ticks == UINT16_C(0) ||
           world->projectile_owner_slot == UINT8_C(0))))
     {
@@ -3596,8 +3601,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 world->tech_lockout_ticks[player_index];
             const uint16_t shield_stun =
                 world->shield_stun_ticks[player_index];
-            const uint32_t shield_health =
-                world->shield_health_q16[player_index];
+            const float shield_health =
+                world->shield_health_f32[player_index];
             const uint8_t resume_action =
                 world->hitlag_resume_action[player_index];
             const int hitstun_is_memory =
@@ -3638,32 +3643,32 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 world->grounded[player_index] > UINT8_C(1) ||
                 (world->previous_buttons[player_index] &
                  ~PF_INPUT_FRAME_KNOWN_BITS) != UINT64_C(0) ||
-                world->position_x_q16[player_index] <
-                    -world->arena_half_width_q16 ||
-                world->position_x_q16[player_index] >
-                    world->arena_half_width_q16 ||
+                world->position_x_f32[player_index] <
+                    -world->arena_half_width_f32 ||
+                world->position_x_f32[player_index] >
+                    world->arena_half_width_f32 ||
                 !pf_sim_vertical_coordinate_is_within_arena(
-                    world->position_y_q16[player_index],
-                    world->arena_ceiling_q16) ||
-                world->velocity_x_q16[player_index] <
-                    -PF_SIM_MAX_MOTION_SPEED_Q16 ||
-                world->velocity_x_q16[player_index] >
-                    PF_SIM_MAX_MOTION_SPEED_Q16 ||
-                world->velocity_y_q16[player_index] <
-                    -PF_SIM_MAX_MOTION_SPEED_Q16 ||
-                world->velocity_y_q16[player_index] >
-                    PF_SIM_MAX_MOTION_SPEED_Q16 ||
-                world->ground_knockback_velocity_q16[player_index] <
-                    -PF_SIM_MAX_MOTION_SPEED_Q16 ||
-                world->ground_knockback_velocity_q16[player_index] >
-                    PF_SIM_MAX_MOTION_SPEED_Q16 ||
-                (world->ground_knockback_velocity_q16[player_index] !=
+                    world->position_y_f32[player_index],
+                    world->arena_ceiling_f32) ||
+                world->velocity_x_f32[player_index] <
+                    -PF_SIM_MAX_MOTION_SPEED_F32 ||
+                world->velocity_x_f32[player_index] >
+                    PF_SIM_MAX_MOTION_SPEED_F32 ||
+                world->velocity_y_f32[player_index] <
+                    -PF_SIM_MAX_MOTION_SPEED_F32 ||
+                world->velocity_y_f32[player_index] >
+                    PF_SIM_MAX_MOTION_SPEED_F32 ||
+                world->ground_knockback_velocity_f32[player_index] <
+                    -PF_SIM_MAX_MOTION_SPEED_F32 ||
+                world->ground_knockback_velocity_f32[player_index] >
+                    PF_SIM_MAX_MOTION_SPEED_F32 ||
+                (world->ground_knockback_velocity_f32[player_index] !=
                      INT32_C(0) &&
                  world->grounded[player_index] == UINT8_C(0)) ||
-                world->shield_recoil_x_q16[player_index] <
-                    -PF_SIM_MAX_MOTION_SPEED_Q16 ||
-                world->shield_recoil_x_q16[player_index] >
-                    PF_SIM_MAX_MOTION_SPEED_Q16 ||
+                world->shield_recoil_x_f32[player_index] <
+                    -PF_SIM_MAX_MOTION_SPEED_F32 ||
+                world->shield_recoil_x_f32[player_index] >
+                    PF_SIM_MAX_MOTION_SPEED_F32 ||
                 world->action_ticks[player_index] > UINT16_C(640) ||
                 world->source_submotion[player_index] >=
                     PF_M4_FALCON_SUBMOTION_COUNT ||
@@ -3730,12 +3735,12 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 world->ecb_bottom_lock_ticks[player_index] >
                     PF_M4_COMMON_AIR_ENTRY_ECB_LOCK_TICKS ||
                 (world->ecb_bottom_lock_ticks[player_index] == UINT8_C(0) &&
-                 world->ecb_locked_bottom_y_q16[player_index] != INT32_C(0)) ||
+                 world->ecb_locked_bottom_y_f32[player_index] != INT32_C(0)) ||
                 (world->ecb_bottom_lock_ticks[player_index] != UINT8_C(0) &&
-                 (world->ecb_locked_bottom_y_q16[player_index] <
-                      -world->arena_ceiling_q16 ||
-                  world->ecb_locked_bottom_y_q16[player_index] >
-                      world->arena_ceiling_q16)) ||
+                 (world->ecb_locked_bottom_y_f32[player_index] <
+                      -world->arena_ceiling_f32 ||
+                  world->ecb_locked_bottom_y_f32[player_index] >
+                      world->arena_ceiling_f32)) ||
                 world->fast_fall[player_index] > UINT8_C(1) ||
                 (world->facing[player_index] != INT8_C(-1) &&
                  world->facing[player_index] != INT8_C(1)) ||
@@ -3779,20 +3784,20 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                     INT8_C(-1) ||
                 world->horizontal_input_direction[player_index] >
                     INT8_C(1) ||
-                world->damage_q16[player_index] >
-                    PF_SIM_MAX_DAMAGE_Q16 ||
-                world->knockback_velocity_x_q16[player_index] <
-                    -PF_SIM_MAX_MOTION_SPEED_Q16 ||
-                world->knockback_velocity_x_q16[player_index] >
-                    PF_SIM_MAX_MOTION_SPEED_Q16 ||
-                world->knockback_velocity_y_q16[player_index] <
-                    -PF_SIM_MAX_MOTION_SPEED_Q16 ||
-                world->knockback_velocity_y_q16[player_index] >
-                    PF_SIM_MAX_MOTION_SPEED_Q16 ||
+                world->damage_f32[player_index] >
+                    PF_SIM_MAX_DAMAGE_F32 ||
+                world->knockback_velocity_x_f32[player_index] <
+                    -PF_SIM_MAX_MOTION_SPEED_F32 ||
+                world->knockback_velocity_x_f32[player_index] >
+                    PF_SIM_MAX_MOTION_SPEED_F32 ||
+                world->knockback_velocity_y_f32[player_index] <
+                    -PF_SIM_MAX_MOTION_SPEED_F32 ||
+                world->knockback_velocity_y_f32[player_index] >
+                    PF_SIM_MAX_MOTION_SPEED_F32 ||
                 world->last_hit_sequence[player_index] >
                     world->combat_event_sequence ||
-                world->last_hit_damage_q16[player_index] >
-                    PF_SIM_MAX_DAMAGE_Q16 ||
+                world->last_hit_damage_f32[player_index] >
+                    PF_SIM_MAX_DAMAGE_F32 ||
                 hitlag > UINT16_C(120) ||
                 hitstun > PF_SIM_MAX_HITSTUN_TICKS ||
                 tech_window > UINT16_C(120) ||
@@ -3800,7 +3805,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 tech_window > tech_lockout ||
                 shield_stun > UINT16_C(600) ||
                 shield_health >
-                    PF_SIM_MAX_SHIELD_HEALTH_Q16 ||
+                    PF_SIM_MAX_SHIELD_HEALTH_F32 ||
                 (world->shield_held[player_index] &
                  (uint8_t)~PF_M4_TRIGGER_STATE_MASK) != UINT8_C(0) ||
                 ((world->shield_held[player_index] &
@@ -4010,9 +4015,9 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                   resume_action ==
                       (uint8_t)PF_M4_ACTION_RESET_BOUND) &&
                  (hitstun == UINT16_C(0) ||
-                  (world->knockback_velocity_x_q16[player_index] ==
+                  (world->knockback_velocity_x_f32[player_index] ==
                        INT32_C(0) &&
-                   world->knockback_velocity_y_q16[player_index] ==
+                   world->knockback_velocity_y_f32[player_index] ==
                        INT32_C(0)))) ||
                 (resume_action ==
                      (uint8_t)PF_M4_ACTION_SHIELD_STUN &&
@@ -4034,7 +4039,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                  (world->grounded[player_index] == UINT8_C(0) ||
                   world->support[player_index] ==
                       (uint8_t)PF_M4_SURFACE_NONE ||
-                  world->knockback_velocity_y_q16[player_index] !=
+                  world->knockback_velocity_y_f32[player_index] !=
                       INT32_C(0) ||
                   tumble != UINT8_C(0))) ||
                 (hitlag == UINT16_C(0) &&
@@ -4069,7 +4074,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                              UINT8_C(0)
                        : world->grounded[player_index] ==
                              UINT8_C(0)) ||
-                  world->velocity_x_q16[player_index] !=
+                  world->velocity_x_f32[player_index] !=
                       INT32_C(0))) ||
                 ((action == (uint8_t)PF_M4_ACTION_SHIELD ||
                   action ==
@@ -4173,7 +4178,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 (world->last_hit_sequence[player_index] ==
                      UINT32_C(0) &&
                  (world->last_hit_tick[player_index] != UINT64_C(0) ||
-                  world->last_hit_damage_q16[player_index] !=
+                  world->last_hit_damage_f32[player_index] !=
                       UINT32_C(0) ||
                   world->damage_time_since_hit_ticks[player_index] !=
                       UINT8_C(0) ||
@@ -4182,7 +4187,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 (world->last_hit_sequence[player_index] !=
                      UINT32_C(0) &&
                  (world->last_hit_tick[player_index] >= world->tick ||
-                  world->last_hit_damage_q16[player_index] ==
+                  world->last_hit_damage_f32[player_index] ==
                       UINT32_C(0) ||
                   world->last_hit_attacker[player_index] >=
                       world->player_count ||
@@ -4230,25 +4235,25 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
             }
         }
         else if (world->previous_buttons[player_index] != UINT64_C(0) ||
-                 world->position_x_q16[player_index] != INT32_C(0) ||
-                 world->position_y_q16[player_index] != INT32_C(0) ||
-                 world->velocity_x_q16[player_index] != INT32_C(0) ||
-                 world->velocity_y_q16[player_index] != INT32_C(0) ||
+                 world->position_x_f32[player_index] != INT32_C(0) ||
+                 world->position_y_f32[player_index] != INT32_C(0) ||
+                 world->velocity_x_f32[player_index] != INT32_C(0) ||
+                 world->velocity_y_f32[player_index] != INT32_C(0) ||
                  world->match_kos[player_index] != UINT16_C(0) ||
                  world->match_falls[player_index] != UINT16_C(0) ||
-                 world->shield_recoil_x_q16[player_index] !=
+                 world->shield_recoil_x_f32[player_index] !=
                      INT32_C(0) ||
                  world->action_ticks[player_index] != UINT16_C(0) ||
                  world->source_submotion[player_index] != UINT16_C(0) ||
-                 world->source_animation_frame_q16[player_index] !=
+                 world->source_animation_frame_f32[player_index] !=
                      INT32_C(0) ||
-                 world->source_animation_rate_q16[player_index] !=
+                 world->source_animation_rate_f32[player_index] !=
                      INT32_C(0) ||
-                 world->fall_animation_blend_q16[player_index] !=
+                 world->fall_animation_blend_f32[player_index] !=
                      INT32_C(0) ||
                  world->fall_animation_target_switched[player_index] !=
                      UINT8_C(0) ||
-                 world->ecb_locked_bottom_y_q16[player_index] != INT32_C(0) ||
+                 world->ecb_locked_bottom_y_f32[player_index] != INT32_C(0) ||
                  world->ecb_bottom_lock_ticks[player_index] != UINT8_C(0) ||
                  world->respawn_count[player_index] != UINT16_C(0) ||
                  world->team[player_index] != UINT8_C(0) ||
@@ -4295,14 +4300,14 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                  world->horizontal_input_age[player_index] != UINT8_C(0) ||
                  world->horizontal_input_direction[player_index] !=
                      INT8_C(0) ||
-                 world->damage_q16[player_index] != UINT32_C(0) ||
-                 world->knockback_velocity_x_q16[player_index] !=
+                 world->damage_f32[player_index] != UINT32_C(0) ||
+                 world->knockback_velocity_x_f32[player_index] !=
                      INT32_C(0) ||
-                 world->knockback_velocity_y_q16[player_index] !=
+                 world->knockback_velocity_y_f32[player_index] !=
                      INT32_C(0) ||
                  world->last_hit_sequence[player_index] != UINT32_C(0) ||
                  world->last_hit_tick[player_index] != UINT64_C(0) ||
-                 world->last_hit_damage_q16[player_index] !=
+                 world->last_hit_damage_f32[player_index] !=
                      UINT32_C(0) ||
                  world->damage_time_since_hit_ticks[player_index] !=
                      UINT8_C(0) ||
@@ -4326,7 +4331,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                  world->tech_lockout_ticks[player_index] != UINT16_C(0) ||
                  world->shield_stun_ticks[player_index] !=
                      UINT16_C(0) ||
-                 world->shield_health_q16[player_index] !=
+                 world->shield_health_f32[player_index] !=
                      UINT32_C(0) ||
                  world->shield_held[player_index] != UINT8_C(0) ||
                  world->trigger_input_age[player_index] != UINT8_C(0) ||
@@ -4512,10 +4517,10 @@ pf_status pf_sim_query_identity(
     out_identity->respawn_invulnerability_ticks =
         sim->world.respawn_invulnerability_config_ticks;
     out_identity->max_ticks = sim->world.max_ticks;
-    out_identity->arena_half_width_q16 =
-        sim->world.arena_half_width_q16;
-    out_identity->arena_ceiling_q16 =
-        sim->world.arena_ceiling_q16;
+    out_identity->arena_half_width_f32 =
+        sim->world.arena_half_width_f32;
+    out_identity->arena_ceiling_f32 =
+        sim->world.arena_ceiling_f32;
     out_identity->content_hash = sim->world.content_hash;
     pf_sim_snapshot_config_hash(
         &sim->world,
@@ -4795,16 +4800,16 @@ pf_status pf_sim_load(
             snapshot_canonical_source_submotion(
                 &candidate,
                 player_index) ||
-            candidate.source_animation_frame_q16[player_index] !=
-                snapshot_canonical_source_animation_frame_q16(
+            candidate.source_animation_frame_f32[player_index] !=
+                snapshot_canonical_source_animation_frame_f32(
                     &candidate,
                     player_index) ||
-            candidate.source_animation_rate_q16[player_index] !=
-                snapshot_canonical_source_animation_rate_q16(
+            candidate.source_animation_rate_f32[player_index] !=
+                snapshot_canonical_source_animation_rate_f32(
                     &candidate,
                     player_index) ||
-            candidate.fall_animation_blend_q16[player_index] !=
-                snapshot_canonical_fall_animation_blend_q16(
+            candidate.fall_animation_blend_f32[player_index] !=
+                snapshot_canonical_fall_animation_blend_f32(
                     &candidate,
                     player_index) ||
             candidate.fall_animation_target_switched[player_index] !=

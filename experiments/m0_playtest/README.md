@@ -5,7 +5,7 @@ applies the same normalized input, 60 Hz stage rules, and movement parameters
 to two pure-C candidates:
 
 - IEEE float32 position and velocity.
-- Signed Q16.16 fixed-point position and velocity with 64-bit intermediates
+- Signed float32 fixed-point position and velocity with 64-bit intermediates
   and explicit rounding.
 
 The prototype is deliberately movement-only. It is evidence for the numeric
@@ -17,7 +17,7 @@ The same pure-C movement core is available as an owner-only browser build:
 
 <https://m0-movement-playtest.lol1234.chatgpt.site>
 
-It runs the float32 and Q16.16 candidates as WebAssembly at a fixed 60 Hz and
+It runs the float32 and float32 candidates as WebAssembly at a fixed 60 Hz and
 includes keyboard, controller, touch, blind scoring, reveal, and result-copy
 flows. The browser adapter source and deterministic trace verifier live in
 [`web/`](web/).

@@ -60,12 +60,12 @@ static int run_revival_content_contract_test(void)
             "revival-default-content") ||
         content.schema_version != PF_M4_CONTENT_SCHEMA_VERSION ||
         content.stage.schema_version != PF_M4_STAGE_SCHEMA_VERSION ||
-        content.stage.revival_platform_start_y_q16 !=
-            INT32_C(4) * PF_Q16_ONE ||
-        content.stage.revival_platform_end_y_q16 !=
-            INT32_C(12) * PF_Q16_ONE ||
-        content.stage.revival_platform_half_width_q16 !=
-            INT32_C(2) * PF_Q16_ONE ||
+        content.stage.revival_platform_start_y_f32 !=
+            INT32_C(4) * PF_F32_ONE ||
+        content.stage.revival_platform_end_y_f32 !=
+            INT32_C(12) * PF_F32_ONE ||
+        content.stage.revival_platform_half_width_f32 !=
+            INT32_C(2) * PF_F32_ONE ||
         content.stage.revival_platform_descent_ticks != UINT16_C(60) ||
         content.stage.revival_platform_hold_ticks != UINT16_C(240) ||
         !expect_status(
@@ -77,9 +77,9 @@ static int run_revival_content_contract_test(void)
     }
 
     invalid = content;
-    invalid.stage.revival_platform_start_y_q16 =
-        invalid.stage.blast_top_q16 +
-        invalid.fighter.half_height_q16 - INT32_C(1);
+    invalid.stage.revival_platform_start_y_f32 =
+        invalid.stage.blast_top_f32 +
+        invalid.fighter.half_height_f32 - INT32_C(1);
     if (!expect_status(
             validate_content(&invalid),
             PF_STATUS_INVALID_CONFIG,
@@ -88,8 +88,8 @@ static int run_revival_content_contract_test(void)
         return 0;
     }
     invalid = content;
-    invalid.stage.revival_platform_end_y_q16 =
-        invalid.stage.revival_platform_start_y_q16;
+    invalid.stage.revival_platform_end_y_f32 =
+        invalid.stage.revival_platform_start_y_f32;
     if (!expect_status(
             validate_content(&invalid),
             PF_STATUS_INVALID_CONFIG,
@@ -98,8 +98,8 @@ static int run_revival_content_contract_test(void)
         return 0;
     }
     invalid = content;
-    invalid.stage.revival_platform_half_width_q16 =
-        invalid.fighter.half_width_q16 - INT32_C(1);
+    invalid.stage.revival_platform_half_width_f32 =
+        invalid.fighter.half_width_f32 - INT32_C(1);
     if (!expect_status(
             validate_content(&invalid),
             PF_STATUS_INVALID_CONFIG,
@@ -164,36 +164,36 @@ static int make_match_content(
         return 0;
     }
 
-    out_content->stage.floor_left_q16 =
-        -INT32_C(8) * PF_Q16_ONE;
-    out_content->stage.floor_right_q16 =
-        INT32_C(8) * PF_Q16_ONE;
-    out_content->stage.platform_center_x_q16 =
-        INT32_C(5) * PF_Q16_ONE;
-    out_content->stage.platform_half_width_q16 =
-        INT32_C(1) * PF_Q16_ONE;
-    out_content->stage.platform_motion_amplitude_q16 = INT32_C(0);
-    out_content->stage.upper_platform_center_x_q16 =
-        -INT32_C(5) * PF_Q16_ONE;
-    out_content->stage.upper_platform_half_width_q16 = PF_Q16_ONE;
-    out_content->stage.solid_left_q16 =
-        -PF_Q16_ONE / INT32_C(10);
-    out_content->stage.solid_right_q16 =
-        PF_Q16_ONE / INT32_C(10);
-    out_content->stage.blast_left_q16 =
-        -INT32_C(10) * PF_Q16_ONE;
-    out_content->stage.blast_right_q16 =
-        INT32_C(10) * PF_Q16_ONE;
-    out_content->stage.blast_bottom_q16 =
-        INT32_C(34) * PF_Q16_ONE;
-    out_content->stage.spawn_spacing_q16 =
-        (INT32_C(4) * PF_Q16_ONE) / INT32_C(5);
-    out_content->stage.revival_platform_start_y_q16 =
-        INT32_C(4) * PF_Q16_ONE;
-    out_content->stage.revival_platform_end_y_q16 =
-        INT32_C(8) * PF_Q16_ONE;
-    out_content->stage.revival_platform_half_width_q16 =
-        INT32_C(1) * PF_Q16_ONE;
+    out_content->stage.floor_left_f32 =
+        -INT32_C(8) * PF_F32_ONE;
+    out_content->stage.floor_right_f32 =
+        INT32_C(8) * PF_F32_ONE;
+    out_content->stage.platform_center_x_f32 =
+        INT32_C(5) * PF_F32_ONE;
+    out_content->stage.platform_half_width_f32 =
+        INT32_C(1) * PF_F32_ONE;
+    out_content->stage.platform_motion_amplitude_f32 = INT32_C(0);
+    out_content->stage.upper_platform_center_x_f32 =
+        -INT32_C(5) * PF_F32_ONE;
+    out_content->stage.upper_platform_half_width_f32 = PF_F32_ONE;
+    out_content->stage.solid_left_f32 =
+        -PF_F32_ONE / INT32_C(10);
+    out_content->stage.solid_right_f32 =
+        PF_F32_ONE / INT32_C(10);
+    out_content->stage.blast_left_f32 =
+        -INT32_C(10) * PF_F32_ONE;
+    out_content->stage.blast_right_f32 =
+        INT32_C(10) * PF_F32_ONE;
+    out_content->stage.blast_bottom_f32 =
+        INT32_C(34) * PF_F32_ONE;
+    out_content->stage.spawn_spacing_f32 =
+        (INT32_C(4) * PF_F32_ONE) / INT32_C(5);
+    out_content->stage.revival_platform_start_y_f32 =
+        INT32_C(4) * PF_F32_ONE;
+    out_content->stage.revival_platform_end_y_f32 =
+        INT32_C(8) * PF_F32_ONE;
+    out_content->stage.revival_platform_half_width_f32 =
+        INT32_C(1) * PF_F32_ONE;
     out_content->stage.revival_platform_descent_ticks = UINT16_C(3);
     out_content->stage.revival_platform_hold_ticks = UINT16_C(4);
 
@@ -549,7 +549,7 @@ static int run_stock_respawn_match_test(
         inspection.players[0].respawn_ticks != UINT16_C(0) ||
         inspection.players[0].respawn_invulnerability_ticks !=
             UINT16_C(0) ||
-        inspection.players[0].damage_q16 != UINT32_C(0) ||
+        inspection.players[0].damage_f32 != UINT32_C(0) ||
         inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_REVIVAL_PLATFORM ||
         inspection.players[0].action_ticks != UINT16_C(0) ||
@@ -558,19 +558,19 @@ static int run_stock_respawn_match_test(
             (uint8_t)PF_M4_SURFACE_REVIVAL_PLATFORM ||
         inspection.players[0].invulnerable != UINT8_C(1) ||
         inspection.players[0].revival_platform_active != UINT8_C(1) ||
-        inspection.players[0].position_x_q16 !=
-            -(INT32_C(4) * PF_Q16_ONE) / INT32_C(5) ||
-        inspection.players[0].position_y_q16 !=
-            inspection.stage.revival_platform_start_y_q16 -
-                (INT32_C(4) * PF_Q16_ONE) / INT32_C(5) ||
-        inspection.players[0].revival_platform_y_q16 !=
-            inspection.stage.revival_platform_start_y_q16 ||
-        inspection.players[0].revival_platform_left_q16 !=
-            inspection.players[0].position_x_q16 -
-                inspection.stage.revival_platform_half_width_q16 ||
-        inspection.players[0].revival_platform_right_q16 !=
-            inspection.players[0].position_x_q16 +
-                inspection.stage.revival_platform_half_width_q16 ||
+        inspection.players[0].position_x_f32 !=
+            -(INT32_C(4) * PF_F32_ONE) / INT32_C(5) ||
+        inspection.players[0].position_y_f32 !=
+            inspection.stage.revival_platform_start_y_f32 -
+                (INT32_C(4) * PF_F32_ONE) / INT32_C(5) ||
+        inspection.players[0].revival_platform_y_f32 !=
+            inspection.stage.revival_platform_start_y_f32 ||
+        inspection.players[0].revival_platform_left_f32 !=
+            inspection.players[0].position_x_f32 -
+                inspection.stage.revival_platform_half_width_f32 ||
+        inspection.players[0].revival_platform_right_f32 !=
+            inspection.players[0].position_x_f32 +
+                inspection.stage.revival_platform_half_width_f32 ||
         inspection.stage.revival_platform_descent_ticks != UINT16_C(3) ||
         inspection.stage.revival_platform_hold_ticks != UINT16_C(4) ||
         result.event_count != UINT8_C(2) ||
@@ -590,10 +590,10 @@ static int run_stock_respawn_match_test(
     {
         const uint16_t expected_action_ticks = (uint16_t)(tick + UINT32_C(1));
         const int32_t expected_platform_y =
-            inspection.stage.revival_platform_start_y_q16 +
+            inspection.stage.revival_platform_start_y_f32 +
             (int32_t)(
-                ((int64_t)inspection.stage.revival_platform_end_y_q16 -
-                 (int64_t)inspection.stage.revival_platform_start_y_q16) *
+                ((int64_t)inspection.stage.revival_platform_end_y_f32 -
+                 (int64_t)inspection.stage.revival_platform_start_y_f32) *
                 (int64_t)expected_action_ticks /
                 (int64_t)inspection.stage.revival_platform_descent_ticks);
         const uint64_t player0_buttons =
@@ -629,12 +629,12 @@ static int run_stock_respawn_match_test(
             inspection.players[0].action_state !=
                 (uint8_t)PF_M4_ACTION_REVIVAL_PLATFORM ||
             inspection.players[0].action_ticks != expected_action_ticks ||
-            inspection.players[0].position_x_q16 !=
-                loaded_inspection.players[0].position_x_q16 ||
-            inspection.players[0].velocity_x_q16 != INT32_C(0) ||
-            inspection.players[0].velocity_y_q16 != INT32_C(0) ||
+            inspection.players[0].position_x_f32 !=
+                loaded_inspection.players[0].position_x_f32 ||
+            inspection.players[0].velocity_x_f32 != INT32_C(0) ||
+            inspection.players[0].velocity_y_f32 != INT32_C(0) ||
             inspection.players[0].revival_platform_active != UINT8_C(1) ||
-            inspection.players[0].revival_platform_y_q16 !=
+            inspection.players[0].revival_platform_y_f32 !=
                 expected_platform_y)
         {
             return fail("revival-platform-deterministic-descent");
@@ -692,9 +692,9 @@ static int run_stock_respawn_match_test(
             (uint16_t)PF_SIM_EVENT_REVIVAL_DROP ||
         result.events[0].source_player != PF_SIM_EVENT_NO_PLAYER ||
         result.events[0].target_player != UINT8_C(0) ||
-        result.events[0].value_q16 != UINT32_C(0) ||
-        result.events[0].velocity_x_q16 != INT32_C(0) ||
-        result.events[0].velocity_y_q16 != INT32_C(0) ||
+        result.events[0].value_f32 != UINT32_C(0) ||
+        result.events[0].velocity_x_f32 != INT32_C(0) ||
+        result.events[0].velocity_y_f32 != INT32_C(0) ||
         result.events[0].flags != UINT16_C(0) ||
         result.events[0].detail != UINT16_C(0) ||
         result.events[1].type !=
@@ -762,7 +762,7 @@ static int run_stock_respawn_match_test(
             UINT64_C(0),
             &result,
             &inspection) ||
-        inspection.players[0].damage_q16 != UINT32_C(0) ||
+        inspection.players[0].damage_f32 != UINT32_C(0) ||
         inspection.players[0].respawn_invulnerability_ticks !=
             UINT16_C(2))
     {
@@ -819,7 +819,7 @@ static int run_stock_respawn_match_test(
             UINT64_C(0),
             &result,
             &inspection) ||
-        inspection.players[0].damage_q16 == UINT32_C(0))
+        inspection.players[0].damage_f32 == UINT32_C(0))
     {
         return fail("expired-respawn-invulnerability-accepts-hit");
     }
@@ -899,8 +899,8 @@ static int run_stock_respawn_match_test(
             (unsigned int)result.events[0].detail,
             (unsigned int)result.events[1].detail,
             (unsigned int)result.events[2].detail,
-            (uint32_t)result.events[1].velocity_x_q16,
-            result.events[1].value_q16);
+            (uint32_t)result.events[1].velocity_x_f32,
+            result.events[1].value_f32);
         return fail("final-stock-match-result");
     }
     return 1;
@@ -951,10 +951,10 @@ static int run_simultaneous_ko_sudden_death_test(
         inspection.terminated != UINT8_C(0) ||
         inspection.players[0].stocks_remaining != UINT8_C(1) ||
         inspection.players[1].stocks_remaining != UINT8_C(1) ||
-        inspection.players[0].damage_q16 !=
-            UINT32_C(300) * (uint32_t)PF_Q16_ONE ||
-        inspection.players[1].damage_q16 !=
-            UINT32_C(300) * (uint32_t)PF_Q16_ONE ||
+        inspection.players[0].damage_f32 !=
+            UINT32_C(300) * (uint32_t)PF_F32_ONE ||
+        inspection.players[1].damage_f32 !=
+            UINT32_C(300) * (uint32_t)PF_F32_ONE ||
         inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_RESPAWN_WAIT ||
         inspection.players[1].action_state !=
@@ -969,8 +969,8 @@ static int run_simultaneous_ko_sudden_death_test(
         result.events[2].detail != UINT16_C(3) ||
         result.events[3].type !=
             (uint16_t)PF_SIM_EVENT_SUDDEN_DEATH ||
-        result.events[3].value_q16 !=
-            UINT32_C(300) * (uint32_t)PF_Q16_ONE)
+        result.events[3].value_f32 !=
+            UINT32_C(300) * (uint32_t)PF_F32_ONE)
     {
         return fail("simultaneous-final-stock-enters-sudden-death");
     }
@@ -991,10 +991,10 @@ static int run_simultaneous_ko_sudden_death_test(
     }
     if (inspection.players[0].active != UINT8_C(1) ||
         inspection.players[1].active != UINT8_C(1) ||
-        inspection.players[0].damage_q16 !=
-            UINT32_C(300) * (uint32_t)PF_Q16_ONE ||
-        inspection.players[1].damage_q16 !=
-            UINT32_C(300) * (uint32_t)PF_Q16_ONE ||
+        inspection.players[0].damage_f32 !=
+            UINT32_C(300) * (uint32_t)PF_F32_ONE ||
+        inspection.players[1].damage_f32 !=
+            UINT32_C(300) * (uint32_t)PF_F32_ONE ||
         result.event_count != UINT8_C(3) ||
         result.events[0].type !=
             (uint16_t)PF_SIM_EVENT_RESPAWN ||
@@ -1005,8 +1005,8 @@ static int run_simultaneous_ko_sudden_death_test(
         result.events[2].detail != UINT16_C(3) ||
         (result.events[0].flags &
          (uint16_t)PF_SIM_EVENT_FLAG_SUDDEN_DEATH) == UINT16_C(0) ||
-        result.events[0].value_q16 !=
-            UINT32_C(300) * (uint32_t)PF_Q16_ONE)
+        result.events[0].value_f32 !=
+            UINT32_C(300) * (uint32_t)PF_F32_ONE)
     {
         return fail("sudden-death-spawn-retains-300-percent");
     }
@@ -1092,8 +1092,8 @@ static int run_simultaneous_ko_sudden_death_test(
             (unsigned int)result.events[3].type,
             (unsigned int)result.events[2].detail,
             (unsigned int)result.events[3].detail,
-            inspection.players[0].position_x_q16,
-            inspection.players[1].position_x_q16);
+            inspection.players[0].position_x_f32,
+            inspection.players[1].position_x_f32);
         return fail("sudden-death-lowest-port-resolution");
     }
     return 1;

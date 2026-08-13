@@ -312,7 +312,7 @@ def expected_target_action(
     return target if isinstance(target, int) else None
 
 
-def expected_target_position_q16(
+def expected_target_position_f32(
     profile: dict[str, Any], source_post: dict[str, Any]
 ) -> tuple[int, int]:
     x_scale = profile["source_to_target_x_scale"]
@@ -331,12 +331,12 @@ def expected_target_position_q16(
         * 65536.0
         / int(y_scale["denominator"])
     )
-    target_y = int(y_scale["origin_q16"])
+    target_y = int(y_scale["origin_f32"])
     if bool(y_scale.get("invert")):
         target_y -= scaled_y
     else:
         target_y += scaled_y
-    target_y -= int(y_scale["fighter_root_to_body_center_q16"])
+    target_y -= int(y_scale["fighter_root_to_body_center_f32"])
     return target_x, target_y
 
 
@@ -346,7 +346,7 @@ def first_divergence(
     profile: dict[str, Any],
     *,
     ignore_position: bool = False,
-    displacement_tolerance_q16: int | None = None,
+    displacement_tolerance_f32: int | None = None,
 ) -> dict[str, Any] | None:
     source_frames = replay["frames"]
     l_cancel_action: list[int | None] = [None, None]
@@ -404,11 +404,11 @@ def first_divergence(
                     "expected_target_action": expected_action,
                     "target_action": target_action,
                 }
-            expected_x_q16, expected_y_q16 = expected_target_position_q16(
+            expected_x_f32, expected_y_f32 = expected_target_position_f32(
                 profile, source_post
             )
-            target_x_q16 = int(target[f"p{player_index}_x_q16"])
-            target_y_q16 = int(target[f"p{player_index}_y_q16"])
+            target_x_f32 = int(target[f"p{player_index}_x_f32"])
+            target_y_f32 = int(target[f"p{player_index}_y_f32"])
             comparisons = {
                 "facing": (
                     round(float(source_post["facingDirection"])),
@@ -422,38 +422,38 @@ def first_divergence(
                     int(source_post["stocksRemaining"]),
                     int(target[f"p{player_index}_stocks"]),
                 ),
-                "damage_q16": (
+                "damage_f32": (
                     round(float(source_post["percent"]) * 65536.0),
-                    int(target[f"p{player_index}_damage_q16"]),
+                    int(target[f"p{player_index}_damage_f32"]),
                 ),
-                "position_x_q16": (
-                    expected_x_q16,
-                    target_x_q16,
+                "position_x_f32": (
+                    expected_x_f32,
+                    target_x_f32,
                 ),
-                "position_y_q16": (
-                    expected_y_q16,
-                    target_y_q16,
+                "position_y_f32": (
+                    expected_y_f32,
+                    target_y_f32,
                 ),
             }
             previous = previous_positions[player_index]
             if previous is not None:
                 previous_source_x, previous_source_y, previous_target_x, previous_target_y = previous
                 comparisons = {
-                    "displacement_x_q16": (
-                        expected_x_q16 - previous_source_x,
-                        target_x_q16 - previous_target_x,
+                    "displacement_x_f32": (
+                        expected_x_f32 - previous_source_x,
+                        target_x_f32 - previous_target_x,
                     ),
-                    "displacement_y_q16": (
-                        expected_y_q16 - previous_source_y,
-                        target_y_q16 - previous_target_y,
+                    "displacement_y_f32": (
+                        expected_y_f32 - previous_source_y,
+                        target_y_f32 - previous_target_y,
                     ),
                     **comparisons,
                 }
             previous_positions[player_index] = (
-                expected_x_q16,
-                expected_y_q16,
-                target_x_q16,
-                target_y_q16,
+                expected_x_f32,
+                expected_y_f32,
+                target_x_f32,
+                target_y_f32,
             )
             for field, (source_value, target_value) in comparisons.items():
                 if ignore_position and field.startswith("position_"):
@@ -465,16 +465,16 @@ def first_divergence(
                 ):
                     continue
                 tolerance = (
-                    int(profile["comparison"]["position_tolerance_q16"])
+                    int(profile["comparison"]["position_tolerance_f32"])
                     if field.startswith("position_")
                     else (
-                        displacement_tolerance_q16
-                        if displacement_tolerance_q16 is not None
-                        else int(profile["comparison"]["velocity_tolerance_q16"])
+                        displacement_tolerance_f32
+                        if displacement_tolerance_f32 is not None
+                        else int(profile["comparison"]["velocity_tolerance_f32"])
                     )
                     if field.startswith("displacement_")
-                    else int(profile["comparison"]["damage_tolerance_q16"])
-                    if field == "damage_q16"
+                    else int(profile["comparison"]["damage_tolerance_f32"])
+                    if field == "damage_f32"
                     else 0
                 )
                 if abs(source_value - target_value) > tolerance:
@@ -620,8 +620,8 @@ def run(args: argparse.Namespace) -> int:
             target_rows,
             profile,
             ignore_position=args.diagnostic_ignore_position,
-            displacement_tolerance_q16=(
-                args.diagnostic_displacement_tolerance_q16
+            displacement_tolerance_f32=(
+                args.diagnostic_displacement_tolerance_f32
             ),
         )
         source_winner = winner_mask(replay["gameEnd"])
@@ -645,8 +645,8 @@ def run(args: argparse.Namespace) -> int:
                 "target_winner_mask": target_winner,
                 "terminal_match": terminal_match,
                 "diagnostic_ignore_position": args.diagnostic_ignore_position,
-                "diagnostic_displacement_tolerance_q16": (
-                    args.diagnostic_displacement_tolerance_q16
+                "diagnostic_displacement_tolerance_f32": (
+                    args.diagnostic_displacement_tolerance_f32
                 ),
             }
         )

@@ -14,7 +14,7 @@ from gymnasium.vector.utils import batch_space
 from ._native import (
     NativeBatch,
     NativeCallError,
-    PF_Q16_ONE,
+    PF_F32_ONE,
     PF_RL_BUTTON_BITS,
     PF_RL_BUTTON_COUNT,
     PF_RL_COMPACT_VALUE_COUNT,
@@ -34,7 +34,7 @@ class PlatformFighterVectorEnv(VectorEnv):
 
     Each vector lane is one match. Actions control all fixed player slots.
     Gymnasium's scalar reward is selected from ``reward_player``; exact
-    per-player Q16.16 and floating rewards remain available in ``info``.
+    per-player float32 and floating rewards remain available in ``info``.
     """
 
     metadata = {
@@ -165,7 +165,7 @@ class PlatformFighterVectorEnv(VectorEnv):
             transition.compact_observation.values
         )
         self._rewards[environment_index] = (
-            int(transition.reward_q16[self.reward_player]) / PF_Q16_ONE
+            int(transition.reward_f32[self.reward_player]) / PF_F32_ONE
         )
         self._terminations[environment_index] = bool(
             transition.tick_result.terminated
@@ -184,7 +184,7 @@ class PlatformFighterVectorEnv(VectorEnv):
             "status": np.zeros(self.num_envs, dtype=np.uint32),
             "diagnostic_flags": np.zeros(self.num_envs, dtype=np.uint32),
             "winner_mask": np.zeros(self.num_envs, dtype=np.uint8),
-            "player_rewards_q16": np.zeros(
+            "player_rewards_f32": np.zeros(
                 (self.num_envs, PF_SIM_MAX_PLAYERS), dtype=np.int32
             ),
             "player_rewards": np.zeros(
@@ -196,7 +196,7 @@ class PlatformFighterVectorEnv(VectorEnv):
             "_status": np.zeros(self.num_envs, dtype=np.bool_),
             "_diagnostic_flags": np.zeros(self.num_envs, dtype=np.bool_),
             "_winner_mask": np.zeros(self.num_envs, dtype=np.bool_),
-            "_player_rewards_q16": np.zeros(
+            "_player_rewards_f32": np.zeros(
                 self.num_envs, dtype=np.bool_
             ),
             "_player_rewards": np.zeros(self.num_envs, dtype=np.bool_),
@@ -212,12 +212,12 @@ class PlatformFighterVectorEnv(VectorEnv):
             infos["winner_mask"][environment_index] = (
                 transition.tick_result.winner_mask
             )
-            rewards_q16 = np.ctypeslib.as_array(
-                transition.reward_q16
+            rewards_f32 = np.ctypeslib.as_array(
+                transition.reward_f32
             ).astype(np.int32, copy=True)
-            infos["player_rewards_q16"][environment_index, :] = rewards_q16
+            infos["player_rewards_f32"][environment_index, :] = rewards_f32
             infos["player_rewards"][environment_index, :] = (
-                rewards_q16.astype(np.float32) / PF_Q16_ONE
+                rewards_f32.astype(np.float32) / PF_F32_ONE
             )
             infos["legal_buttons"][environment_index, :] = (
                 np.ctypeslib.as_array(transition.legal_buttons)
@@ -226,7 +226,7 @@ class PlatformFighterVectorEnv(VectorEnv):
                 "_status",
                 "_diagnostic_flags",
                 "_winner_mask",
-                "_player_rewards_q16",
+                "_player_rewards_f32",
                 "_player_rewards",
                 "_legal_buttons",
             ):

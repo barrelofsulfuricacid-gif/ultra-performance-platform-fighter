@@ -11,7 +11,7 @@ from pathlib import Path
 import subprocess
 from typing import Any
 
-from ssbm_live_trace import canonical_sha256, require_equal, require_q16_close
+from ssbm_live_trace import canonical_sha256, require_equal, require_f32_close
 
 
 def best_alignment(
@@ -25,8 +25,8 @@ def best_alignment(
         range(len(actual) - len(expected) + 1),
         key=lambda start: sum(
             abs(
-                int(actual[start + index]["source_animation_frame_q16"])
-                - sample["frame_q16"]
+                int(actual[start + index]["source_animation_frame_f32"])
+                - sample["frame_f32"]
             )
             for index, sample in enumerate(expected)
         ),
@@ -65,21 +65,21 @@ def replay_case(
     for sample_index, oracle in enumerate(expected):
         native = candidates[start + sample_index]
         prefix = f"{case['id']}[{sample_index}]"
-        require_q16_close(
-            int(native["source_animation_frame_q16"]),
-            oracle["frame_q16"],
+        require_f32_close(
+            int(native["source_animation_frame_f32"]),
+            oracle["frame_f32"],
             tolerances["frame"],
             f"{prefix} source frame",
         )
-        require_q16_close(
-            int(native["source_animation_rate_q16"]),
-            oracle["rate_q16"],
+        require_f32_close(
+            int(native["source_animation_rate_f32"]),
+            oracle["rate_f32"],
             tolerances["rate"],
             f"{prefix} source rate",
         )
-        require_q16_close(
-            int(native["velocity_x_q16"]),
-            oracle["velocity_x_q16"],
+        require_f32_close(
+            int(native["velocity_x_f32"]),
+            oracle["velocity_x_f32"],
             tolerances["velocity_x"],
             f"{prefix} ground velocity",
         )

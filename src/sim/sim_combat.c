@@ -8,6 +8,7 @@
 #include "sim_ssbm_stage_data.h"
 
 #include <limits.h>
+#include <math.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -26,16 +27,13 @@ static inline void reset_ordinary_tilt_ages(
     scratch->tilt_y_age[player_index] = UINT8_C(254);
 }
 
-static int32_t lerp_i32_steps(
-    int32_t start,
-    int32_t end,
+static float lerp_f32_steps(
+    float start,
+    float end,
     uint16_t step,
     uint16_t step_count)
 {
-    return (int32_t)(
-        (int64_t)start +
-        (((int64_t)end - (int64_t)start) * (int64_t)step) /
-            (int64_t)step_count);
+    return start + (end - start) * (float)step / (float)step_count;
 }
 
 static pf_status reference_throw_release_sweep(
@@ -43,71 +41,51 @@ static pf_status reference_throw_release_sweep(
     const pf_sim_scratch *scratch,
     uint32_t holder_index,
     uint32_t target_index,
-    int32_t direct_x_q16,
-    int32_t direct_y_q16,
-    int32_t *out_x_q16,
-    int32_t *out_y_q16)
+    float direct_x_f32,
+    float direct_y_f32,
+    float *out_x_f32,
+    float *out_y_f32)
 {
-    falcon_ecb_pose_q16 holder_ecb;
-    falcon_ecb_pose_q16 current_ecb;
-    falcon_ecb_pose_q16 desired_ecb;
-    int64_t holder_mid_y_q16;
-    int64_t start_y_wide;
-    int32_t start_x_q16;
-    int32_t start_y_q16;
-    int32_t prior_x_q16;
-    int32_t prior_y_q16;
+    falcon_ecb_pose_f32 holder_ecb;
+    falcon_ecb_pose_f32 current_ecb;
+    falcon_ecb_pose_f32 desired_ecb;
+    float holder_mid_y_f32;
+    float start_x_f32;
+    float start_y_f32;
+    float prior_x_f32;
+    float prior_y_f32;
     uint16_t step_count;
     uint32_t step;
-    int64_t delta_x_wide;
-    int64_t delta_y_wide;
 
-    if (content == NULL || scratch == NULL || out_x_q16 == NULL ||
-        out_y_q16 == NULL || holder_index >= PF_SIM_MAX_PLAYERS ||
+    if (content == NULL || scratch == NULL || out_x_f32 == NULL ||
+        out_y_f32 == NULL || holder_index >= PF_SIM_MAX_PLAYERS ||
         target_index >= PF_SIM_MAX_PLAYERS ||
         content->stage.reference_collision_profile ==
             (uint16_t)PF_M4_REFERENCE_STAGE_AUTHORED ||
         !falcon_reference_hsd_ecb_pose(
             scratch->source_submotion[holder_index],
-            scratch->source_animation_frame_q16[holder_index],
+            scratch->source_animation_frame_f32[holder_index],
             scratch->grounded[holder_index] != UINT8_C(0),
-            PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16,
+            PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_F32,
             &holder_ecb) ||
         !falcon_reference_hsd_ecb_pose(
             scratch->source_submotion[target_index],
-            scratch->source_animation_frame_q16[target_index],
+            scratch->source_animation_frame_f32[target_index],
             scratch->grounded[target_index] != UINT8_C(0),
-            PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16,
+            PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_F32,
             &current_ecb))
     {
         return PF_STATUS_DETERMINISTIC_FAULT;
     }
     desired_ecb = current_ecb;
-    holder_mid_y_q16 =
-        ((int64_t)holder_ecb.top_y_from_origin_q16 +
-         (int64_t)holder_ecb.bottom_y_from_origin_q16) /
-        INT64_C(2);
-    start_y_wide =
-        (int64_t)scratch->position_y_q16[holder_index] - holder_mid_y_q16;
-    if (start_y_wide < (int64_t)INT32_MIN ||
-        start_y_wide > (int64_t)INT32_MAX)
-    {
-        return PF_STATUS_DETERMINISTIC_FAULT;
-    }
-    start_x_q16 = scratch->position_x_q16[holder_index];
-    start_y_q16 = (int32_t)start_y_wide;
-    delta_x_wide = (int64_t)direct_x_q16 - start_x_q16;
-    delta_y_wide = (int64_t)direct_y_q16 - start_y_q16;
-    if (delta_x_wide < (int64_t)INT32_MIN ||
-        delta_x_wide > (int64_t)INT32_MAX ||
-        delta_y_wide < (int64_t)INT32_MIN ||
-        delta_y_wide > (int64_t)INT32_MAX)
-    {
-        return PF_STATUS_DETERMINISTIC_FAULT;
-    }
-    if (!falcon_reference_collision_sweep_step_count_q16(
-            (int32_t)delta_x_wide,
-            (int32_t)delta_y_wide,
+    holder_mid_y_f32 =
+        (holder_ecb.top_y_from_origin_f32 +
+         holder_ecb.bottom_y_from_origin_f32) * 0.5f;
+    start_x_f32 = scratch->position_x_f32[holder_index];
+    start_y_f32 = scratch->position_y_f32[holder_index] - holder_mid_y_f32;
+    if (!falcon_reference_collision_sweep_step_count_f32(
+            direct_x_f32 - start_x_f32,
+            direct_y_f32 - start_y_f32,
             &current_ecb,
             &desired_ecb,
             &step_count) ||
@@ -116,77 +94,72 @@ static pf_status reference_throw_release_sweep(
         return PF_STATUS_DETERMINISTIC_FAULT;
     }
 
-    prior_x_q16 = start_x_q16;
-    prior_y_q16 =
-        start_y_q16 + content->fighter.half_height_q16 -
-        current_ecb.bottom_y_from_origin_q16;
-    *out_x_q16 = direct_x_q16;
-    *out_y_q16 = direct_y_q16;
+    prior_x_f32 = start_x_f32;
+    prior_y_f32 =
+        start_y_f32 + content->fighter.half_height_f32 -
+        current_ecb.bottom_y_from_origin_f32;
+    *out_x_f32 = direct_x_f32;
+    *out_y_f32 = direct_y_f32;
     for (step = UINT32_C(1); step <= (uint32_t)step_count; ++step)
     {
-        const int32_t body_x_q16 = lerp_i32_steps(
-            start_x_q16,
-            direct_x_q16,
+        const float body_x_f32 = lerp_f32_steps(
+            start_x_f32,
+            direct_x_f32,
             (uint16_t)step,
             step_count);
-        const int32_t body_y_q16 = lerp_i32_steps(
-            start_y_q16,
-            direct_y_q16,
+        const float body_y_f32 = lerp_f32_steps(
+            start_y_f32,
+            direct_y_f32,
             (uint16_t)step,
             step_count);
-        const int32_t bottom_x_q16 = lerp_i32_steps(
-            current_ecb.bottom_x_from_origin_q16,
-            desired_ecb.bottom_x_from_origin_q16,
+        const float bottom_x_f32 = lerp_f32_steps(
+            current_ecb.bottom_x_from_origin_f32,
+            desired_ecb.bottom_x_from_origin_f32,
             (uint16_t)step,
             step_count);
-        const int32_t bottom_y_q16 = lerp_i32_steps(
-            current_ecb.bottom_y_from_origin_q16,
-            desired_ecb.bottom_y_from_origin_q16,
+        const float bottom_y_f32 = lerp_f32_steps(
+            current_ecb.bottom_y_from_origin_f32,
+            desired_ecb.bottom_y_from_origin_f32,
             (uint16_t)step,
             step_count);
-        const int64_t point_x_wide =
-            (int64_t)body_x_q16 +
-            (int64_t)scratch->facing[target_index] * bottom_x_q16;
-        const int64_t point_y_wide =
-            (int64_t)body_y_q16 + content->fighter.half_height_q16 -
-            bottom_y_q16;
-        uint32_t fraction_q16;
-        int32_t floor_y_q16;
+        const float point_x_f32 =
+            body_x_f32 + (float)scratch->facing[target_index] * bottom_x_f32;
+        const float point_y_f32 =
+            body_y_f32 + content->fighter.half_height_f32 -
+            bottom_y_f32;
+        float fraction_f32;
+        float floor_y_f32;
         uint8_t support;
 
-        if (point_x_wide < (int64_t)INT32_MIN ||
-            point_x_wide > (int64_t)INT32_MAX ||
-            point_y_wide < (int64_t)INT32_MIN ||
-            point_y_wide > (int64_t)INT32_MAX)
+        if (!isfinite(point_x_f32) || !isfinite(point_y_f32))
         {
             return PF_STATUS_DETERMINISTIC_FAULT;
         }
         if (ssbm_reference_stage_find_floor_point_contact(
                 content->stage.reference_collision_profile,
-                prior_x_q16,
-                prior_y_q16,
-                (int32_t)point_x_wide,
-                (int32_t)point_y_wide,
-                &fraction_q16,
-                &floor_y_q16,
+                prior_x_f32,
+                prior_y_f32,
+                point_x_f32,
+                point_y_f32,
+                &fraction_f32,
+                &floor_y_f32,
                 &support))
         {
-            const int64_t snapped_y_wide =
-                (int64_t)floor_y_q16 - content->fighter.half_height_q16 +
-                bottom_y_q16;
-            (void)fraction_q16;
+            const float snapped_y_f32 =
+                floor_y_f32 - content->fighter.half_height_f32 +
+                bottom_y_f32;
+            (void)fraction_f32;
             (void)support;
-            if (snapped_y_wide < (int64_t)INT32_MIN ||
-                snapped_y_wide > (int64_t)INT32_MAX)
+            if (!isfinite(snapped_y_f32))
             {
                 return PF_STATUS_DETERMINISTIC_FAULT;
             }
-            *out_x_q16 = body_x_q16;
-            *out_y_q16 = (int32_t)snapped_y_wide;
+            *out_x_f32 = body_x_f32;
+            *out_y_f32 = snapped_y_f32;
             return PF_STATUS_OK;
         }
-        prior_x_q16 = (int32_t)point_x_wide;
-        prior_y_q16 = (int32_t)point_y_wide;
+        prior_x_f32 = point_x_f32;
+        prior_y_f32 = point_y_f32;
     }
     return PF_STATUS_OK;
 }
@@ -197,8 +170,8 @@ static pf_status reference_zero_hitlag_throw_damage_step(
     pf_sim_scratch *scratch,
     uint32_t target_index)
 {
-    int64_t next_position_x_q16;
-    int64_t next_position_y_q16;
+    float next_position_x_f32;
+    float next_position_y_f32;
 
     if (content == NULL || world == NULL || scratch == NULL ||
         target_index >= PF_SIM_MAX_PLAYERS)
@@ -213,7 +186,7 @@ static pf_status reference_zero_hitlag_throw_damage_step(
      * by Fighter_ProcessHit and deliberately do not take this extra step. */
     scratch->grounded[target_index] = UINT8_C(0);
     scratch->support[target_index] = (uint8_t)PF_M4_SURFACE_NONE;
-    scratch->ground_knockback_velocity_q16[target_index] = INT32_C(0);
+    scratch->ground_knockback_velocity_f32[target_index] = 0.0f;
     scratch->hitlag_ticks[target_index] = UINT16_C(0);
     scratch->hitlag_resume_action[target_index] = UINT8_C(0);
     set_action_state(
@@ -235,12 +208,12 @@ static pf_status reference_zero_hitlag_throw_damage_step(
     /* Throw_Anim runs before the priority-3 controller refresh, so Damage's
      * entry-angle calculation consumes the previously processed main stick.
      * This is observably different from using the release pre-frame sample. */
-    if (ssbm_apply_di_q16(
+    if (ssbm_apply_di_f32(
             content->fighter.di_max_angle_radians_q30,
             world->previous_main_stick_x[target_index],
             world->previous_main_stick_y[target_index],
-            &scratch->knockback_velocity_x_q16[target_index],
-            &scratch->knockback_velocity_y_q16[target_index]) != PF_STATUS_OK)
+            &scratch->knockback_velocity_x_f32[target_index],
+            &scratch->knockback_velocity_y_f32[target_index]) != PF_STATUS_OK)
     {
         return PF_STATUS_DETERMINISTIC_FAULT;
     }
@@ -248,50 +221,45 @@ static pf_status reference_zero_hitlag_throw_damage_step(
     /* ftCo_8008DCE0 cleared self velocity. DamageFly's locked-physics branch
      * applies gravity plus aerial friction (a no-op from zero X), then the
      * common fighter update shortens the independent knockback vector. */
-    scratch->velocity_x_q16[target_index] = INT32_C(0);
-    scratch->velocity_y_q16[target_index] = content->fighter.gravity_q16;
-    if (scratch->velocity_y_q16[target_index] >
-        content->fighter.fall_speed_q16)
+    scratch->velocity_x_f32[target_index] = 0.0f;
+    scratch->velocity_y_f32[target_index] = content->fighter.gravity_f32;
+    if (scratch->velocity_y_f32[target_index] >
+        content->fighter.fall_speed_f32)
     {
-        scratch->velocity_y_q16[target_index] =
-            content->fighter.fall_speed_q16;
+        scratch->velocity_y_f32[target_index] =
+            content->fighter.fall_speed_f32;
     }
-    if (ssbm_decay_air_knockback_q16(
-            content->fighter.air_knockback_decay_q16,
-            &scratch->knockback_velocity_x_q16[target_index],
-            &scratch->knockback_velocity_y_q16[target_index]) != PF_STATUS_OK)
+    if (ssbm_decay_air_knockback_f32(
+            content->fighter.air_knockback_decay_f32,
+            &scratch->knockback_velocity_x_f32[target_index],
+            &scratch->knockback_velocity_y_f32[target_index]) != PF_STATUS_OK)
     {
         return PF_STATUS_DETERMINISTIC_FAULT;
     }
 
-    next_position_x_q16 =
-        (int64_t)scratch->position_x_q16[target_index] +
-        (int64_t)scratch->velocity_x_q16[target_index] +
-        (int64_t)scratch->knockback_velocity_x_q16[target_index];
-    next_position_y_q16 =
-        (int64_t)scratch->position_y_q16[target_index] +
-        (int64_t)scratch->velocity_y_q16[target_index] +
-        (int64_t)scratch->knockback_velocity_y_q16[target_index];
-    if (next_position_x_q16 < (int64_t)INT32_MIN ||
-        next_position_x_q16 > (int64_t)INT32_MAX ||
-        next_position_y_q16 < (int64_t)INT32_MIN ||
-        next_position_y_q16 > (int64_t)INT32_MAX)
+    next_position_x_f32 =
+        scratch->position_x_f32[target_index] +
+        scratch->velocity_x_f32[target_index] +
+        scratch->knockback_velocity_x_f32[target_index];
+    next_position_y_f32 =
+        scratch->position_y_f32[target_index] +
+        scratch->velocity_y_f32[target_index] +
+        scratch->knockback_velocity_y_f32[target_index];
+    if (!isfinite(next_position_x_f32) || !isfinite(next_position_y_f32))
     {
         return PF_STATUS_DETERMINISTIC_FAULT;
     }
-    scratch->position_x_q16[target_index] = (int32_t)next_position_x_q16;
-    scratch->position_y_q16[target_index] = (int32_t)next_position_y_q16;
+    scratch->position_x_f32[target_index] = next_position_x_f32;
+    scratch->position_y_f32[target_index] = next_position_y_f32;
     return PF_STATUS_OK;
 }
 
-static uint32_t saturating_damage(
-    uint32_t current,
-    uint32_t added)
+static float saturating_damage(float current, float added)
 {
-    if (current >= PF_SIM_MAX_DAMAGE_Q16 ||
-        added >= PF_SIM_MAX_DAMAGE_Q16 - current)
+    if (current >= PF_SIM_MAX_DAMAGE_F32 ||
+        added >= PF_SIM_MAX_DAMAGE_F32 - current)
     {
-        return PF_SIM_MAX_DAMAGE_Q16;
+        return PF_SIM_MAX_DAMAGE_F32;
     }
     return current + added;
 }
@@ -365,20 +333,20 @@ uint8_t stale_move_id_for_action(uint8_t action_state)
     }
 }
 
-uint32_t stale_move_multiplier_q16(
+float stale_move_multiplier_f32(
     const fighter_data *fighter,
     const uint8_t stale_move_ids[PF_SIM_STALE_MOVE_QUEUE_CAPACITY],
     uint8_t stale_move_count,
     uint8_t move_id)
 {
-    uint32_t reduction_q16 = UINT32_C(0);
+    float reduction_f32 = 0.0f;
     uint32_t stale_index;
 
     if (fighter == NULL || stale_move_ids == NULL ||
         stale_move_count > PF_SIM_STALE_MOVE_QUEUE_CAPACITY ||
         move_id == UINT8_C(0))
     {
-        return (uint32_t)PF_Q16_ONE;
+        return PF_F32_ONE;
     }
     for (stale_index = UINT32_C(0);
          stale_index < (uint32_t)stale_move_count;
@@ -386,50 +354,47 @@ uint32_t stale_move_multiplier_q16(
     {
         if (stale_move_ids[stale_index] == move_id)
         {
-            reduction_q16 +=
-                (uint32_t)fighter
-                    ->stale_move_slot_reduction_q16[stale_index];
+            reduction_f32 +=
+                fighter->stale_move_slot_reduction_f32[stale_index];
         }
     }
-    return (uint32_t)PF_Q16_ONE - reduction_q16;
+    return PF_F32_ONE - reduction_f32;
 }
 
-static uint32_t stale_scaled_damage_q16(
+static float stale_scaled_damage_f32(
     const fighter_data *fighter,
     const pf_sim_scratch *scratch,
     uint32_t player_index,
     uint8_t move_id,
-    uint32_t damage_q16)
+    float damage_f32)
 {
-    uint32_t multiplier_q16;
+    float multiplier_f32;
 
     if (scratch->stale_move_count[player_index] == UINT8_C(0) ||
         move_id == UINT8_C(0))
     {
-        return damage_q16;
+        return damage_f32;
     }
-    multiplier_q16 =
-        stale_move_multiplier_q16(
+    multiplier_f32 =
+        stale_move_multiplier_f32(
             fighter,
             scratch->stale_move_ids[player_index],
             scratch->stale_move_count[player_index],
             move_id);
-    if (multiplier_q16 == (uint32_t)PF_Q16_ONE)
+    if (multiplier_f32 == PF_F32_ONE)
     {
-        return damage_q16;
+        return damage_f32;
     }
 
-    return (uint32_t)(
-        (uint64_t)damage_q16 * (uint64_t)multiplier_q16 /
-        (uint64_t)(uint32_t)PF_Q16_ONE);
+    return damage_f32 * multiplier_f32;
 }
 
-static uint32_t current_move_stale_scaled_damage_q16(
+static float current_move_stale_scaled_damage_f32(
     const fighter_data *fighter,
     const pf_sim_scratch *scratch,
     uint32_t player_index,
     uint8_t move_id,
-    uint32_t damage_q16)
+    float damage_f32)
 {
     const uint8_t stale_count =
         scratch->stale_move_count[player_index];
@@ -441,16 +406,14 @@ static uint32_t current_move_stale_scaled_damage_q16(
         &scratch->stale_move_ids[player_index][skip_current];
     const uint8_t effective_count =
         (uint8_t)(stale_count - skip_current);
-    const uint32_t multiplier_q16 =
-        stale_move_multiplier_q16(
+    const float multiplier_f32 =
+        stale_move_multiplier_f32(
             fighter,
             stale_ids,
             effective_count,
             move_id);
 
-    return (uint32_t)(
-        (uint64_t)damage_q16 * (uint64_t)multiplier_q16 /
-        (uint64_t)(uint32_t)PF_Q16_ONE);
+    return damage_f32 * multiplier_f32;
 }
 
 static void register_stale_move(
@@ -482,94 +445,78 @@ static void register_stale_move(
         (uint8_t)(UINT32_C(1) << player_index);
 }
 
-static int32_t scaled_knockback(
-    int32_t base_q16,
-    int32_t growth_q16,
-    uint32_t damage_q16,
+static float scaled_knockback(
+    float base_f32,
+    float growth_f32,
+    float damage_f32,
     int divide_growth)
 {
-    int64_t growth =
-        ((int64_t)growth_q16 * (int64_t)damage_q16) >>
-        16U;
-    int64_t result;
+    float growth = growth_f32 * damage_f32;
+    float result;
 
     if (divide_growth != 0)
     {
-        growth /= INT64_C(2);
+        growth *= 0.5f;
     }
-    result = (int64_t)base_q16 + growth;
-    if (result > (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16)
+    result = base_f32 + growth;
+    if (result > PF_SIM_MAX_MOTION_SPEED_F32)
     {
-        return PF_SIM_MAX_MOTION_SPEED_Q16;
+        return PF_SIM_MAX_MOTION_SPEED_F32;
     }
-    return (int32_t)result;
+    return result;
 }
 
 static uint16_t hitstun_ticks(
     const fighter_data *fighter,
-    int32_t velocity_x_q16,
-    int32_t velocity_y_q16)
+    float velocity_x_f32,
+    float velocity_y_f32)
 {
-    const int64_t horizontal =
-        velocity_x_q16 < INT32_C(0)
-            ? -(int64_t)velocity_x_q16
-            : (int64_t)velocity_x_q16;
-    const int64_t vertical =
-        velocity_y_q16 < INT32_C(0)
-            ? -(int64_t)velocity_y_q16
-            : (int64_t)velocity_y_q16;
-    const int64_t divisor =
-        (int64_t)fighter->hitstun_velocity_per_tick_q16;
-    int64_t ticks = (horizontal + vertical + divisor - INT64_C(1)) /
-                    divisor;
+    const float horizontal = fabsf(velocity_x_f32);
+    const float vertical = fabsf(velocity_y_f32);
+    const float divisor = fighter->hitstun_velocity_per_tick_f32;
+    uint32_t ticks = (uint32_t)ceilf((horizontal + vertical) / divisor);
 
-    if (ticks < INT64_C(1))
+    if (ticks < UINT32_C(1))
     {
-        ticks = INT64_C(1);
+        ticks = UINT32_C(1);
     }
-    if (ticks > (int64_t)PF_SIM_MAX_HITSTUN_TICKS)
+    if (ticks > (uint32_t)PF_SIM_MAX_HITSTUN_TICKS)
     {
-        ticks = (int64_t)PF_SIM_MAX_HITSTUN_TICKS;
+        ticks = (uint32_t)PF_SIM_MAX_HITSTUN_TICKS;
     }
     return (uint16_t)ticks;
 }
 
-static int32_t scale_velocity_q16(
-    int32_t velocity_q16,
-    int32_t scale_q16)
+static float scale_velocity_f32(
+    float velocity_f32,
+    float scale_f32)
 {
-    return (int32_t)(
-        ((int64_t)velocity_q16 * (int64_t)scale_q16) /
-        (int64_t)PF_Q16_ONE);
+    return velocity_f32 * scale_f32;
 }
 
-static int32_t apply_weight_q16(
-    int32_t velocity_q16,
-    int32_t weight_q16)
+static float apply_weight_f32(
+    float velocity_f32,
+    float weight_f32)
 {
-    int64_t weighted_velocity =
-        (int64_t)velocity_q16 * (int64_t)PF_Q16_ONE /
-        (int64_t)weight_q16;
+    float weighted_velocity = velocity_f32 / weight_f32;
 
-    if (weighted_velocity > (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16)
+    if (weighted_velocity > PF_SIM_MAX_MOTION_SPEED_F32)
     {
-        return PF_SIM_MAX_MOTION_SPEED_Q16;
+        return PF_SIM_MAX_MOTION_SPEED_F32;
     }
-    if (weighted_velocity < -(int64_t)PF_SIM_MAX_MOTION_SPEED_Q16)
+    if (weighted_velocity < -PF_SIM_MAX_MOTION_SPEED_F32)
     {
-        return -PF_SIM_MAX_MOTION_SPEED_Q16;
+        return -PF_SIM_MAX_MOTION_SPEED_F32;
     }
-    return (int32_t)weighted_velocity;
+    return weighted_velocity;
 }
 
 static uint16_t scale_hitstun_ticks(
     uint16_t hitstun_ticks_value,
-    int32_t scale_q16)
+    float scale_f32)
 {
     uint32_t scaled_ticks =
-        (uint32_t)(
-            ((uint64_t)hitstun_ticks_value * (uint64_t)(uint32_t)scale_q16) /
-            (uint64_t)(uint32_t)PF_Q16_ONE);
+        (uint32_t)((float)hitstun_ticks_value * scale_f32);
 
     if (hitstun_ticks_value != UINT16_C(0) && scaled_ticks == UINT32_C(0))
     {
@@ -720,20 +667,20 @@ static int action_is_recovery_invulnerable(
 
 typedef struct attack_runtime
 {
-    int32_t hitbox_offset_x_q16;
-    int32_t hitbox_offset_y_q16;
-    int32_t hitbox_half_width_q16;
-    int32_t hitbox_half_height_q16;
-    uint32_t damage_q16;
-    int32_t base_knockback_x_q16;
-    int32_t base_knockback_y_q16;
-    int32_t knockback_growth_q16;
+    float hitbox_offset_x_f32;
+    float hitbox_offset_y_f32;
+    float hitbox_half_width_f32;
+    float hitbox_half_height_f32;
+    float damage_f32;
+    float base_knockback_x_f32;
+    float base_knockback_y_f32;
+    float knockback_growth_f32;
     uint16_t active_begin_tick;
     uint16_t active_end_tick;
     uint16_t hitlag_ticks;
     int16_t shield_damage;
-    uint32_t target_hitlag_multiplier_q16;
-    uint32_t knockback_damage_q16;
+    float target_hitlag_multiplier_f32;
+    float knockback_damage_f32;
     melee_knockback_data reference_melee_knockback;
     const melee_knockback_data *melee_knockback;
     int8_t direction;
@@ -784,26 +731,23 @@ static const attack_data *ground_attack_data(
     }
 }
 
-static uint32_t smash_charged_damage(
+static float smash_charged_damage(
     const fighter_data *fighter,
-    uint32_t base_damage_q16,
+    float base_damage_f32,
     uint16_t charge_ticks)
 {
     const uint16_t clamped_ticks =
         charge_ticks < fighter->smash_charge_max_ticks
             ? charge_ticks
             : fighter->smash_charge_max_ticks;
-    const uint64_t bonus_damage =
-        (uint64_t)base_damage_q16 *
-        (uint64_t)fighter->smash_charge_damage_bonus_q16 *
-        (uint64_t)clamped_ticks /
-        ((uint64_t)UINT32_C(65536) *
-         (uint64_t)fighter->smash_charge_max_ticks);
+    const float bonus_damage =
+        base_damage_f32 * fighter->smash_charge_damage_bonus_f32 *
+        (float)clamped_ticks / (float)fighter->smash_charge_max_ticks;
 
-    return base_damage_q16 + (uint32_t)bonus_damage;
+    return base_damage_f32 + bonus_damage;
 }
 
-static uint32_t authored_base_damage_for_action(
+static float authored_base_damage_for_action(
     const fighter_data *fighter,
     uint8_t action_state)
 {
@@ -812,32 +756,32 @@ static uint32_t authored_base_damage_for_action(
 
     if (ground_attack != NULL)
     {
-        return ground_attack->damage_q16;
+        return ground_attack->damage_f32;
     }
     switch ((enum action_state)action_state)
     {
         case PF_M4_ACTION_GROUND_ATTACK:
-            return fighter->jab_damage_q16;
+            return fighter->jab_damage_f32;
         case PF_M4_ACTION_JAB_FINAL:
-            return fighter->jab_final_damage_q16;
+            return fighter->jab_final_damage_f32;
         case PF_M4_ACTION_DASH_ATTACK:
-            return fighter->dash_attack_damage_q16;
+            return fighter->dash_attack_damage_f32;
         case PF_M4_ACTION_STRONG_ATTACK:
-            return fighter->strong_damage_q16;
+            return fighter->strong_damage_f32;
         case PF_M4_ACTION_AERIAL_ATTACK:
-            return fighter->aerial_damage_q16;
+            return fighter->aerial_damage_f32;
         case PF_M4_ACTION_FORWARD_AERIAL:
-            return fighter->forward_aerial.damage_q16;
+            return fighter->forward_aerial.damage_f32;
         case PF_M4_ACTION_BACK_AERIAL:
-            return fighter->back_aerial.damage_q16;
+            return fighter->back_aerial.damage_f32;
         case PF_M4_ACTION_UP_AERIAL:
-            return fighter->up_aerial.damage_q16;
+            return fighter->up_aerial.damage_f32;
         case PF_M4_ACTION_DOWN_AERIAL:
-            return fighter->down_aerial.damage_q16;
+            return fighter->down_aerial.damage_f32;
         case PF_M4_ACTION_PUMMEL:
-            return fighter->pummel_damage_q16;
+            return fighter->pummel_damage_f32;
         default:
-            return UINT32_C(0);
+            return 0.0f;
     }
 }
 
@@ -860,25 +804,24 @@ static void apply_falcon_reference_effect(
     const reference_hit_effect *effect,
     attack_runtime *attack)
 {
-    uint32_t damage_q16 =
-        (uint32_t)effect->damage * UINT32_C(65536);
+    float damage_f32 = (float)effect->damage;
 
     if (action_is_smash_release(action_state) &&
         smash_charge_ticks != UINT16_C(0))
     {
-        damage_q16 = smash_charged_damage(
+        damage_f32 = smash_charged_damage(
             fighter,
-            damage_q16,
+            damage_f32,
             smash_charge_ticks);
     }
-    attack->damage_q16 = damage_q16;
-    attack->knockback_damage_q16 = damage_q16;
+    attack->damage_f32 = damage_f32;
+    attack->knockback_damage_f32 = damage_f32;
     attack->shield_damage = (int16_t)effect->shield_damage;
     attack->hitlag_ticks = melee_hitlag_ticks(
-        damage_q16,
+        damage_f32,
         UINT8_C(0),
-        UINT32_C(65536));
-    attack->target_hitlag_multiplier_q16 = UINT32_C(65536);
+        1.0f);
+    attack->target_hitlag_multiplier_f32 = 1.0f;
     if (effect->element == (uint8_t)PF_M4_REFERENCE_HIT_ELECTRIC)
     {
         const ssbm_damage_response_attributes *common =
@@ -886,8 +829,8 @@ static void apply_falcon_reference_effect(
 
         if (common != NULL)
         {
-            attack->target_hitlag_multiplier_q16 =
-                common->electric_hitlag_scale_q16;
+            attack->target_hitlag_multiplier_f32 =
+                common->electric_hitlag_scale_f32;
         }
     }
     attack->reference_melee_knockback.angle_degrees =
@@ -913,18 +856,18 @@ static void apply_stale_scaled_reference_damage(
     const int uses_reference_effect =
         attack->melee_knockback == &attack->reference_melee_knockback;
 
-    attack->damage_q16 = stale_scaled_damage_q16(
+    attack->damage_f32 = stale_scaled_damage_f32(
         fighter,
         scratch,
         attacker_index,
         stale_move_id_for_action(action_state),
-        attack->damage_q16);
+        attack->damage_f32);
     if (uses_reference_effect != 0)
     {
         attack->hitlag_ticks = melee_hitlag_ticks(
-            attack->damage_q16,
+            attack->damage_f32,
             UINT8_C(0),
-            UINT32_C(65536));
+            1.0f);
     }
 }
 
@@ -981,7 +924,7 @@ static int apply_falcon_reference_frame(
             timing.startup_ticks + timing.active_ticks ||
         (reference_special == 0 && reference_source_only_action == 0 &&
          authored_base_damage_for_action(fighter, action_state) !=
-             (uint32_t)primary_effect->damage * UINT32_C(65536)))
+             (float)primary_effect->damage))
     {
         return 0;
     }
@@ -1030,7 +973,7 @@ static int attack_for_action(
     fighter = &content->fighter;
     out_attack->melee_knockback = NULL;
     out_attack->shield_damage = INT16_C(0);
-    out_attack->target_hitlag_multiplier_q16 = UINT32_C(65536);
+    out_attack->target_hitlag_multiplier_f32 = 1.0f;
 
     if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
         !action_is_falcon_dive_capture_phase(action_state))
@@ -1061,14 +1004,14 @@ static int attack_for_action(
             (void)memset(out_attack, 0, sizeof(*out_attack));
             if (action_state == (uint8_t)PF_M4_ACTION_JAB_THIRD)
             {
-                out_attack->hitbox_offset_x_q16 =
-                    fighter->jab_final_hitbox_offset_x_q16;
-                out_attack->hitbox_offset_y_q16 =
-                    fighter->jab_final_hitbox_offset_y_q16;
-                out_attack->hitbox_half_width_q16 =
-                    fighter->jab_final_hitbox_half_width_q16;
-                out_attack->hitbox_half_height_q16 =
-                    fighter->jab_final_hitbox_half_height_q16;
+                out_attack->hitbox_offset_x_f32 =
+                    fighter->jab_final_hitbox_offset_x_f32;
+                out_attack->hitbox_offset_y_f32 =
+                    fighter->jab_final_hitbox_offset_y_f32;
+                out_attack->hitbox_half_width_f32 =
+                    fighter->jab_final_hitbox_half_width_f32;
+                out_attack->hitbox_half_height_f32 =
+                    fighter->jab_final_hitbox_half_height_f32;
             }
             else if (action_state ==
                          (uint8_t)PF_M4_ACTION_RAPID_JAB_LOOP)
@@ -1076,14 +1019,14 @@ static int attack_for_action(
                 /* Custom content still needs a rectangular fallback. The
                  * generated Falcon path selects the executable Attack100
                  * spheres before this envelope reaches collision. */
-                out_attack->hitbox_offset_x_q16 =
-                    fighter->jab_hitbox_offset_x_q16;
-                out_attack->hitbox_offset_y_q16 =
-                    fighter->jab_hitbox_offset_y_q16;
-                out_attack->hitbox_half_width_q16 =
-                    fighter->jab_hitbox_half_width_q16;
-                out_attack->hitbox_half_height_q16 =
-                    fighter->jab_hitbox_half_height_q16;
+                out_attack->hitbox_offset_x_f32 =
+                    fighter->jab_hitbox_offset_x_f32;
+                out_attack->hitbox_offset_y_f32 =
+                    fighter->jab_hitbox_offset_y_f32;
+                out_attack->hitbox_half_width_f32 =
+                    fighter->jab_hitbox_half_width_f32;
+                out_attack->hitbox_half_height_f32 =
+                    fighter->jab_hitbox_half_height_f32;
             }
             else if (action_is_reference_angled_normal(action_state))
             {
@@ -1092,14 +1035,14 @@ static int attack_for_action(
 
                 if (fallback != NULL)
                 {
-                    out_attack->hitbox_offset_x_q16 =
-                        fallback->hitbox_offset_x_q16;
-                    out_attack->hitbox_offset_y_q16 =
-                        fallback->hitbox_offset_y_q16;
-                    out_attack->hitbox_half_width_q16 =
-                        fallback->hitbox_half_width_q16;
-                    out_attack->hitbox_half_height_q16 =
-                        fallback->hitbox_half_height_q16;
+                    out_attack->hitbox_offset_x_f32 =
+                        fallback->hitbox_offset_x_f32;
+                    out_attack->hitbox_offset_y_f32 =
+                        fallback->hitbox_offset_y_f32;
+                    out_attack->hitbox_half_width_f32 =
+                        fallback->hitbox_half_width_f32;
+                    out_attack->hitbox_half_height_f32 =
+                        fallback->hitbox_half_height_f32;
                 }
             }
             out_attack->active_begin_tick =
@@ -1121,21 +1064,21 @@ static int attack_for_action(
 
     if (action_state == (uint8_t)PF_M4_ACTION_DASH_ATTACK)
     {
-        out_attack->hitbox_offset_x_q16 =
-            fighter->dash_attack_hitbox_offset_x_q16;
-        out_attack->hitbox_offset_y_q16 =
-            fighter->dash_attack_hitbox_offset_y_q16;
-        out_attack->hitbox_half_width_q16 =
-            fighter->dash_attack_hitbox_half_width_q16;
-        out_attack->hitbox_half_height_q16 =
-            fighter->dash_attack_hitbox_half_height_q16;
-        out_attack->damage_q16 = fighter->dash_attack_damage_q16;
-        out_attack->base_knockback_x_q16 =
-            fighter->dash_attack_base_knockback_x_q16;
-        out_attack->base_knockback_y_q16 =
-            fighter->dash_attack_base_knockback_y_q16;
-        out_attack->knockback_growth_q16 =
-            fighter->dash_attack_knockback_growth_q16;
+        out_attack->hitbox_offset_x_f32 =
+            fighter->dash_attack_hitbox_offset_x_f32;
+        out_attack->hitbox_offset_y_f32 =
+            fighter->dash_attack_hitbox_offset_y_f32;
+        out_attack->hitbox_half_width_f32 =
+            fighter->dash_attack_hitbox_half_width_f32;
+        out_attack->hitbox_half_height_f32 =
+            fighter->dash_attack_hitbox_half_height_f32;
+        out_attack->damage_f32 = fighter->dash_attack_damage_f32;
+        out_attack->base_knockback_x_f32 =
+            fighter->dash_attack_base_knockback_x_f32;
+        out_attack->base_knockback_y_f32 =
+            fighter->dash_attack_base_knockback_y_f32;
+        out_attack->knockback_growth_f32 =
+            fighter->dash_attack_knockback_growth_f32;
         out_attack->active_begin_tick =
             fighter->dash_attack_startup_ticks + UINT16_C(1);
         out_attack->active_end_tick =
@@ -1151,21 +1094,21 @@ static int attack_for_action(
     }
     if (action_state == (uint8_t)PF_M4_ACTION_JAB_FINAL)
     {
-        out_attack->hitbox_offset_x_q16 =
-            fighter->jab_final_hitbox_offset_x_q16;
-        out_attack->hitbox_offset_y_q16 =
-            fighter->jab_final_hitbox_offset_y_q16;
-        out_attack->hitbox_half_width_q16 =
-            fighter->jab_final_hitbox_half_width_q16;
-        out_attack->hitbox_half_height_q16 =
-            fighter->jab_final_hitbox_half_height_q16;
-        out_attack->damage_q16 = fighter->jab_final_damage_q16;
-        out_attack->base_knockback_x_q16 =
-            fighter->jab_final_base_knockback_x_q16;
-        out_attack->base_knockback_y_q16 =
-            fighter->jab_final_base_knockback_y_q16;
-        out_attack->knockback_growth_q16 =
-            fighter->jab_final_knockback_growth_q16;
+        out_attack->hitbox_offset_x_f32 =
+            fighter->jab_final_hitbox_offset_x_f32;
+        out_attack->hitbox_offset_y_f32 =
+            fighter->jab_final_hitbox_offset_y_f32;
+        out_attack->hitbox_half_width_f32 =
+            fighter->jab_final_hitbox_half_width_f32;
+        out_attack->hitbox_half_height_f32 =
+            fighter->jab_final_hitbox_half_height_f32;
+        out_attack->damage_f32 = fighter->jab_final_damage_f32;
+        out_attack->base_knockback_x_f32 =
+            fighter->jab_final_base_knockback_x_f32;
+        out_attack->base_knockback_y_f32 =
+            fighter->jab_final_base_knockback_y_f32;
+        out_attack->knockback_growth_f32 =
+            fighter->jab_final_knockback_growth_f32;
         out_attack->active_begin_tick =
             fighter->jab_final_startup_ticks + UINT16_C(1);
         out_attack->active_end_tick =
@@ -1183,21 +1126,21 @@ static int attack_for_action(
     }
     if (action_state == (uint8_t)PF_M4_ACTION_GROUND_ATTACK)
     {
-        out_attack->hitbox_offset_x_q16 =
-            fighter->jab_hitbox_offset_x_q16;
-        out_attack->hitbox_offset_y_q16 =
-            fighter->jab_hitbox_offset_y_q16;
-        out_attack->hitbox_half_width_q16 =
-            fighter->jab_hitbox_half_width_q16;
-        out_attack->hitbox_half_height_q16 =
-            fighter->jab_hitbox_half_height_q16;
-        out_attack->damage_q16 = fighter->jab_damage_q16;
-        out_attack->base_knockback_x_q16 =
-            fighter->jab_base_knockback_x_q16;
-        out_attack->base_knockback_y_q16 =
-            fighter->jab_base_knockback_y_q16;
-        out_attack->knockback_growth_q16 =
-            fighter->jab_knockback_growth_q16;
+        out_attack->hitbox_offset_x_f32 =
+            fighter->jab_hitbox_offset_x_f32;
+        out_attack->hitbox_offset_y_f32 =
+            fighter->jab_hitbox_offset_y_f32;
+        out_attack->hitbox_half_width_f32 =
+            fighter->jab_hitbox_half_width_f32;
+        out_attack->hitbox_half_height_f32 =
+            fighter->jab_hitbox_half_height_f32;
+        out_attack->damage_f32 = fighter->jab_damage_f32;
+        out_attack->base_knockback_x_f32 =
+            fighter->jab_base_knockback_x_f32;
+        out_attack->base_knockback_y_f32 =
+            fighter->jab_base_knockback_y_f32;
+        out_attack->knockback_growth_f32 =
+            fighter->jab_knockback_growth_f32;
         out_attack->active_begin_tick =
             fighter->jab_startup_ticks + UINT16_C(1);
         out_attack->active_end_tick =
@@ -1219,29 +1162,29 @@ static int attack_for_action(
         const attack_data *attack =
             ground_attack_data(fighter, action_state);
 
-        out_attack->hitbox_offset_x_q16 =
-            attack->hitbox_offset_x_q16;
-        out_attack->hitbox_offset_y_q16 =
-            attack->hitbox_offset_y_q16;
-        out_attack->hitbox_half_width_q16 =
-            attack->hitbox_half_width_q16;
-        out_attack->hitbox_half_height_q16 =
-            attack->hitbox_half_height_q16;
-        out_attack->damage_q16 = attack->damage_q16;
+        out_attack->hitbox_offset_x_f32 =
+            attack->hitbox_offset_x_f32;
+        out_attack->hitbox_offset_y_f32 =
+            attack->hitbox_offset_y_f32;
+        out_attack->hitbox_half_width_f32 =
+            attack->hitbox_half_width_f32;
+        out_attack->hitbox_half_height_f32 =
+            attack->hitbox_half_height_f32;
+        out_attack->damage_f32 = attack->damage_f32;
         if (action_is_smash_release(action_state) &&
             smash_charge_ticks != UINT16_C(0))
         {
-            out_attack->damage_q16 = smash_charged_damage(
+            out_attack->damage_f32 = smash_charged_damage(
                 fighter,
-                attack->damage_q16,
+                attack->damage_f32,
                 smash_charge_ticks);
         }
-        out_attack->base_knockback_x_q16 =
-            attack->base_knockback_x_q16;
-        out_attack->base_knockback_y_q16 =
-            attack->base_knockback_y_q16;
-        out_attack->knockback_growth_q16 =
-            attack->knockback_growth_q16;
+        out_attack->base_knockback_x_f32 =
+            attack->base_knockback_x_f32;
+        out_attack->base_knockback_y_f32 =
+            attack->base_knockback_y_f32;
+        out_attack->knockback_growth_f32 =
+            attack->knockback_growth_f32;
         out_attack->active_begin_tick =
             attack->startup_ticks + UINT16_C(1);
         out_attack->active_end_tick =
@@ -1259,21 +1202,21 @@ static int attack_for_action(
     {
         const attack_data *attack = &fighter->ledge_attack;
 
-        out_attack->hitbox_offset_x_q16 =
-            attack->hitbox_offset_x_q16;
-        out_attack->hitbox_offset_y_q16 =
-            attack->hitbox_offset_y_q16;
-        out_attack->hitbox_half_width_q16 =
-            attack->hitbox_half_width_q16;
-        out_attack->hitbox_half_height_q16 =
-            attack->hitbox_half_height_q16;
-        out_attack->damage_q16 = attack->damage_q16;
-        out_attack->base_knockback_x_q16 =
-            attack->base_knockback_x_q16;
-        out_attack->base_knockback_y_q16 =
-            attack->base_knockback_y_q16;
-        out_attack->knockback_growth_q16 =
-            attack->knockback_growth_q16;
+        out_attack->hitbox_offset_x_f32 =
+            attack->hitbox_offset_x_f32;
+        out_attack->hitbox_offset_y_f32 =
+            attack->hitbox_offset_y_f32;
+        out_attack->hitbox_half_width_f32 =
+            attack->hitbox_half_width_f32;
+        out_attack->hitbox_half_height_f32 =
+            attack->hitbox_half_height_f32;
+        out_attack->damage_f32 = attack->damage_f32;
+        out_attack->base_knockback_x_f32 =
+            attack->base_knockback_x_f32;
+        out_attack->base_knockback_y_f32 =
+            attack->base_knockback_y_f32;
+        out_attack->knockback_growth_f32 =
+            attack->knockback_growth_f32;
         out_attack->active_begin_tick =
             attack->startup_ticks + UINT16_C(1);
         out_attack->active_end_tick =
@@ -1309,21 +1252,21 @@ static int attack_for_action(
                 return 0;
         }
 
-        out_attack->hitbox_offset_x_q16 =
-            attack->hitbox_offset_x_q16;
-        out_attack->hitbox_offset_y_q16 =
-            attack->hitbox_offset_y_q16;
-        out_attack->hitbox_half_width_q16 =
-            attack->hitbox_half_width_q16;
-        out_attack->hitbox_half_height_q16 =
-            attack->hitbox_half_height_q16;
-        out_attack->damage_q16 = attack->damage_q16;
-        out_attack->base_knockback_x_q16 =
-            attack->base_knockback_x_q16;
-        out_attack->base_knockback_y_q16 =
-            attack->base_knockback_y_q16;
-        out_attack->knockback_growth_q16 =
-            attack->knockback_growth_q16;
+        out_attack->hitbox_offset_x_f32 =
+            attack->hitbox_offset_x_f32;
+        out_attack->hitbox_offset_y_f32 =
+            attack->hitbox_offset_y_f32;
+        out_attack->hitbox_half_width_f32 =
+            attack->hitbox_half_width_f32;
+        out_attack->hitbox_half_height_f32 =
+            attack->hitbox_half_height_f32;
+        out_attack->damage_f32 = attack->damage_f32;
+        out_attack->base_knockback_x_f32 =
+            attack->base_knockback_x_f32;
+        out_attack->base_knockback_y_f32 =
+            attack->base_knockback_y_f32;
+        out_attack->knockback_growth_f32 =
+            attack->knockback_growth_f32;
         out_attack->active_begin_tick =
             attack->startup_ticks + UINT16_C(1);
         out_attack->active_end_tick = (uint16_t)(
@@ -1345,21 +1288,21 @@ static int attack_for_action(
         action_state ==
             (uint8_t)PF_M4_ACTION_STRONG_AERIAL_ATTACK)
     {
-        out_attack->hitbox_offset_x_q16 =
-            fighter->strong_hitbox_offset_x_q16;
-        out_attack->hitbox_offset_y_q16 =
-            fighter->strong_hitbox_offset_y_q16;
-        out_attack->hitbox_half_width_q16 =
-            fighter->strong_hitbox_half_width_q16;
-        out_attack->hitbox_half_height_q16 =
-            fighter->strong_hitbox_half_height_q16;
-        out_attack->damage_q16 = fighter->strong_damage_q16;
-        out_attack->base_knockback_x_q16 =
-            fighter->strong_base_knockback_x_q16;
-        out_attack->base_knockback_y_q16 =
-            fighter->strong_base_knockback_y_q16;
-        out_attack->knockback_growth_q16 =
-            fighter->strong_knockback_growth_q16;
+        out_attack->hitbox_offset_x_f32 =
+            fighter->strong_hitbox_offset_x_f32;
+        out_attack->hitbox_offset_y_f32 =
+            fighter->strong_hitbox_offset_y_f32;
+        out_attack->hitbox_half_width_f32 =
+            fighter->strong_hitbox_half_width_f32;
+        out_attack->hitbox_half_height_f32 =
+            fighter->strong_hitbox_half_height_f32;
+        out_attack->damage_f32 = fighter->strong_damage_f32;
+        out_attack->base_knockback_x_f32 =
+            fighter->strong_base_knockback_x_f32;
+        out_attack->base_knockback_y_f32 =
+            fighter->strong_base_knockback_y_f32;
+        out_attack->knockback_growth_f32 =
+            fighter->strong_knockback_growth_f32;
         out_attack->active_begin_tick =
             fighter->strong_startup_ticks + UINT16_C(1);
         out_attack->active_end_tick =
@@ -1373,21 +1316,21 @@ static int attack_for_action(
     }
     if (action_state == (uint8_t)PF_M4_ACTION_AERIAL_ATTACK)
     {
-        out_attack->hitbox_offset_x_q16 =
-            fighter->aerial_hitbox_offset_x_q16;
-        out_attack->hitbox_offset_y_q16 =
-            fighter->aerial_hitbox_offset_y_q16;
-        out_attack->hitbox_half_width_q16 =
-            fighter->aerial_hitbox_half_width_q16;
-        out_attack->hitbox_half_height_q16 =
-            fighter->aerial_hitbox_half_height_q16;
-        out_attack->damage_q16 = fighter->aerial_damage_q16;
-        out_attack->base_knockback_x_q16 =
-            fighter->aerial_base_knockback_x_q16;
-        out_attack->base_knockback_y_q16 =
-            fighter->aerial_base_knockback_y_q16;
-        out_attack->knockback_growth_q16 =
-            fighter->aerial_knockback_growth_q16;
+        out_attack->hitbox_offset_x_f32 =
+            fighter->aerial_hitbox_offset_x_f32;
+        out_attack->hitbox_offset_y_f32 =
+            fighter->aerial_hitbox_offset_y_f32;
+        out_attack->hitbox_half_width_f32 =
+            fighter->aerial_hitbox_half_width_f32;
+        out_attack->hitbox_half_height_f32 =
+            fighter->aerial_hitbox_half_height_f32;
+        out_attack->damage_f32 = fighter->aerial_damage_f32;
+        out_attack->base_knockback_x_f32 =
+            fighter->aerial_base_knockback_x_f32;
+        out_attack->base_knockback_y_f32 =
+            fighter->aerial_base_knockback_y_f32;
+        out_attack->knockback_growth_f32 =
+            fighter->aerial_knockback_growth_f32;
         out_attack->active_begin_tick =
             fighter->aerial_startup_ticks + UINT16_C(1);
         out_attack->active_end_tick =
@@ -1410,21 +1353,21 @@ static int attack_for_action(
         {
             return 0;
         }
-        out_attack->hitbox_offset_x_q16 =
-            reflector->hitbox_offset_x_q16;
-        out_attack->hitbox_offset_y_q16 =
-            reflector->hitbox_offset_y_q16;
-        out_attack->hitbox_half_width_q16 =
-            reflector->hitbox_half_width_q16;
-        out_attack->hitbox_half_height_q16 =
-            reflector->hitbox_half_height_q16;
-        out_attack->damage_q16 = reflector->damage_q16;
-        out_attack->base_knockback_x_q16 =
-            reflector->base_knockback_x_q16;
-        out_attack->base_knockback_y_q16 =
-            reflector->base_knockback_y_q16;
-        out_attack->knockback_growth_q16 =
-            reflector->knockback_growth_q16;
+        out_attack->hitbox_offset_x_f32 =
+            reflector->hitbox_offset_x_f32;
+        out_attack->hitbox_offset_y_f32 =
+            reflector->hitbox_offset_y_f32;
+        out_attack->hitbox_half_width_f32 =
+            reflector->hitbox_half_width_f32;
+        out_attack->hitbox_half_height_f32 =
+            reflector->hitbox_half_height_f32;
+        out_attack->damage_f32 = reflector->damage_f32;
+        out_attack->base_knockback_x_f32 =
+            reflector->base_knockback_x_f32;
+        out_attack->base_knockback_y_f32 =
+            reflector->base_knockback_y_f32;
+        out_attack->knockback_growth_f32 =
+            reflector->knockback_growth_f32;
         out_attack->active_begin_tick =
             reflector->startup_ticks + UINT16_C(1);
         out_attack->active_end_tick =
@@ -1448,26 +1391,24 @@ static int attack_for_action(
         {
             return 0;
         }
-        out_attack->hitbox_offset_x_q16 =
-            charge->hitbox_offset_x_q16;
-        out_attack->hitbox_offset_y_q16 =
-            charge->hitbox_offset_y_q16;
-        out_attack->hitbox_half_width_q16 =
-            charge->hitbox_half_width_q16;
-        out_attack->hitbox_half_height_q16 =
-            charge->hitbox_half_height_q16;
-        out_attack->damage_q16 =
-            charge->base_damage_q16 +
-            (uint32_t)(
-                (uint64_t)charge->bonus_damage_q16 *
-                (uint64_t)bounded_charge /
-                (uint64_t)charge->max_charge_ticks);
-        out_attack->base_knockback_x_q16 =
-            charge->base_knockback_x_q16;
-        out_attack->base_knockback_y_q16 =
-            charge->base_knockback_y_q16;
-        out_attack->knockback_growth_q16 =
-            charge->knockback_growth_q16;
+        out_attack->hitbox_offset_x_f32 =
+            charge->hitbox_offset_x_f32;
+        out_attack->hitbox_offset_y_f32 =
+            charge->hitbox_offset_y_f32;
+        out_attack->hitbox_half_width_f32 =
+            charge->hitbox_half_width_f32;
+        out_attack->hitbox_half_height_f32 =
+            charge->hitbox_half_height_f32;
+        out_attack->damage_f32 =
+            charge->base_damage_f32 +
+            charge->bonus_damage_f32 * (float)bounded_charge /
+                (float)charge->max_charge_ticks;
+        out_attack->base_knockback_x_f32 =
+            charge->base_knockback_x_f32;
+        out_attack->base_knockback_y_f32 =
+            charge->base_knockback_y_f32;
+        out_attack->knockback_growth_f32 =
+            charge->knockback_growth_f32;
         out_attack->active_begin_tick =
             charge->release_startup_ticks + UINT16_C(1);
         out_attack->active_end_tick =
@@ -1519,22 +1460,22 @@ static int attack_for_action(
             return 0;
         }
 
-        out_attack->hitbox_offset_x_q16 =
-            fighter->getup_attack_hitbox_offset_x_q16;
-        out_attack->hitbox_offset_y_q16 =
-            fighter->getup_attack_hitbox_offset_y_q16;
-        out_attack->hitbox_half_width_q16 =
-            fighter->getup_attack_hitbox_half_width_q16;
-        out_attack->hitbox_half_height_q16 =
-            fighter->getup_attack_hitbox_half_height_q16;
-        out_attack->damage_q16 =
-            fighter->getup_attack_damage_q16;
-        out_attack->base_knockback_x_q16 =
-            fighter->getup_attack_base_knockback_x_q16;
-        out_attack->base_knockback_y_q16 =
-            fighter->getup_attack_base_knockback_y_q16;
-        out_attack->knockback_growth_q16 =
-            fighter->getup_attack_knockback_growth_q16;
+        out_attack->hitbox_offset_x_f32 =
+            fighter->getup_attack_hitbox_offset_x_f32;
+        out_attack->hitbox_offset_y_f32 =
+            fighter->getup_attack_hitbox_offset_y_f32;
+        out_attack->hitbox_half_width_f32 =
+            fighter->getup_attack_hitbox_half_width_f32;
+        out_attack->hitbox_half_height_f32 =
+            fighter->getup_attack_hitbox_half_height_f32;
+        out_attack->damage_f32 =
+            fighter->getup_attack_damage_f32;
+        out_attack->base_knockback_x_f32 =
+            fighter->getup_attack_base_knockback_x_f32;
+        out_attack->base_knockback_y_f32 =
+            fighter->getup_attack_base_knockback_y_f32;
+        out_attack->knockback_growth_f32 =
+            fighter->getup_attack_knockback_growth_f32;
         out_attack->active_begin_tick = active_begin;
         out_attack->active_end_tick = active_end;
         out_attack->hitlag_ticks =
@@ -1598,156 +1539,134 @@ static int attack_for_state(
 
 typedef struct shield_hit_response
 {
-    uint32_t damage_q16;
+    float damage_f32;
     uint16_t stun_ticks;
-    int32_t stun_duration_q16;
-    int32_t defender_pushback_q16;
-    int32_t attacker_pushback_q16;
+    float stun_duration_f32;
+    float defender_pushback_f32;
+    float attacker_pushback_f32;
 } shield_hit_response;
 
-static int32_t guard_setoff_animation_rate_q16(
+static float guard_setoff_animation_rate_f32(
     const fighter_data *fighter,
-    int32_t stun_duration_q16)
+    float stun_duration_f32)
 {
     const falcon_submotion_data *motion;
-    int64_t endpoint_q16;
+    float endpoint_f32;
 
     if (fighter->reference_frame_data_enabled == UINT8_C(0) ||
-        stun_duration_q16 <= INT32_C(0))
+        stun_duration_f32 <= 0.0f)
     {
-        return INT32_C(0);
+        return 0.0f;
     }
     motion = falcon_reference_submotion(
         (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD_SET_OFF);
     if (motion == NULL || motion->animation_frame_count == UINT16_C(0))
     {
-        return INT32_C(0);
+        return 0.0f;
     }
     /* ftCo_80092F2C sets (lbGetJObjEndFrame() + 0.1) / shield_stun.
      * The animation endpoint is imported per fighter; the 0.1 bias belongs
      * to the common callback and is converted once to deterministic Q16. */
-    endpoint_q16 =
-        (int64_t)motion->animation_frame_count * (int64_t)PF_Q16_ONE +
-        (int64_t)PF_Q16_ONE / INT64_C(10);
-    return (int32_t)(
-        endpoint_q16 * (int64_t)PF_Q16_ONE /
-        (int64_t)stun_duration_q16);
+    endpoint_f32 = (float)motion->animation_frame_count + 0.1f;
+    return endpoint_f32 / stun_duration_f32;
 }
 
-static inline int32_t shield_pressure_lerp_q16(
-    int32_t light_q16,
-    int32_t dense_q16,
+static inline float shield_pressure_lerp_f32(
+    float light_f32,
+    float dense_f32,
     uint16_t shield_strength)
 {
-    return light_q16 -
-           (int32_t)(
-               ((int64_t)(light_q16 - dense_q16) *
-                (int64_t)shield_strength) /
-               (int64_t)UINT16_MAX);
+    return light_f32 -
+           (light_f32 - dense_f32) *
+               (float)shield_strength / (float)UINT16_MAX;
 }
 
-static inline uint32_t shield_hit_damage_q16(
-    uint32_t attack_damage_q16)
+static inline float shield_hit_damage_f32(
+    float attack_damage_f32)
 {
-    uint32_t integer_damage = attack_damage_q16 >> 16U;
+    float integer_damage = floorf(attack_damage_f32);
 
-    if (attack_damage_q16 != UINT32_C(0) &&
-        integer_damage == UINT32_C(0))
+    if (attack_damage_f32 != 0.0f && integer_damage == 0.0f)
     {
-        integer_damage = UINT32_C(1);
+        integer_damage = 1.0f;
     }
-    return integer_damage << 16U;
+    return integer_damage;
 }
 
 static shield_hit_response shield_hit_response_for(
     const fighter_data *fighter,
-    uint32_t attack_damage_q16,
+    float attack_damage_f32,
     int16_t shield_damage,
     uint16_t shield_strength,
     int powershield)
 {
     shield_hit_response response;
-    const uint32_t shield_hit_damage_q16_value =
-        shield_hit_damage_q16(attack_damage_q16);
-    const int64_t shield_health_damage_q16_signed =
-        (int64_t)shield_hit_damage_q16_value +
-        (int64_t)shield_damage * INT64_C(65536);
-    const uint32_t shield_health_damage_q16 =
-        shield_health_damage_q16_signed > INT64_C(0)
-            ? (uint32_t)shield_health_damage_q16_signed
-            : UINT32_C(0);
-    const int32_t damage_multiplier_q16 =
-        shield_pressure_lerp_q16(
-            (int32_t)fighter->light_shield_damage_multiplier_q16,
-            (int32_t)fighter->dense_shield_damage_multiplier_q16,
+    const float shield_hit_damage_f32_value =
+        shield_hit_damage_f32(attack_damage_f32);
+    const float shield_health_damage_f32_signed =
+        shield_hit_damage_f32_value + (float)shield_damage;
+    const float shield_health_damage_f32 =
+        shield_health_damage_f32_signed > 0.0f
+            ? shield_health_damage_f32_signed
+            : 0.0f;
+    const float damage_multiplier_f32 =
+        shield_pressure_lerp_f32(
+            fighter->light_shield_damage_multiplier_f32,
+            fighter->dense_shield_damage_multiplier_f32,
             shield_strength);
-    const int32_t stun_damage_multiplier_q16 =
-        shield_pressure_lerp_q16(
-            fighter->light_shield_stun_damage_multiplier_q16,
-            fighter->dense_shield_stun_damage_multiplier_q16,
+    const float stun_damage_multiplier_f32 =
+        shield_pressure_lerp_f32(
+            fighter->light_shield_stun_damage_multiplier_f32,
+            fighter->dense_shield_stun_damage_multiplier_f32,
             shield_strength);
-    const int64_t stun_duration_q16 =
-        (((int64_t)shield_hit_damage_q16_value *
-          (int64_t)stun_damage_multiplier_q16) >>
-         16U) +
-        (int64_t)fighter->shield_stun_base_q16;
-    const uint64_t pressure_damage_q16 =
-        ((uint64_t)shield_hit_damage_q16_value *
-         (uint64_t)shield_strength) /
-        (uint64_t)UINT16_MAX;
-    int64_t ticks =
-        (stun_duration_q16 * INT64_C(200) / INT64_C(201)) >> 16U;
-    int64_t defender_pushback_q16 =
-        (stun_duration_q16 *
-         (int64_t)fighter->shield_defender_pushback_stun_scale_q16) >>
-        16U;
-    int64_t attacker_pushback_q16 =
-        ((int64_t)pressure_damage_q16 *
-         (int64_t)fighter->shield_attacker_pushback_damage_q16) >>
-        16U;
+    const float stun_duration_f32 =
+        shield_hit_damage_f32_value * stun_damage_multiplier_f32 +
+        fighter->shield_stun_base_f32;
+    const float pressure_damage_f32 =
+        shield_hit_damage_f32_value * (float)shield_strength /
+        (float)UINT16_MAX;
+    uint32_t ticks = (uint32_t)floorf(stun_duration_f32 * 200.0f / 201.0f);
+    float defender_pushback_f32 =
+        stun_duration_f32 * fighter->shield_defender_pushback_stun_scale_f32;
+    float attacker_pushback_f32 =
+        pressure_damage_f32 * fighter->shield_attacker_pushback_damage_f32;
 
-    response.damage_q16 =
-        (uint32_t)(((uint64_t)shield_health_damage_q16 *
-                    (uint64_t)(uint32_t)damage_multiplier_q16) >>
-                   16U);
-    if (ticks < INT64_C(1))
+    response.damage_f32 = shield_health_damage_f32 * damage_multiplier_f32;
+    if (ticks < UINT32_C(1))
     {
-        ticks = INT64_C(1);
+        ticks = UINT32_C(1);
     }
-    if (ticks > (int64_t)UINT16_MAX)
+    if (ticks > (uint32_t)UINT16_MAX)
     {
-        ticks = (int64_t)UINT16_MAX;
+        ticks = (uint32_t)UINT16_MAX;
     }
     response.stun_ticks = (uint16_t)ticks;
-    response.stun_duration_q16 = (int32_t)stun_duration_q16;
+    response.stun_duration_f32 = stun_duration_f32;
 
     if (powershield == 0)
     {
-        defender_pushback_q16 =
-            (defender_pushback_q16 *
-             (int64_t)fighter
-                 ->shield_defender_pushback_normal_scale_q16) >>
-            16U;
+        defender_pushback_f32 *=
+            fighter->shield_defender_pushback_normal_scale_f32;
     }
-    if (defender_pushback_q16 >
-        (int64_t)fighter->shield_defender_pushback_max_q16)
+    if (defender_pushback_f32 >
+        fighter->shield_defender_pushback_max_f32)
     {
-        defender_pushback_q16 =
-            (int64_t)fighter->shield_defender_pushback_max_q16;
+        defender_pushback_f32 =
+            fighter->shield_defender_pushback_max_f32;
     }
-    response.defender_pushback_q16 =
-        (int32_t)defender_pushback_q16;
+    response.defender_pushback_f32 =
+        defender_pushback_f32;
 
-    attacker_pushback_q16 +=
-        (int64_t)fighter->shield_attacker_pushback_base_q16;
-    if (attacker_pushback_q16 >
-        (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16)
+    attacker_pushback_f32 +=
+        fighter->shield_attacker_pushback_base_f32;
+    if (attacker_pushback_f32 >
+        PF_SIM_MAX_MOTION_SPEED_F32)
     {
-        attacker_pushback_q16 =
-            (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16;
+        attacker_pushback_f32 =
+            PF_SIM_MAX_MOTION_SPEED_F32;
     }
-    response.attacker_pushback_q16 =
-        (int32_t)attacker_pushback_q16;
+    response.attacker_pushback_f32 =
+        attacker_pushback_f32;
     return response;
 }
 
@@ -1757,7 +1676,7 @@ static pf_status apply_shield_hit(
     const fighter_data *fighter,
     uint32_t source_index,
     uint32_t target_index,
-    uint32_t attack_damage_q16,
+    float attack_damage_f32,
     int16_t shield_damage,
     uint16_t hitlag_ticks,
     int32_t horizontal_direction,
@@ -1768,28 +1687,28 @@ static pf_status apply_shield_hit(
     const shield_hit_response response =
         shield_hit_response_for(
             fighter,
-            attack_damage_q16,
+            attack_damage_f32,
             shield_damage,
             scratch->shield_strength[target_index],
             powershield);
     pf_sim_event_type event_type;
     const int shield_broken =
         powershield == 0 &&
-        response.damage_q16 >
-            scratch->shield_health_q16[target_index];
+        response.damage_f32 >
+            scratch->shield_health_f32[target_index];
 
     if (powershield == 0)
     {
-        scratch->shield_health_q16[target_index] =
-            response.damage_q16 >=
-                    scratch->shield_health_q16[target_index]
+        scratch->shield_health_f32[target_index] =
+            response.damage_f32 >=
+                    scratch->shield_health_f32[target_index]
                 ? UINT32_C(0)
-                : scratch->shield_health_q16[target_index] -
-                      response.damage_q16;
+                : scratch->shield_health_f32[target_index] -
+                      response.damage_f32;
     }
-    scratch->velocity_x_q16[target_index] =
-        horizontal_direction * response.defender_pushback_q16;
-    scratch->velocity_y_q16[target_index] = INT32_C(0);
+    scratch->velocity_x_f32[target_index] =
+        horizontal_direction * response.defender_pushback_f32;
+    scratch->velocity_y_f32[target_index] = INT32_C(0);
     scratch->powershield[target_index] =
         powershield ? UINT8_C(1) : UINT8_C(0);
     scratch->hitlag_ticks[target_index] = hitlag_ticks;
@@ -1811,8 +1730,8 @@ static pf_status apply_shield_hit(
         /* Fighter_ProcessHit assigns ftCommonData.x280 before entering
          * ShieldBreakFly. Passive Guard depletion instead enters the same
          * action from zero health; keep the two source paths distinct. */
-        scratch->shield_health_q16[target_index] =
-            fighter->shield_reset_health_q16;
+        scratch->shield_health_f32[target_index] =
+            fighter->shield_reset_health_f32;
         scratch->shield_stun_ticks[target_index] = UINT16_C(0);
         scratch->hitlag_resume_action[target_index] =
             (uint8_t)PF_M4_ACTION_SHIELD_BREAK;
@@ -1829,10 +1748,10 @@ static pf_status apply_shield_hit(
          * UCF's continuous x673 age remains independent. */
         reset_ordinary_tilt_x_age(scratch, target_index);
         scratch->shield_stun_ticks[target_index] = response.stun_ticks;
-        scratch->source_animation_frame_q16[target_index] = INT32_C(0);
-        scratch->source_animation_rate_q16[target_index] =
-            guard_setoff_animation_rate_q16(
-                fighter, response.stun_duration_q16);
+        scratch->source_animation_frame_f32[target_index] = INT32_C(0);
+        scratch->source_animation_rate_f32[target_index] =
+            guard_setoff_animation_rate_f32(
+                fighter, response.stun_duration_f32);
         scratch->hitlag_resume_action[target_index] =
             (uint8_t)PF_M4_ACTION_SHIELD_STUN;
         event_type = powershield ? PF_SIM_EVENT_POWERSHIELD
@@ -1849,19 +1768,19 @@ static pf_status apply_shield_hit(
         event_type,
         (uint8_t)source_index,
         (uint8_t)target_index,
-        powershield ? UINT32_C(0) : response.damage_q16,
-        scratch->velocity_x_q16[target_index],
-        scratch->velocity_y_q16[target_index],
+        powershield ? UINT32_C(0) : response.damage_f32,
+        scratch->velocity_x_f32[target_index],
+        scratch->velocity_y_f32[target_index],
         UINT16_C(0),
         source_action,
         NULL);
 }
 
-static int32_t reference_origin_y_q16(
+static float reference_origin_y_f32(
     const fighter_data *fighter,
-    int32_t position_y_q16)
+    float position_y_f32)
 {
-    return position_y_q16 + fighter->half_height_q16;
+    return position_y_f32 + fighter->half_height_f32;
 }
 
 static uint16_t reference_move_action_frame(
@@ -1882,16 +1801,16 @@ static uint16_t reference_move_action_frame(
 static uint8_t reference_hit_spheres_at_world(
     const fighter_data *fighter,
     falcon_move_index move_index,
-    int32_t position_x_q16,
-    int32_t position_y_q16,
+    float position_x_f32,
+    float position_y_f32,
     int8_t facing,
     uint16_t action_ticks,
     hit_sphere_inspection
         out_spheres[PF_M4_INSPECTION_HIT_SPHERE_CAPACITY])
 {
     const reference_hit_sphere *source;
-    const int32_t reference_origin_y_q16_value =
-        reference_origin_y_q16(fighter, position_y_q16);
+    const float reference_origin_y_f32_value =
+        reference_origin_y_f32(fighter, position_y_f32);
     uint8_t sphere_count;
     uint8_t sphere_index;
 
@@ -1912,15 +1831,15 @@ static uint8_t reference_hit_spheres_at_world(
          sphere_index < sphere_count;
          ++sphere_index)
     {
-        out_spheres[sphere_index].center_x_q16 =
-            position_x_q16 +
-            (int32_t)facing * source[sphere_index].offset_x_q16;
-        out_spheres[sphere_index].center_y_q16 =
-            reference_origin_y_q16_value + source[sphere_index].offset_y_q16;
-        out_spheres[sphere_index].center_z_q16 =
-            (int32_t)facing * source[sphere_index].offset_z_q16;
-        out_spheres[sphere_index].radius_q16 =
-            source[sphere_index].radius_q16;
+        out_spheres[sphere_index].center_x_f32 =
+            position_x_f32 +
+            (int32_t)facing * source[sphere_index].offset_x_f32;
+        out_spheres[sphere_index].center_y_f32 =
+            reference_origin_y_f32_value + source[sphere_index].offset_y_f32;
+        out_spheres[sphere_index].center_z_f32 =
+            (int32_t)facing * source[sphere_index].offset_z_f32;
+        out_spheres[sphere_index].radius_f32 =
+            source[sphere_index].radius_f32;
         out_spheres[sphere_index].effect_index =
             source[sphere_index].effect_index;
         out_spheres[sphere_index].hitbox_id =
@@ -1990,8 +1909,8 @@ static int falcon_geometry_move_for_attack(
 
 uint8_t attack_hit_spheres(
     const struct content *content,
-    int32_t position_x_q16,
-    int32_t position_y_q16,
+    float position_x_f32,
+    float position_y_f32,
     int8_t facing,
     uint8_t action_state,
     uint16_t action_ticks,
@@ -2011,8 +1930,8 @@ uint8_t attack_hit_spheres(
     return reference_hit_spheres_at_world(
         &content->fighter,
         move_index,
-        position_x_q16,
-        position_y_q16,
+        position_x_f32,
+        position_y_f32,
         facing,
         action_ticks,
         out_spheres);
@@ -2022,56 +1941,56 @@ static int hit_sphere_bounds(
     const hit_sphere_inspection
         spheres[PF_M4_INSPECTION_HIT_SPHERE_CAPACITY],
     uint8_t sphere_count,
-    int32_t *out_left_q16,
-    int32_t *out_right_q16,
-    int32_t *out_top_q16,
-    int32_t *out_bottom_q16)
+    float *out_left_f32,
+    float *out_right_f32,
+    float *out_top_f32,
+    float *out_bottom_f32)
 {
     uint8_t sphere_index;
 
     if (spheres == NULL || sphere_count == UINT8_C(0) ||
         sphere_count > UINT8_C(PF_M4_INSPECTION_HIT_SPHERE_CAPACITY) ||
-        out_left_q16 == NULL || out_right_q16 == NULL ||
-        out_top_q16 == NULL || out_bottom_q16 == NULL)
+        out_left_f32 == NULL || out_right_f32 == NULL ||
+        out_top_f32 == NULL || out_bottom_f32 == NULL)
     {
         return 0;
     }
-    *out_left_q16 = spheres[0].center_x_q16 - spheres[0].radius_q16;
-    *out_right_q16 = spheres[0].center_x_q16 + spheres[0].radius_q16;
-    *out_top_q16 = spheres[0].center_y_q16 - spheres[0].radius_q16;
-    *out_bottom_q16 = spheres[0].center_y_q16 + spheres[0].radius_q16;
+    *out_left_f32 = spheres[0].center_x_f32 - spheres[0].radius_f32;
+    *out_right_f32 = spheres[0].center_x_f32 + spheres[0].radius_f32;
+    *out_top_f32 = spheres[0].center_y_f32 - spheres[0].radius_f32;
+    *out_bottom_f32 = spheres[0].center_y_f32 + spheres[0].radius_f32;
     for (sphere_index = UINT8_C(1);
          sphere_index < sphere_count;
          ++sphere_index)
     {
-        const int32_t left =
-            spheres[sphere_index].center_x_q16 -
-            spheres[sphere_index].radius_q16;
-        const int32_t right =
-            spheres[sphere_index].center_x_q16 +
-            spheres[sphere_index].radius_q16;
-        const int32_t top =
-            spheres[sphere_index].center_y_q16 -
-            spheres[sphere_index].radius_q16;
-        const int32_t bottom =
-            spheres[sphere_index].center_y_q16 +
-            spheres[sphere_index].radius_q16;
+        const float left =
+            spheres[sphere_index].center_x_f32 -
+            spheres[sphere_index].radius_f32;
+        const float right =
+            spheres[sphere_index].center_x_f32 +
+            spheres[sphere_index].radius_f32;
+        const float top =
+            spheres[sphere_index].center_y_f32 -
+            spheres[sphere_index].radius_f32;
+        const float bottom =
+            spheres[sphere_index].center_y_f32 +
+            spheres[sphere_index].radius_f32;
 
-        if (left < *out_left_q16)
+        if (left < *out_left_f32)
         {
-            *out_left_q16 = left;
+            *out_left_f32 = left;
         }
-        if (right > *out_right_q16)
+        if (right > *out_right_f32)
         {
-            *out_right_q16 = right;
+            *out_right_f32 = right;
         }
-        if (top < *out_top_q16)
+        if (top < *out_top_f32)
         {
-            *out_top_q16 = top;
+            *out_top_f32 = top;
         }
-        if (bottom > *out_bottom_q16)
+        if (bottom > *out_bottom_f32)
         {
-            *out_bottom_q16 = bottom;
+            *out_bottom_f32 = bottom;
         }
     }
     return 1;
@@ -2079,16 +1998,16 @@ static int hit_sphere_bounds(
 
 int attack_hitbox(
     const struct content *content,
-    int32_t position_x_q16,
-    int32_t position_y_q16,
+    float position_x_f32,
+    float position_y_f32,
     int8_t facing,
     uint8_t action_state,
     uint16_t action_ticks,
     uint16_t source_submotion,
-    int32_t *out_left_q16,
-    int32_t *out_right_q16,
-    int32_t *out_top_q16,
-    int32_t *out_bottom_q16)
+    float *out_left_f32,
+    float *out_right_f32,
+    float *out_top_f32,
+    float *out_bottom_f32)
 {
     attack_runtime attack;
     falcon_move_index geometry_move_index;
@@ -2097,14 +2016,14 @@ int attack_hitbox(
         spheres[PF_M4_INSPECTION_HIT_SPHERE_CAPACITY];
     uint8_t sphere_count;
     uint16_t effective_action_ticks = action_ticks;
-    int64_t center_x;
-    int64_t center_y;
+    float center_x;
+    float center_y;
 
     if (content == NULL ||
-        out_left_q16 == NULL ||
-        out_right_q16 == NULL ||
-        out_top_q16 == NULL ||
-        out_bottom_q16 == NULL)
+        out_left_f32 == NULL ||
+        out_right_f32 == NULL ||
+        out_top_f32 == NULL ||
+        out_bottom_f32 == NULL)
     {
         return 0;
     }
@@ -2117,8 +2036,8 @@ int attack_hitbox(
         sphere_count = reference_hit_spheres_at_world(
             &content->fighter,
             geometry_move_index,
-            position_x_q16,
-            position_y_q16,
+            position_x_f32,
+            position_y_f32,
             facing,
             action_ticks,
             spheres);
@@ -2129,10 +2048,10 @@ int attack_hitbox(
         return hit_sphere_bounds(
             spheres,
             sphere_count,
-            out_left_q16,
-            out_right_q16,
-            out_top_q16,
-            out_bottom_q16);
+            out_left_f32,
+            out_right_f32,
+            out_top_f32,
+            out_bottom_f32);
     }
 
     if (!attack_for_state(
@@ -2167,26 +2086,13 @@ int attack_hitbox(
         return 0;
     }
 
-    center_x =
-        (int64_t)position_x_q16 +
-        (int64_t)facing *
-            (int64_t)attack.direction *
-            (int64_t)attack.hitbox_offset_x_q16;
-    center_y =
-        (int64_t)position_y_q16 +
-        (int64_t)attack.hitbox_offset_y_q16;
-    *out_left_q16 =
-        (int32_t)(center_x -
-                  (int64_t)attack.hitbox_half_width_q16);
-    *out_right_q16 =
-        (int32_t)(center_x +
-                  (int64_t)attack.hitbox_half_width_q16);
-    *out_top_q16 =
-        (int32_t)(center_y -
-                  (int64_t)attack.hitbox_half_height_q16);
-    *out_bottom_q16 =
-        (int32_t)(center_y +
-                  (int64_t)attack.hitbox_half_height_q16);
+    center_x = position_x_f32 + (float)facing * (float)attack.direction *
+        attack.hitbox_offset_x_f32;
+    center_y = position_y_f32 + attack.hitbox_offset_y_f32;
+    *out_left_f32 = center_x - attack.hitbox_half_width_f32;
+    *out_right_f32 = center_x + attack.hitbox_half_width_f32;
+    *out_top_f32 = center_y - attack.hitbox_half_height_f32;
+    *out_bottom_f32 = center_y + attack.hitbox_half_height_f32;
     return 1;
 }
 
@@ -2269,8 +2175,8 @@ static int falcon_geometry_move_for_grab(
 
 static uint8_t grab_hit_spheres(
     const struct content *content,
-    int32_t position_x_q16,
-    int32_t position_y_q16,
+    float position_x_f32,
+    float position_y_f32,
     int8_t facing,
     uint8_t action_state,
     uint16_t action_ticks,
@@ -2289,8 +2195,8 @@ static uint8_t grab_hit_spheres(
     return reference_hit_spheres_at_world(
         &content->fighter,
         move_index,
-        position_x_q16,
-        position_y_q16,
+        position_x_f32,
+        position_y_f32,
         facing,
         action_ticks,
         out_spheres);
@@ -2298,15 +2204,15 @@ static uint8_t grab_hit_spheres(
 
 int grabbox(
     const struct content *content,
-    int32_t position_x_q16,
-    int32_t position_y_q16,
+    float position_x_f32,
+    float position_y_f32,
     int8_t facing,
     uint8_t action_state,
     uint16_t action_ticks,
-    int32_t *out_left_q16,
-    int32_t *out_right_q16,
-    int32_t *out_top_q16,
-    int32_t *out_bottom_q16)
+    float *out_left_f32,
+    float *out_right_f32,
+    float *out_top_f32,
+    float *out_bottom_f32)
 {
     const fighter_data *fighter;
     falcon_move_index geometry_move_index;
@@ -2331,13 +2237,13 @@ int grabbox(
         (uint16_t)(startup_ticks + UINT16_C(1));
     const uint16_t active_end =
         (uint16_t)(startup_ticks + active_ticks);
-    int64_t center_x;
-    int64_t center_y;
+    float center_x;
+    float center_y;
     if (content == NULL ||
-        out_left_q16 == NULL ||
-        out_right_q16 == NULL ||
-        out_top_q16 == NULL ||
-        out_bottom_q16 == NULL)
+        out_left_f32 == NULL ||
+        out_right_f32 == NULL ||
+        out_top_f32 == NULL ||
+        out_bottom_f32 == NULL)
     {
         return 0;
     }
@@ -2350,18 +2256,18 @@ int grabbox(
         sphere_count = reference_hit_spheres_at_world(
             &content->fighter,
             geometry_move_index,
-            position_x_q16,
-            position_y_q16,
+            position_x_f32,
+            position_y_f32,
             facing,
             action_ticks,
             spheres);
         return hit_sphere_bounds(
             spheres,
             sphere_count,
-            out_left_q16,
-            out_right_q16,
-            out_top_q16,
-            out_bottom_q16);
+            out_left_f32,
+            out_right_f32,
+            out_top_f32,
+            out_bottom_f32);
     }
     if (action_state != (uint8_t)PF_M4_ACTION_GRAB &&
         action_state != (uint8_t)PF_M4_ACTION_DASH_GRAB)
@@ -2374,97 +2280,78 @@ int grabbox(
     }
 
     fighter = &content->fighter;
-    center_x =
-        (int64_t)position_x_q16 +
-        (int64_t)facing * (int64_t)fighter->grabbox_offset_x_q16;
-    center_y =
-        (int64_t)position_y_q16 +
-        (int64_t)fighter->grabbox_offset_y_q16;
-    *out_left_q16 =
-        (int32_t)(center_x -
-                  (int64_t)fighter->grabbox_half_width_q16);
-    *out_right_q16 =
-        (int32_t)(center_x +
-                  (int64_t)fighter->grabbox_half_width_q16);
-    *out_top_q16 =
-        (int32_t)(center_y -
-                  (int64_t)fighter->grabbox_half_height_q16);
-    *out_bottom_q16 =
-        (int32_t)(center_y +
-                  (int64_t)fighter->grabbox_half_height_q16);
+    center_x = position_x_f32 + (float)facing * fighter->grabbox_offset_x_f32;
+    center_y = position_y_f32 + fighter->grabbox_offset_y_f32;
+    *out_left_f32 = center_x - fighter->grabbox_half_width_f32;
+    *out_right_f32 = center_x + fighter->grabbox_half_width_f32;
+    *out_top_f32 = center_y - fighter->grabbox_half_height_f32;
+    *out_bottom_f32 = center_y + fighter->grabbox_half_height_f32;
     return 1;
 }
 
 typedef struct shield_volume
 {
-    int32_t center_x_q16;
-    int32_t center_y_q16;
-    int32_t radius_x_q16;
-    int32_t radius_y_q16;
+    float center_x_f32;
+    float center_y_f32;
+    float radius_x_f32;
+    float radius_y_f32;
 } shield_volume;
 
 /* Falcon's GALE01 guard-direction animation sampled at 45-degree keys. The
- * values are local TransN y and (z - 1) in Q16.16; interpolation between keys
+ * values are local TransN y and (z - 1) in float32; interpolation between keys
  * is linear in the original animation. */
-static const int32_t shield_animation_y_q16[9] = {
-    INT32_C(0), INT32_C(163840), INT32_C(294912), INT32_C(163840),
-    INT32_C(0), INT32_C(-65536), INT32_C(-117952), INT32_C(-65536),
-    INT32_C(0)};
-static const int32_t shield_animation_z_q16[9] = {
-    INT32_C(196608), INT32_C(131072), INT32_C(65536), INT32_C(-13112),
-    INT32_C(-65536), INT32_C(-13112), INT32_C(65536), INT32_C(131072),
-    INT32_C(196608)};
+static const float shield_animation_y_f32[9] = {
+    0.0f, 2.5f, 4.5f, 2.5f, 0.0f, -1.0f, -1.7998046875f, -1.0f, 0.0f};
+static const float shield_animation_z_f32[9] = {
+    3.0f, 2.0f, 1.0f, -0.2000732421875f, -1.0f,
+    -0.2000732421875f, 1.0f, 2.0f, 3.0f};
 
-static int32_t shield_animation_sample(
-    const int32_t values_q16[9],
+static float shield_animation_sample(
+    const float values_f32[9],
     uint16_t angle_turn)
 {
     const uint32_t key = (uint32_t)angle_turn >> 13U;
     const uint32_t fraction = (uint32_t)angle_turn & UINT32_C(8191);
-    const int64_t delta =
-        (int64_t)values_q16[key + UINT32_C(1)] -
-        (int64_t)values_q16[key];
+    const float delta =
+        values_f32[key + UINT32_C(1)] - values_f32[key];
 
-    return values_q16[key] +
-           (int32_t)((delta * (int64_t)fraction) / INT64_C(8192));
+    return values_f32[key] + delta * (float)fraction / 8192.0f;
 }
 
-static int32_t scale_shield_animation_q16(
-    int32_t animation_scale_q16,
-    int32_t animation_value_q16,
+static float scale_shield_animation_f32(
+    float animation_scale_f32,
+    float animation_value_f32,
     uint16_t magnitude)
 {
-    return (int32_t)(
-        ((int64_t)animation_scale_q16 *
-         (int64_t)animation_value_q16 * (int64_t)magnitude) /
-        (INT64_C(65536) * INT64_C(65535)));
+    return animation_scale_f32 * animation_value_f32 *
+           (float)magnitude / (float)UINT16_MAX;
 }
 
 static int shield_volume_for_player(
     const fighter_data *fighter,
-    int32_t position_x_q16,
-    int32_t position_y_q16,
+    float position_x_f32,
+    float position_y_f32,
     uint8_t action_state,
     uint8_t hitlag_resume_action,
-    uint32_t shield_health_q16,
+    float shield_health_f32,
     uint16_t shield_strength,
     int8_t facing,
     uint16_t shield_angle_turn,
     uint16_t shield_magnitude,
     shield_volume *out_volume)
 {
-    int32_t density_scale_q16;
-    int32_t health_scale_q16;
-    int32_t combined_scale_q16;
-    int32_t size_scale_q16;
-    int32_t animation_x_q16;
-    int32_t animation_y_q16;
-    int32_t center_forward_q16;
-    int32_t center_up_q16;
+    float density_scale_f32;
+    float health_scale_f32;
+    float combined_scale_f32;
+    float size_scale_f32;
+    float animation_x_f32;
+    float animation_y_f32;
+    float center_forward_f32;
+    float center_up_f32;
 
     if (fighter == NULL || out_volume == NULL ||
         shield_strength == UINT16_C(0) ||
-        shield_health_q16 == UINT32_C(0) ||
+        shield_health_f32 == 0.0f ||
         !action_has_shield_volume(
             action_state,
             hitlag_resume_action))
@@ -2472,90 +2359,66 @@ static int shield_volume_for_player(
         return 0;
     }
 
-    density_scale_q16 =
-        PF_Q16_ONE -
-        (int32_t)(
-            ((int64_t)(
-                 PF_Q16_ONE -
-                 fighter->dense_shield_size_scale_q16) *
-             (int64_t)shield_strength) /
-            (int64_t)UINT16_MAX);
-    health_scale_q16 =
-        (int32_t)(
-            ((uint64_t)shield_health_q16 *
-             (uint64_t)(uint32_t)PF_Q16_ONE) /
-            (uint64_t)fighter->shield_health_q16);
-    combined_scale_q16 =
-        (int32_t)(
-            ((int64_t)health_scale_q16 *
-             (int64_t)density_scale_q16) /
-            (int64_t)PF_Q16_ONE);
-    size_scale_q16 =
-        fighter->shield_minimum_size_scale_q16 +
-        (int32_t)(
-            ((int64_t)(
-                 PF_Q16_ONE -
-                 fighter->shield_minimum_size_scale_q16) *
-             (int64_t)combined_scale_q16) /
-            (int64_t)PF_Q16_ONE);
-    out_volume->radius_x_q16 =
-        (int32_t)(
-            ((int64_t)fighter->shield_radius_x_q16 *
-             (int64_t)size_scale_q16) /
-            (int64_t)PF_Q16_ONE);
-    out_volume->radius_y_q16 =
-        (int32_t)(
-            ((int64_t)fighter->shield_radius_y_q16 *
-             (int64_t)size_scale_q16) /
-            (int64_t)PF_Q16_ONE);
-    animation_x_q16 = scale_shield_animation_q16(
-        fighter->shield_animation_scale_x_q16,
+    density_scale_f32 =
+        PF_F32_ONE -
+        (PF_F32_ONE - fighter->dense_shield_size_scale_f32) *
+            (float)shield_strength / (float)UINT16_MAX;
+    health_scale_f32 = shield_health_f32 / fighter->shield_health_f32;
+    combined_scale_f32 = health_scale_f32 * density_scale_f32;
+    size_scale_f32 =
+        fighter->shield_minimum_size_scale_f32 +
+        (PF_F32_ONE - fighter->shield_minimum_size_scale_f32) *
+            combined_scale_f32;
+    out_volume->radius_x_f32 = fighter->shield_radius_x_f32 * size_scale_f32;
+    out_volume->radius_y_f32 = fighter->shield_radius_y_f32 * size_scale_f32;
+    animation_x_f32 = scale_shield_animation_f32(
+        fighter->shield_animation_scale_x_f32,
         shield_animation_sample(
-            shield_animation_z_q16,
+            shield_animation_z_f32,
             shield_angle_turn),
         shield_magnitude);
-    animation_y_q16 = scale_shield_animation_q16(
-        fighter->shield_animation_scale_y_q16,
+    animation_y_f32 = scale_shield_animation_f32(
+        fighter->shield_animation_scale_y_f32,
         shield_animation_sample(
-            shield_animation_y_q16,
+            shield_animation_y_f32,
             shield_angle_turn),
         shield_magnitude);
-    center_forward_q16 =
-        fighter->shield_center_forward_q16 + animation_x_q16;
-    center_up_q16 = fighter->shield_center_up_q16 + animation_y_q16;
-    out_volume->center_x_q16 =
-        position_x_q16 + (int32_t)facing * center_forward_q16;
-    out_volume->center_y_q16 = position_y_q16 - center_up_q16;
+    center_forward_f32 =
+        fighter->shield_center_forward_f32 + animation_x_f32;
+    center_up_f32 = fighter->shield_center_up_f32 + animation_y_f32;
+    out_volume->center_x_f32 =
+        position_x_f32 + (int32_t)facing * center_forward_f32;
+    out_volume->center_y_f32 = position_y_f32 - center_up_f32;
     return 1;
 }
 
 int shield_box(
     const fighter_data *fighter,
-    int32_t position_x_q16,
-    int32_t position_y_q16,
+    float position_x_f32,
+    float position_y_f32,
     uint8_t action_state,
     uint8_t hitlag_resume_action,
-    uint32_t shield_health_q16,
+    float shield_health_f32,
     uint16_t shield_strength,
     int8_t facing,
     uint16_t shield_angle_turn,
     uint16_t shield_magnitude,
-    int32_t *out_left_q16,
-    int32_t *out_right_q16,
-    int32_t *out_top_q16,
-    int32_t *out_bottom_q16)
+    float *out_left_f32,
+    float *out_right_f32,
+    float *out_top_f32,
+    float *out_bottom_f32)
 {
     shield_volume volume;
 
-    if (out_left_q16 == NULL || out_right_q16 == NULL ||
-        out_top_q16 == NULL || out_bottom_q16 == NULL ||
+    if (out_left_f32 == NULL || out_right_f32 == NULL ||
+        out_top_f32 == NULL || out_bottom_f32 == NULL ||
         !shield_volume_for_player(
             fighter,
-            position_x_q16,
-            position_y_q16,
+            position_x_f32,
+            position_y_f32,
             action_state,
             hitlag_resume_action,
-            shield_health_q16,
+            shield_health_f32,
             shield_strength,
             facing,
             shield_angle_turn,
@@ -2564,14 +2427,14 @@ int shield_box(
     {
         return 0;
     }
-    *out_left_q16 = volume.center_x_q16 - volume.radius_x_q16;
-    *out_right_q16 = volume.center_x_q16 + volume.radius_x_q16;
-    *out_top_q16 = volume.center_y_q16 - volume.radius_y_q16;
-    *out_bottom_q16 = volume.center_y_q16 + volume.radius_y_q16;
+    *out_left_f32 = volume.center_x_f32 - volume.radius_x_f32;
+    *out_right_f32 = volume.center_x_f32 + volume.radius_x_f32;
+    *out_top_f32 = volume.center_y_f32 - volume.radius_y_f32;
+    *out_bottom_f32 = volume.center_y_f32 + volume.radius_y_f32;
     return 1;
 }
 
-typedef collision_capsule3_q16 world_hurt_capsule;
+typedef collision_capsule3_f32 world_hurt_capsule;
 
 static inline int8_t reference_hurt_pose_facing(
     const fighter_data *fighter,
@@ -2644,14 +2507,14 @@ static const reference_hurt_capsule *reference_hurt_pose(
     uint8_t action_state,
     uint8_t hitlag_resume_action,
     uint16_t source_submotion,
-    int32_t source_animation_frame_q16,
+    float source_animation_frame_f32,
     uint16_t action_ticks,
     int8_t facing,
-    int32_t total_velocity_x_q16,
-    int32_t total_velocity_y_q16,
+    float total_velocity_x_f32,
+    float total_velocity_y_f32,
     const hsd_local_pose *ground_loop_pose,
     const hsd_compact_pose *ground_loop_compact,
-    int32_t ground_loop_progress_q16,
+    float ground_loop_progress_f32,
     reference_hurt_capsule
         dynamic_capsules[PF_M4_HSD_POSE_MAX_CAPSULES],
     uint8_t *out_count)
@@ -2697,8 +2560,8 @@ static const reference_hurt_capsule *reference_hurt_pose(
 
             evaluated = data != NULL &&
                 falcon_resolve_compact_hsd_pose(
-                    source_submotion, source_animation_frame_q16,
-                    ground_loop_progress_q16, ground_loop_compact, pose) &&
+                    source_submotion, source_animation_frame_f32,
+                    ground_loop_progress_f32, ground_loop_compact, pose) &&
                 falcon_reference_hsd_hurt_capsules_from_local_pose(
                     pose, dynamic_capsules, out_count);
         }
@@ -2706,7 +2569,7 @@ static const reference_hurt_capsule *reference_hurt_pose(
         {
             evaluated = falcon_reference_hsd_hurt_capsules(
                 source_submotion,
-                source_animation_frame_q16,
+                source_animation_frame_f32,
                 dynamic_capsules,
                 out_count);
         }
@@ -2718,10 +2581,10 @@ static const reference_hurt_capsule *reference_hurt_pose(
         if (dynamic_capsules != NULL &&
             falcon_wait_hsd_pose_is_direct(
                 source_submotion,
-                source_animation_frame_q16) &&
+                source_animation_frame_f32) &&
             falcon_reference_hsd_hurt_capsules(
                 source_submotion,
-                source_animation_frame_q16,
+                source_animation_frame_f32,
                 dynamic_capsules,
                 out_count))
         {
@@ -2736,10 +2599,10 @@ static const reference_hurt_capsule *reference_hurt_pose(
             (uint16_t)PF_M4_FALCON_SUBMOTION_DAMAGE_FLY_ROLL &&
         falcon_reference_damage_hsd_hurt_capsules(
             source_submotion,
-            source_animation_frame_q16,
+            source_animation_frame_f32,
             facing,
-            total_velocity_x_q16,
-            total_velocity_y_q16,
+            total_velocity_x_f32,
+            total_velocity_y_f32,
             dynamic_capsules,
             out_count))
     {
@@ -2750,7 +2613,7 @@ static const reference_hurt_capsule *reference_hurt_pose(
             action_state,
             source_submotion,
             action_ticks,
-            source_animation_frame_q16,
+            source_animation_frame_f32,
             dynamic_capsules,
             out_count))
     {
@@ -2805,43 +2668,40 @@ static const reference_hurt_capsule *reference_hurt_pose(
 
 static world_hurt_capsule world_hurt_capsule_from_reference(
     const fighter_data *fighter,
-    int32_t position_x_q16,
-    int32_t position_y_q16,
+    float position_x_f32,
+    float position_y_f32,
     int8_t facing_value,
     const reference_hurt_capsule *source)
 {
-    const int64_t position_x = (int64_t)position_x_q16;
-    const int64_t position_y =
-        (int64_t)reference_origin_y_q16(
-            fighter,
-            position_y_q16);
-    const int64_t facing = (int64_t)facing_value;
+    const float position_x = position_x_f32;
+    const float position_y = reference_origin_y_f32(fighter, position_y_f32);
+    const float facing = (float)facing_value;
     const world_hurt_capsule world = {
-        position_x + facing * (int64_t)source->endpoint_a_x_q16,
-        position_y + (int64_t)source->endpoint_a_y_q16,
-        facing * (int64_t)source->endpoint_a_z_q16,
-        position_x + facing * (int64_t)source->endpoint_b_x_q16,
-        position_y + (int64_t)source->endpoint_b_y_q16,
-        facing * (int64_t)source->endpoint_b_z_q16,
-        (int64_t)source->radius_q16};
+        position_x + facing * source->endpoint_a_x_f32,
+        position_y + source->endpoint_a_y_f32,
+        facing * source->endpoint_a_z_f32,
+        position_x + facing * source->endpoint_b_x_f32,
+        position_y + source->endpoint_b_y_f32,
+        facing * source->endpoint_b_z_f32,
+        source->radius_f32};
 
     return world;
 }
 
 uint8_t reference_world_hurt_capsules(
     const fighter_data *fighter,
-    int32_t position_x_q16,
-    int32_t position_y_q16,
+    float position_x_f32,
+    float position_y_f32,
     int8_t facing,
     int8_t dash_direction,
     uint8_t grounded,
     uint8_t action_state,
     uint8_t hitlag_resume_action,
     uint16_t source_submotion,
-    int32_t source_animation_frame_q16,
+    float source_animation_frame_f32,
     uint16_t action_ticks,
-    int32_t total_velocity_x_q16,
-    int32_t total_velocity_y_q16,
+    float total_velocity_x_f32,
+    float total_velocity_y_f32,
     const hsd_local_pose *ground_loop_pose,
     hurt_capsule_inspection
         out_capsules[PF_M4_INSPECTION_HURT_CAPSULE_CAPACITY])
@@ -2863,11 +2723,11 @@ uint8_t reference_world_hurt_capsules(
         action_state,
         hitlag_resume_action,
         source_submotion,
-        source_animation_frame_q16,
+        source_animation_frame_f32,
         action_ticks,
         facing,
-        total_velocity_x_q16,
-        total_velocity_y_q16,
+        total_velocity_x_f32,
+        total_velocity_y_f32,
         ground_loop_pose,
         NULL,
         INT32_C(0),
@@ -2895,43 +2755,36 @@ uint8_t reference_world_hurt_capsules(
         const world_hurt_capsule world =
             world_hurt_capsule_from_reference(
                 fighter,
-                position_x_q16,
-                position_y_q16,
+                position_x_f32,
+                position_y_f32,
                 pose_facing,
                 source);
         hurt_capsule_inspection *destination =
             &out_capsules[capsule_index];
 
-        if (world.endpoint_a_x_q16 < (int64_t)INT32_MIN ||
-            world.endpoint_a_x_q16 > (int64_t)INT32_MAX ||
-            world.endpoint_a_y_q16 < (int64_t)INT32_MIN ||
-            world.endpoint_a_y_q16 > (int64_t)INT32_MAX ||
-            world.endpoint_a_z_q16 < (int64_t)INT32_MIN ||
-            world.endpoint_a_z_q16 > (int64_t)INT32_MAX ||
-            world.endpoint_b_x_q16 < (int64_t)INT32_MIN ||
-            world.endpoint_b_x_q16 > (int64_t)INT32_MAX ||
-            world.endpoint_b_y_q16 < (int64_t)INT32_MIN ||
-            world.endpoint_b_y_q16 > (int64_t)INT32_MAX ||
-            world.endpoint_b_z_q16 < (int64_t)INT32_MIN ||
-            world.endpoint_b_z_q16 > (int64_t)INT32_MAX ||
-            world.radius_q16 < (int64_t)INT32_MIN ||
-            world.radius_q16 > (int64_t)INT32_MAX)
+        if (!isfinite(world.endpoint_a_x_f32) ||
+            !isfinite(world.endpoint_a_y_f32) ||
+            !isfinite(world.endpoint_a_z_f32) ||
+            !isfinite(world.endpoint_b_x_f32) ||
+            !isfinite(world.endpoint_b_y_f32) ||
+            !isfinite(world.endpoint_b_z_f32) ||
+            !isfinite(world.radius_f32))
         {
             return UINT8_C(0);
         }
-        destination->endpoint_a_x_q16 =
-            (int32_t)world.endpoint_a_x_q16;
-        destination->endpoint_a_y_q16 =
-            (int32_t)world.endpoint_a_y_q16;
-        destination->endpoint_a_z_q16 =
-            (int32_t)world.endpoint_a_z_q16;
-        destination->endpoint_b_x_q16 =
-            (int32_t)world.endpoint_b_x_q16;
-        destination->endpoint_b_y_q16 =
-            (int32_t)world.endpoint_b_y_q16;
-        destination->endpoint_b_z_q16 =
-            (int32_t)world.endpoint_b_z_q16;
-        destination->radius_q16 = (int32_t)world.radius_q16;
+        destination->endpoint_a_x_f32 =
+            world.endpoint_a_x_f32;
+        destination->endpoint_a_y_f32 =
+            world.endpoint_a_y_f32;
+        destination->endpoint_a_z_f32 =
+            world.endpoint_a_z_f32;
+        destination->endpoint_b_x_f32 =
+            world.endpoint_b_x_f32;
+        destination->endpoint_b_y_f32 =
+            world.endpoint_b_y_f32;
+        destination->endpoint_b_z_f32 =
+            world.endpoint_b_z_f32;
+        destination->radius_f32 = world.radius_f32;
         destination->hurtbox_id = source->hurtbox_id;
         destination->height = source->height;
         destination->grabbable = source->grabbable;
@@ -2944,10 +2797,10 @@ static int hitbox_overlaps_player(
     const fighter_data *fighter,
     const pf_sim_scratch *scratch,
     uint32_t target_index,
-    int32_t hitbox_left_q16,
-    int32_t hitbox_right_q16,
-    int32_t hitbox_top_q16,
-    int32_t hitbox_bottom_q16)
+    float hitbox_left_f32,
+    float hitbox_right_f32,
+    float hitbox_top_f32,
+    float hitbox_bottom_f32)
 {
     uint8_t capsule_count;
     reference_hurt_capsule
@@ -2959,20 +2812,20 @@ static int hitbox_overlaps_player(
             scratch->action_state[target_index],
             scratch->hitlag_resume_action[target_index],
             scratch->source_submotion[target_index],
-            scratch->source_animation_frame_q16[target_index],
+            scratch->source_animation_frame_f32[target_index],
             scratch->action_ticks[target_index],
             scratch->facing[target_index],
-            total_velocity_q16(
-                scratch->velocity_x_q16[target_index],
-                scratch->knockback_velocity_x_q16[target_index]),
-            total_velocity_q16(
-                scratch->velocity_y_q16[target_index],
-                scratch->knockback_velocity_y_q16[target_index]),
+            total_velocity_f32(
+                scratch->velocity_x_f32[target_index],
+                scratch->knockback_velocity_x_f32[target_index]),
+            total_velocity_f32(
+                scratch->velocity_y_f32[target_index],
+                scratch->knockback_velocity_y_f32[target_index]),
             NULL,
-            scratch->ground_blend_progress_q16[target_index] > INT32_C(0)
+            scratch->ground_blend_progress_f32[target_index] > 0.0f
                 ? &scratch->ground_blend_pose[target_index]
                 : NULL,
-            scratch->ground_blend_progress_q16[target_index],
+            scratch->ground_blend_progress_f32[target_index],
             dynamic_capsules,
             &capsule_count);
 
@@ -2994,82 +2847,82 @@ static int hitbox_overlaps_player(
             const world_hurt_capsule capsule =
                 world_hurt_capsule_from_reference(
                     fighter,
-                    scratch->position_x_q16[target_index],
-                    scratch->position_y_q16[target_index],
+                    scratch->position_x_f32[target_index],
+                    scratch->position_y_f32[target_index],
                     pose_facing,
                     &capsules[capsule_index]);
-            const int64_t capsule_left =
-                (capsule.endpoint_a_x_q16 < capsule.endpoint_b_x_q16
-                     ? capsule.endpoint_a_x_q16
-                     : capsule.endpoint_b_x_q16) -
-                capsule.radius_q16;
-            const int64_t capsule_right =
-                (capsule.endpoint_a_x_q16 > capsule.endpoint_b_x_q16
-                     ? capsule.endpoint_a_x_q16
-                     : capsule.endpoint_b_x_q16) +
-                capsule.radius_q16;
-            const int64_t capsule_top =
-                (capsule.endpoint_a_y_q16 < capsule.endpoint_b_y_q16
-                     ? capsule.endpoint_a_y_q16
-                     : capsule.endpoint_b_y_q16) -
-                capsule.radius_q16;
-            const int64_t capsule_bottom =
-                (capsule.endpoint_a_y_q16 > capsule.endpoint_b_y_q16
-                     ? capsule.endpoint_a_y_q16
-                     : capsule.endpoint_b_y_q16) +
-                capsule.radius_q16;
+            const float capsule_left =
+                (capsule.endpoint_a_x_f32 < capsule.endpoint_b_x_f32
+                     ? capsule.endpoint_a_x_f32
+                     : capsule.endpoint_b_x_f32) -
+                capsule.radius_f32;
+            const float capsule_right =
+                (capsule.endpoint_a_x_f32 > capsule.endpoint_b_x_f32
+                     ? capsule.endpoint_a_x_f32
+                     : capsule.endpoint_b_x_f32) +
+                capsule.radius_f32;
+            const float capsule_top =
+                (capsule.endpoint_a_y_f32 < capsule.endpoint_b_y_f32
+                     ? capsule.endpoint_a_y_f32
+                     : capsule.endpoint_b_y_f32) -
+                capsule.radius_f32;
+            const float capsule_bottom =
+                (capsule.endpoint_a_y_f32 > capsule.endpoint_b_y_f32
+                     ? capsule.endpoint_a_y_f32
+                     : capsule.endpoint_b_y_f32) +
+                capsule.radius_f32;
 
-            if (hitbox_left_q16 <= capsule_right &&
-                hitbox_right_q16 >= capsule_left &&
-                hitbox_top_q16 <= capsule_bottom &&
-                hitbox_bottom_q16 >= capsule_top)
+            if (hitbox_left_f32 <= capsule_right &&
+                hitbox_right_f32 >= capsule_left &&
+                hitbox_top_f32 <= capsule_bottom &&
+                hitbox_bottom_f32 >= capsule_top)
             {
                 return 1;
             }
         }
         return 0;
     }
-    const int32_t hurtbox_left =
-        scratch->position_x_q16[target_index] -
-        fighter->half_width_q16;
-    const int32_t hurtbox_right =
-        scratch->position_x_q16[target_index] +
-        fighter->half_width_q16;
-    const int32_t hurtbox_top =
-        scratch->position_y_q16[target_index] -
-        fighter->half_height_q16;
-    const int32_t hurtbox_bottom =
-        scratch->position_y_q16[target_index] +
-        fighter->half_height_q16;
+    const float hurtbox_left =
+        scratch->position_x_f32[target_index] -
+        fighter->half_width_f32;
+    const float hurtbox_right =
+        scratch->position_x_f32[target_index] +
+        fighter->half_width_f32;
+    const float hurtbox_top =
+        scratch->position_y_f32[target_index] -
+        fighter->half_height_f32;
+    const float hurtbox_bottom =
+        scratch->position_y_f32[target_index] +
+        fighter->half_height_f32;
 
-    return hitbox_left_q16 <= hurtbox_right &&
-           hitbox_right_q16 >= hurtbox_left &&
-           hitbox_top_q16 <= hurtbox_bottom &&
-           hitbox_bottom_q16 >= hurtbox_top;
+    return hitbox_left_f32 <= hurtbox_right &&
+           hitbox_right_f32 >= hurtbox_left &&
+           hitbox_top_f32 <= hurtbox_bottom &&
+           hitbox_bottom_f32 >= hurtbox_top;
 }
 
 static int hitbox_overlaps_shield(
     const fighter_data *fighter,
     const pf_sim_scratch *scratch,
     uint32_t target_index,
-    int32_t hitbox_left_q16,
-    int32_t hitbox_right_q16,
-    int32_t hitbox_top_q16,
-    int32_t hitbox_bottom_q16)
+    float hitbox_left_f32,
+    float hitbox_right_f32,
+    float hitbox_top_f32,
+    float hitbox_bottom_f32)
 {
     shield_volume volume;
-    int32_t nearest_x_q16;
-    int32_t nearest_y_q16;
-    int64_t normalized_x_q16;
-    int64_t normalized_y_q16;
+    float nearest_x_f32;
+    float nearest_y_f32;
+    float normalized_x_f32;
+    float normalized_y_f32;
 
     if (!shield_volume_for_player(
             fighter,
-            scratch->position_x_q16[target_index],
-            scratch->position_y_q16[target_index],
+            scratch->position_x_f32[target_index],
+            scratch->position_y_f32[target_index],
             scratch->action_state[target_index],
             scratch->hitlag_resume_action[target_index],
-            scratch->shield_health_q16[target_index],
+            scratch->shield_health_f32[target_index],
             scratch->shield_strength[target_index],
             scratch->facing[target_index],
             scratch->shield_angle_turn[target_index],
@@ -3078,65 +2931,63 @@ static int hitbox_overlaps_shield(
     {
         return 0;
     }
-    nearest_x_q16 = volume.center_x_q16 < hitbox_left_q16
-                        ? hitbox_left_q16
-                        : volume.center_x_q16 > hitbox_right_q16
-                              ? hitbox_right_q16
-                              : volume.center_x_q16;
-    nearest_y_q16 = volume.center_y_q16 < hitbox_top_q16
-                        ? hitbox_top_q16
-                        : volume.center_y_q16 > hitbox_bottom_q16
-                              ? hitbox_bottom_q16
-                              : volume.center_y_q16;
-    normalized_x_q16 =
-        ((int64_t)nearest_x_q16 - (int64_t)volume.center_x_q16) *
-        (int64_t)PF_Q16_ONE / (int64_t)volume.radius_x_q16;
-    normalized_y_q16 =
-        ((int64_t)nearest_y_q16 - (int64_t)volume.center_y_q16) *
-        (int64_t)PF_Q16_ONE / (int64_t)volume.radius_y_q16;
-    return normalized_x_q16 * normalized_x_q16 +
-               normalized_y_q16 * normalized_y_q16 <=
-           (int64_t)PF_Q16_ONE * (int64_t)PF_Q16_ONE;
+    nearest_x_f32 = volume.center_x_f32 < hitbox_left_f32
+                        ? hitbox_left_f32
+                        : volume.center_x_f32 > hitbox_right_f32
+                              ? hitbox_right_f32
+                              : volume.center_x_f32;
+    nearest_y_f32 = volume.center_y_f32 < hitbox_top_f32
+                        ? hitbox_top_f32
+                        : volume.center_y_f32 > hitbox_bottom_f32
+                              ? hitbox_bottom_f32
+                              : volume.center_y_f32;
+    normalized_x_f32 =
+        (nearest_x_f32 - volume.center_x_f32) / volume.radius_x_f32;
+    normalized_y_f32 =
+        (nearest_y_f32 - volume.center_y_f32) / volume.radius_y_f32;
+    return normalized_x_f32 * normalized_x_f32 +
+               normalized_y_f32 * normalized_y_f32 <=
+           1.0f;
 }
 
 static int hitbox_overlaps_player_or_shield(
     const fighter_data *fighter,
     const pf_sim_scratch *scratch,
     uint32_t target_index,
-    int32_t hitbox_left_q16,
-    int32_t hitbox_right_q16,
-    int32_t hitbox_top_q16,
-    int32_t hitbox_bottom_q16)
+    float hitbox_left_f32,
+    float hitbox_right_f32,
+    float hitbox_top_f32,
+    float hitbox_bottom_f32)
 {
     return hitbox_overlaps_player(
                fighter,
                scratch,
                target_index,
-               hitbox_left_q16,
-               hitbox_right_q16,
-               hitbox_top_q16,
-               hitbox_bottom_q16) ||
+               hitbox_left_f32,
+               hitbox_right_f32,
+               hitbox_top_f32,
+               hitbox_bottom_f32) ||
            hitbox_overlaps_shield(
                fighter,
                scratch,
                target_index,
-               hitbox_left_q16,
-               hitbox_right_q16,
-               hitbox_top_q16,
-               hitbox_bottom_q16);
+               hitbox_left_f32,
+               hitbox_right_f32,
+               hitbox_top_f32,
+               hitbox_bottom_f32);
 }
 
 static int hit_sphere_overlaps_reference_pose(
     const fighter_data *fighter,
-    int32_t target_position_x_q16,
-    int32_t target_position_y_q16,
+    float target_position_x_f32,
+    float target_position_y_f32,
     uint8_t target_action_state,
     uint8_t target_hitlag_resume_action,
     uint16_t target_action_ticks,
     int8_t target_facing,
     int8_t target_dash_direction,
-    int32_t previous_attacker_position_y_q16,
-    int32_t attacker_position_y_q16,
+    float previous_attacker_position_y_f32,
+    float attacker_position_y_f32,
     const hit_sphere_inspection *previous_sphere,
     const hit_sphere_inspection *sphere,
     const reference_hurt_capsule *capsules,
@@ -3144,31 +2995,25 @@ static int hit_sphere_overlaps_reference_pose(
     int grabbable_only,
     uint8_t *out_hurtbox_height)
 {
-    const int64_t target_origin_y =
-        (int64_t)reference_origin_y_q16(
-            fighter,
-            target_position_y_q16);
-    const int64_t previous_attacker_origin_y =
-        (int64_t)reference_origin_y_q16(
-            fighter,
-            previous_attacker_position_y_q16);
-    const int64_t attacker_origin_y =
-        (int64_t)reference_origin_y_q16(
-            fighter,
-            attacker_position_y_q16);
-    const int64_t previous_center_y =
+    const float target_origin_y =
+        reference_origin_y_f32(fighter, target_position_y_f32);
+    const float previous_attacker_origin_y =
+        reference_origin_y_f32(fighter, previous_attacker_position_y_f32);
+    const float attacker_origin_y =
+        reference_origin_y_f32(fighter, attacker_position_y_f32);
+    const float previous_center_y =
         target_origin_y +
         (previous_attacker_origin_y - target_origin_y) *
-            (int64_t)fighter->shield_radius_x_q16 /
-            (int64_t)fighter->shield_radius_y_q16 +
-        ((int64_t)previous_sphere->center_y_q16 -
+            fighter->shield_radius_x_f32 /
+            fighter->shield_radius_y_f32 +
+        (previous_sphere->center_y_f32 -
          previous_attacker_origin_y);
-    const int64_t center_y =
+    const float center_y =
         target_origin_y +
         (attacker_origin_y - target_origin_y) *
-            (int64_t)fighter->shield_radius_x_q16 /
-            (int64_t)fighter->shield_radius_y_q16 +
-        ((int64_t)sphere->center_y_q16 - attacker_origin_y);
+            fighter->shield_radius_x_f32 /
+            fighter->shield_radius_y_f32 +
+        (sphere->center_y_f32 - attacker_origin_y);
     const int8_t pose_facing = reference_hurt_pose_facing(
         fighter,
         target_action_state,
@@ -3185,25 +3030,25 @@ static int hit_sphere_overlaps_reference_pose(
         const world_hurt_capsule capsule =
             world_hurt_capsule_from_reference(
                 fighter,
-                target_position_x_q16,
-                target_position_y_q16,
+                target_position_x_f32,
+                target_position_y_f32,
                 pose_facing,
                 &capsules[capsule_index]);
-        const collision_capsule3_q16 collision_hit = {
-            (int64_t)previous_sphere->center_x_q16,
+        const collision_capsule3_f32 collision_hit = {
+            previous_sphere->center_x_f32,
             previous_center_y,
-            (int64_t)previous_sphere->center_z_q16,
-            (int64_t)sphere->center_x_q16,
+            previous_sphere->center_z_f32,
+            sphere->center_x_f32,
             center_y,
-            (int64_t)sphere->center_z_q16,
-            (int64_t)sphere->radius_q16};
+            sphere->center_z_f32,
+            sphere->radius_f32};
 
         if (grabbable_only != 0 &&
             capsules[capsule_index].grabbable == UINT8_C(0))
         {
             continue;
         }
-        if (collision_capsule_capsule_overlap_q16(
+        if (collision_capsule_capsule_overlap_f32(
                 &collision_hit,
                 &capsule))
         {
@@ -3222,7 +3067,7 @@ static int hit_sphere_overlaps_player_with_height(
     const pf_sim_scratch *scratch,
     uint32_t attacker_index,
     uint32_t target_index,
-    int32_t previous_attacker_position_y_q16,
+    float previous_attacker_position_y_f32,
     const hit_sphere_inspection *previous_sphere,
     const hit_sphere_inspection *sphere,
     uint8_t *out_hurtbox_height)
@@ -3237,20 +3082,20 @@ static int hit_sphere_overlaps_player_with_height(
             scratch->action_state[target_index],
             scratch->hitlag_resume_action[target_index],
             scratch->source_submotion[target_index],
-            scratch->source_animation_frame_q16[target_index],
+            scratch->source_animation_frame_f32[target_index],
             scratch->action_ticks[target_index],
             scratch->facing[target_index],
-            total_velocity_q16(
-                scratch->velocity_x_q16[target_index],
-                scratch->knockback_velocity_x_q16[target_index]),
-            total_velocity_q16(
-                scratch->velocity_y_q16[target_index],
-                scratch->knockback_velocity_y_q16[target_index]),
+            total_velocity_f32(
+                scratch->velocity_x_f32[target_index],
+                scratch->knockback_velocity_x_f32[target_index]),
+            total_velocity_f32(
+                scratch->velocity_y_f32[target_index],
+                scratch->knockback_velocity_y_f32[target_index]),
             NULL,
-            scratch->ground_blend_progress_q16[target_index] > INT32_C(0)
+            scratch->ground_blend_progress_f32[target_index] > INT32_C(0)
                 ? &scratch->ground_blend_pose[target_index]
                 : NULL,
-            scratch->ground_blend_progress_q16[target_index],
+            scratch->ground_blend_progress_f32[target_index],
             dynamic_capsules,
             &capsule_count);
 
@@ -3258,15 +3103,15 @@ static int hit_sphere_overlaps_player_with_height(
     {
         return hit_sphere_overlaps_reference_pose(
             fighter,
-            scratch->position_x_q16[target_index],
-            scratch->position_y_q16[target_index],
+            scratch->position_x_f32[target_index],
+            scratch->position_y_f32[target_index],
             scratch->action_state[target_index],
             scratch->hitlag_resume_action[target_index],
             scratch->action_ticks[target_index],
             scratch->facing[target_index],
             scratch->dash_direction[target_index],
-            previous_attacker_position_y_q16,
-            scratch->position_y_q16[attacker_index],
+            previous_attacker_position_y_f32,
+            scratch->position_y_f32[attacker_index],
             previous_sphere,
             sphere,
             capsules,
@@ -3274,38 +3119,35 @@ static int hit_sphere_overlaps_player_with_height(
             0,
             out_hurtbox_height);
     }
-    const int32_t hurtbox_left =
-        scratch->position_x_q16[target_index] -
-        fighter->half_width_q16;
-    const int32_t hurtbox_right =
-        scratch->position_x_q16[target_index] +
-        fighter->half_width_q16;
-    const int32_t hurtbox_top =
-        scratch->position_y_q16[target_index] -
-        fighter->half_height_q16;
-    const int32_t hurtbox_bottom =
-        scratch->position_y_q16[target_index] +
-        fighter->half_height_q16;
-    const int32_t nearest_x =
-        sphere->center_x_q16 < hurtbox_left
+    const float hurtbox_left =
+        scratch->position_x_f32[target_index] -
+        fighter->half_width_f32;
+    const float hurtbox_right =
+        scratch->position_x_f32[target_index] +
+        fighter->half_width_f32;
+    const float hurtbox_top =
+        scratch->position_y_f32[target_index] -
+        fighter->half_height_f32;
+    const float hurtbox_bottom =
+        scratch->position_y_f32[target_index] +
+        fighter->half_height_f32;
+    const float nearest_x =
+        sphere->center_x_f32 < hurtbox_left
             ? hurtbox_left
-            : sphere->center_x_q16 > hurtbox_right
+            : sphere->center_x_f32 > hurtbox_right
                   ? hurtbox_right
-                  : sphere->center_x_q16;
-    const int32_t nearest_y =
-        sphere->center_y_q16 < hurtbox_top
+                  : sphere->center_x_f32;
+    const float nearest_y =
+        sphere->center_y_f32 < hurtbox_top
             ? hurtbox_top
-            : sphere->center_y_q16 > hurtbox_bottom
+            : sphere->center_y_f32 > hurtbox_bottom
                   ? hurtbox_bottom
-                  : sphere->center_y_q16;
-    const int64_t delta_x =
-        (int64_t)sphere->center_x_q16 - (int64_t)nearest_x;
-    const int64_t delta_y =
-        (int64_t)sphere->center_y_q16 - (int64_t)nearest_y;
+                  : sphere->center_y_f32;
+    const float delta_x = sphere->center_x_f32 - nearest_x;
+    const float delta_y = sphere->center_y_f32 - nearest_y;
 
     if (delta_x * delta_x + delta_y * delta_y <=
-        (int64_t)sphere->radius_q16 *
-            (int64_t)sphere->radius_q16)
+        sphere->radius_f32 * sphere->radius_f32)
     {
         if (out_hurtbox_height != NULL)
         {
@@ -3321,7 +3163,7 @@ static int hit_sphere_overlaps_player(
     const pf_sim_scratch *scratch,
     uint32_t attacker_index,
     uint32_t target_index,
-    int32_t previous_attacker_position_y_q16,
+    float previous_attacker_position_y_f32,
     const hit_sphere_inspection *previous_sphere,
     const hit_sphere_inspection *sphere)
 {
@@ -3330,7 +3172,7 @@ static int hit_sphere_overlaps_player(
         scratch,
         attacker_index,
         target_index,
-        previous_attacker_position_y_q16,
+        previous_attacker_position_y_f32,
         previous_sphere,
         sphere,
         NULL);
@@ -3342,17 +3184,17 @@ static int grab_sphere_overlaps_player(
     const pf_sim_scratch *scratch,
     uint32_t attacker_index,
     uint32_t target_index,
-    int32_t previous_attacker_position_y_q16,
+    float previous_attacker_position_y_f32,
     const hit_sphere_inspection *previous_sphere,
     const hit_sphere_inspection *sphere,
     int target_before_step)
 {
-    const int32_t target_position_x_q16 = target_before_step != 0
-        ? world->position_x_q16[target_index]
-        : scratch->position_x_q16[target_index];
-    const int32_t target_position_y_q16 = target_before_step != 0
-        ? world->position_y_q16[target_index]
-        : scratch->position_y_q16[target_index];
+    const float target_position_x_f32 = target_before_step != 0
+        ? world->position_x_f32[target_index]
+        : scratch->position_x_f32[target_index];
+    const float target_position_y_f32 = target_before_step != 0
+        ? world->position_y_f32[target_index]
+        : scratch->position_y_f32[target_index];
     const uint8_t target_grounded = target_before_step != 0
         ? world->grounded[target_index]
         : scratch->grounded[target_index];
@@ -3365,9 +3207,9 @@ static int grab_sphere_overlaps_player(
     const uint16_t target_source_submotion = target_before_step != 0
         ? world->source_submotion[target_index]
         : scratch->source_submotion[target_index];
-    const int32_t target_source_frame_q16 = target_before_step != 0
-        ? world->source_animation_frame_q16[target_index]
-        : scratch->source_animation_frame_q16[target_index];
+    const float target_source_frame_f32 = target_before_step != 0
+        ? world->source_animation_frame_f32[target_index]
+        : scratch->source_animation_frame_f32[target_index];
     const uint16_t target_action_ticks = target_before_step != 0
         ? world->action_ticks[target_index]
         : scratch->action_ticks[target_index];
@@ -3377,25 +3219,25 @@ static int grab_sphere_overlaps_player(
     const int8_t target_dash_direction = target_before_step != 0
         ? world->dash_direction[target_index]
         : scratch->dash_direction[target_index];
-    const int32_t target_velocity_x_q16 = target_before_step != 0
-        ? total_velocity_q16(
-              world->velocity_x_q16[target_index],
-              world->knockback_velocity_x_q16[target_index])
-        : total_velocity_q16(
-              scratch->velocity_x_q16[target_index],
-              scratch->knockback_velocity_x_q16[target_index]);
-    const int32_t target_velocity_y_q16 = target_before_step != 0
-        ? total_velocity_q16(
-              world->velocity_y_q16[target_index],
-              world->knockback_velocity_y_q16[target_index])
-        : total_velocity_q16(
-              scratch->velocity_y_q16[target_index],
-              scratch->knockback_velocity_y_q16[target_index]);
-    const int32_t target_blend_progress_q16 = target_before_step != 0
-        ? world->ground_blend_progress_q16[target_index]
-        : scratch->ground_blend_progress_q16[target_index];
+    const float target_velocity_x_f32 = target_before_step != 0
+        ? total_velocity_f32(
+              world->velocity_x_f32[target_index],
+              world->knockback_velocity_x_f32[target_index])
+        : total_velocity_f32(
+              scratch->velocity_x_f32[target_index],
+              scratch->knockback_velocity_x_f32[target_index]);
+    const float target_velocity_y_f32 = target_before_step != 0
+        ? total_velocity_f32(
+              world->velocity_y_f32[target_index],
+              world->knockback_velocity_y_f32[target_index])
+        : total_velocity_f32(
+              scratch->velocity_y_f32[target_index],
+              scratch->knockback_velocity_y_f32[target_index]);
+    const float target_blend_progress_f32 = target_before_step != 0
+        ? world->ground_blend_progress_f32[target_index]
+        : scratch->ground_blend_progress_f32[target_index];
     const hsd_compact_pose *target_blend_pose =
-        target_blend_progress_q16 > INT32_C(0)
+        target_blend_progress_f32 > INT32_C(0)
             ? (target_before_step != 0
                    ? &world->ground_blend_pose[target_index]
                    : &scratch->ground_blend_pose[target_index])
@@ -3410,14 +3252,14 @@ static int grab_sphere_overlaps_player(
             target_action_state,
             target_hitlag_resume_action,
             target_source_submotion,
-            target_source_frame_q16,
+            target_source_frame_f32,
             target_action_ticks,
             target_facing,
-            target_velocity_x_q16,
-            target_velocity_y_q16,
+            target_velocity_x_f32,
+            target_velocity_y_f32,
             NULL,
             target_blend_pose,
-            target_blend_progress_q16,
+            target_blend_progress_f32,
             dynamic_capsules,
             &capsule_count);
 
@@ -3425,15 +3267,15 @@ static int grab_sphere_overlaps_player(
     {
         return hit_sphere_overlaps_reference_pose(
             fighter,
-            target_position_x_q16,
-            target_position_y_q16,
+            target_position_x_f32,
+            target_position_y_f32,
             target_action_state,
             target_hitlag_resume_action,
             target_action_ticks,
             target_facing,
             target_dash_direction,
-            previous_attacker_position_y_q16,
-            scratch->position_y_q16[attacker_index],
+            previous_attacker_position_y_f32,
+            scratch->position_y_f32[attacker_index],
             previous_sphere,
             sphere,
             capsules,
@@ -3442,34 +3284,32 @@ static int grab_sphere_overlaps_player(
             NULL);
     }
     {
-        const int32_t hurtbox_left =
-            target_position_x_q16 - fighter->half_width_q16;
-        const int32_t hurtbox_right =
-            target_position_x_q16 + fighter->half_width_q16;
-        const int32_t hurtbox_top =
-            target_position_y_q16 - fighter->half_height_q16;
-        const int32_t hurtbox_bottom =
-            target_position_y_q16 + fighter->half_height_q16;
-        const int32_t nearest_x = sphere->center_x_q16 < hurtbox_left
+        const float hurtbox_left =
+            target_position_x_f32 - fighter->half_width_f32;
+        const float hurtbox_right =
+            target_position_x_f32 + fighter->half_width_f32;
+        const float hurtbox_top =
+            target_position_y_f32 - fighter->half_height_f32;
+        const float hurtbox_bottom =
+            target_position_y_f32 + fighter->half_height_f32;
+        const float nearest_x = sphere->center_x_f32 < hurtbox_left
             ? hurtbox_left
-            : sphere->center_x_q16 > hurtbox_right
+            : sphere->center_x_f32 > hurtbox_right
                   ? hurtbox_right
-                  : sphere->center_x_q16;
-        const int32_t nearest_y = sphere->center_y_q16 < hurtbox_top
+                  : sphere->center_x_f32;
+        const float nearest_y = sphere->center_y_f32 < hurtbox_top
             ? hurtbox_top
-            : sphere->center_y_q16 > hurtbox_bottom
+            : sphere->center_y_f32 > hurtbox_bottom
                   ? hurtbox_bottom
-                  : sphere->center_y_q16;
-        const int64_t delta_x =
-            (int64_t)sphere->center_x_q16 - nearest_x;
-        const int64_t delta_y =
-            (int64_t)sphere->center_y_q16 - nearest_y;
+                  : sphere->center_y_f32;
+        const float delta_x = sphere->center_x_f32 - nearest_x;
+        const float delta_y = sphere->center_y_f32 - nearest_y;
 
         (void)attacker_index;
-        (void)previous_attacker_position_y_q16;
+        (void)previous_attacker_position_y_f32;
         (void)previous_sphere;
         return delta_x * delta_x + delta_y * delta_y <=
-               (int64_t)sphere->radius_q16 * sphere->radius_q16;
+               sphere->radius_f32 * sphere->radius_f32;
     }
 }
 
@@ -3478,29 +3318,29 @@ static int hit_sphere_overlaps_shield(
     const pf_sim_scratch *scratch,
     uint32_t attacker_index,
     uint32_t target_index,
-    int32_t previous_attacker_position_y_q16,
+    float previous_attacker_position_y_f32,
     const hit_sphere_inspection *previous_sphere,
     const hit_sphere_inspection *sphere)
 {
     shield_volume volume;
-    const int64_t previous_attacker_reference_origin_y =
-        (int64_t)reference_origin_y_q16(
+    const float previous_attacker_reference_origin_y =
+        reference_origin_y_f32(
             fighter,
-            previous_attacker_position_y_q16);
-    const int64_t attacker_reference_origin_y =
-        (int64_t)reference_origin_y_q16(
+            previous_attacker_position_y_f32);
+    const float attacker_reference_origin_y =
+        reference_origin_y_f32(
             fighter,
-            scratch->position_y_q16[attacker_index]);
-    int64_t previous_center_y;
-    int64_t current_center_y;
+            scratch->position_y_f32[attacker_index]);
+    float previous_center_y;
+    float current_center_y;
 
     if (!shield_volume_for_player(
             fighter,
-            scratch->position_x_q16[target_index],
-            scratch->position_y_q16[target_index],
+            scratch->position_x_f32[target_index],
+            scratch->position_y_f32[target_index],
             scratch->action_state[target_index],
             scratch->hitlag_resume_action[target_index],
-            scratch->shield_health_q16[target_index],
+            scratch->shield_health_f32[target_index],
             scratch->shield_strength[target_index],
             scratch->facing[target_index],
             scratch->shield_angle_turn[target_index],
@@ -3516,40 +3356,40 @@ static int hit_sphere_overlaps_shield(
      * each fighter origin and the shield joint back into that metric; keeping
      * the hit offset separate avoids scaling it twice. */
     previous_center_y =
-        (int64_t)volume.center_y_q16 +
+        volume.center_y_f32 +
         (previous_attacker_reference_origin_y -
-         (int64_t)volume.center_y_q16) *
-            (int64_t)fighter->shield_radius_x_q16 /
-            (int64_t)fighter->shield_radius_y_q16 +
-        ((int64_t)previous_sphere->center_y_q16 -
+         volume.center_y_f32) *
+            fighter->shield_radius_x_f32 /
+            fighter->shield_radius_y_f32 +
+        (previous_sphere->center_y_f32 -
          previous_attacker_reference_origin_y);
     current_center_y =
-        (int64_t)volume.center_y_q16 +
+        volume.center_y_f32 +
         (attacker_reference_origin_y -
-         (int64_t)volume.center_y_q16) *
-            (int64_t)fighter->shield_radius_x_q16 /
-            (int64_t)fighter->shield_radius_y_q16 +
-        ((int64_t)sphere->center_y_q16 -
+         volume.center_y_f32) *
+            fighter->shield_radius_x_f32 /
+            fighter->shield_radius_y_f32 +
+        (sphere->center_y_f32 -
          attacker_reference_origin_y);
     {
-        const collision_capsule3_q16 hit = {
-            (int64_t)previous_sphere->center_x_q16,
+        const collision_capsule3_f32 hit = {
+            previous_sphere->center_x_f32,
             previous_center_y,
-            (int64_t)previous_sphere->center_z_q16,
-            (int64_t)sphere->center_x_q16,
+            previous_sphere->center_z_f32,
+            sphere->center_x_f32,
             current_center_y,
-            (int64_t)sphere->center_z_q16,
-            (int64_t)sphere->radius_q16};
-        const collision_capsule3_q16 shield = {
-            (int64_t)volume.center_x_q16,
-            (int64_t)volume.center_y_q16,
-            INT64_C(0),
-            (int64_t)volume.center_x_q16,
-            (int64_t)volume.center_y_q16,
-            INT64_C(0),
-            (int64_t)volume.radius_x_q16};
+            sphere->center_z_f32,
+            sphere->radius_f32};
+        const collision_capsule3_f32 shield = {
+            volume.center_x_f32,
+            volume.center_y_f32,
+            0.0f,
+            volume.center_x_f32,
+            volume.center_y_f32,
+            0.0f,
+            volume.radius_x_f32};
 
-        return collision_capsule_capsule_overlap_q16(
+        return collision_capsule_capsule_overlap_f32(
             &hit,
             &shield);
     }
@@ -3596,19 +3436,19 @@ static int reference_hit_sphere_can_continue(
 }
 
 static int boxes_overlap(
-    int32_t left_a_q16,
-    int32_t right_a_q16,
-    int32_t top_a_q16,
-    int32_t bottom_a_q16,
-    int32_t left_b_q16,
-    int32_t right_b_q16,
-    int32_t top_b_q16,
-    int32_t bottom_b_q16)
+    float left_a_f32,
+    float right_a_f32,
+    float top_a_f32,
+    float bottom_a_f32,
+    float left_b_f32,
+    float right_b_f32,
+    float top_b_f32,
+    float bottom_b_f32)
 {
-    return left_a_q16 <= right_b_q16 &&
-           right_a_q16 >= left_b_q16 &&
-           top_a_q16 <= bottom_b_q16 &&
-           bottom_a_q16 >= top_b_q16;
+    return left_a_f32 <= right_b_f32 &&
+           right_a_f32 >= left_b_f32 &&
+           top_a_f32 <= bottom_b_f32 &&
+           bottom_a_f32 >= top_b_f32;
 }
 
 static int action_is_throw(uint8_t action_state)
@@ -3642,24 +3482,22 @@ static const struct throw_data *throw_for_action(
     return NULL;
 }
 
-static int32_t scaled_throw_velocity(
-    int32_t base_q16,
-    int32_t growth_q16,
-    uint32_t damage_q16)
+static float scaled_throw_velocity(
+    float base_f32,
+    float growth_f32,
+    float damage_f32)
 {
-    int64_t result =
-        (int64_t)base_q16 +
-        (((int64_t)growth_q16 * (int64_t)damage_q16) >> 16U);
+    float result = base_f32 + growth_f32 * damage_f32;
 
-    if (result > (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16)
+    if (result > PF_SIM_MAX_MOTION_SPEED_F32)
     {
-        result = (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16;
+        result = PF_SIM_MAX_MOTION_SPEED_F32;
     }
-    else if (result < -(int64_t)PF_SIM_MAX_MOTION_SPEED_Q16)
+    else if (result < -PF_SIM_MAX_MOTION_SPEED_F32)
     {
-        result = -(int64_t)PF_SIM_MAX_MOTION_SPEED_Q16;
+        result = -PF_SIM_MAX_MOTION_SPEED_F32;
     }
-    return (int32_t)result;
+    return result;
 }
 
 static void clear_grab_links(
@@ -3932,7 +3770,7 @@ static uint16_t grab_escape_ticks(
     uint32_t player_index)
 {
     const fighter_data *fighter = &content->fighter;
-    const uint32_t damage_q16 = scratch->damage_q16[player_index];
+    const float damage_f32 = scratch->damage_f32[player_index];
 
     if (fighter->reference_frame_data_enabled != UINT8_C(0))
     {
@@ -3941,46 +3779,34 @@ static uint16_t grab_escape_ticks(
         const uint32_t rank =
             capture_rank(world, scratch, player_index);
         const uint32_t rank_slot = rank + UINT32_C(1);
-        const int64_t damage_term_q16 =
-            ((int64_t)damage_q16 *
-             (int64_t)mash->capture_damage_scale_q16) >>
-            16U;
-        const int64_t handicap_term_q16 =
-            (int64_t)mash->capture_handicap_scale_q16 *
-            ((int64_t)mash->capture_handicap_reference_q16 /
-                 (int64_t)PF_Q16_ONE -
-             INT64_C(9));
-        const int64_t rank_term_q16 =
-            (int64_t)mash->capture_rank_scale_q16 *
-            ((int64_t)mash->capture_rank_reference_q16 /
-                 (int64_t)PF_Q16_ONE -
-             (int64_t)rank_slot);
-        const int64_t timer_q16 =
-            (int64_t)mash->capture_base_q16 +
-            handicap_term_q16 + rank_term_q16 + damage_term_q16;
-        const uint64_t decrement_q16 =
-            (uint64_t)mash->capture_tick_decrement *
-            (uint64_t)PF_Q16_ONE;
-        uint64_t ticks =
-            timer_q16 > INT64_C(0)
-                ? ((uint64_t)timer_q16 + decrement_q16 - UINT64_C(1)) /
-                      decrement_q16
-                : UINT64_C(1);
+        const float damage_term_f32 =
+            damage_f32 * mash->capture_damage_scale_f32;
+        const float handicap_term_f32 =
+            mash->capture_handicap_scale_f32 *
+            (mash->capture_handicap_reference_f32 - 9.0f);
+        const float rank_term_f32 =
+            mash->capture_rank_scale_f32 *
+            (mash->capture_rank_reference_f32 - (float)rank_slot);
+        const float timer_f32 =
+            mash->capture_base_f32 +
+            handicap_term_f32 + rank_term_f32 + damage_term_f32;
+        const float decrement_f32 = (float)mash->capture_tick_decrement;
+        uint32_t ticks =
+            timer_f32 > 0.0f
+                ? (uint32_t)ceilf(timer_f32 / decrement_f32)
+                : UINT32_C(1);
 
-        if (ticks > (uint64_t)PF_SIM_MAX_GRAB_ESCAPE_TICKS)
+        if (ticks > (uint32_t)PF_SIM_MAX_GRAB_ESCAPE_TICKS)
         {
-            ticks = (uint64_t)PF_SIM_MAX_GRAB_ESCAPE_TICKS;
+            ticks = (uint32_t)PF_SIM_MAX_GRAB_ESCAPE_TICKS;
         }
         return (uint16_t)ticks;
     }
 
     {
-    const uint64_t scaled =
-        (uint64_t)damage_q16 *
-        (uint64_t)(uint32_t)fighter->grab_escape_damage_ticks_q16;
     uint32_t ticks =
         (uint32_t)fighter->grab_escape_base_ticks +
-        (uint32_t)(scaled >> 32U);
+        (uint32_t)(damage_f32 * fighter->grab_escape_damage_ticks_f32);
 
     if (ticks > (uint32_t)fighter->grab_escape_max_ticks)
     {
@@ -3990,30 +3816,24 @@ static uint16_t grab_escape_ticks(
     }
 }
 
-static int32_t merge_damage_velocity_component(
-    int32_t current_q16,
-    int32_t incoming_q16)
+static float merge_damage_velocity_component(
+    float current_f32,
+    float incoming_f32)
 {
     const int opposite_directions =
-        (current_q16 < INT32_C(0) && incoming_q16 > INT32_C(0)) ||
-        (current_q16 > INT32_C(0) && incoming_q16 < INT32_C(0));
-    const uint32_t current_magnitude =
-        (uint32_t)(current_q16 < INT32_C(0)
-                       ? -(int64_t)current_q16
-                       : (int64_t)current_q16);
-    const uint32_t incoming_magnitude =
-        (uint32_t)(incoming_q16 < INT32_C(0)
-                       ? -(int64_t)incoming_q16
-                       : (int64_t)incoming_q16);
+        (current_f32 < INT32_C(0) && incoming_f32 > INT32_C(0)) ||
+        (current_f32 > INT32_C(0) && incoming_f32 < INT32_C(0));
+    const float current_magnitude = fabsf(current_f32);
+    const float incoming_magnitude = fabsf(incoming_f32);
 
     if (opposite_directions != 0)
     {
         /* Opposite-signed int32_t operands cannot overflow their sum. */
-        return current_q16 + incoming_q16;
+        return current_f32 + incoming_f32;
     }
     return incoming_magnitude > current_magnitude
-               ? incoming_q16
-               : current_q16;
+               ? incoming_f32
+               : current_f32;
 }
 
 static pf_status apply_hit_reaction(
@@ -4023,9 +3843,9 @@ static pf_status apply_hit_reaction(
     uint64_t *rng_state,
     uint8_t source_player,
     uint32_t target_index,
-    uint32_t damage_q16,
-    int32_t launch_velocity_x_q16,
-    int32_t launch_velocity_y_q16,
+    float damage_f32,
+    float launch_velocity_x_f32,
+    float launch_velocity_y_f32,
     uint16_t hitlag_ticks,
     uint16_t resolved_hitstun_ticks,
     int velocity_is_weighted,
@@ -4045,33 +3865,33 @@ static pf_status apply_hit_reaction(
     uint32_t hit_sequence;
     uint16_t event_flags;
     uint16_t hitstun_ticks_value;
-    int32_t motion_velocity_x_q16;
-    int32_t motion_velocity_y_q16;
-    int32_t ground_knockback_scalar_q16;
-    const int32_t previous_knockback_velocity_x_q16 =
-        scratch->knockback_velocity_x_q16[target_index];
-    const int32_t previous_knockback_velocity_y_q16 =
-        scratch->knockback_velocity_y_q16[target_index];
+    float motion_velocity_x_f32;
+    float motion_velocity_y_f32;
+    float ground_knockback_scalar_f32;
+    const float previous_knockback_velocity_x_f32 =
+        scratch->knockback_velocity_x_f32[target_index];
+    const float previous_knockback_velocity_y_f32 =
+        scratch->knockback_velocity_y_f32[target_index];
     const uint8_t damage_source_grounded =
         scratch->grounded[target_index];
 
     if (velocity_is_weighted == 0)
     {
-        launch_velocity_x_q16 = apply_weight_q16(
-            launch_velocity_x_q16,
-            content->fighter.weight_q16);
-        launch_velocity_y_q16 = apply_weight_q16(
-            launch_velocity_y_q16,
-            content->fighter.weight_q16);
+        launch_velocity_x_f32 = apply_weight_f32(
+            launch_velocity_x_f32,
+            content->fighter.weight_f32);
+        launch_velocity_y_f32 = apply_weight_f32(
+            launch_velocity_y_f32,
+            content->fighter.weight_f32);
     }
 
     /* Damage motion selection owns the original launch angle. The floor
      * response below may project or reflect the physical velocity, but the
      * source chooses DamageFlyTop/Roll before that mutation. */
-    motion_velocity_x_q16 = launch_velocity_x_q16;
-    motion_velocity_y_q16 = launch_velocity_y_q16;
-    ground_knockback_scalar_q16 =
-        launch_grounded != 0 ? launch_velocity_x_q16 : INT32_C(0);
+    motion_velocity_x_f32 = launch_velocity_x_f32;
+    motion_velocity_y_f32 = launch_velocity_y_f32;
+    ground_knockback_scalar_f32 =
+        launch_grounded != 0 ? launch_velocity_x_f32 : INT32_C(0);
     if (content->fighter.reference_frame_data_enabled != UINT8_C(0) &&
         damage_source_grounded != UINT8_C(0) &&
         event_is_physical_hit(event_type))
@@ -4084,15 +3904,15 @@ static pf_status apply_hit_reaction(
 
         if (floor != NULL)
         {
-            if (ssbm_resolve_ground_damage_launch_q16(
-                    floor->source_normal_x_q16,
-                    floor->source_normal_y_q16,
-                    floor->ground_projection_x_q16,
-                    floor->ground_projection_y_q16,
+            if (ssbm_resolve_ground_damage_launch_f32(
+                    floor->source_normal_x_f32,
+                    floor->source_normal_y_f32,
+                    floor->ground_projection_x_f32,
+                    floor->ground_projection_y_f32,
                     damage_level,
-                    &launch_velocity_x_q16,
-                    &launch_velocity_y_q16,
-                    &ground_knockback_scalar_q16,
+                    &launch_velocity_x_f32,
+                    &launch_velocity_y_f32,
+                    &ground_knockback_scalar_f32,
                     &source_launch_grounded) != PF_STATUS_OK)
             {
                 return PF_STATUS_DETERMINISTIC_FAULT;
@@ -4112,19 +3932,19 @@ static pf_status apply_hit_reaction(
     if (scratch->action_state[target_index] ==
         (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN)
     {
-        scratch->shield_health_q16[target_index] =
-            content->fighter.shield_reset_health_q16;
+        scratch->shield_health_f32[target_index] =
+            content->fighter.shield_reset_health_f32;
     }
-    scratch->damage_q16[target_index] = saturating_damage(
-        scratch->damage_q16[target_index],
-        damage_q16);
+    scratch->damage_f32[target_index] = saturating_damage(
+        scratch->damage_f32[target_index],
+        damage_f32);
     hitstun_ticks_value =
         resolved_hitstun_ticks != UINT16_MAX
             ? resolved_hitstun_ticks
             : hitstun_ticks(
                   &content->fighter,
-                  motion_velocity_x_q16,
-                  motion_velocity_y_q16);
+                  motion_velocity_x_f32,
+                  motion_velocity_y_f32);
     armored = event_is_physical_hit(event_type) &&
               previous_action ==
                   (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP &&
@@ -4146,7 +3966,7 @@ static pf_status apply_hit_reaction(
             event_is_physical_hit(event_type) &&
             (previous_action == (uint8_t)PF_M4_ACTION_DOWN_WAIT ||
              previous_action == (uint8_t)PF_M4_ACTION_RESET_BOUND) &&
-            damage_q16 <= content->fighter.reset_max_damage_q16 &&
+            damage_f32 <= content->fighter.reset_max_damage_f32 &&
             hitstun_ticks_value <=
                 content->fighter.reset_max_hitstun_ticks;
     crouch_cancelled =
@@ -4155,28 +3975,28 @@ static pf_status apply_hit_reaction(
         (previous_action == (uint8_t)PF_M4_ACTION_CROUCH_START ||
          previous_action == (uint8_t)PF_M4_ACTION_CROUCH) &&
         scratch->grounded[target_index] != UINT8_C(0) &&
-        scratch->damage_q16[target_index] <=
-            content->fighter.crouch_cancel_max_damage_q16;
+        scratch->damage_f32[target_index] <=
+            content->fighter.crouch_cancel_max_damage_f32;
     v_cancelled = armored == 0 && reset == 0 && crouch_cancelled == 0
                       ? player_v_cancelled(
                             &content->fighter,
                             scratch,
                             target_index)
                       : 0;
-    scratch->knockback_velocity_x_q16[target_index] =
+    scratch->knockback_velocity_x_f32[target_index] =
         armored != 0 || reset != 0
             ? INT32_C(0)
-            : launch_velocity_x_q16;
-    scratch->knockback_velocity_y_q16[target_index] =
+            : launch_velocity_x_f32;
+    scratch->knockback_velocity_y_f32[target_index] =
         armored != 0
             ? INT32_C(0)
             : reset != 0
-            ? -content->fighter.reset_bound_speed_q16
-            : launch_velocity_y_q16;
-    scratch->ground_knockback_velocity_q16[target_index] =
+            ? -content->fighter.reset_bound_speed_f32
+            : launch_velocity_y_f32;
+    scratch->ground_knockback_velocity_f32[target_index] =
         armored != 0 || reset != 0 || launch_grounded == 0
             ? INT32_C(0)
-            : ground_knockback_scalar_q16;
+            : ground_knockback_scalar_f32;
     scratch->hitstun_ticks[target_index] =
         armored != 0 ? UINT16_C(0) : hitstun_ticks_value;
     if (armored == 0 && event_is_physical_hit(event_type))
@@ -4184,8 +4004,8 @@ static pf_status apply_hit_reaction(
         /* ftCo_Damage clears self/gr_vel when ordinary damage motion starts;
          * separately tracked knockback owns displacement until damage motion
          * releases control. */
-        scratch->velocity_x_q16[target_index] = INT32_C(0);
-        scratch->velocity_y_q16[target_index] = INT32_C(0);
+        scratch->velocity_x_f32[target_index] = INT32_C(0);
+        scratch->velocity_y_f32[target_index] = INT32_C(0);
 
         /* ftColl_8007A06C makes an ordinary fighter victim face the attacker
          * selected by the strongest damage-log entry. ftCo_Throw instead
@@ -4199,8 +4019,8 @@ static pf_status apply_hit_reaction(
             if (event_type == PF_SIM_EVENT_HIT)
             {
                 scratch->facing[target_index] =
-                    scratch->position_x_q16[target_index] >
-                            scratch->position_x_q16[source_player]
+                    scratch->position_x_f32[target_index] >
+                            scratch->position_x_f32[source_player]
                         ? INT8_C(-1)
                         : INT8_C(1);
             }
@@ -4213,29 +4033,29 @@ static pf_status apply_hit_reaction(
     }
     if (crouch_cancelled != 0 && velocity_is_weighted == 0)
     {
-        scratch->knockback_velocity_x_q16[target_index] =
-            scale_velocity_q16(
-                scratch->knockback_velocity_x_q16[target_index],
-                content->fighter.crouch_cancel_velocity_scale_q16);
-        scratch->knockback_velocity_y_q16[target_index] =
-            scale_velocity_q16(
-                scratch->knockback_velocity_y_q16[target_index],
-                content->fighter.crouch_cancel_velocity_scale_q16);
+        scratch->knockback_velocity_x_f32[target_index] =
+            scale_velocity_f32(
+                scratch->knockback_velocity_x_f32[target_index],
+                content->fighter.crouch_cancel_velocity_scale_f32);
+        scratch->knockback_velocity_y_f32[target_index] =
+            scale_velocity_f32(
+                scratch->knockback_velocity_y_f32[target_index],
+                content->fighter.crouch_cancel_velocity_scale_f32);
         scratch->hitstun_ticks[target_index] =
             scale_hitstun_ticks(
                 scratch->hitstun_ticks[target_index],
-                content->fighter.crouch_cancel_hitstun_scale_q16);
+                content->fighter.crouch_cancel_hitstun_scale_f32);
     }
     if (v_cancelled != 0)
     {
-        scratch->knockback_velocity_x_q16[target_index] =
-            scale_velocity_q16(
-                scratch->knockback_velocity_x_q16[target_index],
-                content->fighter.v_cancel_velocity_scale_q16);
-        scratch->knockback_velocity_y_q16[target_index] =
-            scale_velocity_q16(
-                scratch->knockback_velocity_y_q16[target_index],
-            content->fighter.v_cancel_velocity_scale_q16);
+        scratch->knockback_velocity_x_f32[target_index] =
+            scale_velocity_f32(
+                scratch->knockback_velocity_x_f32[target_index],
+                content->fighter.v_cancel_velocity_scale_f32);
+        scratch->knockback_velocity_y_f32[target_index] =
+            scale_velocity_f32(
+                scratch->knockback_velocity_y_f32[target_index],
+            content->fighter.v_cancel_velocity_scale_f32);
     }
     if (content->fighter.reference_frame_data_enabled != UINT8_C(0) &&
         armored == 0 && reset == 0 &&
@@ -4254,14 +4074,14 @@ static pf_status apply_hit_reaction(
             scratch->damage_time_since_hit_ticks[target_index] >=
                 damage_response->damage_velocity_replace_window_ticks)
         {
-            scratch->knockback_velocity_x_q16[target_index] =
+            scratch->knockback_velocity_x_f32[target_index] =
                 merge_damage_velocity_component(
-                    previous_knockback_velocity_x_q16,
-                    scratch->knockback_velocity_x_q16[target_index]);
-            scratch->knockback_velocity_y_q16[target_index] =
+                    previous_knockback_velocity_x_f32,
+                    scratch->knockback_velocity_x_f32[target_index]);
+            scratch->knockback_velocity_y_f32[target_index] =
                 merge_damage_velocity_component(
-                    previous_knockback_velocity_y_q16,
-                    scratch->knockback_velocity_y_q16[target_index]);
+                    previous_knockback_velocity_y_f32,
+                    scratch->knockback_velocity_y_f32[target_index]);
         }
     }
     scratch->tumble[target_index] =
@@ -4279,7 +4099,7 @@ static pf_status apply_hit_reaction(
                  ? PF_M4_DIRECTIONAL_INPUT_METEOR_CANCEL
                  : UINT8_C(0)));
     scratch->shield_stun_ticks[target_index] = UINT16_C(0);
-    scratch->shield_recoil_x_q16[target_index] = INT32_C(0);
+    scratch->shield_recoil_x_f32[target_index] = INT32_C(0);
     scratch->shield_recoil_mask =
         (uint8_t)(
             scratch->shield_recoil_mask &
@@ -4309,9 +4129,9 @@ static pf_status apply_hit_reaction(
         if (ssbm_select_damage_motion(
                 (uint8_t)launch_grounded,
                 damage_level,
-                scratch->damage_q16[target_index],
-                motion_velocity_x_q16,
-                motion_velocity_y_q16,
+                scratch->damage_f32[target_index],
+                motion_velocity_x_f32,
+                motion_velocity_y_f32,
                 rng_state,
                 &damage_motion) != PF_STATUS_OK)
         {
@@ -4336,10 +4156,8 @@ static pf_status apply_hit_reaction(
             return PF_STATUS_DETERMINISTIC_FAULT;
         }
         scratch->source_submotion[target_index] = damage_submotion;
-        scratch->source_animation_frame_q16[target_index] =
-            (int32_t)PF_Q16_ONE;
-        scratch->source_animation_rate_q16[target_index] =
-            (int32_t)PF_Q16_ONE;
+        scratch->source_animation_frame_f32[target_index] = PF_F32_ONE;
+        scratch->source_animation_rate_f32[target_index] = PF_F32_ONE;
     }
     /* DamageFly is airborne from its entry frame, including the hitlag-held
      * rows before its physics callback first advances.  Ground damage keeps
@@ -4357,7 +4175,7 @@ static pf_status apply_hit_reaction(
              * recontact a downhill floor. */
             scratch->ecb_bottom_lock_ticks[target_index] =
                 PF_M4_COMMON_AIR_ENTRY_ECB_LOCK_TICKS;
-            scratch->ecb_locked_bottom_y_q16[target_index] = INT32_C(0);
+            scratch->ecb_locked_bottom_y_f32[target_index] = 0.0f;
         }
         scratch->grounded[target_index] = UINT8_C(0);
     }
@@ -4405,9 +4223,9 @@ static pf_status apply_hit_reaction(
             event_type,
             source_player,
             (uint8_t)target_index,
-            damage_q16,
-            scratch->knockback_velocity_x_q16[target_index],
-            scratch->knockback_velocity_y_q16[target_index],
+            damage_f32,
+            scratch->knockback_velocity_x_f32[target_index],
+            scratch->knockback_velocity_y_f32[target_index],
             event_flags,
             event_detail,
             &hit_sequence) != PF_STATUS_OK)
@@ -4416,7 +4234,7 @@ static pf_status apply_hit_reaction(
     }
     scratch->last_hit_sequence[target_index] = hit_sequence;
     scratch->last_hit_tick[target_index] = world->tick;
-    scratch->last_hit_damage_q16[target_index] = damage_q16;
+    scratch->last_hit_damage_f32[target_index] = damage_f32;
     scratch->last_hit_attacker[target_index] = source_player;
     if (armored == 0)
     {
@@ -4465,12 +4283,12 @@ static pf_status resolve_falcon_dive_capture(
     if (holder_action ==
         (uint8_t)PF_M4_ACTION_FALCON_DIVE_CATCH)
     {
-        scratch->position_x_q16[target_index] =
-            scratch->position_x_q16[holder_index];
-        scratch->position_y_q16[target_index] =
-            scratch->position_y_q16[holder_index];
-        scratch->velocity_x_q16[target_index] = INT32_C(0);
-        scratch->velocity_y_q16[target_index] = INT32_C(0);
+        scratch->position_x_f32[target_index] =
+            scratch->position_x_f32[holder_index];
+        scratch->position_y_f32[target_index] =
+            scratch->position_y_f32[holder_index];
+        scratch->velocity_x_f32[target_index] = INT32_C(0);
+        scratch->velocity_y_f32[target_index] = INT32_C(0);
         scratch->grounded[target_index] =
             scratch->grounded[holder_index];
         scratch->support[target_index] = scratch->support[holder_index];
@@ -4488,19 +4306,19 @@ static pf_status resolve_falcon_dive_capture(
                 PF_M4_FALCON_UP_SPECIAL_CATCH);
         melee_knockback_data hit;
         melee_knockback_result result;
-        uint32_t damage_q16;
+        float damage_f32;
         uint32_t hit_sequence;
 
         if (effect == NULL || effect->damage == UINT8_C(0))
         {
             return PF_STATUS_DETERMINISTIC_FAULT;
         }
-        damage_q16 = stale_scaled_damage_q16(
+        damage_f32 = stale_scaled_damage_f32(
             &content->fighter,
             scratch,
             holder_index,
             (uint8_t)PF_M4_ACTION_FALCON_DIVE_CATCH,
-            (uint32_t)effect->damage * UINT32_C(65536));
+            (float)effect->damage);
         hit.angle_degrees = effect->angle_degrees;
         hit.growth = effect->growth;
         hit.weight_set = effect->weight_set;
@@ -4510,20 +4328,20 @@ static pf_status resolve_falcon_dive_capture(
         result = melee_knockback(
             &hit,
             content->fighter.knockback_weight,
-            damage_q16,
+            damage_f32,
             saturating_damage(
-                scratch->damage_q16[target_index],
-                damage_q16));
-        scratch->damage_q16[target_index] = saturating_damage(
-            scratch->damage_q16[target_index],
-            damage_q16);
+                scratch->damage_f32[target_index],
+                damage_f32));
+        scratch->damage_f32[target_index] = saturating_damage(
+            scratch->damage_f32[target_index],
+            damage_f32);
         if (pf_sim_push_event(
                 scratch,
                 world->tick,
                 PF_SIM_EVENT_HIT,
                 (uint8_t)holder_index,
                 (uint8_t)target_index,
-                damage_q16,
+                damage_f32,
                 INT32_C(0),
                 INT32_C(0),
                 UINT16_C(0),
@@ -4534,7 +4352,7 @@ static pf_status resolve_falcon_dive_capture(
         }
         scratch->last_hit_sequence[target_index] = hit_sequence;
         scratch->last_hit_tick[target_index] = world->tick;
-        scratch->last_hit_damage_q16[target_index] = damage_q16;
+        scratch->last_hit_damage_f32[target_index] = damage_f32;
         scratch->last_hit_attacker[target_index] =
             (uint8_t)holder_index;
         register_stale_move(
@@ -4563,19 +4381,19 @@ static pf_status resolve_falcon_dive_capture(
                 PF_M4_FALCON_UP_SPECIAL_THROW);
         const falcon_up_special_timing *timing =
             falcon_reference_up_special_timing();
-        uint32_t damage_q16;
+        float damage_f32;
 
         if (source == NULL || timing == NULL ||
             scratch->action_ticks[holder_index] != UINT16_C(0))
         {
             return PF_STATUS_DETERMINISTIC_FAULT;
         }
-        damage_q16 = stale_scaled_damage_q16(
+        damage_f32 = stale_scaled_damage_f32(
             &content->fighter,
             scratch,
             holder_index,
             (uint8_t)PF_M4_ACTION_FALCON_DIVE_CATCH,
-            (uint32_t)source->damage * UINT32_C(65536));
+            (float)source->damage);
         clear_grab_links(scratch, holder_index, target_index);
         scratch->grounded[target_index] = UINT8_C(0);
         scratch->support[target_index] =
@@ -4590,7 +4408,7 @@ static pf_status resolve_falcon_dive_capture(
                 rng_state,
                 (uint8_t)holder_index,
                 target_index,
-                damage_q16,
+                damage_f32,
                 INT32_C(0),
                 INT32_C(0),
                 UINT16_C(0),
@@ -4609,11 +4427,11 @@ static pf_status resolve_falcon_dive_capture(
          * visible and zero-hitlag-resume channels with the source's first
          * gravity step so the next movement tick continues the same sequence
          * without introducing launch knockback. */
-        scratch->velocity_x_q16[target_index] = INT32_C(0);
-        scratch->velocity_y_q16[target_index] =
-            content->fighter.gravity_q16;
-        scratch->knockback_velocity_y_q16[target_index] =
-            content->fighter.gravity_q16;
+        scratch->velocity_x_f32[target_index] = INT32_C(0);
+        scratch->velocity_y_f32[target_index] =
+            content->fighter.gravity_f32;
+        scratch->knockback_velocity_y_f32[target_index] =
+            content->fighter.gravity_f32;
     }
     return PF_STATUS_OK;
 }
@@ -4632,7 +4450,7 @@ static pf_status resolve_throw_capture_hit(
     const uint8_t target_bit =
         (uint8_t)(UINT32_C(1) << target_index);
     const uint8_t move_id = holder_action;
-    uint32_t damage_q16;
+    float damage_f32;
     uint32_t hit_sequence;
     uint16_t hitlag_ticks;
 
@@ -4660,27 +4478,27 @@ static pf_status resolve_throw_capture_hit(
     {
         return PF_STATUS_OK;
     }
-    damage_q16 = current_move_stale_scaled_damage_q16(
+    damage_f32 = current_move_stale_scaled_damage_f32(
         &content->fighter,
         scratch,
         holder_index,
         move_id,
-        (uint32_t)effect->damage * UINT32_C(65536));
+        (float)effect->damage);
     hitlag_ticks = melee_hitlag_ticks(
-        damage_q16,
+        damage_f32,
         UINT8_C(0),
-        UINT32_C(65536));
-    scratch->damage_q16[target_index] =
+        1.0f);
+    scratch->damage_f32[target_index] =
         saturating_damage(
-            scratch->damage_q16[target_index],
-            damage_q16);
+            scratch->damage_f32[target_index],
+            damage_f32);
     if (pf_sim_push_event(
             scratch,
             world->tick,
             PF_SIM_EVENT_HIT,
             (uint8_t)holder_index,
             (uint8_t)target_index,
-            damage_q16,
+            damage_f32,
             INT32_C(0),
             INT32_C(0),
             UINT16_C(0),
@@ -4691,7 +4509,7 @@ static pf_status resolve_throw_capture_hit(
     }
     scratch->last_hit_sequence[target_index] = hit_sequence;
     scratch->last_hit_tick[target_index] = world->tick;
-    scratch->last_hit_damage_q16[target_index] = damage_q16;
+    scratch->last_hit_damage_f32[target_index] = damage_f32;
     scratch->last_hit_attacker[target_index] =
         (uint8_t)holder_index;
     scratch->attack_hit_mask[holder_index] |= target_bit;
@@ -4730,39 +4548,34 @@ static pf_status apply_reference_capture_constraint(
     uint32_t target_index,
     int constrain_y)
 {
-    int32_t offset_x_q16;
-    int32_t offset_y_q16;
-    int64_t position_x_q16;
-    int64_t position_y_q16;
+    float offset_x_f32;
+    float offset_y_f32;
+    float position_x_f32;
+    float position_y_f32;
 
-    if (!falcon_reference_capture_constraint_q16(
+    if (!falcon_reference_capture_constraint_f32(
             scratch->source_submotion[holder_index],
-            scratch->source_animation_frame_q16[holder_index],
+            scratch->source_animation_frame_f32[holder_index],
             scratch->facing[holder_index],
             scratch->source_submotion[target_index],
-            scratch->source_animation_frame_q16[target_index],
+            scratch->source_animation_frame_f32[target_index],
             scratch->facing[target_index],
-            &offset_x_q16,
-            &offset_y_q16))
+            &offset_x_f32,
+            &offset_y_f32))
     {
         return PF_STATUS_DETERMINISTIC_FAULT;
     }
-    position_x_q16 =
-        (int64_t)scratch->position_x_q16[holder_index] + offset_x_q16;
-    position_y_q16 =
-        (int64_t)scratch->position_y_q16[holder_index] + offset_y_q16;
-    if (position_x_q16 < (int64_t)INT32_MIN ||
-        position_x_q16 > (int64_t)INT32_MAX ||
-        (constrain_y != 0 &&
-         (position_y_q16 < (int64_t)INT32_MIN ||
-          position_y_q16 > (int64_t)INT32_MAX)))
+    position_x_f32 = scratch->position_x_f32[holder_index] + offset_x_f32;
+    position_y_f32 = scratch->position_y_f32[holder_index] + offset_y_f32;
+    if (!isfinite(position_x_f32) ||
+        (constrain_y != 0 && !isfinite(position_y_f32)))
     {
         return PF_STATUS_DETERMINISTIC_FAULT;
     }
-    scratch->position_x_q16[target_index] = (int32_t)position_x_q16;
+    scratch->position_x_f32[target_index] = position_x_f32;
     if (constrain_y != 0)
     {
-        scratch->position_y_q16[target_index] = (int32_t)position_y_q16;
+        scratch->position_y_f32[target_index] = position_y_f32;
     }
     return PF_STATUS_OK;
 }
@@ -4858,7 +4671,7 @@ static pf_status resolve_grabs(
                     PF_SIM_EVENT_GRAB_ESCAPE,
                     (uint8_t)target_index,
                     (uint8_t)holder_index,
-                    scratch->damage_q16[target_index],
+                    scratch->damage_f32[target_index],
                     INT32_C(0),
                     INT32_C(0),
                     UINT16_C(0),
@@ -4889,27 +4702,27 @@ static pf_status resolve_grabs(
                  * expose one half of the transition. */
                 scratch->source_submotion[target_index] = (uint16_t)
                     PF_M4_FALCON_SUBMOTION_CAPTURE_WAIT_LOW;
-                scratch->source_animation_frame_q16[target_index] =
+                scratch->source_animation_frame_f32[target_index] =
                     INT32_C(0);
-                scratch->source_animation_rate_q16[target_index] =
-                    PF_Q16_ONE;
+                scratch->source_animation_rate_f32[target_index] =
+                    PF_F32_ONE;
                 scratch->action_ticks[target_index] = UINT16_C(0);
             }
             if (throw_data != NULL)
             {
                 uint16_t expected_holder_submotion;
                 uint16_t victim_submotion;
-                int32_t animation_rate_q16;
+                float animation_rate_f32;
 
                 if (!falcon_reference_throw_motions(
                         holder_action,
                         &expected_holder_submotion,
                         &victim_submotion,
-                        &animation_rate_q16) ||
+                        &animation_rate_f32) ||
                     scratch->source_submotion[holder_index] !=
                         expected_holder_submotion ||
-                    scratch->source_animation_rate_q16[holder_index] !=
-                        animation_rate_q16)
+                    scratch->source_animation_rate_f32[holder_index] !=
+                        animation_rate_f32)
                 {
                     return PF_STATUS_DETERMINISTIC_FAULT;
                 }
@@ -4917,10 +4730,10 @@ static pf_status resolve_grabs(
                  * every fighter has stepped. This mirrors ftCo_800DD398 and
                  * makes the result independent of player iteration order. */
                 scratch->source_submotion[target_index] = victim_submotion;
-                scratch->source_animation_frame_q16[target_index] =
-                    scratch->source_animation_frame_q16[holder_index];
-                scratch->source_animation_rate_q16[target_index] =
-                    animation_rate_q16;
+                scratch->source_animation_frame_f32[target_index] =
+                    scratch->source_animation_frame_f32[holder_index];
+                scratch->source_animation_rate_f32[target_index] =
+                    animation_rate_f32;
                 scratch->facing[target_index] =
                     scratch->facing[holder_index];
             }
@@ -4935,16 +4748,16 @@ static pf_status resolve_grabs(
         }
         else
         {
-            scratch->position_x_q16[target_index] =
-                scratch->position_x_q16[holder_index] +
+            scratch->position_x_f32[target_index] =
+                scratch->position_x_f32[holder_index] +
                 (int32_t)scratch->facing[holder_index] *
-                    content->fighter.grabbed_offset_x_q16;
-            scratch->position_y_q16[target_index] =
-                scratch->position_y_q16[holder_index] +
-                content->fighter.grabbed_offset_y_q16;
+                    content->fighter.grabbed_offset_x_f32;
+            scratch->position_y_f32[target_index] =
+                scratch->position_y_f32[holder_index] +
+                content->fighter.grabbed_offset_y_f32;
         }
-        scratch->velocity_x_q16[target_index] = INT32_C(0);
-        scratch->velocity_y_q16[target_index] = INT32_C(0);
+        scratch->velocity_x_f32[target_index] = INT32_C(0);
+        scratch->velocity_y_f32[target_index] = INT32_C(0);
         scratch->grounded[target_index] =
             scratch->grounded[holder_index];
         scratch->support[target_index] =
@@ -4966,31 +4779,31 @@ static pf_status resolve_grabs(
             {
                 const uint8_t move_id =
                     (uint8_t)PF_M4_ACTION_PUMMEL;
-                const uint32_t damage_q16 =
-                    stale_scaled_damage_q16(
+                const float damage_f32 =
+                    stale_scaled_damage_f32(
                         &content->fighter,
                         scratch,
                         holder_index,
                         move_id,
-                        content->fighter.pummel_damage_q16);
+                        content->fighter.pummel_damage_f32);
                 const uint16_t hitlag_ticks =
                     melee_hitlag_ticks(
-                        damage_q16,
+                        damage_f32,
                         UINT8_C(0),
-                        UINT32_C(65536));
+                        1.0f);
                 uint32_t pummel_sequence;
 
-                scratch->damage_q16[target_index] =
+                scratch->damage_f32[target_index] =
                     saturating_damage(
-                        scratch->damage_q16[target_index],
-                        damage_q16);
+                        scratch->damage_f32[target_index],
+                        damage_f32);
                 if (pf_sim_push_event(
                         scratch,
                         world->tick,
                         PF_SIM_EVENT_PUMMEL,
                         (uint8_t)holder_index,
                         (uint8_t)target_index,
-                        damage_q16,
+                        damage_f32,
                         INT32_C(0),
                         INT32_C(0),
                         UINT16_C(0),
@@ -5002,8 +4815,8 @@ static pf_status resolve_grabs(
                 scratch->last_hit_sequence[target_index] =
                     pummel_sequence;
                 scratch->last_hit_tick[target_index] = world->tick;
-                scratch->last_hit_damage_q16[target_index] =
-                    damage_q16;
+                scratch->last_hit_damage_f32[target_index] =
+                    damage_f32;
                 scratch->last_hit_attacker[target_index] =
                     (uint8_t)holder_index;
                 scratch->attack_hit_mask[holder_index] |= target_bit;
@@ -5077,23 +4890,23 @@ static pf_status resolve_grabs(
             if (action_ticks == throw_data->release_tick)
             {
                 const uint8_t move_id = holder_action;
-                const uint32_t damage_q16 =
-                    current_move_stale_scaled_damage_q16(
+                const float damage_f32 =
+                    current_move_stale_scaled_damage_f32(
                         &content->fighter,
                         scratch,
                         holder_index,
                         move_id,
-                        throw_data->damage_q16);
-                const uint32_t resulting_damage =
+                        throw_data->damage_f32);
+                const float resulting_damage =
                     saturating_damage(
-                        scratch->damage_q16[target_index],
-                        damage_q16);
-                const uint32_t knockback_percent_q16 =
+                        scratch->damage_f32[target_index],
+                        damage_f32);
+                const float knockback_percent_f32 =
                     saturating_damage(
-                        (scratch->damage_q16[target_index] >> 16U) << 16U,
-                        damage_q16);
-                int32_t launch_velocity_x;
-                int32_t launch_velocity_y;
+                        floorf(scratch->damage_f32[target_index]),
+                        damage_f32);
+                float launch_velocity_x;
+                float launch_velocity_y;
                 uint16_t resolved_hitlag_ticks =
                     throw_data->hitlag_ticks;
                 uint16_t resolved_hitstun_ticks = UINT16_MAX;
@@ -5105,16 +4918,14 @@ static pf_status resolve_grabs(
                 if (content->fighter.reference_frame_data_enabled !=
                     UINT8_C(0))
                 {
-                    int32_t release_offset_x_q16;
-                    int32_t release_offset_y_q16;
-                    int32_t release_frame_q16;
-                    int64_t release_position_x_q16;
-                    int64_t release_position_y_q16;
-                    const int64_t release_frame_wide =
-                        (int64_t)scratch
-                            ->source_animation_frame_q16[holder_index] +
-                        (int64_t)scratch
-                            ->source_animation_rate_q16[holder_index];
+                    float release_offset_x_f32;
+                    float release_offset_y_f32;
+                    float release_frame_f32;
+                    float release_position_x_f32;
+                    float release_position_y_f32;
+                    const float release_frame =
+                        scratch->source_animation_frame_f32[holder_index] +
+                        scratch->source_animation_rate_f32[holder_index];
 
                     /* ftCo_800DDDE4 samples the thrower's TransN2 at the
                      * release-frame pose, adds the victim's base XRotN-to-root
@@ -5123,50 +4934,47 @@ static pf_status resolve_grabs(
                      * source animation process advances before its Throw Anim
                      * callback; combat runs before our later pose advance, so
                      * sample that same next imported frame explicitly. */
-                    if (release_frame_wide < (int64_t)INT32_MIN ||
-                        release_frame_wide > (int64_t)INT32_MAX)
+                    if (!isfinite(release_frame))
                     {
                         return PF_STATUS_DETERMINISTIC_FAULT;
                     }
-                    release_frame_q16 = (int32_t)release_frame_wide;
-                    if (!falcon_reference_capture_constraint_q16(
+                    release_frame_f32 = release_frame;
+                    if (!falcon_reference_capture_constraint_f32(
                             scratch->source_submotion[holder_index],
-                            release_frame_q16,
+                            release_frame_f32,
                             scratch->facing[holder_index],
                             scratch->source_submotion[target_index],
-                            scratch->source_animation_frame_q16[target_index],
+                            scratch->source_animation_frame_f32[target_index],
                             scratch->facing[target_index],
-                            &release_offset_x_q16,
-                            &release_offset_y_q16))
+                            &release_offset_x_f32,
+                            &release_offset_y_f32))
                     {
                         return PF_STATUS_DETERMINISTIC_FAULT;
                     }
-                    release_position_x_q16 =
-                        (int64_t)scratch->position_x_q16[holder_index] +
-                        (int64_t)release_offset_x_q16;
-                    release_position_y_q16 =
-                        (int64_t)scratch->position_y_q16[holder_index] +
-                        (int64_t)release_offset_y_q16;
-                    if (release_position_x_q16 < (int64_t)INT32_MIN ||
-                        release_position_x_q16 > (int64_t)INT32_MAX ||
-                        release_position_y_q16 < (int64_t)INT32_MIN ||
-                        release_position_y_q16 > (int64_t)INT32_MAX)
+                    release_position_x_f32 =
+                        scratch->position_x_f32[holder_index] +
+                        release_offset_x_f32;
+                    release_position_y_f32 =
+                        scratch->position_y_f32[holder_index] +
+                        release_offset_y_f32;
+                    if (!isfinite(release_position_x_f32) ||
+                        !isfinite(release_position_y_f32))
                     {
                         return PF_STATUS_DETERMINISTIC_FAULT;
                     }
-                    scratch->position_x_q16[target_index] =
-                        (int32_t)release_position_x_q16;
-                    scratch->position_y_q16[target_index] =
-                        (int32_t)release_position_y_q16;
+                    scratch->position_x_f32[target_index] =
+                        release_position_x_f32;
+                    scratch->position_y_f32[target_index] =
+                        release_position_y_f32;
                     if (reference_throw_release_sweep(
                             content,
                             scratch,
                             holder_index,
                             target_index,
-                            (int32_t)release_position_x_q16,
-                            (int32_t)release_position_y_q16,
-                            &scratch->position_x_q16[target_index],
-                            &scratch->position_y_q16[target_index]) !=
+                            release_position_x_f32,
+                            release_position_y_f32,
+                            &scratch->position_x_f32[target_index],
+                            &scratch->position_y_f32[target_index]) !=
                         PF_STATUS_OK)
                     {
                         return PF_STATUS_DETERMINISTIC_FAULT;
@@ -5179,18 +4987,18 @@ static pf_status resolve_grabs(
                         melee_knockback_for_state(
                             &throw_data->melee_knockback,
                             content->fighter.knockback_weight,
-                            damage_q16,
-                            damage_q16,
-                            knockback_percent_q16,
+                            damage_f32,
+                            damage_f32,
+                            knockback_percent_f32,
                             scratch->grounded[target_index],
                             UINT8_C(0),
                             UINT8_C(0),
-                            UINT32_C(65536));
+                            1.0f);
 
                     launch_velocity_x =
-                        (int32_t)scratch->facing[holder_index] *
-                        result.velocity_x_q16;
-                    launch_velocity_y = -result.velocity_y_q16;
+                        (float)scratch->facing[holder_index] *
+                        result.velocity_x_f32;
+                    launch_velocity_y = -result.velocity_y_f32;
                     resolved_hitstun_ticks = result.hitstun_ticks;
                     velocity_is_weighted = 1;
                     launch_grounded = result.grounded_launch != UINT8_C(0);
@@ -5202,13 +5010,13 @@ static pf_status resolve_grabs(
                     launch_velocity_x =
                         (int32_t)scratch->facing[holder_index] *
                         scaled_throw_velocity(
-                            throw_data->base_velocity_x_q16,
-                            throw_data->velocity_growth_x_q16,
+                            throw_data->base_velocity_x_f32,
+                            throw_data->velocity_growth_x_f32,
                             resulting_damage);
                     launch_velocity_y =
                         scaled_throw_velocity(
-                            throw_data->base_velocity_y_q16,
-                            throw_data->velocity_growth_y_q16,
+                            throw_data->base_velocity_y_f32,
+                            throw_data->velocity_growth_y_f32,
                             resulting_damage);
                 }
 
@@ -5223,7 +5031,7 @@ static pf_status resolve_grabs(
                         rng_state,
                         (uint8_t)holder_index,
                         target_index,
-                        damage_q16,
+                        damage_f32,
                         launch_velocity_x,
                         launch_velocity_y,
                         resolved_hitlag_ticks,
@@ -5287,13 +5095,13 @@ static pf_status resolve_grabs(
                     }
                     else
                     {
-                        scratch->velocity_x_q16[target_index] =
-                            scratch->knockback_velocity_x_q16[target_index];
-                        scratch->velocity_y_q16[target_index] =
-                            scratch->knockback_velocity_y_q16[target_index];
-                        scratch->knockback_velocity_x_q16[target_index] =
+                        scratch->velocity_x_f32[target_index] =
+                            scratch->knockback_velocity_x_f32[target_index];
+                        scratch->velocity_y_f32[target_index] =
+                            scratch->knockback_velocity_y_f32[target_index];
+                        scratch->knockback_velocity_x_f32[target_index] =
                             INT32_C(0);
-                        scratch->knockback_velocity_y_q16[target_index] =
+                        scratch->knockback_velocity_y_f32[target_index] =
                             INT32_C(0);
                         scratch->grounded[target_index] = UINT8_C(0);
                         scratch->support[target_index] =
@@ -5326,10 +5134,10 @@ static pf_status resolve_grabs(
          attacker_index < (uint32_t)world->player_count;
          ++attacker_index)
     {
-        int32_t grabbox_left = INT32_C(0);
-        int32_t grabbox_right = INT32_C(0);
-        int32_t grabbox_top = INT32_C(0);
-        int32_t grabbox_bottom = INT32_C(0);
+        float grabbox_left = 0.0f;
+        float grabbox_right = 0.0f;
+        float grabbox_top = 0.0f;
+        float grabbox_bottom = 0.0f;
         falcon_move_index geometry_move_index;
         hit_sphere_inspection
             grab_spheres[PF_M4_INSPECTION_HIT_SPHERE_CAPACITY];
@@ -5360,8 +5168,8 @@ static pf_status resolve_grabs(
             (void)geometry_move_index;
             grab_sphere_count = grab_hit_spheres(
                 content,
-                scratch->position_x_q16[attacker_index],
-                scratch->position_y_q16[attacker_index],
+                scratch->position_x_f32[attacker_index],
+                scratch->position_y_f32[attacker_index],
                 scratch->facing[attacker_index],
                 scratch->action_state[attacker_index],
                 scratch->action_ticks[attacker_index],
@@ -5377,8 +5185,8 @@ static pf_status resolve_grabs(
             {
                 previous_grab_sphere_count = grab_hit_spheres(
                     content,
-                    world->position_x_q16[attacker_index],
-                    world->position_y_q16[attacker_index],
+                    world->position_x_f32[attacker_index],
+                    world->position_y_f32[attacker_index],
                     world->facing[attacker_index],
                     world->action_state[attacker_index],
                     world->action_ticks[attacker_index],
@@ -5387,8 +5195,8 @@ static pf_status resolve_grabs(
         }
         else if (!grabbox(
                      content,
-                     scratch->position_x_q16[attacker_index],
-                     scratch->position_y_q16[attacker_index],
+                     scratch->position_x_f32[attacker_index],
+                     scratch->position_y_f32[attacker_index],
                      scratch->facing[attacker_index],
                      scratch->action_state[attacker_index],
                      scratch->action_ticks[attacker_index],
@@ -5454,8 +5262,8 @@ static pf_status resolve_grabs(
                             attacker_index,
                             target_index,
                             previous_sphere == &grab_spheres[sphere_index]
-                                ? scratch->position_y_q16[attacker_index]
-                                : world->position_y_q16[attacker_index],
+                                ? scratch->position_y_f32[attacker_index]
+                                : world->position_y_f32[attacker_index],
                             previous_sphere,
                             &grab_spheres[sphere_index],
                             target_index > attacker_index))
@@ -5521,7 +5329,7 @@ static pf_status resolve_grabs(
                     ? (uint8_t)PF_M4_ACTION_FALCON_DIVE_CATCH
                     : (uint8_t)PF_M4_ACTION_GRAB_HOLD);
             scratch->action_ticks[attacker_index] = UINT16_C(0);
-            scratch->velocity_x_q16[attacker_index] = INT32_C(0);
+            scratch->velocity_x_f32[attacker_index] = 0.0f;
             set_action_state(
                 world,
                 scratch,
@@ -5538,25 +5346,25 @@ static pf_status resolve_grabs(
                           PF_M4_FALCON_SUBMOTION_CAPTURE_PULLED_LOW
                     : (uint16_t)
                           PF_M4_FALCON_SUBMOTION_CAPTURE_WAIT_HIGH;
-            scratch->source_animation_frame_q16[attacker_index] =
+            scratch->source_animation_frame_f32[attacker_index] =
                 reference_ground_capture != 0
-                    ? (int32_t)catch_frame * PF_Q16_ONE
-                    : INT32_C(0);
-            scratch->source_animation_frame_q16[target_index] =
-                reference_ground_capture != 0 ? PF_Q16_ONE : INT32_C(0);
-            scratch->source_animation_rate_q16[attacker_index] =
-                reference_ground_capture != 0 ? PF_Q16_ONE : INT32_C(0);
-            scratch->source_animation_rate_q16[target_index] =
-                reference_ground_capture != 0 ? PF_Q16_ONE : INT32_C(0);
+                    ? (float)catch_frame
+                    : 0.0f;
+            scratch->source_animation_frame_f32[target_index] =
+                reference_ground_capture != 0 ? PF_F32_ONE : 0.0f;
+            scratch->source_animation_rate_f32[attacker_index] =
+                reference_ground_capture != 0 ? PF_F32_ONE : 0.0f;
+            scratch->source_animation_rate_f32[target_index] =
+                reference_ground_capture != 0 ? PF_F32_ONE : 0.0f;
             scratch->charge_ticks[target_index] = UINT16_C(0);
             scratch->smash_charge_ticks[target_index] = UINT16_C(0);
             if (falcon_dive_grab != 0 &&
                 scratch->grounded[target_index] != UINT8_C(0))
             {
-                scratch->position_x_q16[attacker_index] =
-                    scratch->position_x_q16[target_index];
-                scratch->position_y_q16[attacker_index] =
-                    scratch->position_y_q16[target_index];
+                scratch->position_x_f32[attacker_index] =
+                    scratch->position_x_f32[target_index];
+                scratch->position_y_f32[attacker_index] =
+                    scratch->position_y_f32[target_index];
                 scratch->grounded[attacker_index] = UINT8_C(1);
                 scratch->support[attacker_index] =
                     scratch->support[target_index];
@@ -5572,8 +5380,8 @@ static pf_status resolve_grabs(
                  * owns Y separately in either order. */
                 if (target_index > attacker_index)
                 {
-                    scratch->position_y_q16[target_index] =
-                        world->position_y_q16[target_index];
+                    scratch->position_y_f32[target_index] =
+                        world->position_y_f32[target_index];
                     if (apply_reference_capture_constraint(
                             scratch,
                             attacker_index,
@@ -5586,23 +5394,23 @@ static pf_status resolve_grabs(
             }
             else
             {
-                scratch->position_x_q16[target_index] =
+                scratch->position_x_f32[target_index] =
                     falcon_dive_grab != 0
-                        ? scratch->position_x_q16[attacker_index]
-                        : scratch->position_x_q16[attacker_index] +
+                        ? scratch->position_x_f32[attacker_index]
+                        : scratch->position_x_f32[attacker_index] +
                               (int32_t)scratch->facing[attacker_index] *
-                                  content->fighter.grabbed_offset_x_q16;
-                scratch->position_y_q16[target_index] =
+                                  content->fighter.grabbed_offset_x_f32;
+                scratch->position_y_f32[target_index] =
                     falcon_dive_grab != 0
-                        ? scratch->position_y_q16[attacker_index]
-                        : scratch->position_y_q16[attacker_index] +
-                              content->fighter.grabbed_offset_y_q16;
+                        ? scratch->position_y_f32[attacker_index]
+                        : scratch->position_y_f32[attacker_index] +
+                              content->fighter.grabbed_offset_y_f32;
             }
-            scratch->velocity_x_q16[target_index] = INT32_C(0);
-            scratch->velocity_y_q16[target_index] = INT32_C(0);
-            scratch->knockback_velocity_x_q16[target_index] = INT32_C(0);
-            scratch->knockback_velocity_y_q16[target_index] = INT32_C(0);
-            scratch->ground_knockback_velocity_q16[target_index] = INT32_C(0);
+            scratch->velocity_x_f32[target_index] = INT32_C(0);
+            scratch->velocity_y_f32[target_index] = INT32_C(0);
+            scratch->knockback_velocity_x_f32[target_index] = INT32_C(0);
+            scratch->knockback_velocity_y_f32[target_index] = INT32_C(0);
+            scratch->ground_knockback_velocity_f32[target_index] = INT32_C(0);
             scratch->hitlag_ticks[target_index] = UINT16_C(0);
             scratch->hitstun_ticks[target_index] = UINT16_C(0);
             scratch->shield_stun_ticks[target_index] = UINT16_C(0);
@@ -5630,7 +5438,7 @@ static pf_status resolve_grabs(
                     PF_SIM_EVENT_GRAB,
                     (uint8_t)attacker_index,
                     (uint8_t)target_index,
-                    scratch->damage_q16[target_index],
+                    scratch->damage_f32[target_index],
                     INT32_C(0),
                     INT32_C(0),
                     UINT16_C(0),
@@ -5656,14 +5464,14 @@ static pf_status resolve_item_combat(
     const uint8_t source_slot = scratch->item_source_slot;
     const uint32_t source_index =
         (uint32_t)source_slot - UINT32_C(1);
-    const int32_t hitbox_left =
-        scratch->item_position_x_q16 - item->hitbox_half_width_q16;
-    const int32_t hitbox_right =
-        scratch->item_position_x_q16 + item->hitbox_half_width_q16;
-    const int32_t hitbox_top =
-        scratch->item_position_y_q16 - item->hitbox_half_height_q16;
-    const int32_t hitbox_bottom =
-        scratch->item_position_y_q16 + item->hitbox_half_height_q16;
+    const float hitbox_left =
+        scratch->item_position_x_f32 - item->hitbox_half_width_f32;
+    const float hitbox_right =
+        scratch->item_position_x_f32 + item->hitbox_half_width_f32;
+    const float hitbox_top =
+        scratch->item_position_y_f32 - item->hitbox_half_height_f32;
+    const float hitbox_bottom =
+        scratch->item_position_y_f32 + item->hitbox_half_height_f32;
     uint32_t target_index;
 
     if (item->enabled == UINT8_C(0) ||
@@ -5685,9 +5493,9 @@ static pf_status resolve_item_combat(
         const uint8_t target_bit =
             (uint8_t)(UINT32_C(1) << target_index);
         const int8_t launch_direction =
-            scratch->item_velocity_x_q16 < INT32_C(0)
+            scratch->item_velocity_x_f32 < INT32_C(0)
                 ? INT8_C(-1)
-                : scratch->item_velocity_x_q16 > INT32_C(0)
+                : scratch->item_velocity_x_f32 > INT32_C(0)
                 ? INT8_C(1)
                 : scratch->facing[source_index];
         const int shield_overlap =
@@ -5743,18 +5551,18 @@ static pf_status resolve_item_combat(
             return PF_STATUS_DETERMINISTIC_FAULT;
         }
         scratch->item_hit_mask |= target_bit;
-        scratch->item_velocity_y_q16 =
-            item->hit_bounce_velocity_y_q16;
+        scratch->item_velocity_y_f32 =
+            item->hit_bounce_velocity_y_f32;
 
         const uint8_t move_id =
             (uint8_t)PF_M4_ACTION_ITEM_THROW;
-        const uint32_t damage_q16 =
-            stale_scaled_damage_q16(
+        const float damage_f32 =
+            stale_scaled_damage_f32(
                 &content->fighter,
                 scratch,
                 source_index,
                 move_id,
-                item->damage_q16);
+                item->damage_f32);
 
         if (action_is_guarding(
                 scratch->action_state[target_index]) &&
@@ -5773,7 +5581,7 @@ static pf_status resolve_item_combat(
                     &content->fighter,
                     source_index,
                     target_index,
-                    damage_q16,
+                    damage_f32,
                     INT16_C(0),
                     item->hitlag_ticks,
                     (int32_t)launch_direction,
@@ -5787,18 +5595,18 @@ static pf_status resolve_item_combat(
         }
 
         {
-            const uint32_t resulting_damage =
+            const float resulting_damage =
                 saturating_damage(
-                    scratch->damage_q16[target_index],
-                    damage_q16);
-            const int32_t knockback_x = scaled_knockback(
-                item->base_knockback_x_q16,
-                item->knockback_growth_q16,
+                    scratch->damage_f32[target_index],
+                    damage_f32);
+            const float knockback_x = scaled_knockback(
+                item->base_knockback_x_f32,
+                item->knockback_growth_f32,
                 resulting_damage,
                 0);
-            const int32_t knockback_y = scaled_knockback(
-                item->base_knockback_y_q16,
-                item->knockback_growth_q16,
+            const float knockback_y = scaled_knockback(
+                item->base_knockback_y_f32,
+                item->knockback_growth_f32,
                 resulting_damage,
                 1);
 
@@ -5809,8 +5617,8 @@ static pf_status resolve_item_combat(
                     rng_state,
                     (uint8_t)source_index,
                     target_index,
-                    damage_q16,
-                    (int32_t)launch_direction * knockback_x,
+                    damage_f32,
+                    (float)launch_direction * knockback_x,
                     -knockback_y,
                     item->hitlag_ticks,
                     UINT16_MAX,
@@ -5841,10 +5649,10 @@ static pf_status resolve_item_combat(
 
 static void clear_projectile_combat(pf_sim_scratch *scratch)
 {
-    scratch->projectile_position_x_q16 = INT32_C(0);
-    scratch->projectile_position_y_q16 = INT32_C(0);
-    scratch->projectile_velocity_x_q16 = INT32_C(0);
-    scratch->projectile_velocity_y_q16 = INT32_C(0);
+    scratch->projectile_position_x_f32 = 0.0f;
+    scratch->projectile_position_y_f32 = 0.0f;
+    scratch->projectile_velocity_x_f32 = 0.0f;
+    scratch->projectile_velocity_y_f32 = 0.0f;
     scratch->projectile_lifetime_ticks = UINT16_C(0);
     scratch->projectile_state =
         (uint8_t)PF_M4_PROJECTILE_STATE_INACTIVE;
@@ -5861,18 +5669,18 @@ static pf_status resolve_projectile_combat(
     const uint8_t owner_slot = scratch->projectile_owner_slot;
     const uint32_t owner_index =
         (uint32_t)owner_slot - UINT32_C(1);
-    const int32_t hitbox_left =
-        scratch->projectile_position_x_q16 -
-        projectile->half_width_q16;
-    const int32_t hitbox_right =
-        scratch->projectile_position_x_q16 +
-        projectile->half_width_q16;
-    const int32_t hitbox_top =
-        scratch->projectile_position_y_q16 -
-        projectile->half_height_q16;
-    const int32_t hitbox_bottom =
-        scratch->projectile_position_y_q16 +
-        projectile->half_height_q16;
+    const float hitbox_left =
+        scratch->projectile_position_x_f32 -
+        projectile->half_width_f32;
+    const float hitbox_right =
+        scratch->projectile_position_x_f32 +
+        projectile->half_width_f32;
+    const float hitbox_top =
+        scratch->projectile_position_y_f32 -
+        projectile->half_height_f32;
+    const float hitbox_bottom =
+        scratch->projectile_position_y_f32 +
+        projectile->half_height_f32;
     uint32_t target_index;
 
     if (projectile->enabled == UINT8_C(0) ||
@@ -5892,13 +5700,13 @@ static pf_status resolve_projectile_combat(
          ++target_index)
     {
         const int8_t launch_direction =
-            scratch->projectile_velocity_x_q16 < INT32_C(0)
+            scratch->projectile_velocity_x_f32 < INT32_C(0)
                 ? INT8_C(-1)
                 : INT8_C(1);
-        int32_t reflector_left;
-        int32_t reflector_right;
-        int32_t reflector_top;
-        int32_t reflector_bottom;
+        float reflector_left;
+        float reflector_right;
+        float reflector_top;
+        float reflector_bottom;
         const int reflector_active =
             (scratch->action_state[target_index] ==
                  (uint8_t)PF_M4_ACTION_REFLECTOR_GROUND ||
@@ -5906,8 +5714,8 @@ static pf_status resolve_projectile_combat(
                  (uint8_t)PF_M4_ACTION_REFLECTOR_AIR) &&
             attack_hitbox(
                 content,
-                scratch->position_x_q16[target_index],
-                scratch->position_y_q16[target_index],
+                scratch->position_x_f32[target_index],
+                scratch->position_y_f32[target_index],
                 scratch->facing[target_index],
                 scratch->action_state[target_index],
                 scratch->action_ticks[target_index],
@@ -5972,10 +5780,10 @@ static pf_status resolve_projectile_combat(
 
         if (reflector_active != 0)
         {
-            const int32_t reflected_velocity_x =
-                -scratch->projectile_velocity_x_q16;
+            const float reflected_velocity_x =
+                -scratch->projectile_velocity_x_f32;
 
-            scratch->projectile_velocity_x_q16 =
+            scratch->projectile_velocity_x_f32 =
                 reflected_velocity_x;
             scratch->projectile_owner_slot =
                 (uint8_t)(target_index + UINT32_C(1));
@@ -5988,7 +5796,7 @@ static pf_status resolve_projectile_combat(
                     (uint8_t)owner_index,
                     UINT32_C(0),
                     reflected_velocity_x,
-                    scratch->projectile_velocity_y_q16,
+                    scratch->projectile_velocity_y_f32,
                     UINT16_C(0),
                     (uint16_t)scratch->action_state[target_index],
                     NULL) != PF_STATUS_OK)
@@ -6008,10 +5816,10 @@ static pf_status resolve_projectile_combat(
             scratch->shield_strength[target_index] >=
                 content->fighter.digital_trigger_threshold)
         {
-            const int32_t reflected_velocity_x =
-                -scratch->projectile_velocity_x_q16;
+            const float reflected_velocity_x =
+                -scratch->projectile_velocity_x_f32;
 
-            scratch->projectile_velocity_x_q16 =
+            scratch->projectile_velocity_x_f32 =
                 reflected_velocity_x;
             scratch->projectile_owner_slot =
                 (uint8_t)(target_index + UINT32_C(1));
@@ -6024,7 +5832,7 @@ static pf_status resolve_projectile_combat(
                     (uint8_t)owner_index,
                     UINT32_C(0),
                     reflected_velocity_x,
-                    scratch->projectile_velocity_y_q16,
+                    scratch->projectile_velocity_y_f32,
                     UINT16_C(0),
                     (uint16_t)PF_M4_ACTION_SHIELD,
                     NULL) != PF_STATUS_OK)
@@ -6047,20 +5855,20 @@ static pf_status resolve_projectile_combat(
         {
             const uint8_t move_id =
                 (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_GROUND;
-            const uint32_t damage_q16 =
-                stale_scaled_damage_q16(
+            const float damage_f32 =
+                stale_scaled_damage_f32(
                     &content->fighter,
                     scratch,
                     owner_index,
                     move_id,
-                    projectile->damage_q16);
+                    projectile->damage_f32);
             if (apply_shield_hit(
                     world,
                     scratch,
                     &content->fighter,
                     owner_index,
                     target_index,
-                    damage_q16,
+                    damage_f32,
                     INT16_C(0),
                     projectile->hitlag_ticks,
                     (int32_t)launch_direction,
@@ -6077,25 +5885,25 @@ static pf_status resolve_projectile_combat(
         {
             const uint8_t move_id =
                 (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_GROUND;
-            const uint32_t damage_q16 =
-                stale_scaled_damage_q16(
+            const float damage_f32 =
+                stale_scaled_damage_f32(
                     &content->fighter,
                     scratch,
                     owner_index,
                     move_id,
-                    projectile->damage_q16);
-            const uint32_t resulting_damage =
+                    projectile->damage_f32);
+            const float resulting_damage =
                 saturating_damage(
-                    scratch->damage_q16[target_index],
-                    damage_q16);
-            const int32_t knockback_x = scaled_knockback(
-                projectile->base_knockback_x_q16,
-                projectile->knockback_growth_q16,
+                    scratch->damage_f32[target_index],
+                    damage_f32);
+            const float knockback_x = scaled_knockback(
+                projectile->base_knockback_x_f32,
+                projectile->knockback_growth_f32,
                 resulting_damage,
                 0);
-            const int32_t knockback_y = scaled_knockback(
-                projectile->base_knockback_y_q16,
-                projectile->knockback_growth_q16,
+            const float knockback_y = scaled_knockback(
+                projectile->base_knockback_y_f32,
+                projectile->knockback_growth_f32,
                 resulting_damage,
                 1);
 
@@ -6106,7 +5914,7 @@ static pf_status resolve_projectile_combat(
                     rng_state,
                     (uint8_t)owner_index,
                     target_index,
-                    damage_q16,
+                    damage_f32,
                     (int32_t)launch_direction * knockback_x,
                     -knockback_y,
                     projectile->hitlag_ticks,
@@ -6204,17 +6012,17 @@ static pf_status resolve_falcon_side_special_searches(
                 const reference_search_sphere *source =
                     &source_spheres[sphere_index];
                 const hit_sphere_inspection sphere = {
-                    .center_x_q16 =
-                        scratch->position_x_q16[attacker_index] +
+                    .center_x_f32 =
+                        scratch->position_x_f32[attacker_index] +
                         (int32_t)scratch->facing[attacker_index] *
-                            source->offset_x_q16,
-                    .center_y_q16 =
-                        scratch->position_y_q16[attacker_index] +
-                        source->offset_y_q16,
-                    .center_z_q16 =
+                            source->offset_x_f32,
+                    .center_y_f32 =
+                        scratch->position_y_f32[attacker_index] +
+                        source->offset_y_f32,
+                    .center_z_f32 =
                         (int32_t)scratch->facing[attacker_index] *
-                        source->offset_z_q16,
-                    .radius_q16 = source->radius_q16,
+                        source->offset_z_f32,
+                    .radius_f32 = source->radius_f32,
                     .effect_index = UINT8_C(0),
                     .hitbox_id = sphere_index,
                     .group_id = UINT8_C(0),
@@ -6225,7 +6033,7 @@ static pf_status resolve_falcon_side_special_searches(
                         scratch,
                         attacker_index,
                         target_index,
-                        scratch->position_y_q16[attacker_index],
+                        scratch->position_y_f32[attacker_index],
                         &sphere,
                         &sphere))
                 {
@@ -6248,11 +6056,11 @@ static pf_status resolve_falcon_side_special_searches(
                     UINT8_C(0);
                 if (airborne == 0)
                 {
-                    scratch->velocity_x_q16[attacker_index] =
-                        multiply_q16(
-                            scratch->velocity_x_q16[attacker_index],
-                            attributes->specials_gr_vel_x_q16);
-                    scratch->velocity_y_q16[attacker_index] = INT32_C(0);
+                    scratch->velocity_x_f32[attacker_index] =
+                        multiply_f32(
+                            scratch->velocity_x_f32[attacker_index],
+                            attributes->specials_gr_vel_x_f32);
+                    scratch->velocity_y_f32[attacker_index] = INT32_C(0);
                 }
                 break;
             }
@@ -6300,7 +6108,7 @@ static int select_reference_target_hit(
             &spheres[sphere_index];
         const hit_sphere_inspection *previous_sphere;
         const reference_hit_effect *effect;
-        int32_t previous_attacker_position_y_q16;
+        float previous_attacker_position_y_f32;
         int shield_overlap;
         int player_overlap;
 
@@ -6317,16 +6125,16 @@ static int select_reference_target_hit(
             sphere,
             previous_spheres,
             previous_sphere_count);
-        previous_attacker_position_y_q16 =
+        previous_attacker_position_y_f32 =
             previous_sphere == sphere
-                ? scratch->position_y_q16[attacker_index]
-                : world->position_y_q16[attacker_index];
+                ? scratch->position_y_f32[attacker_index]
+                : world->position_y_f32[attacker_index];
         shield_overlap = hit_sphere_overlaps_shield(
             &content->fighter,
             scratch,
             attacker_index,
             target_index,
-            previous_attacker_position_y_q16,
+            previous_attacker_position_y_f32,
             previous_sphere,
             sphere);
         player_overlap = hit_sphere_overlaps_player_with_height(
@@ -6334,7 +6142,7 @@ static int select_reference_target_hit(
             scratch,
             attacker_index,
             target_index,
-            previous_attacker_position_y_q16,
+            previous_attacker_position_y_f32,
             previous_sphere,
             sphere,
             out_hurtbox_height);
@@ -6389,7 +6197,7 @@ pf_status resolve_combat(
     uint16_t rebound_damage[PF_SIM_MAX_PLAYERS];
     uint8_t rebound_source[PF_SIM_MAX_PLAYERS];
     uint16_t cancelled_group_mask[PF_SIM_MAX_PLAYERS];
-    int32_t attacker_shield_pushback_q16[PF_SIM_MAX_PLAYERS];
+    float attacker_shield_pushback_f32[PF_SIM_MAX_PLAYERS];
     attack_runtime attacker_attack[PF_SIM_MAX_PLAYERS];
     attack_runtime attacker_base_attack[PF_SIM_MAX_PLAYERS];
     attack_runtime
@@ -6434,9 +6242,9 @@ pf_status resolve_combat(
     (void)memset(attacker_hit, 0, sizeof(attacker_hit));
     (void)memset(attacker_blocked, 0, sizeof(attacker_blocked));
     (void)memset(
-        attacker_shield_pushback_q16,
+        attacker_shield_pushback_f32,
         0,
-        sizeof(attacker_shield_pushback_q16));
+        sizeof(attacker_shield_pushback_f32));
     (void)memset(
         target_powershield,
         0,
@@ -6459,10 +6267,10 @@ pf_status resolve_combat(
          attacker_index < (uint32_t)world->player_count;
          ++attacker_index)
     {
-        int32_t hitbox_left;
-        int32_t hitbox_right;
-        int32_t hitbox_top;
-        int32_t hitbox_bottom;
+        float hitbox_left;
+        float hitbox_right;
+        float hitbox_top;
+        float hitbox_bottom;
         const uint8_t current_action =
             scratch->action_state[attacker_index];
 
@@ -6472,8 +6280,8 @@ pf_status resolve_combat(
         }
         if (!attack_hitbox(
                 content,
-                scratch->position_x_q16[attacker_index],
-                scratch->position_y_q16[attacker_index],
+                scratch->position_x_f32[attacker_index],
+                scratch->position_y_f32[attacker_index],
                 scratch->facing[attacker_index],
                 current_action,
                 scratch->action_ticks[attacker_index],
@@ -6515,8 +6323,8 @@ pf_status resolve_combat(
         attacker_sphere_count[attacker_index] =
             attack_hit_spheres(
                 content,
-                scratch->position_x_q16[attacker_index],
-                scratch->position_y_q16[attacker_index],
+                scratch->position_x_f32[attacker_index],
+                scratch->position_y_f32[attacker_index],
                 scratch->facing[attacker_index],
                 scratch->action_state[attacker_index],
                 scratch->action_ticks[attacker_index],
@@ -6530,8 +6338,8 @@ pf_status resolve_combat(
             attacker_previous_sphere_count[attacker_index] =
                 attack_hit_spheres(
                     content,
-                    world->position_x_q16[attacker_index],
-                    world->position_y_q16[attacker_index],
+                    world->position_x_f32[attacker_index],
+                    world->position_y_f32[attacker_index],
                     world->facing[attacker_index],
                     world->action_state[attacker_index],
                     world->action_ticks[attacker_index],
@@ -6785,8 +6593,8 @@ pf_status resolve_combat(
                                 second_sphere->effect_index);
                         const hit_sphere_inspection *first_previous;
                         const hit_sphere_inspection *second_previous;
-                        collision_capsule3_q16 first_capsule;
-                        collision_capsule3_q16 second_capsule;
+                        collision_capsule3_f32 first_capsule;
+                        collision_capsule3_f32 second_capsule;
                         attack_runtime first_selected;
                         attack_runtime second_selected;
                         uint16_t first_damage;
@@ -6823,23 +6631,23 @@ pf_status resolve_combat(
                             second_sphere,
                             attacker_previous_spheres[second_index],
                             attacker_previous_sphere_count[second_index]);
-                        first_capsule = (collision_capsule3_q16){
-                            first_previous->center_x_q16,
-                            first_previous->center_y_q16,
-                            first_previous->center_z_q16,
-                            first_sphere->center_x_q16,
-                            first_sphere->center_y_q16,
-                            first_sphere->center_z_q16,
-                            first_sphere->radius_q16};
-                        second_capsule = (collision_capsule3_q16){
-                            second_previous->center_x_q16,
-                            second_previous->center_y_q16,
-                            second_previous->center_z_q16,
-                            second_sphere->center_x_q16,
-                            second_sphere->center_y_q16,
-                            second_sphere->center_z_q16,
-                            second_sphere->radius_q16};
-                        if (!collision_capsule_capsule_overlap_q16(
+                        first_capsule = (collision_capsule3_f32){
+                            first_previous->center_x_f32,
+                            first_previous->center_y_f32,
+                            first_previous->center_z_f32,
+                            first_sphere->center_x_f32,
+                            first_sphere->center_y_f32,
+                            first_sphere->center_z_f32,
+                            first_sphere->radius_f32};
+                        second_capsule = (collision_capsule3_f32){
+                            second_previous->center_x_f32,
+                            second_previous->center_y_f32,
+                            second_previous->center_z_f32,
+                            second_sphere->center_x_f32,
+                            second_sphere->center_y_f32,
+                            second_sphere->center_z_f32,
+                            second_sphere->radius_f32};
+                        if (!collision_capsule_capsule_overlap_f32(
                                 &first_capsule,
                                 &second_capsule))
                         {
@@ -6875,14 +6683,14 @@ pf_status resolve_combat(
                             second_index,
                             attacker_action[second_index],
                             &second_selected);
-                        first_damage = (uint16_t)(first_selected.damage_q16 >> 16U);
-                        second_damage = (uint16_t)(second_selected.damage_q16 >> 16U);
-                        if (first_selected.damage_q16 != UINT32_C(0) &&
+                        first_damage = (uint16_t)floorf(first_selected.damage_f32);
+                        second_damage = (uint16_t)floorf(second_selected.damage_f32);
+                        if (first_selected.damage_f32 != UINT32_C(0) &&
                             first_damage == UINT16_C(0))
                         {
                             first_damage = UINT16_C(1);
                         }
-                        if (second_selected.damage_q16 != UINT32_C(0) &&
+                        if (second_selected.damage_f32 != UINT32_C(0) &&
                             second_damage == UINT16_C(0))
                         {
                             second_damage = UINT16_C(1);
@@ -7084,12 +6892,12 @@ pf_status resolve_combat(
                 const int powershield =
                     target_powershield[target_index] != UINT8_C(0);
                 const uint16_t target_shield_hitlag_ticks =
-                    attack->target_hitlag_multiplier_q16 !=
-                            UINT32_C(65536)
+                    attack->target_hitlag_multiplier_f32 !=
+                            1.0f
                         ? melee_hitlag_ticks(
-                              attack->damage_q16,
+                              attack->damage_f32,
                               UINT8_C(0),
-                              attack->target_hitlag_multiplier_q16)
+                              attack->target_hitlag_multiplier_f32)
                         : attack->hitlag_ticks;
                 shield_hit_response response;
 
@@ -7099,7 +6907,7 @@ pf_status resolve_combat(
                         &content->fighter,
                         attacker_index,
                         target_index,
-                        attack->damage_q16,
+                        attack->damage_f32,
                         attack->shield_damage,
                         target_shield_hitlag_ticks,
                         (int32_t)scratch->facing[attacker_index] *
@@ -7110,23 +6918,23 @@ pf_status resolve_combat(
                 {
                     return PF_STATUS_DETERMINISTIC_FAULT;
                 }
-                if (attacker_shield_pushback_q16[attacker_index] ==
+                if (attacker_shield_pushback_f32[attacker_index] ==
                     INT32_C(0))
                 {
-                    attacker_shield_pushback_q16[attacker_index] =
-                        response.attacker_pushback_q16;
+                    attacker_shield_pushback_f32[attacker_index] =
+                        response.attacker_pushback_f32;
                 }
             }
         }
 
         if (hurt_mask != UINT8_C(0))
         {
-            uint32_t total_damage_q16 = UINT32_C(0);
-            uint32_t resulting_damage;
+            float total_damage_f32 = UINT32_C(0);
+            float resulting_damage;
             uint32_t best_owner = UINT32_MAX;
-            int32_t best_knockback_q16 = INT32_C(-1);
-            int32_t launch_velocity_x = INT32_C(0);
-            int32_t launch_velocity_y = INT32_C(0);
+            float best_knockback_f32 = INT32_C(-1);
+            float launch_velocity_x = 0.0f;
+            float launch_velocity_y = 0.0f;
             uint16_t resolved_hitlag_ticks = UINT16_C(0);
             uint16_t resolved_hitstun_ticks = UINT16_MAX;
             int velocity_is_weighted = 0;
@@ -7143,22 +6951,22 @@ pf_status resolve_combat(
 
                 if ((hurt_mask & attacker_bit) != UINT8_C(0))
                 {
-                    total_damage_q16 = saturating_damage(
-                        total_damage_q16,
+                    total_damage_f32 = saturating_damage(
+                        total_damage_f32,
                         target_attack[target_index][attacker_index]
-                            .damage_q16);
+                            .damage_f32);
                 }
             }
             resulting_damage = saturating_damage(
-                scratch->damage_q16[target_index],
-                total_damage_q16);
+                scratch->damage_f32[target_index],
+                total_damage_f32);
             /* ftColl uses (s32) x1830_percent plus the current collision
              * batch's x1838_percentTemp.  Keep displayed damage fractional,
              * but deliberately truncate the pre-hit percent for knockback. */
-            const uint32_t knockback_percent_q16 =
+            const float knockback_percent_f32 =
                 saturating_damage(
-                    (scratch->damage_q16[target_index] >> 16U) << 16U,
-                    total_damage_q16);
+                    floorf(scratch->damage_f32[target_index]),
+                    total_damage_f32);
 
             for (attacker_index = UINT32_C(0);
                  attacker_index < (uint32_t)world->player_count;
@@ -7167,9 +6975,9 @@ pf_status resolve_combat(
                 const uint8_t attacker_bit =
                     (uint8_t)(UINT32_C(1) << attacker_index);
                 const attack_runtime *attack;
-                int32_t candidate_velocity_x;
-                int32_t candidate_velocity_y;
-                int32_t candidate_knockback_q16;
+                float candidate_velocity_x;
+                float candidate_velocity_y;
+                float candidate_knockback_f32;
                 uint16_t candidate_hitlag_ticks;
                 uint16_t candidate_hitstun_ticks = UINT16_MAX;
                 int candidate_velocity_is_weighted = 0;
@@ -7210,11 +7018,11 @@ pf_status resolve_combat(
                         melee_knockback_for_state(
                             attack->melee_knockback,
                             content->fighter.knockback_weight,
-                            attack->knockback_damage_q16 != UINT32_C(0)
-                                ? attack->knockback_damage_q16
-                                : attack->damage_q16,
-                            attack->damage_q16,
-                            knockback_percent_q16,
+                            attack->knockback_damage_f32 != UINT32_C(0)
+                                ? attack->knockback_damage_f32
+                                : attack->damage_f32,
+                            attack->damage_f32,
+                            knockback_percent_f32,
                             scratch->grounded[target_index],
                             (uint8_t)(
                                 scratch->action_state[target_index] ==
@@ -7239,7 +7047,7 @@ pf_status resolve_combat(
                                  scratch->action_state[target_index] ==
                                      (uint8_t)
                                          PF_M4_ACTION_DOWN_STRONG_CHARGE)),
-                            attack->target_hitlag_multiplier_q16);
+                            attack->target_hitlag_multiplier_f32);
 
                     /* ftColl selects a fighter hit's horizontal damage
                      * direction from the victim/attacker spatial relation,
@@ -7247,12 +7055,12 @@ pf_status resolve_combat(
                      * It is intentionally independent of attacker facing:
                      * crossed-up aerials must launch through the attacker. */
                     candidate_velocity_x =
-                        scratch->position_x_q16[target_index] >
-                                scratch->position_x_q16[attacker_index]
-                            ? result.velocity_x_q16
-                            : -result.velocity_x_q16;
-                    candidate_velocity_y = -result.velocity_y_q16;
-                    candidate_knockback_q16 = result.knockback_q16;
+                        scratch->position_x_f32[target_index] >
+                                scratch->position_x_f32[attacker_index]
+                            ? result.velocity_x_f32
+                            : -result.velocity_x_f32;
+                    candidate_velocity_y = -result.velocity_y_f32;
+                    candidate_knockback_f32 = result.knockback_f32;
                     candidate_hitlag_ticks = result.hitlag_ticks;
                     candidate_hitstun_ticks = result.hitstun_ticks;
                     candidate_velocity_is_weighted = 1;
@@ -7264,29 +7072,29 @@ pf_status resolve_combat(
                 }
                 else
                 {
-                    const int32_t knockback_x = scaled_knockback(
-                        attack->base_knockback_x_q16,
-                        attack->knockback_growth_q16,
+                    const float knockback_x = scaled_knockback(
+                        attack->base_knockback_x_f32,
+                        attack->knockback_growth_f32,
                         resulting_damage,
                         0);
-                    const int32_t knockback_y = scaled_knockback(
-                        attack->base_knockback_y_q16,
-                        attack->knockback_growth_q16,
+                    const float knockback_y = scaled_knockback(
+                        attack->base_knockback_y_f32,
+                        attack->knockback_growth_f32,
                         resulting_damage,
                         1);
 
                     candidate_velocity_x =
-                        (int32_t)scratch->facing[attacker_index] *
-                        (int32_t)attack->direction * knockback_x;
+                        (float)scratch->facing[attacker_index] *
+                        (float)attack->direction * knockback_x;
                     candidate_velocity_y =
-                        (int32_t)attack->vertical_direction * knockback_y;
-                    candidate_knockback_q16 =
+                        (float)attack->vertical_direction * knockback_y;
+                    candidate_knockback_f32 =
                         knockback_x > knockback_y ? knockback_x : knockback_y;
                 }
-                if (candidate_knockback_q16 > best_knockback_q16)
+                if (candidate_knockback_f32 > best_knockback_f32)
                 {
                     best_owner = attacker_index;
-                    best_knockback_q16 = candidate_knockback_q16;
+                    best_knockback_f32 = candidate_knockback_f32;
                     launch_velocity_x = candidate_velocity_x;
                     launch_velocity_y = candidate_velocity_y;
                     resolved_hitlag_ticks = candidate_hitlag_ticks;
@@ -7316,7 +7124,7 @@ pf_status resolve_combat(
                     rng_state,
                     (uint8_t)best_owner,
                     target_index,
-                    total_damage_q16,
+                    total_damage_f32,
                     launch_velocity_x,
                     launch_velocity_y,
                     resolved_hitlag_ticks,
@@ -7345,9 +7153,9 @@ pf_status resolve_combat(
                 ssbm_common_reference_clank();
             const falcon_common_attributes *common =
                 falcon_reference_common_attributes();
-            int32_t strength_q16;
-            int32_t speed_q16;
-            int32_t animation_speed_q16;
+            float strength_f32;
+            float speed_f32;
+            float animation_speed_f32;
             uint32_t rebound_duration_ticks;
             const uint8_t source = rebound_source[attacker_index];
 
@@ -7356,43 +7164,40 @@ pf_status resolve_combat(
             {
                 return PF_STATUS_DETERMINISTIC_FAULT;
             }
-            strength_q16 =
-                (int32_t)rebound_damage[attacker_index] *
-                    clank->rebound_strength_damage_scale_q16 +
-                clank->rebound_strength_base_q16;
-            if (strength_q16 <= INT32_C(0))
+            strength_f32 =
+                (float)rebound_damage[attacker_index] *
+                    clank->rebound_strength_damage_scale_f32 +
+                clank->rebound_strength_base_f32;
+            if (strength_f32 <= 0.0f)
             {
                 return PF_STATUS_DETERMINISTIC_FAULT;
             }
-            speed_q16 =
-                multiply_q16(
-                    strength_q16,
-                    clank->rebound_velocity_strength_scale_q16) +
-                clank->rebound_velocity_base_q16;
-            animation_speed_q16 =
-                (int32_t)(((int64_t)(
-                    common->rebound_animation_length_q16 +
-                    INT32_C(6554)) << 16U) /
-                    (int64_t)strength_q16);
-            if (animation_speed_q16 <= INT32_C(0))
+            speed_f32 =
+                multiply_f32(
+                    strength_f32,
+                    clank->rebound_velocity_strength_scale_f32) +
+                clank->rebound_velocity_base_f32;
+            animation_speed_f32 =
+                (common->rebound_animation_length_f32 + 0.1f) /
+                strength_f32;
+            if (animation_speed_f32 <= 0.0f)
             {
                 return PF_STATUS_DETERMINISTIC_FAULT;
             }
-            rebound_duration_ticks =
-                ((uint32_t)common->rebound_animation_length_q16 +
-                 (uint32_t)animation_speed_q16 - UINT32_C(1)) /
-                (uint32_t)animation_speed_q16;
+            rebound_duration_ticks = (uint32_t)ceilf(
+                common->rebound_animation_length_f32 /
+                animation_speed_f32);
             if (rebound_duration_ticks == UINT32_C(0) ||
                 rebound_duration_ticks > UINT16_MAX)
             {
                 return PF_STATUS_DETERMINISTIC_FAULT;
             }
-            scratch->velocity_x_q16[attacker_index] =
-                scratch->position_x_q16[source] >
-                        scratch->position_x_q16[attacker_index]
-                    ? -speed_q16
-                    : speed_q16;
-            scratch->velocity_y_q16[attacker_index] = INT32_C(0);
+            scratch->velocity_x_f32[attacker_index] =
+                scratch->position_x_f32[source] >
+                        scratch->position_x_f32[attacker_index]
+                    ? -speed_f32
+                    : speed_f32;
+            scratch->velocity_y_f32[attacker_index] = 0.0f;
             scratch->action_ticks[attacker_index] = UINT16_C(0);
             scratch->attack_hit_mask[attacker_index] = UINT8_C(0);
             scratch->attack_stale_registered[attacker_index] = UINT8_C(0);
@@ -7429,10 +7234,10 @@ pf_status resolve_combat(
             if (attacker_blocked[attacker_index] != UINT8_C(0) &&
                 scratch->grounded[attacker_index] != UINT8_C(0))
             {
-                scratch->shield_recoil_x_q16[attacker_index] =
+                scratch->shield_recoil_x_f32[attacker_index] =
                     -(int32_t)scratch->facing[attacker_index] *
                     (int32_t)attack.direction *
-                    attacker_shield_pushback_q16[attacker_index];
+                    attacker_shield_pushback_f32[attacker_index];
                 scratch->shield_recoil_mask =
                     (uint8_t)(
                         scratch->shield_recoil_mask |

@@ -15,10 +15,10 @@ from ssbm_live_trace import (
     normalized_sha256,
     parse_integer_observations,
     require_equal,
-    require_q16_close,
+    require_f32_close,
     select_labeled_rows,
-    source_x_to_sim_q16,
-    source_y_to_sim_q16,
+    source_x_to_sim_f32,
+    source_y_to_sim_f32,
     validate_capture_provenance,
 )
 
@@ -396,10 +396,10 @@ def compare_case(
 ) -> None:
     require_equal(len(produced), SAMPLES_PER_CASE, f"{case_id} simulation samples")
     velocity_tolerance = int(
-        policy.get("velocity_tolerance_q16", policy.get("q16_tolerance", 0))
+        policy.get("velocity_tolerance_f32", policy.get("q16_tolerance", 0))
     )
-    position_tolerance = int(policy.get("position_tolerance_q16", 0))
-    position_drift_per_tick = int(policy.get("position_drift_per_tick_q16", 0))
+    position_tolerance = int(policy.get("position_tolerance_f32", 0))
+    position_drift_per_tick = int(policy.get("position_drift_per_tick_f32", 0))
     if (
         velocity_tolerance > 32
         or position_tolerance > 192
@@ -442,28 +442,28 @@ def compare_case(
             expected_tick = 0 if expected_action == ACTION_HITLAG else source_frame - 1
             require_equal(actual["action_tick"], expected_tick, f"{prefix} action tick")
 
-        require_q16_close(
+        require_f32_close(
             actual["self_vx"],
-            source_x_to_sim_q16(float(row["air_velocity_x"])),
+            source_x_to_sim_f32(float(row["air_velocity_x"])),
             velocity_tolerance,
             f"{prefix} self velocity x",
         )
-        require_q16_close(
+        require_f32_close(
             actual["self_vy"],
-            source_y_to_sim_q16(float(row["velocity_y"])),
+            source_y_to_sim_f32(float(row["velocity_y"])),
             velocity_tolerance,
             f"{prefix} self velocity y",
         )
         if case_id in (LEDGE_CASE, LEDGE_ACCEPT_CASE, LEDGE_REJECT_CASE):
-            require_q16_close(
+            require_f32_close(
                 actual["kb_vx"],
-                source_x_to_sim_q16(float(row["attack_velocity_x"])),
+                source_x_to_sim_f32(float(row["attack_velocity_x"])),
                 velocity_tolerance,
                 f"{prefix} knockback velocity x",
             )
-            require_q16_close(
+            require_f32_close(
                 actual["kb_vy"],
-                source_y_to_sim_q16(float(row["attack_velocity_y"])),
+                source_y_to_sim_f32(float(row["attack_velocity_y"])),
                 velocity_tolerance,
                 f"{prefix} knockback velocity y",
             )
@@ -474,15 +474,15 @@ def compare_case(
             # separate surface domain. EdgeCatch/EdgeWait are source-root
             # relative again and re-enter the position comparison.
             if index <= 43 or index >= 48:
-                require_q16_close(
+                require_f32_close(
                     actual["dx"],
-                    source_x_to_sim_q16(float(row["position_x"]) - origin_x),
+                    source_x_to_sim_f32(float(row["position_x"]) - origin_x),
                     accumulated_position_tolerance,
                     f"{prefix} position x",
                 )
-            require_q16_close(
+            require_f32_close(
                 actual["dy"],
-                source_y_to_sim_q16(float(row["position_y"]) - origin_y),
+                source_y_to_sim_f32(float(row["position_y"]) - origin_y),
                 accumulated_position_tolerance,
                 f"{prefix} position y",
             )

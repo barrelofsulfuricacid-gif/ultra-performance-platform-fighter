@@ -23,7 +23,7 @@
       "frame_count": 24,
       "frames": [
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               4656,
               -68481,
@@ -160,7 +160,7 @@
           "displayed_frame": 0
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               6737,
               -68626,
@@ -297,7 +297,7 @@
           "displayed_frame": 1
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               11307,
               -70088,
@@ -434,7 +434,7 @@
           "displayed_frame": 2
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               16940,
               -72262,
@@ -571,7 +571,7 @@
           "displayed_frame": 3
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               18408,
               -74651,
@@ -708,7 +708,7 @@
           "displayed_frame": 4
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               19707,
               -73883,
@@ -845,7 +845,7 @@
           "displayed_frame": 5
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               20308,
               -73417,
@@ -982,7 +982,7 @@
           "displayed_frame": 6
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               20453,
               -73144,
@@ -1119,7 +1119,7 @@
           "displayed_frame": 7
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               20429,
               -72940,
@@ -1256,7 +1256,7 @@
           "displayed_frame": 8
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               20398,
               -72737,
@@ -1393,7 +1393,7 @@
           "displayed_frame": 9
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               20297,
               -72550,
@@ -1530,7 +1530,7 @@
           "displayed_frame": 10
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               20099,
               -72390,
@@ -1667,7 +1667,7 @@
           "displayed_frame": 11
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               19779,
               -72268,
@@ -1804,7 +1804,7 @@
           "displayed_frame": 12
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               19315,
               -72196,
@@ -1941,7 +1941,7 @@
           "displayed_frame": 13
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               18684,
               -72182,
@@ -2078,7 +2078,7 @@
           "displayed_frame": 14
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               17859,
               -72230,
@@ -2215,7 +2215,7 @@
           "displayed_frame": 15
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               16654,
               -72294,
@@ -2352,7 +2352,7 @@
           "displayed_frame": 16
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               15012,
               -72309,
@@ -2489,7 +2489,7 @@
           "displayed_frame": 17
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               13100,
               -72232,
@@ -2626,7 +2626,7 @@
           "displayed_frame": 18
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               11076,
               -72011,
@@ -2763,7 +2763,7 @@
           "displayed_frame": 19
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               9092,
               -71605,
@@ -2900,7 +2900,7 @@
           "displayed_frame": 20
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               7300,
               -71000,
@@ -3037,7 +3037,7 @@
           "displayed_frame": 21
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               5854,
               -70224,
@@ -3174,7 +3174,7 @@
           "displayed_frame": 22
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               4916,
               -69347,

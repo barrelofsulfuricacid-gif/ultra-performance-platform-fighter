@@ -28,8 +28,8 @@
     "numerator": 11,
     "denominator": 62,
     "invert": true,
-    "origin_q16": 1310720,
-    "fighter_root_to_body_center_q16": 52428
+    "origin_f32": 1310720,
+    "fighter_root_to_body_center_f32": 52428
   },
   "anchor": {
     "neutral_history_frames": 8,
@@ -43,9 +43,9 @@
     "minimum_opponent_y_distance": 18.0
   },
   "comparison": {
-    "position_tolerance_q16": 1024,
-    "velocity_tolerance_q16": 32,
-    "damage_tolerance_q16": 64
+    "position_tolerance_f32": 1024,
+    "velocity_tolerance_f32": 32,
+    "damage_tolerance_f32": 64
   },
   "source_actions": {
     "0": { "name": "DEAD_DOWN", "target_action": 44 },

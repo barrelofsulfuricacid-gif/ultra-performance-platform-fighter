@@ -23,8 +23,8 @@ static const uint8_t falcon_geometry_sha256[32] = {
     UINT8_C(0xfe), UINT8_C(0xf2), UINT8_C(0xaa), UINT8_C(0xd1), UINT8_C(0x54), UINT8_C(0x11), UINT8_C(0x32), UINT8_C(0x8b), UINT8_C(0xed), UINT8_C(0x10), UINT8_C(0xba), UINT8_C(0x57), UINT8_C(0x26), UINT8_C(0xed), UINT8_C(0xca), UINT8_C(0x63), UINT8_C(0x12), UINT8_C(0xc4), UINT8_C(0x69), UINT8_C(0xb7), UINT8_C(0x7c), UINT8_C(0xbb), UINT8_C(0xa6), UINT8_C(0x5d), UINT8_C(0x0d), UINT8_C(0x8e), UINT8_C(0x1e), UINT8_C(0x53), UINT8_C(0xcf), UINT8_C(0x5c), UINT8_C(0x59), UINT8_C(0x23)
 };
 
-static const int32_t falcon_capture_offset_x_q16 = INT32_C(53806);
-static const int32_t falcon_capture_offset_y_q16 = INT32_C(0);
+static const float falcon_capture_offset_x_f32 = INT32_C(53806);
+static const float falcon_capture_offset_y_f32 = INT32_C(0);
 
 static const uint16_t falcon_side_special_ground_search_offset = UINT16_C(0);
 static const uint8_t falcon_side_special_ground_search_count = UINT8_C(3);

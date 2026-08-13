@@ -318,7 +318,7 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
   midpoint-based early walk commit.
 - The initial fidelity implementation authored `dash_input_window_ticks=2`.
   `WALK` action ticks retain the bounded tilt age, so a gradual neutral-to-full
-  ramp stays in `WALK` at `walk_speed_q16`; the accessibility retune above later
+  ramp stays in `WALK` at `walk_speed_f32`; the accessibility retune above later
   narrowed this authored window to one sample. Neutral resets the window.
 - Content schema 54/fighter schema 47 hash and validate the immutable timing.
   Native and Wasm input probes cover both a three-sample aged fast-walk route
@@ -386,7 +386,7 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
 
 - A validated, hash-identified `content` precursor containing one
   original placeholder fighter table and one original test-stage table.
-- Real-simulation Q16.16 states for proportional walk, initial dash, run,
+- Real-simulation float32 states for proportional walk, initial dash, run,
   dash-dance reversal, run turnaround, run brake, post-turnaround run lockout,
   facing, traction, crouch, jump squat, binary short/full hop, configured air
   jump, independently steerable aerial drift with takeoff-facing lock, fast
@@ -569,7 +569,7 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
 - Deterministic hurtbox overlap, one-hit-per-action masks, lower-slot
   same-target ownership, team friendly-fire rejection, and simultaneous
   trades.
-- Q16.16 percent, percent-scaled launch, hitlag freeze, pending launch,
+- float32 percent, percent-scaled launch, hitlag freeze, pending launch,
   hitstun control lockout, gravity/landing continuation, and blast reset.
 - A monotonic rollback-safe combat-event sequence with per-target last-hit
   tick, attacker, and damage, now paired with typed per-tick event records.
@@ -905,7 +905,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   reaction scales, derived tumble, and typed event flag; those same payload,
   save, browser, input, observation, RL, and compact layouts remain unchanged.
   The victim-weight slice advances content schema to 40 with fighter schema 35
-  for one hashed Q16.16 field. State schema 38/save format 37, inspection
+  for one hashed float32 field. State schema 38/save format 37, inspection
   schema 34, browser view schema 35, and every serialized layout remain
   unchanged because default weight 1.0 is an identity target modifier.
   The directional-ground-attack slice advances state schema to 39/save format
@@ -934,7 +934,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   records for hits, shield blocks, powershields, shield breaks, KOs, respawns,
   sudden death, match results, forfeits, and time limits.
 - Every event carries its processed input tick, match-monotonic sequence,
-  source/target slots, Q16.16 value and velocity, flags, and type-specific
+  source/target slots, float32 value and velocity, flags, and type-specific
   detail. Stable player-slot production order and match-resolution-last order
   are deterministic.
 - Only the existing sequence authority is canonical. Per-tick arrays are
@@ -1776,7 +1776,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   projectile-camping route without adding mutable state or a technique-only
   action.
 - The 180-tick positive policy fires only after the prior bolt resolves. Seven
-  legal fires produce six hits, keep at least 693,712 Q16.16 units (10.58
+  legal fires produce six hits, keep at least 693,712 float32 units (10.58
   world units) of center separation, and leave the camper at 0% while the
   responder continuously approaches and requests jabs.
 - A Reset control preserves the content and responder policy but omits every
@@ -1953,7 +1953,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   ceiling. Standing/released-down, airborne, over-ceiling, throw, armor, reset,
   and shield routes retain ordinary reaction semantics.
 - Damage, attribution, and hitlag remain unchanged. Both pending launch
-  components and hitstun use independent authored 2/3 Q16.16 scales, with a
+  components and hitstun use independent authored 2/3 float32 scales, with a
   one-tick floor for nonzero hitstun; tumble is derived afterward. The typed hit
   event carries the scaled vector and `PF_SIM_EVENT_FLAG_CROUCH_CANCEL`.
 - State schema 38/save format 37 and `PFSAVE37` retain the 554-byte payload and
@@ -1969,7 +1969,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 ## Implemented in the victim-weight slice
 
-- The original fighter now authors Q16.16 victim weight, 1.0 by default with
+- The original fighter now authors float32 victim weight, 1.0 by default with
   an inclusive validated precursor range of 0.5–2.0. The shared unblocked
   reaction path divides both post-damage launch components by target weight,
   so fighter, item, projectile, reflector, charge-release, and throw hits cannot
@@ -2084,7 +2084,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   with retained movement, while frame 4 remains the forward tilt.
 - Holding light advances an independent canonical timer through tick 60.
   Releasing early or reaching tick 60 starts the matching directional strong;
-  the default Q16.16 bonus scales damage linearly to +50% at maximum. The timer
+  the default float32 bonus scales damage linearly to +50% at maximum. The timer
   survives save/load, release, and attacker hitlag, then clears on completion,
   stock loss, or interruption. Direct strong, powershield cancel, and
   jump-squat cancel routes remain immediate and uncharged.
@@ -2377,8 +2377,8 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 ## Implemented in the complete action-transition journal slice
 
 - ABI-4 event type 24 now journals every final current-player action change in
-  one system record. `value_q16` packs the four final action bytes,
-  `velocity_x_q16` packs the four tick-start action bytes, and `detail` is the
+  one system record. `value_f32` packs the four final action bytes,
+  `velocity_x_f32` packs the four tick-start action bytes, and `detail` is the
   nonzero changed-player mask. Multiple changes within one tick collapse to
   the tick boundary, and returning to the starting action emits no false row.
 - Simultaneous forfeits now coalesce into one system event whose detail is the
@@ -2696,8 +2696,8 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   repeated-match verifier digest is `8040f1d3de670dca` after the aerial-fidelity
   correction.
 - The 1,519-frame Dolphin/Slippi capture and native comparator pass exact action,
-  facing, and velocity gates plus the documented accumulated float-to-Q16.16
-  maneuver-local float-to-Q16.16 position tolerance. The corpus covers the
+  facing, and velocity gates plus the documented accumulated float-to-float32
+  maneuver-local float-to-float32 position tolerance. The corpus covers the
   locomotion regression routes plus
   full/light shield, trigger dead-zone rejection, forward/backward/C-stick
   rolls, spot dodge, C-stick spot-dodge and jump buffers, jump from held L into
@@ -2939,7 +2939,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   startup now reproduces the executable transition.
 - Pinned decomp revision `9509dc04406fb2028bfab01243841ba4787c0fb7`
   confirms `ftCo_8009A228` assigns common-data field `x46C` on Pass entry. The
-  executable value 0.63 converts to Q16.16 value 7,325 in the laboratory scale.
+  executable value 0.63 converts to float32 value 7,325 in the laboratory scale.
   Entry applies that velocity without an additional gravity or fast-fall step.
 - With the Battlefield platform-to-floor displacement represented exactly in
   the comparison fixture, held-down Pass lands on the solid floor on Dolphin's
@@ -2983,7 +2983,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
 - The comparator records and checks both players' action/state, action frame,
   facing, grounded state, position, and self-induced velocity. Discrete values
   remain strict. Per owner direction, the push route accepts the ordinary 640
-  Q16.16 position envelope plus at most one mapped 0.3-unit nudge (2,052), for
+  float32 position envelope plus at most one mapped 0.3-unit nudge (2,052), for
   a reported 2,692-Q16 bound when fixed-point accumulation delays the strict
   float overlap by one tick. It does not widen action or velocity comparison.
 - Falcon's `51/575` walk maximum now uses nearest Q16 encoding, and normalized
@@ -3386,7 +3386,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   action and settle sequence before capture, pinning the standing pose instead
   of inheriting an arbitrary menu/match idle phase. An independent recapture
   produced byte-identical converted numeric rows after the provenance comments;
-  unused raw float variation therefore does not enter the Q16.16 tables.
+  unused raw float variation therefore does not enter the float32 tables.
 - The generated include regenerates byte-for-byte with SHA-256
   `fbfd5184ea7b67917d09ec125283ebba5228e383bd09f190fceaa1d3f1b652f9`.
   The focused WSL combat verifier passes its 20,000-tick deterministic run and
@@ -3449,7 +3449,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
 
 - The pinned raw `PlCa.dat` import now preserves all 97 common-attribute words
   and the full 0x8c-byte, 35-field `ftCaptain_DatAttrs` special block alongside
-  the existing 48 concrete action records. A generated typed Q16.16 view
+  the existing 48 concrete action records. A generated typed float32 view
   supplies every Falcon common attribute currently consumed by default content,
   replacing the remaining duplicated movement/jump/fall/weight/landing ratios.
   The combined action, attribute, and provenance identity is
@@ -3821,7 +3821,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   body extent. A separate complete memory capture at SHA-256
   `86e0abff2d1de0483e25ef8db045da323a35331bf95fb7089b00283233b4fc8e`
   supplies every displayed frame 0 through 44 of `SpecialAirS`'s live ECB
-  bottom. Production consumes that generated 45-entry Q16.16 table through
+  bottom. Production consumes that generated 45-entry float32 table through
   the existing collision-pose view and preserves incoming vertical velocity
   on the transition row; no tuned collision constant or duplicated state was
   added.
@@ -4000,7 +4000,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
 - The pinned Dolphin hurt-pose captures now generate both X/Y/Z endpoints for
   every imported 11-capsule Falcon pose. Runtime hit spheres retain their
   already-imported Z center, reflect X and Z with facing, and use one shared
-  allocation-free Q16.16 3D point-to-capsule predicate. Shield sphere tests now
+  allocation-free float32 3D point-to-capsule predicate. Shield sphere tests now
   include hit-sphere Z as well. Inspection schema 52 exposes the source Z
   center while the browser keeps its intentional X/Y projection.
 - The canonical geometry SHA-256 is now
@@ -4138,7 +4138,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   `d22af093cb93df154a9fd992294e50b2233d282d62f0b38aae9ef9d750b1a92b`;
   pinned regeneration byte-matches the tracked include at SHA-256
   `5e622abf609a32ec4d15eb2f0654f4f923e037d0a8df66b97874c5b935a27c55`.
-- One shared C17 Q16.16 capsule-to-capsule closest-point predicate now
+- One shared C17 float32 capsule-to-capsule closest-point predicate now
   serves attacks, grabs, and shields. It broad-phase rejects separated axes,
   specializes degenerate segments, and reduces the five dot products to the
   source float's 23-bit precision before the determinant so every intermediate
@@ -4150,7 +4150,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   current sphere misses by 0.451734762 units, the moving capsule overlaps by
   0.692950483, and the target takes 12%. At 28.3 units both predicates miss
   with -1.178471136/-0.182688971 margins and damage remains unchanged. The
-  production Q16.16 integration reproduces the positive and negative decisions
+  production float32 integration reproduces the positive and negative decisions
   at will.
 - The deterministic eight-match verifier is stable across repeated Windows
   and WSL runs at digest `766fb20cbc77ea08`, with unchanged 27 combat, two
@@ -4190,7 +4190,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   `df7085d40479c81634a34796c830a4be73d81ab64cce10f218c5508d5f8a2958`
   supplies all 15 displayed Initial Dash poses and all 28 RunBrake poses. The
   verifier requires every frame to contain Falcon's 11 live capsules and
-  compares port 2 against port 1 after facing-normalized Q16.16
+  compares port 2 against port 1 after facing-normalized float32
   canonicalization. This cross-port check caught and prevented an early route
   whose metadata said Falcon while the menu predicate had actually selected
   Fox.
@@ -4209,7 +4209,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   pinned regeneration produces tracked include SHA-256
   `c985cf2098a2ca0876f8009d7c8ec7d997628b4347e067fc47d590b72fa170eb`.
 - Shared offline `tools/ssbm_collision.py` now owns source-float segment
-  margins, captured hit/hurt evaluation, Q16.16 pose canonicalization, and
+  margins, captured hit/hurt evaluation, float32 pose canonicalization, and
   bounded pose equality. Both Falcon verifiers reuse it. The personal
   `ssbm-character-importer` skill records the menu/metadata drift hazard,
   cross-port proof, generic-rectangle discriminator, compact runtime pattern,
@@ -4242,7 +4242,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   It retains the qualified Initial Dash and RunBrake tracks and adds every
   displayed CrouchStart frame 1-7 and CrouchEnd frame 1-10. Each frame exposes
   all 11 live Falcon capsules, and the CrouchStart frame-3 port-2 pose matches
-  the independently captured port-1 pose after facing-normalized Q16.16
+  the independently captured port-1 pose after facing-normalized float32
   canonicalization.
 - The same-input discriminator places Jab 1 against CrouchStart frame 3.
   Dolphin hits at 17.7 Melee units with a reconstructed source-float margin of
@@ -4506,8 +4506,8 @@ M5 content scaling remains blocked until M4 combat feel is approved.
 - Two independent runs have identical canonical pose SHA-256
   `3a1b182dc64ee6db6caa7cc316c633e3330a9001344ca88f5cd57a441b48cdf1`
   and identical Dash margins `+0.289212401/-0.156798480`. Against the accepted
-  4,198-row artifact, every pose is Q16.16-equivalent; only 30 components in
-  24 poses differ, each by exactly one Q16.16 least-significant bit. Setup
+  4,198-row artifact, every pose is float32-equivalent; only 30 components in
+  24 poses differ, each by exactly one float32 least-significant bit. Setup
   ticks still execute, but the observer skips undeclared actions; redundant
   shield dwell, terminal holds, and recovery commands are removed. Five fully
   verified warm pack times are 2.635-2.729 seconds, down from 37.6 seconds and
@@ -5134,7 +5134,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   `0dc57f8ffb85549be76b3b5a0017690b0df16905456169eaceaa2e7975eedc0c`;
   the canonical big-endian `(u32 action frame, f32 ECB bottom Y)` stream is
   `90060e614f359189c32b25d76b780b3fa92861dfdcfae0fd357dcc07ec10e6f8`.
-  The generator emits the complete immutable Q16.16 table and regenerates
+  The generator emits the complete immutable float32 table and regenerates
   byte-identically from the pinned owner extract.
 - `ftCo_Landing_Enter` reaches `ftCommon_8007D7FC`, which switches ground state
   without clearing incoming self Y. Production now retains that value on the
@@ -5181,7 +5181,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   `28c4e902d8860f6d02ec779004c67c7ab94f87c7f3970699cfd9a44a8844cf1d`;
   canonical big-endian `(u32 displayed frame, f32 bottom Y)` SHA-256 is
   `6db927d319942e07d90ba6dd30aad39ad40bb42ab3cc09d498ea2587bfe233bb`.
-- The generator emits the complete immutable Q16.16 JumpF ECB table and
+- The generator emits the complete immutable float32 JumpF ECB table and
   runtime selects it through the already-canonical source submotion. The
   bounded one-update pass-through compatibility path now applies only to
   approximate poses; exact imported ECB schedules use the ordinary sweep.
@@ -5211,7 +5211,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   helper, so it remains useful prior art rather than source truth.
 - The stage importer now preserves each line's source-space unit normal before
   the project's anisotropic coordinate transform. Wall/ceiling response shares
-  one allocation-free Q16.16 mirror routine and transforms the result once.
+  one allocation-free float32 mirror routine and transforms the result once.
 - Three independent Falcon captures expose the same complete 24-frame
   DamageFlyN top/side ECB schedule under semantic SHA-256
   `9efade94dbd61446decfabeedce910e4a2823bfc65299b7ecb4cb31fb368eee1`.
@@ -5258,7 +5258,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   One 0.739-second warm pack captures all nine observable ceiling poses and 51
   wall poses while preserving the native wall/ceiling response entry.
 - A reusable extractor canonicalizes both captures facing-right, validates
-  repeated displayed frames at Q16.16 identity, and emits one compact full-ECB
+  repeated displayed frames at float32 identity, and emits one compact full-ECB
   profile. Raw/profile/semantic identities are
   `f1989a139185635d41d5cc2a51b0f88d41c1a26cf24c57fa82614feed6fda1c2`,
   `d6ccb5701f0bada0d7de1874004281e8ca46fcc0070db94e529d84d3fc637608`,

@@ -11,7 +11,7 @@ from typing import Any
 
 from ssbm_collision import (
     canonical_json_sha256,
-    canonical_hurt_pose_q16,
+    canonical_hurt_pose_f32,
     hurt_pose_tracks_semantic_payload,
     q16_hurt_poses_equivalent,
 )
@@ -99,7 +99,7 @@ def extract_track(
                 else "position"
             )
         )
-        pose = canonical_hurt_pose_q16(
+        pose = canonical_hurt_pose_f32(
             memory,
             hurtbox_key,
             fighter_position_key,
@@ -114,7 +114,7 @@ def extract_track(
             )
         previous = frames.get(displayed_frame)
         if previous is not None and not q16_hurt_poses_equivalent(previous, pose):
-            pending_pose = canonical_hurt_pose_q16(
+            pending_pose = canonical_hurt_pose_f32(
                 memory,
                 hurtbox_key,
                 fighter_position_key,
@@ -153,7 +153,7 @@ def extract_track(
         "frames": [
             {
                 "displayed_frame": displayed_frame,
-                "capsules_q16": [list(capsule) for capsule in frames[displayed_frame]],
+                "capsules_f32": [list(capsule) for capsule in frames[displayed_frame]],
             }
             for displayed_frame in expected
         ],

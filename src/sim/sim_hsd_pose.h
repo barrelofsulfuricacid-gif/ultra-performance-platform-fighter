@@ -21,9 +21,9 @@ typedef enum hsd_interpolation
 
 typedef struct hsd_key
 {
-    int32_t frame_q16;
-    int32_t value_q16;
-    int32_t tangent_q16;
+    float frame_f32;
+    float value_f32;
+    float tangent_f32;
     uint8_t interpolation;
     uint8_t reserved[3];
 } hsd_key;
@@ -39,9 +39,9 @@ typedef struct hsd_track
 
 typedef struct hsd_joint
 {
-    int32_t rotation_turns_q16[3];
-    int32_t scale_q16[3];
-    int32_t translation_q16[3];
+    float rotation_turns_f32[3];
+    float scale_f32[3];
+    float translation_f32[3];
     int8_t parent_index;
     uint8_t classical_scale;
     uint8_t reserved[2];
@@ -49,9 +49,9 @@ typedef struct hsd_joint
 
 typedef struct hsd_hurt_capsule
 {
-    int32_t offset_a_q16[3];
-    int32_t offset_b_q16[3];
-    int32_t radius_q16;
+    float offset_a_f32[3];
+    float offset_b_f32[3];
+    float radius_f32;
     uint8_t joint_index;
     uint8_t hurtbox_id;
     uint8_t height;
@@ -102,9 +102,9 @@ typedef struct hsd_pose_data
 
 typedef struct hsd_local_pose
 {
-    int32_t rotation_q16[4];
-    int32_t scale_q16[3];
-    int32_t translation_q16[3];
+    float rotation_f32[4];
+    float scale_f32[3];
+    float translation_f32[3];
     uint8_t use_quaternion;
     uint8_t reserved[3];
 } hsd_local_pose;
@@ -114,13 +114,13 @@ typedef struct hsd_compact_pose
     int16_t rotation_q15[PF_M4_HSD_COMPACT_ROTATION_CAPACITY][3];
     union
     {
-        int32_t translation_q16[PF_M4_HSD_COMPACT_TRANSLATION_CAPACITY][3];
+        float translation_f32[PF_M4_HSD_COMPACT_TRANSLATION_CAPACITY][3];
         struct
         {
-            int32_t source_frame_q16;
-            int32_t target_entry_frame_q16;
-            int32_t target_step_q16;
-            int32_t blend_frames_q16;
+            float source_frame_f32;
+            float target_entry_frame_f32;
+            float target_step_f32;
+            float blend_frames_f32;
             uint16_t source_submotion;
             uint16_t reserved;
         } replay;
@@ -137,53 +137,53 @@ typedef enum hsd_compact_pose_mode
 
 typedef struct hsd_evaluated_capsule
 {
-    int32_t endpoint_a_q16[3];
-    int32_t endpoint_b_q16[3];
-    int32_t radius_q16;
+    float endpoint_a_f32[3];
+    float endpoint_b_f32[3];
+    float radius_f32;
     uint8_t hurtbox_id;
     uint8_t height;
     uint8_t grabbable;
     uint8_t reserved;
 } hsd_evaluated_capsule;
 
-int hsd_evaluate_local_pose_q16(
+int hsd_evaluate_local_pose_f32(
     const hsd_pose_data *data,
     uint16_t source_submotion,
-    int32_t frame_q16,
+    float frame_f32,
     hsd_local_pose out_pose[PF_M4_HSD_POSE_MAX_JOINTS]);
 
-int hsd_blend_local_pose_q16(
+int hsd_blend_local_pose_f32(
     const hsd_pose_data *data,
     const hsd_local_pose target[PF_M4_HSD_POSE_MAX_JOINTS],
     const hsd_local_pose current[PF_M4_HSD_POSE_MAX_JOINTS],
-    int32_t current_weight_q16,
+    float current_weight_f32,
     hsd_local_pose out_pose[PF_M4_HSD_POSE_MAX_JOINTS]);
 
-int hsd_pack_compact_pose_q16(
+int hsd_pack_compact_pose_f32(
     const hsd_pose_data *data,
     const hsd_local_pose pose[PF_M4_HSD_POSE_MAX_JOINTS],
     hsd_compact_pose *out_compact);
 
-int hsd_inflate_compact_pose_q16(
+int hsd_inflate_compact_pose_f32(
     const hsd_pose_data *data,
     const hsd_local_pose *target,
     const hsd_compact_pose *compact,
     hsd_local_pose *out_pose);
 
-int hsd_resolve_compact_pose_q16(
+int hsd_resolve_compact_pose_f32(
     const hsd_pose_data *data,
     uint16_t target_submotion,
-    int32_t target_frame_q16,
-    int32_t progress_q16,
+    float target_frame_f32,
+    float progress_f32,
     const hsd_compact_pose *compact,
     hsd_local_pose out_pose[PF_M4_HSD_POSE_MAX_JOINTS]);
 
-int hsd_evaluate_joint_origins_from_local_pose_q16(
+int hsd_evaluate_joint_origins_from_local_pose_f32(
     const hsd_pose_data *data,
     const hsd_local_pose pose[PF_M4_HSD_POSE_MAX_JOINTS],
     const uint8_t *joint_indices,
     uint8_t joint_count,
-    int32_t out_origins_q16[PF_M4_HSD_POSE_MAX_JOINTS][3]);
+    float out_origins_f32[PF_M4_HSD_POSE_MAX_JOINTS][3]);
 
 int hsd_evaluate_hurt_pose_from_local_pose(
     const hsd_pose_data *data,
@@ -192,18 +192,18 @@ int hsd_evaluate_hurt_pose_from_local_pose(
         out_capsules[PF_M4_HSD_POSE_MAX_CAPSULES],
     uint8_t *out_count);
 
-int hsd_evaluate_joint_origins_source_q16(
+int hsd_evaluate_joint_origins_source_f32(
     const hsd_pose_data *data,
     uint16_t source_submotion,
-    int32_t frame_q16,
+    float frame_f32,
     const uint8_t *joint_indices,
     uint8_t joint_count,
-    int32_t out_origins_q16[PF_M4_HSD_POSE_MAX_JOINTS][3]);
+    float out_origins_f32[PF_M4_HSD_POSE_MAX_JOINTS][3]);
 
 int hsd_evaluate_hurt_pose(
     const hsd_pose_data *data,
     uint16_t source_submotion,
-    int32_t frame_q16,
+    float frame_f32,
     hsd_evaluated_capsule
         out_capsules[PF_M4_HSD_POSE_MAX_CAPSULES],
     uint8_t *out_count);

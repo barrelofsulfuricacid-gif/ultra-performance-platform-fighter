@@ -163,19 +163,19 @@ def captured_collision_margin(
     )
 
 
-def canonical_hurt_pose_q16(
+def canonical_hurt_pose_f32(
     memory: dict[str, Any],
     hurtbox_key: str,
     fighter_position_key: str,
     facing: int,
-    coordinate_scale_q16: float,
+    coordinate_scale_f32: float,
     endpoint_key_prefix: str = "position",
 ) -> tuple[tuple[int, ...], ...]:
-    """Canonicalize a live hurt pose into facing-right Q16.16 space."""
+    """Canonicalize a live hurt pose into facing-right float32 space."""
 
     if facing not in (-1, 1):
         raise ValueError("hurt-pose facing must be -1 or 1")
-    if coordinate_scale_q16 <= 0.0:
+    if coordinate_scale_f32 <= 0.0:
         raise ValueError("hurt-pose coordinate scale must be positive")
     if endpoint_key_prefix not in {"position", "collision_position"}:
         raise ValueError("unsupported hurt-pose endpoint key prefix")
@@ -200,32 +200,32 @@ def canonical_hurt_pose_q16(
                 round(
                     facing
                     * (endpoint_a[0] - fighter_position[0])
-                    * coordinate_scale_q16
+                    * coordinate_scale_f32
                 ),
                 round(
                     -(endpoint_a[1] - fighter_position[1])
-                    * coordinate_scale_q16
+                    * coordinate_scale_f32
                 ),
                 round(
                     facing
                     * (endpoint_a[2] - fighter_position[2])
-                    * coordinate_scale_q16
+                    * coordinate_scale_f32
                 ),
                 round(
                     facing
                     * (endpoint_b[0] - fighter_position[0])
-                    * coordinate_scale_q16
+                    * coordinate_scale_f32
                 ),
                 round(
                     -(endpoint_b[1] - fighter_position[1])
-                    * coordinate_scale_q16
+                    * coordinate_scale_f32
                 ),
                 round(
                     facing
                     * (endpoint_b[2] - fighter_position[2])
-                    * coordinate_scale_q16
+                    * coordinate_scale_f32
                 ),
-                round(float(hurtbox["radius"]) * coordinate_scale_q16),
+                round(float(hurtbox["radius"]) * coordinate_scale_f32),
                 hurtbox_id,
                 int(hurtbox["height"]),
                 int(hurtbox["grabbable"]),
@@ -268,7 +268,7 @@ def hurt_pose_tracks_semantic_payload(
             "frames": [
                 {
                     "displayed_frame": frame["displayed_frame"],
-                    "capsules_q16": frame["capsules_q16"],
+                    "capsules_f32": frame["capsules_f32"],
                 }
                 for frame in track["frames"]
             ],

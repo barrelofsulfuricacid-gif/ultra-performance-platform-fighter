@@ -81,7 +81,7 @@ compile_sim_test \
 
 "$output_dir/rl_api_test" >"$output_dir/rl_api.txt"
 grep -Fqx \
-    'rl-api=pass compact_values=102 batch_environments=6 reward_q16=65536 engagement_limit_q16=16384 schema=14' \
+    'rl-api=pass compact_values=102 batch_environments=6 reward_f32=65536 engagement_limit_f32=16384 schema=14' \
     "$output_dir/rl_api.txt"
 
 compile_sim_test \

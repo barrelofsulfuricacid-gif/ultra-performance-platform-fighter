@@ -116,7 +116,7 @@
     "source_trace_sha256": "4a553ba57522d4347188cb227357157fbb4f1a7246dd638fba68019e9166fd63",
     "production_trace_sha256": "4a553ba57522d4347188cb227357157fbb4f1a7246dd638fba68019e9166fd63",
     "require_exact_source_match": true,
-    "serialized_fields": ["effective_main_x_q15","effective_main_y_q15","effective_c_x_q15","effective_c_y_q15","action_state","action_ticks","facing","grounded","velocity_x_q16","velocity_y_q16"],
+    "serialized_fields": ["effective_main_x_q15","effective_main_y_q15","effective_c_x_q15","effective_c_y_q15","action_state","action_ticks","facing","grounded","velocity_x_f32","velocity_y_f32"],
     "action_mapping": {
       "TURNING": {"action_state":103,"action_tick_offset":0},
       "FSMASH_MID": {"action_state":88,"action_tick_offset":0},

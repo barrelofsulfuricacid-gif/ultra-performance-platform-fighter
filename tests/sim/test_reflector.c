@@ -110,19 +110,19 @@ static int make_reflector_content(
     content->fighter.reference_frame_data_enabled = UINT8_C(0);
     content->reflector.enabled = UINT8_C(1);
     content->projectile.enabled = UINT8_C(1);
-    content->stage.floor_left_q16 = -INT32_C(8) * PF_Q16_ONE;
-    content->stage.floor_right_q16 = INT32_C(8) * PF_Q16_ONE;
-    content->stage.platform_center_x_q16 = -INT32_C(4) * PF_Q16_ONE;
-    content->stage.platform_half_width_q16 = INT32_C(1) * PF_Q16_ONE;
-    content->stage.platform_motion_amplitude_q16 = INT32_C(0);
-    content->stage.upper_platform_center_x_q16 = INT32_C(0);
-    content->stage.upper_platform_half_width_q16 = PF_Q16_ONE;
-    content->stage.solid_left_q16 = INT32_C(2) * PF_Q16_ONE;
-    content->stage.solid_right_q16 = INT32_C(6) * PF_Q16_ONE;
-    content->stage.blast_left_q16 = -INT32_C(12) * PF_Q16_ONE;
-    content->stage.blast_right_q16 = INT32_C(12) * PF_Q16_ONE;
-    content->stage.blast_bottom_q16 = INT32_C(40) * PF_Q16_ONE;
-    content->stage.spawn_spacing_q16 = INT32_C(1) * PF_Q16_ONE;
+    content->stage.floor_left_f32 = -INT32_C(8) * PF_F32_ONE;
+    content->stage.floor_right_f32 = INT32_C(8) * PF_F32_ONE;
+    content->stage.platform_center_x_f32 = -INT32_C(4) * PF_F32_ONE;
+    content->stage.platform_half_width_f32 = INT32_C(1) * PF_F32_ONE;
+    content->stage.platform_motion_amplitude_f32 = INT32_C(0);
+    content->stage.upper_platform_center_x_f32 = INT32_C(0);
+    content->stage.upper_platform_half_width_f32 = PF_F32_ONE;
+    content->stage.solid_left_f32 = INT32_C(2) * PF_F32_ONE;
+    content->stage.solid_right_f32 = INT32_C(6) * PF_F32_ONE;
+    content->stage.blast_left_f32 = -INT32_C(12) * PF_F32_ONE;
+    content->stage.blast_right_f32 = INT32_C(12) * PF_F32_ONE;
+    content->stage.blast_bottom_f32 = INT32_C(40) * PF_F32_ONE;
+    content->stage.spawn_spacing_f32 = INT32_C(1) * PF_F32_ONE;
     return expect_status(
         make_content_view(content, view),
         PF_STATUS_OK,
@@ -258,7 +258,7 @@ static int run_content_contract(void)
         return 0;
     }
     invalid = enabled;
-    invalid.reflector.base_knockback_y_q16 = -INT32_C(1);
+    invalid.reflector.base_knockback_y_f32 = -INT32_C(1);
     return expect_status(
         validate_content(&invalid),
         PF_STATUS_INVALID_CONFIG,
@@ -300,8 +300,8 @@ static int run_hit_and_reflection_contract(
     if (event == NULL || event->source_player != UINT8_C(0) ||
         event->target_player != UINT8_C(1) ||
         event->detail != (uint16_t)PF_M4_ACTION_REFLECTOR_GROUND ||
-        event->velocity_y_q16 <= INT32_C(0) ||
-        inspection.players[1].damage_q16 == UINT32_C(0) ||
+        event->velocity_y_f32 <= INT32_C(0) ||
+        inspection.players[1].damage_f32 == UINT32_C(0) ||
         inspection.players[0].stale_move_count != UINT8_C(1) ||
         inspection.players[0].stale_move_ids[0] !=
             (uint8_t)PF_M4_ACTION_REFLECTOR_GROUND)
@@ -315,15 +315,15 @@ static int run_hit_and_reflection_contract(
             event != NULL ? (unsigned int)event->source_player : 255U,
             event != NULL ? (unsigned int)event->target_player : 255U,
             event != NULL ? (unsigned int)event->detail : 65535U,
-            event != NULL ? event->velocity_y_q16 : 0,
-            inspection.players[1].damage_q16,
+            event != NULL ? event->velocity_y_f32 : 0,
+            inspection.players[1].damage_f32,
             (unsigned int)inspection.players[0].action_state,
             (unsigned int)inspection.players[0].action_ticks,
             (unsigned int)inspection.players[0].hitbox_active,
-            inspection.players[0].position_x_q16,
-            inspection.players[1].position_x_q16,
-            inspection.players[0].hitbox_left_q16,
-            inspection.players[0].hitbox_right_q16);
+            inspection.players[0].position_x_f32,
+            inspection.players[1].position_x_f32,
+            inspection.players[0].hitbox_left_f32,
+            inspection.players[0].hitbox_right_f32);
         return fail("ground-reflector-downward-hit");
     }
 
@@ -343,7 +343,7 @@ static int run_hit_and_reflection_contract(
         event->target_player != UINT8_C(1) ||
         event->detail != (uint16_t)PF_M4_ACTION_REFLECTOR_GROUND ||
         inspection.projectile.owner != UINT8_C(0) ||
-        inspection.projectile.velocity_x_q16 <= INT32_C(0) ||
+        inspection.projectile.velocity_x_f32 <= INT32_C(0) ||
         inspection.players[0].powershield != UINT8_C(0))
     {
         (void)fprintf(
@@ -357,7 +357,7 @@ static int run_hit_and_reflection_contract(
             event != NULL ? (unsigned int)event->detail : 65535U,
             (unsigned int)inspection.projectile.state,
             (unsigned int)inspection.projectile.owner,
-            inspection.projectile.velocity_x_q16,
+            inspection.projectile.velocity_x_f32,
             (unsigned int)inspection.players[0].action_state,
             (unsigned int)inspection.players[0].action_ticks,
             (unsigned int)inspection.players[0].hitbox_active);
@@ -459,7 +459,7 @@ static int run_shine_route(
             hit->detail == (uint16_t)PF_M4_ACTION_REFLECTOR_AIR &&
             hit->source_player == UINT8_C(0) &&
             hit->target_player == UINT8_C(1) &&
-            hit->velocity_y_q16 > INT32_C(0))
+            hit->velocity_y_f32 > INT32_C(0))
         {
             *out_reflector_hit = 1;
         }
@@ -747,7 +747,7 @@ static int run_state_interfaces_contract(
             PF_STATUS_OK,
             "reflector-rl-hit-inspect") ||
         transition.structured_observation.players[1].active != UINT8_C(1) ||
-        rl_inspection.players[1].damage_q16 == UINT32_C(0) ||
+        rl_inspection.players[1].damage_f32 == UINT32_C(0) ||
         rl_inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_HITLAG)
     {

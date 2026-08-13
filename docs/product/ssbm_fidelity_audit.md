@@ -13,7 +13,7 @@ No row implies whole-game equivalence. This audit covers the single M4 Falcon-
 movement placeholder on the original laboratory stage.
 
 Equivalence is behavioral. Small, bounded numeric differences caused by the
-simulator's Q16.16 representation are acceptable when the verifier reports and
+simulator's float32 representation are acceptable when the verifier reports and
 justifies them; discrete action/state, timing, facing, grounded-state,
 threshold, and route differences are not.
 
@@ -284,7 +284,7 @@ A separate 540-frame Final Destination Falcon-versus-Falcon capture drives
 grounded approach from both controller ports and directions, comparing both
 fighters' action/state, action frame, facing, grounded state, position, and
 self-induced velocity. Its position gate reports a 2,692-Q16 bound: the
-ordinary 640 float-to-Q16.16 envelope plus one mapped 0.3-unit push nudge for a
+ordinary 640 float-to-float32 envelope plus one mapped 0.3-unit push nudge for a
 one-tick strict-boundary transient. The other captures retain the 640-Q16
 position gate; action, facing, velocity, and applicable action ticks use their
 tighter independent gates. This remains a regression slice, not evidence that

@@ -1,20 +1,20 @@
 #include "sim_internal.h"
 #include "sim_falcon_frame_data.h"
 
-#include <limits.h>
+#include <math.h>
 
 static int projectile_checked_add(
-    int32_t left,
-    int32_t right,
-    int32_t *out_value)
+    float left,
+    float right,
+    float *out_value)
 {
-    const int64_t value = (int64_t)left + (int64_t)right;
+    const float value = left + right;
 
-    if (out_value == NULL || value < INT32_MIN || value > INT32_MAX)
+    if (out_value == NULL || !isfinite(value))
     {
         return 0;
     }
-    *out_value = (int32_t)value;
+    *out_value = value;
     return 1;
 }
 
@@ -36,10 +36,10 @@ static int projectile_action_can_fire(
 
 static void projectile_clear(pf_sim_scratch *scratch)
 {
-    scratch->projectile_position_x_q16 = INT32_C(0);
-    scratch->projectile_position_y_q16 = INT32_C(0);
-    scratch->projectile_velocity_x_q16 = INT32_C(0);
-    scratch->projectile_velocity_y_q16 = INT32_C(0);
+    scratch->projectile_position_x_f32 = INT32_C(0);
+    scratch->projectile_position_y_f32 = INT32_C(0);
+    scratch->projectile_velocity_x_f32 = INT32_C(0);
+    scratch->projectile_velocity_y_f32 = INT32_C(0);
     scratch->projectile_lifetime_ticks = UINT16_C(0);
     scratch->projectile_state =
         (uint8_t)PF_M4_PROJECTILE_STATE_INACTIVE;
@@ -52,10 +52,10 @@ void reset_projectile(pf_sim *sim)
     {
         return;
     }
-    sim->world.projectile_position_x_q16 = INT32_C(0);
-    sim->world.projectile_position_y_q16 = INT32_C(0);
-    sim->world.projectile_velocity_x_q16 = INT32_C(0);
-    sim->world.projectile_velocity_y_q16 = INT32_C(0);
+    sim->world.projectile_position_x_f32 = INT32_C(0);
+    sim->world.projectile_position_y_f32 = INT32_C(0);
+    sim->world.projectile_velocity_x_f32 = INT32_C(0);
+    sim->world.projectile_velocity_y_f32 = INT32_C(0);
     sim->world.projectile_lifetime_ticks = UINT16_C(0);
     sim->world.projectile_state =
         (uint8_t)PF_M4_PROJECTILE_STATE_INACTIVE;
@@ -70,14 +70,14 @@ void begin_projectile_tick(
     {
         return;
     }
-    scratch->projectile_position_x_q16 =
-        world->projectile_position_x_q16;
-    scratch->projectile_position_y_q16 =
-        world->projectile_position_y_q16;
-    scratch->projectile_velocity_x_q16 =
-        world->projectile_velocity_x_q16;
-    scratch->projectile_velocity_y_q16 =
-        world->projectile_velocity_y_q16;
+    scratch->projectile_position_x_f32 =
+        world->projectile_position_x_f32;
+    scratch->projectile_position_y_f32 =
+        world->projectile_position_y_f32;
+    scratch->projectile_velocity_x_f32 =
+        world->projectile_velocity_x_f32;
+    scratch->projectile_velocity_y_f32 =
+        world->projectile_velocity_y_f32;
     scratch->projectile_lifetime_ticks =
         world->projectile_lifetime_ticks;
     scratch->projectile_state = world->projectile_state;
@@ -159,9 +159,9 @@ pf_status apply_projectile_input(
                 world->grounded[player_index] != UINT8_C(0)
             ? (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_GROUND
             : (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_AIR;
-    int32_t offset_x;
-    int32_t position_x;
-    int32_t position_y;
+    float offset_x;
+    float position_x;
+    float position_y;
 
     if (content == NULL || world == NULL || scratch == NULL ||
         player_index >= (uint32_t)world->player_count ||
@@ -185,24 +185,24 @@ pf_status apply_projectile_input(
     }
 
     offset_x =
-        (int32_t)scratch->facing[player_index] *
-        projectile->spawn_offset_x_q16;
+        (float)scratch->facing[player_index] *
+        projectile->spawn_offset_x_f32;
     if (!projectile_checked_add(
-            scratch->position_x_q16[player_index],
+            scratch->position_x_f32[player_index],
             offset_x,
             &position_x) ||
         !projectile_checked_add(
-            scratch->position_y_q16[player_index],
-            projectile->spawn_offset_y_q16,
+            scratch->position_y_f32[player_index],
+            projectile->spawn_offset_y_f32,
             &position_y))
     {
         return PF_STATUS_DETERMINISTIC_FAULT;
     }
-    scratch->projectile_position_x_q16 = position_x;
-    scratch->projectile_position_y_q16 = position_y;
-    scratch->projectile_velocity_x_q16 =
-        (int32_t)scratch->facing[player_index] * projectile->speed_q16;
-    scratch->projectile_velocity_y_q16 = INT32_C(0);
+    scratch->projectile_position_x_f32 = position_x;
+    scratch->projectile_position_y_f32 = position_y;
+    scratch->projectile_velocity_x_f32 =
+        (float)scratch->facing[player_index] * projectile->speed_f32;
+    scratch->projectile_velocity_y_f32 = INT32_C(0);
     scratch->projectile_lifetime_ticks = projectile->lifetime_ticks;
     scratch->projectile_state =
         (uint8_t)PF_M4_PROJECTILE_STATE_SPAWNING;
@@ -215,8 +215,8 @@ pf_status apply_projectile_input(
             (uint8_t)player_index,
             PF_SIM_EVENT_NO_PLAYER,
             UINT32_C(0),
-            scratch->projectile_velocity_x_q16,
-            scratch->projectile_velocity_y_q16,
+            scratch->projectile_velocity_x_f32,
+            scratch->projectile_velocity_y_f32,
             UINT16_C(0),
             (uint16_t)fire_action,
             NULL) != PF_STATUS_OK)
@@ -231,8 +231,8 @@ pf_status step_projectile(
     pf_sim_scratch *scratch)
 {
     const projectile_data *projectile;
-    int32_t next_x;
-    int32_t next_y;
+    float next_x;
+    float next_y;
 
     if (content == NULL || scratch == NULL)
     {
@@ -271,26 +271,26 @@ pf_status step_projectile(
         return PF_STATUS_OK;
     }
     if (!projectile_checked_add(
-            scratch->projectile_position_x_q16,
-            scratch->projectile_velocity_x_q16,
+            scratch->projectile_position_x_f32,
+            scratch->projectile_velocity_x_f32,
             &next_x) ||
         !projectile_checked_add(
-            scratch->projectile_position_y_q16,
-            scratch->projectile_velocity_y_q16,
+            scratch->projectile_position_y_f32,
+            scratch->projectile_velocity_y_f32,
             &next_y))
     {
         return PF_STATUS_DETERMINISTIC_FAULT;
     }
-    scratch->projectile_position_x_q16 = next_x;
-    scratch->projectile_position_y_q16 = next_y;
-    if (next_x + projectile->half_width_q16 <
-            content->stage.blast_left_q16 ||
-        next_x - projectile->half_width_q16 >
-            content->stage.blast_right_q16 ||
-        next_y + projectile->half_height_q16 <
-            content->stage.blast_top_q16 ||
-        next_y - projectile->half_height_q16 >
-            content->stage.blast_bottom_q16)
+    scratch->projectile_position_x_f32 = next_x;
+    scratch->projectile_position_y_f32 = next_y;
+    if (next_x + projectile->half_width_f32 <
+            content->stage.blast_left_f32 ||
+        next_x - projectile->half_width_f32 >
+            content->stage.blast_right_f32 ||
+        next_y + projectile->half_height_f32 <
+            content->stage.blast_top_f32 ||
+        next_y - projectile->half_height_f32 >
+            content->stage.blast_bottom_f32)
     {
         projectile_clear(scratch);
     }

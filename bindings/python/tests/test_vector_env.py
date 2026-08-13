@@ -84,8 +84,8 @@ class PlatformFighterVectorEnvTests(unittest.TestCase):
             self.assertTrue(np.array_equal(first_value, second_value))
         self.assertTrue(
             np.array_equal(
-                first_step[4]["player_rewards_q16"],
-                second_step[4]["player_rewards_q16"],
+                first_step[4]["player_rewards_f32"],
+                second_step[4]["player_rewards_f32"],
             )
         )
         self.assertTrue(np.all(first_step[1] == 0.0))
@@ -98,8 +98,8 @@ class PlatformFighterVectorEnvTests(unittest.TestCase):
             self.assertTrue(np.array_equal(first_value, second_value))
         self.assertTrue(
             np.array_equal(
-                first_movement_step[4]["player_rewards_q16"],
-                second_movement_step[4]["player_rewards_q16"],
+                first_movement_step[4]["player_rewards_f32"],
+                second_movement_step[4]["player_rewards_f32"],
             )
         )
         self.assertTrue(np.all(first_movement_step[1] > 0.0))
@@ -118,7 +118,7 @@ class PlatformFighterVectorEnvTests(unittest.TestCase):
         self.assertFalse(truncated[0])
         self.assertEqual(rewards[0], -1.0)
         np.testing.assert_array_equal(
-            info["player_rewards_q16"][0],
+            info["player_rewards_f32"][0],
             np.asarray([-65536, 65536, 0, 0], dtype=np.int32),
         )
         self.assertFalse(np.any(info["legal_buttons"][0]))
@@ -150,7 +150,7 @@ class PlatformFighterVectorEnvTests(unittest.TestCase):
         )
         self.assertTrue(np.all(terminated))
         np.testing.assert_array_equal(
-            info["player_rewards_q16"],
+            info["player_rewards_f32"],
             np.tile(
                 np.asarray([65536, -65536, 65536, -65536], dtype=np.int32),
                 (2, 1),

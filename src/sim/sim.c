@@ -137,8 +137,8 @@ pf_status pf_sim_default_config(
     out_config->player_count = player_count;
     out_config->mode = (uint8_t)mode;
     out_config->max_ticks = UINT64_C(3600);
-    out_config->arena_half_width_q16 = INT32_C(64) * PF_Q16_ONE;
-    out_config->arena_ceiling_q16 = INT32_C(64) * PF_Q16_ONE;
+    out_config->arena_half_width_f32 = INT32_C(64) * PF_F32_ONE;
+    out_config->arena_ceiling_f32 = INT32_C(64) * PF_F32_ONE;
     out_config->stock_count = PF_SIM_DEFAULT_STOCK_COUNT;
     out_config->respawn_delay_ticks =
         PF_SIM_DEFAULT_RESPAWN_DELAY_TICKS;
@@ -150,8 +150,8 @@ pf_status pf_sim_default_config(
 
 pf_status pf_sim_validate_config(const pf_sim_config *config)
 {
-    const int32_t minimum_arena_q16 = INT32_C(16) * PF_Q16_ONE;
-    const int32_t maximum_arena_q16 = INT32_C(4096) * PF_Q16_ONE;
+    const float minimum_arena_f32 = INT32_C(16) * PF_F32_ONE;
+    const float maximum_arena_f32 = INT32_C(4096) * PF_F32_ONE;
 
     if (config == NULL)
     {
@@ -176,10 +176,10 @@ pf_status pf_sim_validate_config(const pf_sim_config *config)
     {
         return PF_STATUS_INVALID_CONFIG;
     }
-    if (config->arena_half_width_q16 < minimum_arena_q16 ||
-        config->arena_half_width_q16 > maximum_arena_q16 ||
-        config->arena_ceiling_q16 < minimum_arena_q16 ||
-        config->arena_ceiling_q16 > maximum_arena_q16)
+    if (config->arena_half_width_f32 < minimum_arena_f32 ||
+        config->arena_half_width_f32 > maximum_arena_f32 ||
+        config->arena_ceiling_f32 < minimum_arena_f32 ||
+        config->arena_ceiling_f32 > maximum_arena_f32)
     {
         return PF_STATUS_INVALID_CONFIG;
     }
@@ -285,16 +285,16 @@ pf_status pf_sim_init(
     {
         return PF_STATUS_INVALID_ARGUMENT;
     }
-    if (resolved_content.stage.blast_left_q16 <
-            -config->arena_half_width_q16 ||
-        resolved_content.stage.blast_right_q16 >
-            config->arena_half_width_q16 ||
+    if (resolved_content.stage.blast_left_f32 <
+            -config->arena_half_width_f32 ||
+        resolved_content.stage.blast_right_f32 >
+            config->arena_half_width_f32 ||
         !pf_sim_vertical_coordinate_is_within_arena(
-            resolved_content.stage.blast_top_q16,
-            config->arena_ceiling_q16) ||
+            resolved_content.stage.blast_top_f32,
+            config->arena_ceiling_f32) ||
         !pf_sim_vertical_coordinate_is_within_arena(
-            resolved_content.stage.blast_bottom_q16,
-            config->arena_ceiling_q16))
+            resolved_content.stage.blast_bottom_f32,
+            config->arena_ceiling_f32))
     {
         return PF_STATUS_INVALID_CONFIG;
     }
@@ -312,8 +312,8 @@ pf_status pf_sim_init(
     sim->world.arithmetic_version = PF_SIM_ARITHMETIC_VERSION;
     sim->world.rng_version = PF_SIM_RNG_VERSION;
     sim->world.input_schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
-    sim->world.arena_half_width_q16 = config->arena_half_width_q16;
-    sim->world.arena_ceiling_q16 = config->arena_ceiling_q16;
+    sim->world.arena_half_width_f32 = config->arena_half_width_f32;
+    sim->world.arena_ceiling_f32 = config->arena_ceiling_f32;
     sim->world.respawn_delay_config_ticks =
         config->respawn_delay_ticks;
     sim->world.respawn_invulnerability_config_ticks =
@@ -359,8 +359,8 @@ pf_status pf_sim_reset(pf_sim *sim, uint64_t seed)
     sim->world.arithmetic_version = preserved.arithmetic_version;
     sim->world.rng_version = preserved.rng_version;
     sim->world.input_schema_version = preserved.input_schema_version;
-    sim->world.arena_half_width_q16 = preserved.arena_half_width_q16;
-    sim->world.arena_ceiling_q16 = preserved.arena_ceiling_q16;
+    sim->world.arena_half_width_f32 = preserved.arena_half_width_f32;
+    sim->world.arena_ceiling_f32 = preserved.arena_ceiling_f32;
     sim->world.respawn_delay_config_ticks =
         preserved.respawn_delay_config_ticks;
     sim->world.respawn_invulnerability_config_ticks =
@@ -427,7 +427,7 @@ pf_status start_reference_match(pf_sim *sim)
             sim->world.action_state[player_index] !=
                 (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
             sim->world.action_ticks[player_index] != UINT16_C(0) ||
-            sim->world.damage_q16[player_index] != UINT32_C(0) ||
+            sim->world.damage_f32[player_index] != UINT32_C(0) ||
             sim->world.stocks_remaining[player_index] !=
                 sim->world.stock_count)
         {
@@ -445,24 +445,24 @@ pf_status start_reference_match(pf_sim *sim)
         const ssbm_stage_spawn_point *spawn =
             &profile->spawn_points[player_index + UINT32_C(2)];
 
-        sim->world.position_x_q16[player_index] =
-            spawn->position_x_q16;
-        sim->world.position_y_q16[player_index] =
-            spawn->position_y_q16 -
-            sim->content.fighter.half_height_q16;
-        sim->world.velocity_x_q16[player_index] = INT32_C(0);
-        sim->world.velocity_y_q16[player_index] = INT32_C(0);
-        sim->world.knockback_velocity_x_q16[player_index] = INT32_C(0);
-        sim->world.knockback_velocity_y_q16[player_index] = INT32_C(0);
-        sim->world.ground_knockback_velocity_q16[player_index] =
+        sim->world.position_x_f32[player_index] =
+            spawn->position_x_f32;
+        sim->world.position_y_f32[player_index] =
+            spawn->position_y_f32 -
+            sim->content.fighter.half_height_f32;
+        sim->world.velocity_x_f32[player_index] = INT32_C(0);
+        sim->world.velocity_y_f32[player_index] = INT32_C(0);
+        sim->world.knockback_velocity_x_f32[player_index] = INT32_C(0);
+        sim->world.knockback_velocity_y_f32[player_index] = INT32_C(0);
+        sim->world.ground_knockback_velocity_f32[player_index] =
             INT32_C(0);
         sim->world.action_state[player_index] =
             (uint8_t)PF_M4_ACTION_MATCH_ENTRY;
         sim->world.action_ticks[player_index] = UINT16_C(0);
         sim->world.source_submotion[player_index] =
             (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT;
-        sim->world.source_animation_frame_q16[player_index] = INT32_C(0);
-        sim->world.source_animation_rate_q16[player_index] = INT32_C(0);
+        sim->world.source_animation_frame_f32[player_index] = INT32_C(0);
+        sim->world.source_animation_rate_f32[player_index] = INT32_C(0);
         sim->world.grounded[player_index] = UINT8_C(0);
         sim->world.support[player_index] =
             (uint8_t)PF_M4_SURFACE_NONE;
@@ -471,7 +471,7 @@ pf_status start_reference_match(pf_sim *sim)
         sim->world.dash_direction[player_index] = INT8_C(0);
         sim->world.fast_fall[player_index] = UINT8_C(0);
         sim->world.ecb_bottom_lock_ticks[player_index] = UINT8_C(0);
-        sim->world.ecb_locked_bottom_y_q16[player_index] = INT32_C(0);
+        sim->world.ecb_locked_bottom_y_f32[player_index] = INT32_C(0);
     }
     return PF_STATUS_OK;
 }
@@ -513,14 +513,14 @@ pf_status pf_sim_observe(
     out_observation->winner_mask = sim->world.winner_mask;
     out_observation->sudden_death = sim->world.sudden_death;
     out_observation->stock_count = sim->world.stock_count;
-    out_observation->item.position_x_q16 =
-        sim->world.item_position_x_q16;
-    out_observation->item.position_y_q16 =
-        sim->world.item_position_y_q16;
-    out_observation->item.velocity_x_q16 =
-        sim->world.item_velocity_x_q16;
-    out_observation->item.velocity_y_q16 =
-        sim->world.item_velocity_y_q16;
+    out_observation->item.position_x_f32 =
+        sim->world.item_position_x_f32;
+    out_observation->item.position_y_f32 =
+        sim->world.item_position_y_f32;
+    out_observation->item.velocity_x_f32 =
+        sim->world.item_velocity_x_f32;
+    out_observation->item.velocity_y_f32 =
+        sim->world.item_velocity_y_f32;
     out_observation->item.lifetime_ticks =
         sim->world.item_lifetime_ticks;
     out_observation->item.respawn_ticks =
@@ -533,14 +533,14 @@ pf_status pf_sim_observe(
     out_observation->item.throw_direction =
         sim->world.item_throw_direction;
     out_observation->item.hit_mask = sim->world.item_hit_mask;
-    out_observation->projectile.position_x_q16 =
-        sim->world.projectile_position_x_q16;
-    out_observation->projectile.position_y_q16 =
-        sim->world.projectile_position_y_q16;
-    out_observation->projectile.velocity_x_q16 =
-        sim->world.projectile_velocity_x_q16;
-    out_observation->projectile.velocity_y_q16 =
-        sim->world.projectile_velocity_y_q16;
+    out_observation->projectile.position_x_f32 =
+        sim->world.projectile_position_x_f32;
+    out_observation->projectile.position_y_f32 =
+        sim->world.projectile_position_y_f32;
+    out_observation->projectile.velocity_x_f32 =
+        sim->world.projectile_velocity_x_f32;
+    out_observation->projectile.velocity_y_f32 =
+        sim->world.projectile_velocity_y_f32;
     out_observation->projectile.lifetime_ticks =
         sim->world.projectile_lifetime_ticks;
     out_observation->projectile.state =
@@ -560,18 +560,18 @@ pf_status pf_sim_observe(
         player->previous_buttons =
             sim->world.previous_buttons[player_index] &
             PF_INPUT_KNOWN_BUTTONS;
-        player->position_x_q16 =
-            sim->world.position_x_q16[player_index];
-        player->position_y_q16 =
-            sim->world.position_y_q16[player_index];
-        player->velocity_x_q16 =
-            total_velocity_q16(
-                sim->world.velocity_x_q16[player_index],
-                sim->world.knockback_velocity_x_q16[player_index]);
-        player->velocity_y_q16 =
-            total_velocity_q16(
-                sim->world.velocity_y_q16[player_index],
-                sim->world.knockback_velocity_y_q16[player_index]);
+        player->position_x_f32 =
+            sim->world.position_x_f32[player_index];
+        player->position_y_f32 =
+            sim->world.position_y_f32[player_index];
+        player->velocity_x_f32 =
+            total_velocity_f32(
+                sim->world.velocity_x_f32[player_index],
+                sim->world.knockback_velocity_x_f32[player_index]);
+        player->velocity_y_f32 =
+            total_velocity_f32(
+                sim->world.velocity_y_f32[player_index],
+                sim->world.knockback_velocity_y_f32[player_index]);
         player->player_slot = (uint8_t)player_index;
         player->team = sim->world.team[player_index];
         player->grounded = sim->world.grounded[player_index];
@@ -597,16 +597,16 @@ pf_status pf_sim_observe(
             sim->world.facing[player_index],
             &player->shield_tilt_x,
             &player->shield_tilt_y);
-        player->shield_health_q16 =
-            sim->world.shield_health_q16[player_index];
+        player->shield_health_f32 =
+            sim->world.shield_health_f32[player_index];
         player->prone_orientation =
             sim->world.prone_orientation[player_index];
         player->stale_move_count =
             sim->world.stale_move_count[player_index];
         if (player->stale_move_count == UINT8_C(0))
         {
-            player->stale_move_multiplier_q16 =
-                (uint32_t)PF_Q16_ONE;
+            player->stale_move_multiplier_f32 =
+                (uint32_t)PF_F32_ONE;
         }
         else
         {
@@ -616,8 +616,8 @@ pf_status pf_sim_observe(
                     ? sim->world.hitlag_resume_action[player_index]
                     : sim->world.action_state[player_index];
 
-            player->stale_move_multiplier_q16 =
-                stale_move_multiplier_q16(
+            player->stale_move_multiplier_f32 =
+                stale_move_multiplier_f32(
                     &sim->content.fighter,
                     sim->world.stale_move_ids[player_index],
                     sim->world.stale_move_count[player_index],

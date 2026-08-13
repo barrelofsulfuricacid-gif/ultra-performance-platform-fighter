@@ -44,5 +44,5 @@ remain stable across the append-only compact-schema migrations.
 
 Gymnasium's scalar reward uses the configured `reward_player` (player 0 by
 default) and combines the bounded engagement-potential delta with the terminal
-match outcome. `info["player_rewards_q16"]` retains exact rewards for all four
+match outcome. `info["player_rewards_f32"]` retains exact rewards for all four
 slots, and `info["legal_buttons"]` retains the native 64-bit legal-input masks.

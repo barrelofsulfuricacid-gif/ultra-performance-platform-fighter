@@ -16,8 +16,8 @@
     "libmelee_version": "0.47.2",
     "execution_mode": "exiai-headless-null-unlimited",
     "row_count": 685,
-    "position_tolerance_q16": 640,
-    "velocity_tolerance_q16": 32
+    "position_tolerance_f32": 640,
+    "velocity_tolerance_f32": 32
   },
   "checkpoint_pack": {
     "capture_plan": {
@@ -54,12 +54,12 @@
       "facing",
       "grounded",
       "support",
-      "surface_normal_source_x_q16",
-      "surface_normal_source_y_q16",
-      "position_x_q16_from_origin",
-      "position_y_q16_from_origin",
-      "velocity_x_q16",
-      "velocity_y_q16"
+      "surface_normal_source_x_f32",
+      "surface_normal_source_y_f32",
+      "position_x_f32_from_origin",
+      "position_y_f32_from_origin",
+      "velocity_x_f32",
+      "velocity_y_f32"
     ],
     "cases": [
       {
@@ -69,7 +69,7 @@
         "sample_count": 137,
         "field_exclusions": {
           "action_ticks": [[0, 61], [111, 137]],
-          "velocity_y_q16": [[96, 97]]
+          "velocity_y_f32": [[96, 97]]
         },
         "input_phases": [
           {"ticks": 61, "lanes": [{}, {}]},
@@ -86,7 +86,7 @@
         "sample_count": 137,
         "field_exclusions": {
           "action_ticks": [[0, 61], [115, 137]],
-          "velocity_y_q16": [[96, 97]]
+          "velocity_y_f32": [[96, 97]]
         },
         "input_phases": [
           {"ticks": 61, "lanes": [{}, {}]},
@@ -135,7 +135,7 @@
         "sample_count": 137,
         "field_exclusions": {
           "action_ticks": [[0, 61], [121, 137]],
-          "velocity_y_q16": [[97, 98]]
+          "velocity_y_f32": [[97, 98]]
         },
         "input_phases": [
           {"ticks": 61, "lanes": [{}, {}]},

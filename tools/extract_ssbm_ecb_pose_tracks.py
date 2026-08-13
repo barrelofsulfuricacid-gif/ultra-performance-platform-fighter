@@ -13,7 +13,7 @@ from ssbm_ecb_pose import (
     ECB_POINTS,
     canonical_source_ecb,
     canonical_sha256,
-    pose_q16,
+    pose_f32,
     semantic_payload,
 )
 
@@ -68,13 +68,13 @@ def extract_track(
         source_ecb = canonical_source_ecb(
             captured_ecb(row, track_id), int(raw_facing)
         )
-        current_q16 = pose_q16(source_ecb)
+        current_f32 = pose_f32(source_ecb)
         existing = frames.get(displayed_frame)
         if existing is not None:
-            if existing["ecb_q16"] != current_q16:
+            if existing["ecb_f32"] != current_f32:
                 raise ValueError(
                     f"track {track_id!r} frame {displayed_frame} has "
-                    "non-deterministic Q16.16 ECB values"
+                    "non-deterministic float32 ECB values"
                 )
             continue
         if displayed_frame != last_new_frame + 1:
@@ -85,7 +85,7 @@ def extract_track(
         frames[displayed_frame] = {
             "displayed_frame": displayed_frame,
             "source_ecb": source_ecb,
-            "ecb_q16": current_q16,
+            "ecb_f32": current_f32,
         }
         last_new_frame = displayed_frame
 
@@ -155,9 +155,9 @@ def extract_cyclic_track(
         source_ecb = canonical_source_ecb(
             captured_ecb(row, track_id), int(facing)
         )
-        current_q16 = pose_q16(source_ecb)
+        current_f32 = pose_f32(source_ecb)
         existing = frames_by_index.get(current_frame)
-        if existing is not None and existing["ecb_q16"] != current_q16:
+        if existing is not None and existing["ecb_f32"] != current_f32:
             raise ValueError(
                 f"track {track_id!r} frame {current_frame} is non-deterministic"
             )
@@ -165,7 +165,7 @@ def extract_cyclic_track(
             frames_by_index[current_frame] = {
                 "displayed_frame": current_frame,
                 "source_ecb": source_ecb,
-                "ecb_q16": current_q16,
+                "ecb_f32": current_f32,
             }
     expected_frames = list(range(frame_count))
     if sorted(frames_by_index) != expected_frames:
@@ -303,7 +303,7 @@ def main() -> int:
         "coordinate_conversion": {
             "x_sim_units_per_melee_unit": "12/115",
             "y_sim_units_per_melee_unit": "11/62",
-            "rounding": "nearest-python-round",
+            "rounding": "ieee754-binary32",
         },
         "tracks": tracks,
     }

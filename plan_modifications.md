@@ -3,7 +3,7 @@
 ## 2026-08-12 - Falcon completion, native Battlefield, and reusable character import
 
 The active M4 outcome is now explicitly twofold: finish the Captain Falcon
-NTSC 1.02 simulation port under the existing exact-behavior/Q16.16 contract,
+NTSC 1.02 simulation port under the existing exact-behavior/float32 contract,
 and provide a native frontend in which the owner can playtest that simulation
 on Battlefield. A browser frontend remains useful, but it does not substitute
 for the required native Battlefield playtest path.
@@ -123,7 +123,7 @@ the same ordered per-frame inputs in Dolphin and the simulator for every
 applicable route. A passing current corpus proves only its captured routes.
 
 The owner explicitly accepts very small differences caused by the simulator's
-Q16.16 representation. The oracle therefore treats exact equivalence as
+float32 representation. The oracle therefore treats exact equivalence as
 behavioral: discrete state/action/timing, facing, grounded state, thresholds,
 and route selection remain strict, while numeric position or velocity
 tolerances must be narrow, recorded, and justified as fixed-point
@@ -166,7 +166,7 @@ The grounded-player-push route is qualified separately by a 540-frame
 Final Destination Falcon-versus-Falcon capture. It drives the approach from
 both controller ports and in both directions, compares both fighters' actions,
 action frames, facing, grounded state, positions, and self-induced velocities,
-and allows no more than one 0.3-unit push nudge plus the ordinary Q16.16
+and allows no more than one 0.3-unit push nudge plus the ordinary float32
 position envelope at the strict overlap boundary.
 
 The analog shield-input/health route is qualified separately by a 500-frame

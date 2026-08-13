@@ -181,13 +181,13 @@ static int verify_transition_contract(
             (uint32_t)player->stale_move_ids[7] |
             ((uint32_t)player->stale_move_ids[8] << 8U);
         if (transition->compact_observation.values[
-                base + UINT16_C(2)] != player->position_x_q16 ||
+                base + UINT16_C(2)] != player->position_x_f32 ||
             transition->compact_observation.values[
-                base + UINT16_C(3)] != player->position_y_q16 ||
+                base + UINT16_C(3)] != player->position_y_f32 ||
             transition->compact_observation.values[
-                base + UINT16_C(4)] != player->velocity_x_q16 ||
+                base + UINT16_C(4)] != player->velocity_x_f32 ||
             transition->compact_observation.values[
-                base + UINT16_C(5)] != player->velocity_y_q16 ||
+                base + UINT16_C(5)] != player->velocity_y_f32 ||
             transition->compact_observation.values[
                 base + PF_RL_COMPACT_PLAYER_STOCKS_OFFSET] !=
                 (int32_t)player->stocks_remaining ||
@@ -213,7 +213,7 @@ static int verify_transition_contract(
             transition->compact_observation.values[
                 PF_RL_COMPACT_SHIELD_HEALTH_BASE +
                 (uint16_t)player_index] !=
-                (int32_t)player->shield_health_q16 ||
+                (int32_t)player->shield_health_f32 ||
             transition->compact_observation.values[
                 PF_RL_COMPACT_SHIELD_TILT_BASE +
                 (uint16_t)(UINT16_C(2) *
@@ -228,7 +228,7 @@ static int verify_transition_contract(
             transition->compact_observation.values[
                 stale_base +
                 PF_RL_COMPACT_STALE_MOVE_MULTIPLIER_OFFSET] !=
-                (int32_t)player->stale_move_multiplier_q16 ||
+                (int32_t)player->stale_move_multiplier_f32 ||
             i32_bits(transition->compact_observation.values[
                 stale_base +
                 PF_RL_COMPACT_STALE_MOVE_COUNT_IDS_0_2_OFFSET]) !=
@@ -314,8 +314,8 @@ static int run_duel_test(const pf_content_view *content)
         transition.legal_buttons[0] != PF_INPUT_KNOWN_BUTTONS ||
         transition.legal_buttons[1] != PF_INPUT_KNOWN_BUTTONS ||
         transition.legal_buttons[2] != UINT64_C(0) ||
-        transition.reward_q16[0] != INT32_C(0) ||
-        transition.reward_q16[1] != INT32_C(0) ||
+        transition.reward_f32[0] != INT32_C(0) ||
+        transition.reward_f32[1] != INT32_C(0) ||
         transition.structured_observation.stock_count !=
             PF_SIM_DEFAULT_STOCK_COUNT ||
         transition.structured_observation.players[0].stocks_remaining !=
@@ -363,7 +363,7 @@ static int run_duel_test(const pf_content_view *content)
         transition.compact_observation.values[
             PF_RL_COMPACT_SHIELD_HEALTH_BASE] !=
             (int32_t)transition.structured_observation.players[0]
-                .shield_health_q16 ||
+                .shield_health_f32 ||
         transition.compact_observation.values[
             PF_RL_COMPACT_SHIELD_TILT_BASE] !=
             (int32_t)transition.structured_observation.players[0]
@@ -398,7 +398,7 @@ static int run_duel_test(const pf_content_view *content)
             (int)transition.structured_observation.players[0]
                 .shield_tilt_y,
             transition.structured_observation.players[0]
-                .shield_health_q16);
+                .shield_health_f32);
         return 0;
     }
 
@@ -479,10 +479,10 @@ static int run_duel_test(const pf_content_view *content)
     }
     if (transition.structured_observation.players[0].grounded !=
             UINT8_C(0) ||
-        transition.structured_observation.players[0].position_y_q16 <=
+        transition.structured_observation.players[0].position_y_f32 <=
             INT32_C(0) ||
-        transition.reward_q16[0] <= INT32_C(0) ||
-        transition.reward_q16[0] != transition.reward_q16[1] ||
+        transition.reward_f32[0] <= INT32_C(0) ||
+        transition.reward_f32[0] != transition.reward_f32[1] ||
         !expect_status(
             pf_sim_hash(sim, &before_invalid),
             PF_STATUS_OK,
@@ -496,9 +496,9 @@ static int run_duel_test(const pf_content_view *content)
             transition.structured_observation.tick,
             (unsigned int)transition.structured_observation.players[0]
                 .grounded,
-            transition.structured_observation.players[0].position_y_q16,
-            transition.reward_q16[0],
-            transition.reward_q16[1]);
+            transition.structured_observation.players[0].position_y_f32,
+            transition.reward_f32[0],
+            transition.reward_f32[1]);
         return 0;
     }
 
@@ -531,8 +531,8 @@ static int run_duel_test(const pf_content_view *content)
         transition.tick_result.completed_tick != UINT64_C(6) ||
         transition.tick_result.terminated != UINT8_C(1) ||
         transition.tick_result.winner_mask != UINT8_C(2) ||
-        transition.reward_q16[1] - transition.reward_q16[0] !=
-            INT32_C(2) * PF_Q16_ONE ||
+        transition.reward_f32[1] - transition.reward_f32[0] !=
+            INT32_C(2) * PF_F32_ONE ||
         transition.legal_buttons[0] != UINT64_C(0) ||
         transition.legal_buttons[1] != UINT64_C(0))
     {
@@ -545,8 +545,8 @@ static int run_duel_test(const pf_content_view *content)
             transition.tick_result.completed_tick,
             (unsigned int)transition.tick_result.terminated,
             (unsigned int)transition.tick_result.winner_mask,
-            transition.reward_q16[0],
-            transition.reward_q16[1],
+            transition.reward_f32[0],
+            transition.reward_f32[1],
             transition.legal_buttons[0],
             transition.legal_buttons[1]);
         return 0;
@@ -556,8 +556,8 @@ static int run_duel_test(const pf_content_view *content)
             pf_rl_step(sim, actions, (size_t)2, &transition),
             PF_STATUS_EPISODE_DONE,
             "duel-post-terminal") ||
-        transition.reward_q16[0] != INT32_C(0) ||
-        transition.reward_q16[1] != INT32_C(0))
+        transition.reward_f32[0] != INT32_C(0) ||
+        transition.reward_f32[1] != INT32_C(0))
     {
         (void)fprintf(
             stderr,
@@ -599,10 +599,10 @@ static int run_team_reward_test(const pf_content_view *content)
             PF_STATUS_OK,
             "team-forfeit") ||
         transition.tick_result.winner_mask != UINT8_C(5) ||
-        transition.reward_q16[0] != PF_Q16_ONE ||
-        transition.reward_q16[1] != -PF_Q16_ONE ||
-        transition.reward_q16[2] != PF_Q16_ONE ||
-        transition.reward_q16[3] != -PF_Q16_ONE)
+        transition.reward_f32[0] != PF_F32_ONE ||
+        transition.reward_f32[1] != -PF_F32_ONE ||
+        transition.reward_f32[2] != PF_F32_ONE ||
+        transition.reward_f32[3] != -PF_F32_ONE)
     {
         (void)fprintf(
             stderr,
@@ -625,10 +625,10 @@ static int run_team_reward_test(const pf_content_view *content)
             PF_STATUS_OK,
             "team-simultaneous-forfeit") ||
         transition.tick_result.winner_mask != UINT8_C(0) ||
-        transition.reward_q16[0] != INT32_C(0) ||
-        transition.reward_q16[1] != INT32_C(0) ||
-        transition.reward_q16[2] != INT32_C(0) ||
-        transition.reward_q16[3] != INT32_C(0))
+        transition.reward_f32[0] != INT32_C(0) ||
+        transition.reward_f32[1] != INT32_C(0) ||
+        transition.reward_f32[2] != INT32_C(0) ||
+        transition.reward_f32[3] != INT32_C(0))
     {
         (void)fprintf(
             stderr,
@@ -678,10 +678,10 @@ static int run_engagement_shaping_test(
             pf_rl_step(sim, actions, (size_t)2, &transition),
             PF_STATUS_OK,
             "shaping-separate") ||
-        transition.reward_q16[0] >= INT32_C(0) ||
-        transition.reward_q16[0] != transition.reward_q16[1] ||
-        transition.reward_q16[0] <
-            -PF_RL_ENGAGEMENT_POTENTIAL_LIMIT_Q16)
+        transition.reward_f32[0] >= INT32_C(0) ||
+        transition.reward_f32[0] != transition.reward_f32[1] ||
+        transition.reward_f32[0] <
+            -PF_RL_ENGAGEMENT_POTENTIAL_LIMIT_F32)
     {
         (void)fprintf(
             stderr,
@@ -809,8 +809,8 @@ static int run_batch_test(const pf_content_view *content)
         }
     }
     if (transitions[0].tick_result.terminated != UINT8_C(1) ||
-        transitions[0].reward_q16[0] != -PF_Q16_ONE ||
-        transitions[0].reward_q16[1] != PF_Q16_ONE)
+        transitions[0].reward_f32[0] != -PF_F32_ONE ||
+        transitions[0].reward_f32[1] != PF_F32_ONE)
     {
         (void)fprintf(
             stderr,
@@ -885,9 +885,9 @@ int main(void)
         spec.axis_maximum != INT16_MAX ||
         spec.trigger_minimum != UINT16_C(0) ||
         spec.trigger_maximum != UINT16_MAX ||
-        spec.terminal_reward_one_q16 != PF_Q16_ONE ||
-        spec.engagement_potential_limit_q16 !=
-            PF_RL_ENGAGEMENT_POTENTIAL_LIMIT_Q16)
+        spec.terminal_reward_one_f32 != PF_F32_ONE ||
+        spec.engagement_potential_limit_f32 !=
+            PF_RL_ENGAGEMENT_POTENTIAL_LIMIT_F32)
     {
         (void)fprintf(stderr, "rl-api=fail operation=spec-contract\n");
         return 1;
@@ -918,13 +918,13 @@ int main(void)
 
     (void)printf(
         "rl-api=pass compact_values=%u batch_environments=%u"
-        " reward_q16=%" PRId32
-        " engagement_limit_q16=%" PRId32
+        " reward_f32=%" PRId32
+        " engagement_limit_f32=%" PRId32
         " schema=%u\n",
         (unsigned int)PF_RL_COMPACT_VALUE_COUNT,
         (unsigned int)TEST_BATCH_ENVIRONMENTS,
-        PF_Q16_ONE,
-        PF_RL_ENGAGEMENT_POTENTIAL_LIMIT_Q16,
+        PF_F32_ONE,
+        PF_RL_ENGAGEMENT_POTENTIAL_LIMIT_F32,
         (unsigned int)PF_RL_SCHEMA_VERSION);
     return 0;
 }

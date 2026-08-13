@@ -15,7 +15,7 @@
     "target_pending_frame": 20,
     "target_result_action": "CAPTURE_CAPTAIN",
     "target_collision_hurtbox_id": 0,
-    "attacker_hit_spheres_q16": [
+    "attacker_hit_spheres_f32": [
       [39798, -57002, 0, 18698],
       [88431, -57002, 0, 29382]
     ]
@@ -108,10 +108,10 @@
         "target_source_submotion": "JUMP_FORWARD",
         "action_frame": 20,
         "source_frame": 20,
-        "geometry_q16": {
+        "geometry_f32": {
           "attacker_move": "UP_SPECIAL_AIR",
           "attacker_action_frame": 13,
-          "target_offset_q16": [34193, -4271],
+          "target_offset_f32": [34193, -4271],
           "attacker_facing": 1,
           "target_facing": -1,
           "grabbable_only": true
@@ -125,10 +125,10 @@
         "target_source_submotion": "JUMP_FORWARD",
         "action_frame": 20,
         "source_frame": 20,
-        "geometry_q16": {
+        "geometry_f32": {
           "attacker_move": "UP_SPECIAL_AIR",
           "attacker_action_frame": 13,
-          "target_offset_q16": [-6838, -4271],
+          "target_offset_f32": [-6838, -4271],
           "attacker_facing": 1,
           "target_facing": -1,
           "grabbable_only": true

@@ -108,11 +108,11 @@ static int make_item_content(
     {
         return 0;
     }
-    content->stage.spawn_spacing_q16 = PF_Q16_ONE;
+    content->stage.spawn_spacing_f32 = PF_F32_ONE;
     content->item.enabled = UINT8_C(1);
-    content->item.spawn_x_q16 = -PF_Q16_ONE / INT32_C(2);
-    content->item.spawn_y_q16 =
-        content->stage.floor_y_q16 - content->item.half_height_q16;
+    content->item.spawn_x_f32 = -PF_F32_ONE / INT32_C(2);
+    content->item.spawn_y_f32 =
+        content->stage.floor_y_f32 - content->item.half_height_f32;
     return expect_status(
         make_content_view(content, view),
         PF_STATUS_OK,
@@ -334,7 +334,7 @@ static int run_content_contract(void)
         return 0;
     }
     invalid = enabled;
-    invalid.item.spawn_y_q16 -= INT32_C(1);
+    invalid.item.spawn_y_f32 -= INT32_C(1);
     if (!expect_status(
             validate_content(&invalid),
             PF_STATUS_INVALID_CONFIG,
@@ -408,8 +408,8 @@ static int run_directional_throw_contract(
             inspection.item.hit_mask != UINT8_C(0) ||
             inspection.item.throw_direction !=
                 (uint8_t)PF_M4_ITEM_THROW_NONE ||
-            inspection.item.velocity_x_q16 != INT32_C(0) ||
-            inspection.item.velocity_y_q16 != INT32_C(0) ||
+            inspection.item.velocity_x_f32 != INT32_C(0) ||
+            inspection.item.velocity_y_f32 != INT32_C(0) ||
             !expect_status(
                 pf_sim_hash(sim, &grounded_drop_hash),
                 PF_STATUS_OK,
@@ -460,8 +460,8 @@ static int run_directional_throw_contract(
                 (unsigned int)inspection.item.holder,
                 (unsigned int)inspection.players[0].action_state,
                 (unsigned int)inspection.item.state,
-                inspection.item.velocity_x_q16,
-                inspection.item.velocity_y_q16);
+                inspection.item.velocity_x_f32,
+                inspection.item.velocity_y_f32);
             return fail("directional-throw");
         }
     }
@@ -618,13 +618,13 @@ static int run_glide_toss_contract(
     {
         return 0;
     }
-    glide_velocity = inspection.players[0].velocity_x_q16;
+    glide_velocity = inspection.players[0].velocity_x_f32;
     if (find_event(&result, PF_SIM_EVENT_ITEM_THROW) == NULL ||
         inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_ITEM_THROW ||
         glide_velocity <= INT32_C(0) ||
-        inspection.item.velocity_x_q16 <=
-            content->item.forward_throw.velocity_x_q16)
+        inspection.item.velocity_x_f32 <=
+            content->item.forward_throw.velocity_x_f32)
     {
         return fail("glide-toss-positive");
     }
@@ -718,14 +718,14 @@ static int run_jump_cancel_throw_contract(
             (unsigned int)inspection.item.state);
         return 0;
     }
-    jump_cancel_velocity = inspection.players[0].velocity_x_q16;
+    jump_cancel_velocity = inspection.players[0].velocity_x_f32;
     if (find_event(&result, PF_SIM_EVENT_ITEM_THROW) == NULL ||
         inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_ITEM_THROW ||
         inspection.players[0].grounded != UINT8_C(1) ||
-        jump_cancel_velocity <= content->item.dash_throw_speed_q16 ||
-        inspection.item.velocity_x_q16 <=
-            content->item.forward_throw.velocity_x_q16)
+        jump_cancel_velocity <= content->item.dash_throw_speed_f32 ||
+        inspection.item.velocity_x_f32 <=
+            content->item.forward_throw.velocity_x_f32)
     {
         return fail("jump-cancel-throw-positive");
     }
@@ -787,12 +787,12 @@ static int run_aerial_drop_contract(
     for (guard = UINT32_C(0); guard < UINT32_C(80); ++guard)
     {
         const int64_t delta =
-            (int64_t)inspection.item.position_x_q16 -
-            (int64_t)inspection.players[1].position_x_q16;
+            (int64_t)inspection.item.position_x_f32 -
+            (int64_t)inspection.players[1].position_x_f32;
 
         if (inspection.players[0].grounded == UINT8_C(0) &&
-            delta >= -(int64_t)(PF_Q16_ONE / INT32_C(2)) &&
-            delta <= (int64_t)(PF_Q16_ONE / INT32_C(2)))
+            delta >= -(int64_t)(PF_F32_ONE / INT32_C(2)) &&
+            delta <= (int64_t)(PF_F32_ONE / INT32_C(2)))
         {
             break;
         }
@@ -818,7 +818,7 @@ static int run_aerial_drop_contract(
         {
             hit_seen = hit->source_player == UINT8_C(0) &&
                        hit->target_player == UINT8_C(1) &&
-                       hit->value_q16 == UINT32_C(7) * UINT32_C(65536);
+                       hit->value_f32 == UINT32_C(7) * UINT32_C(65536);
             break;
         }
         if (!neutral_step(sim, &result, &inspection))
@@ -827,9 +827,9 @@ static int run_aerial_drop_contract(
         }
     }
     if (hit_seen == 0 ||
-        inspection.players[1].damage_q16 !=
+        inspection.players[1].damage_f32 !=
             UINT32_C(7) * UINT32_C(65536) ||
-        inspection.item.velocity_y_q16 >= INT32_C(0) ||
+        inspection.item.velocity_y_f32 >= INT32_C(0) ||
         inspection.item.hit_mask != UINT8_C(2) ||
         inspection.item.stale_registered != UINT8_C(1) ||
         inspection.players[0].stale_move_count != UINT8_C(1) ||
@@ -842,11 +842,11 @@ static int run_aerial_drop_contract(
             " item_x=%" PRId32 " item_y=%" PRId32
             " target_x=%" PRId32 " target_y=%" PRId32 "\n",
             hit_seen,
-            inspection.players[1].damage_q16,
-            inspection.item.position_x_q16,
-            inspection.item.position_y_q16,
-            inspection.players[1].position_x_q16,
-            inspection.players[1].position_y_q16);
+            inspection.players[1].damage_f32,
+            inspection.item.position_x_f32,
+            inspection.item.position_y_f32,
+            inspection.players[1].position_x_f32,
+            inspection.players[1].position_y_f32);
         return fail("aerial-drop-hit");
     }
 
@@ -877,7 +877,7 @@ static int run_aerial_drop_contract(
             return 0;
         }
     }
-    if (inspection.players[1].damage_q16 != UINT32_C(0))
+    if (inspection.players[1].damage_f32 != UINT32_C(0))
     {
         return fail("aerial-drop-spacing-negative");
     }
@@ -1099,10 +1099,10 @@ static int run_save_replay_rl_contract(
             "item-rl-reset") ||
         transition.structured_observation.item.state !=
             (uint8_t)PF_M4_ITEM_STATE_GROUND ||
-        transition.structured_observation.item.position_x_q16 !=
-            content->item.spawn_x_q16 ||
+        transition.structured_observation.item.position_x_f32 !=
+            content->item.spawn_x_f32 ||
         transition.compact_observation.values[
-            PF_RL_COMPACT_ITEM_BASE] != content->item.spawn_x_q16 ||
+            PF_RL_COMPACT_ITEM_BASE] != content->item.spawn_x_f32 ||
         (uint32_t)transition.compact_observation.values[
             PF_RL_COMPACT_ITEM_BASE +
             PF_RL_COMPACT_ITEM_STATE_BITS_OFFSET] !=
@@ -1156,7 +1156,7 @@ static int run_reset_contract(
     }
     if (wait_seen == 0 || reset_seen == 0 ||
         inspection.item.state != (uint8_t)PF_M4_ITEM_STATE_GROUND ||
-        inspection.item.position_x_q16 != content.item.spawn_x_q16 ||
+        inspection.item.position_x_f32 != content.item.spawn_x_f32 ||
         inspection.item.lifetime_ticks != content.item.lifetime_ticks)
     {
         return fail("item-despawn-reset");

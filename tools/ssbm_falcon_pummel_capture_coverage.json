@@ -12,7 +12,7 @@
     "pummel_active_frame": 4,
     "capture_wait_action_frames": [0, 34],
     "capture_damage_action_frames": [0, 19],
-    "capture_offset_q16": [53806, 0]
+    "capture_offset_f32": [53806, 0]
   },
   "selection": {
     "paths": [
@@ -105,10 +105,10 @@
         "target_source_submotion": "CAPTURE_WAIT_HIGH",
         "action_frame": 9,
         "source_frame": 9,
-        "geometry_q16": {
+        "geometry_f32": {
           "attacker_move": "PUMMEL",
           "attacker_action_frame": 4,
-          "target_offset_q16": [53806, 0],
+          "target_offset_f32": [53806, 0],
           "attacker_facing": 1,
           "target_facing": -1,
           "grabbable_only": false
@@ -122,10 +122,10 @@
         "target_source_submotion": "CAPTURE_WAIT_HIGH",
         "action_frame": 9,
         "source_frame": 9,
-        "geometry_q16": {
+        "geometry_f32": {
           "attacker_move": "PUMMEL",
           "attacker_action_frame": 4,
-          "target_offset_q16": [709166, 0],
+          "target_offset_f32": [709166, 0],
           "attacker_facing": 1,
           "target_facing": -1,
           "grabbable_only": false

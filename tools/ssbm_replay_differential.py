@@ -793,7 +793,7 @@ def native_input(
     return ",".join(str(value) for value in values)
 
 
-def scale_q16(value: float, scale: dict[str, Any]) -> int:
+def scale_f32(value: float, scale: dict[str, Any]) -> int:
     sign = -1.0 if bool(scale.get("invert", False)) else 1.0
     return round(
         value
@@ -1177,25 +1177,25 @@ def expected_row(
         "action_state": target_action,
         "facing": int(post["facingDirection"]) * mirror,
         "grounded": int(grounded),
-        "position_x_q16_from_origin": scale_q16(
+        "position_x_f32_from_origin": scale_f32(
             (float(post["positionX"]) - anchor_x) * mirror,
             profile["source_to_target_x_scale"],
         ),
-        "position_y_q16_from_origin": scale_q16(
+        "position_y_f32_from_origin": scale_f32(
             float(post["positionY"]) - anchor_y,
             profile["source_to_target_y_scale"],
         ),
-        "velocity_x_q16": (
+        "velocity_x_f32": (
             None
             if velocity_x is None
-            else scale_q16(
+            else scale_f32(
                 velocity_x * mirror, profile["source_to_target_x_scale"]
             )
         ),
-        "velocity_y_q16": (
+        "velocity_y_f32": (
             None
             if velocity_y is None
-            else scale_q16(velocity_y, profile["source_to_target_y_scale"])
+            else scale_f32(velocity_y, profile["source_to_target_y_scale"])
         ),
     }
 
@@ -1207,10 +1207,10 @@ def actual_row(row: dict[str, str]) -> dict[str, int]:
         "action_ticks",
         "facing",
         "grounded",
-        "position_x_q16_from_origin",
-        "position_y_q16_from_origin",
-        "velocity_x_q16",
-        "velocity_y_q16",
+        "position_x_f32_from_origin",
+        "position_y_f32_from_origin",
+        "velocity_x_f32",
+        "velocity_y_f32",
     )
     try:
         return {field: int(row[field]) for field in fields}
@@ -1229,11 +1229,11 @@ def compare_rows(
             differences.append(
                 f"{field} expected={expected[field]} actual={actual[field]}"
             )
-    position_tolerance = int(profile["comparison"]["position_tolerance_q16"])
-    velocity_tolerance = int(profile["comparison"]["velocity_tolerance_q16"])
+    position_tolerance = int(profile["comparison"]["position_tolerance_f32"])
+    velocity_tolerance = int(profile["comparison"]["velocity_tolerance_f32"])
     for field in (
-        "position_x_q16_from_origin",
-        "position_y_q16_from_origin",
+        "position_x_f32_from_origin",
+        "position_y_f32_from_origin",
     ):
         delta = int(actual[field]) - int(expected[field])
         if abs(delta) > position_tolerance:
@@ -1241,7 +1241,7 @@ def compare_rows(
                 f"{field} expected={expected[field]} actual={actual[field]} "
                 f"delta={delta} tolerance={position_tolerance}"
             )
-    for field in ("velocity_x_q16", "velocity_y_q16"):
+    for field in ("velocity_x_f32", "velocity_y_f32"):
         if expected[field] is None:
             continue
         delta = int(actual[field]) - int(expected[field])
@@ -1266,10 +1266,10 @@ def comparison_trail(
             "source_action_counter": expected[index]["source_action_counter"],
             "target_action": actual[index]["action_state"],
             "target_action_ticks": actual[index]["action_ticks"],
-            "source_x_q16": expected[index]["position_x_q16_from_origin"],
-            "target_x_q16": actual[index]["position_x_q16_from_origin"],
-            "source_y_q16": expected[index]["position_y_q16_from_origin"],
-            "target_y_q16": actual[index]["position_y_q16_from_origin"],
+            "source_x_f32": expected[index]["position_x_f32_from_origin"],
+            "target_x_f32": actual[index]["position_x_f32_from_origin"],
+            "source_y_f32": expected[index]["position_y_f32_from_origin"],
+            "target_y_f32": actual[index]["position_y_f32_from_origin"],
         }
         for index in range(start, end_index + 1)
     ]
@@ -1423,7 +1423,7 @@ def compare_segment(
         )
     velocity_fields_available = {
         axis: sum(row[axis] is not None for row in expected)
-        for axis in ("velocity_x_q16", "velocity_y_q16")
+        for axis in ("velocity_x_f32", "velocity_y_f32")
     }
     return {
         "replay": replay_path.name,
@@ -1449,7 +1449,7 @@ def compare_segment(
         "field_coverage": {
             "strict": ["mapped_action", "facing", "grounded"],
             "q16_tolerant": ["relative_position_x", "relative_position_y"],
-            "conditional_q16_tolerant_samples": velocity_fields_available,
+            "conditional_f32_tolerant_samples": velocity_fields_available,
             "observed_not_compared": [
                 "source_action_counter",
                 "target_action_ticks",

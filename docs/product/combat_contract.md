@@ -153,7 +153,7 @@ attack completes. Being hit, losing a stock, or any other action interruption
 clears it. Active attack data is frozen before target reactions, so both sides
 of a simultaneous charged trade retain the charge they had when their hitboxes
 overlapped regardless of player-slot order. The default 60-tick maximum adds
-a linearly scaled Q16.16 damage
+a linearly scaled float32 damage
 bonus up to 50%; direct strong attacks keep a zero counter and base damage.
 Content validation rejects a zero or excessive charge cap, a bonus outside
 the accepted range, and any authored directional strong whose maximum charged
@@ -230,7 +230,7 @@ units.
 
 Across 180 production ticks, seven legal fire actions produce six projectile
 hits. Player 0 takes zero damage and the minimum center separation remains
-693,712 Q16.16 units (about 10.58 world units), so the tactic demonstrably
+693,712 float32 units (about 10.58 world units), so the tactic demonstrably
 keeps the active responder outside melee range. The anti-camp control resets
 the identical content and opponent policy but omits Special; Player 1 then
 closes the gap and lands three ordinary physical hits. Both traces reject an
@@ -479,7 +479,7 @@ the visible input age but cannot V-cancel. This composes the canonical trigger
 age and tech-lockout fields without adding a V-cancel action or mutable flag.
 
 A successful V-cancel multiplies both pending launch components by the
-data-defined Q16.16 scale, 95% by default. Hitstun and tumble are computed from
+data-defined float32 scale, 95% by default. Hitstun and tumble are computed from
 the ordinary launch first and remain unchanged. The typed hit event reports the
 scaled vector, so save/load, replay, browser, and verifier paths observe the
 same deterministic result. See the
@@ -489,14 +489,14 @@ same deterministic result. See the
 
 A grounded defender that is already in `CROUCH` when an eligible physical hit
 connects can reduce its reaction while its resulting damage remains at or below
-the authored Q16.16 ceiling, 40% by default. The inclusive boundary is evaluated
+the authored float32 ceiling, 40% by default. The inclusive boundary is evaluated
 after damage is applied. Ordinary fighter, Relay Rod, and Pulse Bolt hits can
 qualify; throws, shield interactions, armor/reset reactions, airborne targets,
 released-down input, and hits that cross the ceiling cannot.
 
 Damage, attribution, and the attack's authored hitlag are unchanged. Both
 pending launch components and computed hitstun are multiplied by independent
-data-defined Q16.16 scales, each 2/3 by default; a nonzero hitstun result retains
+data-defined float32 scales, each 2/3 by default; a nonzero hitstun result retains
 a one-tick minimum. Tumble is derived from the scaled hitstun. The typed event
 reports the scaled vector and sets `PF_SIM_EVENT_FLAG_CROUCH_CANCEL`, allowing
 replay verification, the browser feed, and external verifiers to distinguish
@@ -509,7 +509,7 @@ standing-versus-crouched comparison into its existing reaction probe.
 
 ## Victim weight
 
-The fighter table authors a positive Q16.16 victim weight, 1.0 by default and
+The fighter table authors a positive float32 victim weight, 1.0 by default and
 validated inside the inclusive 0.5–2.0 M4 precursor range. Every unblocked
 damage-and-launch producer enters one shared target reaction path: fighter
 attacks, Relay Rod hits, Pulse Bolt hits, Prism Burst, Arc Reservoir releases,
@@ -562,7 +562,7 @@ while all timing and fighter data remain original placeholders.
 
 ## Damage, hitlag, launch, and hitstun
 
-Damage is unsigned Q16.16 percent and saturates at 999%. The default light jab
+Damage is unsigned float32 percent and saturates at 999%. The default light jab
 adds 6%; the default strong attack adds 12%. Launch uses post-hit damage:
 
 - horizontal launch is facing-signed base X plus damage-scaled growth;
@@ -586,7 +586,7 @@ collision continue.
 
 Falcon-reference content additionally follows the imported common grounded
 damage branch. A grounded non-upward launch projects into a distinct
-`ground_knockback_velocity_q16` channel corresponding to Melee's
+`ground_knockback_velocity_f32` channel corresponding to Melee's
 `xF0_ground_kb_vel`; Falcon's friction decays that scalar before it is copied
 to the flat-floor `x8c` vector and integrated. The source damage-level
 threshold selects `DAMAGE_LOW_1`, `DAMAGE_LOW_2`, or `DAMAGE_LOW_3`, and the
@@ -829,7 +829,7 @@ boundary; an idle tap has no horizontal travel.
 
 An active shield has its own deterministic axis-aligned collision volume; the
 fighter hurtbox is no longer used as a stand-in. The data-defined default
-unscaled half extents are 0.8 horizontally and 1.4 vertically. Its Q16.16 size
+unscaled half extents are 0.8 horizontally and 1.4 vertically. Its float32 size
 is derived every tick without adding redundant bounds to canonical state:
 
 `size = 0.15 + 0.85 * (shield_health / 60) * density`
@@ -1284,7 +1284,7 @@ production action `JAB FINAL`.
 The production [jab-reset/lock](https://www.ssbwiki.com/Spooky_stun) route
 begins only when a physical hit reaches a vulnerable target already in
 `DOWN_WAIT` or `RESET_BOUND`. The hit qualifies when its independently authored
-damage is no more than `reset_max_damage_q16` (7% by default) and its computed
+damage is no more than `reset_max_damage_f32` (7% by default) and its computed
 hitstun is no more than `reset_max_hitstun_ticks` (12 by default). Both limits
 are inclusive. A hit above either limit follows the ordinary hit-reaction path;
 the 13-hitstun boundary tumbles under the focused fixture rather than silently
@@ -1569,7 +1569,7 @@ two-frame horizontal stick-tilt timing for a normal controller flick. A direct
 neutral-to-`dash_axis_threshold` sample enters `INITIAL_DASH`; any first sample
 above the movement threshold may reach the dash threshold on the following tick
 and also dash. If the stick takes a third sample or longer to reach the dash
-threshold, `WALK` remains active and full horizontal targets `walk_speed_q16`,
+threshold, `WALK` remains active and full horizontal targets `walk_speed_f32`,
 producing the fastest analog walk rather than `RUN`. Returning to the dead zone
 resets the route, and a fresh quick motion can dash again. A direct fast
 reversal starts a new directional window. This is the pinned decomp's
@@ -1662,7 +1662,7 @@ two-tick shortcut.
 
 ## Teeter-cancel contract
 
-The original fighter authors `teeter_snap_distance_q16=0.4` and
+The original fighter authors `teeter_snap_distance_f32=0.4` and
 `teeter_ticks=30`. Following the researched
 [teeter-cancel route](https://www.ssbwiki.com/Teeter_cancel), neutral
 horizontal input converts grounded residual momentum that crosses the facing
@@ -1686,7 +1686,7 @@ independent `teeter_cancel_probe` before readiness.
 
 ## Stage-humping crouch-step contract
 
-The original fighter authors `crouch_step_speed_q16=0.1` and
+The original fighter authors `crouch_step_speed_f32=0.1` and
 `crouch_step_ticks=1`. Following the repeated crouch-step basis of researched
 [Stage humping](https://www.ssbwiki.com/Stage_humping), a fresh diagonal-down
 edge from `GROUND_IDLE` or `CROUCH` enters explicit `CROUCH_STEP`, faces the
@@ -1735,8 +1735,8 @@ an independent `taunt_cancel_probe` before readiness.
 
 ## Scar-Jump and normal-wall-jump contract
 
-The original fighter authors `wall_jump_speed_x_q16=0.3`,
-`wall_jump_speed_y_q16=-0.5`, `wall_jump_ticks=24`,
+The original fighter authors `wall_jump_speed_x_f32=0.3`,
+`wall_jump_speed_y_f32=-0.5`, `wall_jump_ticks=24`,
 `wall_jump_invulnerability_ticks=4`, and `wall_jump_enabled=1`. A fresh full
 direction away from an exact solid-wall contact enters explicit `WALL_JUMP`,
 launches away and upward, and preserves the fighter's remaining air jump.
@@ -1791,8 +1791,8 @@ Before an attack applies damage, its multiplier is one minus the authored
 reduction for every queue slot that contains the same canonical ID. The default
 newest-to-oldest reductions are generated from `PlCo.dat`'s
 `Fighter_804D6548` table: 9%, 8%, 7%, 6%, 5%, 4%, 3%, 2%, and 1%, represented
-as 5,898, 5,243, 4,588, 3,932, 3,277, 2,621, 1,966, 1,311, and 655 in Q16.16.
-Their maximum combined reduction is 45%, modulo the documented Q16.16
+as 5,898, 5,243, 4,588, 3,932, 3,277, 2,621, 1,966, 1,311, and 655 in float32.
+Their maximum combined reduction is 45%, modulo the documented float32
 representation envelope, and multiplication uses the existing deterministic
 integer floor. Content
 validation requires every reduction to be positive and strictly descending and
@@ -1845,7 +1845,7 @@ contain 86 values. Opaque requirements are 2,368 state bytes and 1,040 scratch
 bytes inside the unchanged 4 KiB caller envelopes.
 
 Content schema 48/fighter schema 43 append and hash the authored
-`shield_sdi_scale_q16`; its default is exactly 33/50 and validation accepts only
+`shield_sdi_scale_f32`; its default is exactly 33/50 and validation accepts only
 the range `(0, 1]`. This is immutable design data, so state schema 45/save
 format 44, inspection/observation/RL/browser layouts, the 726-byte checkpoint,
 and the state/scratch requirements remain unchanged.
@@ -2201,7 +2201,7 @@ of up to 16 typed events. Current combat and match producers emit:
 Each fixed 32-byte record contains the processed input tick, match-monotonic
 sequence, source/target slots, 32-bit value and signed velocity fields, flags,
 and a type-specific detail. Combat records normally interpret those numeric
-fields as Q16.16; action transitions use their raw packed-byte representation.
+fields as float32; action transitions use their raw packed-byte representation.
 Player `255` means system/no player. Target resolution
 and event order follow stable slot order, with match resolution last.
 
@@ -2229,7 +2229,7 @@ and event order follow stable slot order, with match resolution last.
 | Match result | Zero | Winner mask |
 | Forfeit | Zero | Nonzero forfeiting-player mask |
 | Time limit | Zero | Zero |
-| Action transitions | Four final action bytes / four previous action bytes in `velocity_x_q16`; `velocity_y_q16` zero | Nonzero changed-player mask |
+| Action transitions | Four final action bytes / four previous action bytes in `velocity_x_f32`; `velocity_y_f32` zero | Nonzero changed-player mask |
 
 The tumble flag annotates a hit; eliminated/last-stock annotate a KO; and
 sudden-death annotates setup, respawn, KO, and result events where applicable.

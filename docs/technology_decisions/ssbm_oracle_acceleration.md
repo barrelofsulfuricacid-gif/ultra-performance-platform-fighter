@@ -198,8 +198,8 @@ Two independent runs produced the same canonical pose digest,
 `3a1b182dc64ee6db6caa7cc316c633e3330a9001344ca88f5cd57a441b48cdf1`,
 and identical live margins: `+0.289212401` for the hit and `-0.156798480` for
 the miss. Compared with the accepted 4,198-row artifact, all 255 poses pass the
-documented Q16.16 comparison; 24 poses contain 30 component differences and
-every difference is exactly one Q16.16 least-significant bit. Five fully
+documented float32 comparison; 24 poses contain 30 component differences and
+every difference is exactly one float32 least-significant bit. Five fully
 verified warm runs take 2.635-2.729 seconds and pass the manifest's
 three-second changed-domain budget. Lifecycle instrumentation
 showed that the apparent 18-21-second cold invocation was not primarily
@@ -319,7 +319,7 @@ provenance review.
 
 Wall-clock data is emitted on stderr and is not part of authoritative JSON.
 Idle animation phase can vary between otherwise equivalent boots, so the
-verifier pins the ordered action/frame/Q16.16 payload and explicit physical
+verifier pins the ordered action/frame/float32 payload and explicit physical
 discriminator instead of hashing incidental idle rows.
 
 The registry currently contains 31 domains and 186 cases. Independent domain

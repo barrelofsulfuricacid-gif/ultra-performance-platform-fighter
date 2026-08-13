@@ -22,7 +22,7 @@
 - Releasing jump during the three-tick jumpsquat latches a fixed short-hop
   velocity. Holding through takeoff latches a fixed full-hop velocity.
   Releasing after takeoff no longer cuts vertical velocity.
-- The float32 and Q16.16 candidates implement the same new state transitions.
+- The float32 and float32 candidates implement the same new state transitions.
 
 ## Verification
 

@@ -243,7 +243,7 @@ stale compatibility identity.
 The same importer now reads the complete 97-word `ftCo_DatAttrs` common-
 attribute payload and the complete 0x8c-byte, 35-field
 `ftCaptain_DatAttrs` special-attribute payload directly from the pinned raw
-DAT. It preserves all raw common words and exposes a typed, generated Q16.16
+DAT. It preserves all raw common words and exposes a typed, generated float32
 view for every common field currently consumed by the simulation: walk,
 dash/run, traction, jump, double jump, gravity/fall/fast fall, air mobility,
 ledge/wall jump, shield-break launch, weight, jump startup, and landing lags.
@@ -311,7 +311,7 @@ and standing return.
 A separate complete-state capture at SHA-256
 `86e0abff2d1de0483e25ef8db045da323a35331bf95fb7089b00283233b4fc8e`
 supplies all displayed frames 0 through 44 of `SpecialAirS`'s live ECB bottom.
-The generated 45-entry Q16.16 table delays floor contact by the exact one frame
+The generated 45-entry float32 table delays floor contact by the exact one frame
 observed in the natural route and retains incoming vertical velocity on the
 first landing row. Both miss paths enter the same imported
 eight-frame common `FallSpecial` ECB-bottom cycle used by Falcon Dive through
@@ -524,7 +524,7 @@ FallSpecial frame 1-8, and speed-scaled LandingFallSpecial source frames
 1, 4, 7, 10, 13, 16, 19, 22, 25, and 28, plus ordinary Landing frames 1-30.
 Its
 controller-port cross-check requires both live poses to canonicalize to the
-same Falcon Q16.16 capsules; capture metadata alone is not accepted as proof
+same Falcon float32 capsules; capture metadata alone is not accepted as proof
 that the menu spawned the requested character. The ExiAI path is separately
 qualified against an unaccelerated same-binary control at SHA-256
 `32a0a742012f360c1e49b27d2fb2023e16eac5af23694b032a3777d41ad16a9d`;
@@ -678,14 +678,14 @@ route specifically detects the exact crouch pose. The verifier also hash-pins
 The source executable's moving-hit
 path is now production-routed: previous and current hit centers form one 3D
 capsule and intersect the current hurt or shield capsule using a portable
-allocation-free Q16.16 closest-segment predicate. A 274-frame Slippi Dolphin
+allocation-free float32 closest-segment predicate. A 274-frame Slippi Dolphin
 3.5.1 capture, SHA-256
 `d8599ecc80efc567d579d9c3df9c10c70f89909dc38358ad29d602ca6ed3f4ea`,
 hash-pins the same decomp revision and NTSC 1.02 disc. At 27.4 Melee units,
 Falcon down tilt frame 12 deals 12% even though the current sphere misses by
 0.451734762 units; the `x58`-to-`x4C` sweep overlaps by 0.692950483. The
 28.3-unit control remains a miss with margins -1.178471136 and -0.182688971.
-Production Q16.16 tests reproduce both decisions. Custom authored content may
+Production float32 tests reproduce both decisions. Custom authored content may
 opt out of reference geometry explicitly; default Falcon-counterpart content
 opts in.
 
@@ -730,7 +730,7 @@ An independent recapture produced a different raw JSON hash because unused
 single-precision memory samples vary below the retained fixed-point precision.
 After conversion, every numeric table row was byte-identical to the pinned
 capture (apart from the provenance hash comment), bounding that recapture
-difference to discarded/Q16.16-level data rather than gameplay geometry.
+difference to discarded/float32-level data rather than gameplay geometry.
 
 Falcon Dive uses the imported ground/air start, catch, and throw subactions,
 command timelines, special attributes, root translation, grab spheres, hurt
@@ -787,7 +787,7 @@ the 206-row aerial capture has SHA-256
 Both memory-probe the live ECB and expose `FallSpecial`'s complete repeating
 bottom sequence as 2.306158066, 2.111962318, 2.465172768, 2.718437672,
 2.784078598, 2.765646696, 2.499094248, and 2.226554394 Melee units above the
-fighter origin. The generated eight-entry Q16.16 array is consumed directly
+fighter origin. The generated eight-entry float32 array is consumed directly
 by floor collision. The grounded transition also proves that
 `LandingFallSpecial` retains the incoming -2.426290512 vertical velocity on
 its first displayed row and clears it on the next row. The at-will verifier
@@ -1056,7 +1056,7 @@ The canonical big-endian stream of `(u32 action frame, f32 ECB bottom Y)` has
 SHA-256
 `90060e614f359189c32b25d76b780b3fa92861dfdcfae0fd357dcc07ec10e6f8`.
 `tools/import_ssbm_falcon_frame_data.py` pins both identities and converts all
-30 samples once to `platform_drop_bottom_y_from_origin_q16`; runtime indexing
+30 samples once to `platform_drop_bottom_y_from_origin_f32`; runtime indexing
 is allocation-free and uses the existing canonical source-submotion clock.
 The resulting complete Falcon source SHA-256 was
 `147520a32bd20dc99dc2f326f52f8fcfc56c57058cf99669c762eea0c776720a`
@@ -1076,7 +1076,7 @@ The canonical big-endian stream of `(u32 displayed frame, f32 ECB bottom Y)`
 has SHA-256
 `6db927d319942e07d90ba6dd30aad39ad40bb42ab3cc09d498ea2587bfe233bb`.
 The generator pins both identities and emits the complete immutable 35-sample
-Q16.16 table. Runtime selects it through retained source submotion JumpF rather
+float32 table. Runtime selects it through retained source submotion JumpF rather
 than the coalesced public `AIRBORNE` action. Exact imported poses use the normal
 previous-to-current platform sweep; only approximate poses retain the bounded
 one-update compatibility path.
@@ -1094,7 +1094,7 @@ JumpAerialF 50, JumpAerialB 35, Fall 8, and FallAerial 8 displayed poses. The
 The six-track profile and canonical `(action, displayed frame, ECB)` stream are
 `407a62269b2aa65002bb4a78152f12a49b56d36d8b68a684c6d55a11ce69a1ba`
 and `21a2d02fbb3abfcd9c29bb170c4c378fc8972fe191098fb5587140e965dac25a`.
-The generator packs all 186 bottom samples into immutable Q16.16 data and the
+The generator packs all 186 bottom samples into immutable float32 data and the
 allocation-free source-submotion accessor selects the exact track in O(1).
 The resulting complete Falcon source SHA-256 is
 `a71076ea7bb97215e95afdf2be5b395791ab34cb28ca3c60fe478d026e48d51c`;
@@ -1130,12 +1130,12 @@ complete table; the prior 12-frame Dive-only JumpF table was deleted.
 Three independent owner captures in
 `build/oracle/falcon-slope-ledge-response-qualified.json` and its two fresh
 repetitions expose the same 24 displayed DamageFlyN ECB frames. Canonical
-Q16.16 `(frame, top, bottom, side X, side Y)` SHA-256 is
+float32 `(frame, top, bottom, side X, side Y)` SHA-256 is
 `9efade94dbd61446decfabeedce910e4a2823bfc65299b7ecb4cb31fb368eee1`;
 the previously pinned raw bottom-only stream remains
 `d011c9bb79f93840d1d97bf241b754cedf5669c2578c9f1f7f85b45a3f6bd84`.
 `tools/import_ssbm_falcon_frame_data.py` owns the complete arrays and converts
-source X/Y distances once into immutable Q16.16 top, bottom, side-X, and side-Y
+source X/Y distances once into immutable float32 top, bottom, side-X, and side-Y
 tables. Runtime selects the frame through the shared DamageFly action clock and
 performs no allocation or float work.
 
@@ -1155,7 +1155,7 @@ the reviewed production trace SHA-256 is
 `107ea657a7bad069ea8ee02cb98306dd116b78838c8e6899a4adf9ff6fcf0982`.
 The comparator binds the source stage catalog, selected line/normal, action and
 display clocks, hitstun/tumble/invulnerability, self and damage velocity, and
-relative position with only the documented Q16.16 allowances.
+relative position with only the documented float32 allowances.
 
 ## Falcon reflected-action ECB and floor re-contact
 
@@ -1166,7 +1166,7 @@ begins, with self and knockback velocity reset to zero at source position
 `tools/extract_ssbm_ecb_pose_tracks.py` canonicalizes facing-right and rejects
 non-contiguous or conflicting repeated displayed frames. Its compact profile
 contains all nine observable `BOUNCE_CEILING` poses and all 51
-`BOUNCE_WALL` poses under profile/semantic Q16.16 identities
+`BOUNCE_WALL` poses under profile/semantic float32 identities
 `d6ccb5701f0bada0d7de1874004281e8ca46fcc0070db94e529d84d3fc637608`
 and `9d162fe7917f0c23894ad1fe54a1a665d5c8e446d5ca439180811d706b2431a5`.
 
@@ -1303,7 +1303,7 @@ persistent state. The gray model SHA-256 is
 that checkpoint's generated semantic data SHA-256 was
 `c8a4f062eb8a35d12d3ea2fa0787a76211bcee3d7379a6bd7c51b71d2cdd07ee`.
 The shared runtime evaluator implements the HSD FObj interpolation and Euler
-SRT hierarchy in deterministic Q16.16. In particular, it follows
+SRT hierarchy in deterministic float32. In particular, it follows
 `HSD_FObjReqAnim` by adding each FObj `startframe` to the requested animation
 frame; subtracting it produces a large, motion-specific WalkMiddle error.
 
@@ -1447,7 +1447,7 @@ canonical semantic SHA-256
 `3c4a4ce4586b11617aa99a08bac8709ea6d7aa8a179b5494c6f3f7fe4785c7df`.
 
 `tools/data/ssbm_falcon_down_bound_ecb.json` stores all 52 top, bottom, left,
-and right points in source float and Q16.16 form. Its profile SHA-256 is
+and right points in source float and float32 form. Its profile SHA-256 is
 `a51838128df5c2df0df68a1df507b05ef868217d76b1c5fe57471f094d084f28`;
 the generating capture SHA-256 is
 `c9bca1cb43fad6c0b6fb73c123faaeef0725b9737b84de4abf38d917386a2cfb`.
@@ -1505,7 +1505,7 @@ SHA-256
 `ba47ef2736a5677d1909262a20f32991b7c2515407fae26626d5869b95edd265`.
 
 `tools/data/ssbm_falcon_ground_loop_ecb.json` stores the complete source float
-and converted Q16.16 top, bottom, left, and right points. Its profile SHA-256 is
+and converted float32 top, bottom, left, and right points. Its profile SHA-256 is
 `a1d4a9eb47dd16630812fbdb59eaaf377f3580e313436523d0ea81088cafceb3`.
 The importer pins the profile, authoritative capture, and semantic identities
 and emits a 158-entry immutable array. Production maps `SquatWait` action tick

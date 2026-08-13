@@ -48,7 +48,7 @@ typedef struct pf_web_replay_storage
 } pf_web_replay_storage;
 
 extern void pf_web_replay_inspector(
-    const int32_t *positions_q16,
+    const float *positions_f32,
     const uint8_t *hashes,
     const int32_t *event_counts,
     const int32_t *event_values,
@@ -231,9 +231,9 @@ static pf_status pf_web_capture_verified_checkpoint(
             (size_t)2;
 
         pf_web_replay_positions[position_index] =
-            observation.players[player_index].position_x_q16;
+            observation.players[player_index].position_x_f32;
         pf_web_replay_positions[position_index + (size_t)1] =
-            observation.players[player_index].position_y_q16;
+            observation.players[player_index].position_y_f32;
     }
 
     pf_web_replay_event_counts[checkpoint_index] =
@@ -250,7 +250,7 @@ static pf_status pf_web_capture_verified_checkpoint(
 
         if (event->tick > (uint64_t)INT32_MAX ||
             event->sequence > (uint32_t)INT32_MAX ||
-            event->value_q16 > (uint32_t)INT32_MAX)
+            event->value_f32 > (uint32_t)INT32_MAX)
         {
             return PF_STATUS_BUFFER_TOO_SMALL;
         }
@@ -264,11 +264,11 @@ static pf_status pf_web_capture_verified_checkpoint(
         pf_web_replay_event_values[base + (size_t)4] =
             (int32_t)event->target_player;
         pf_web_replay_event_values[base + (size_t)5] =
-            (int32_t)event->value_q16;
+            (int32_t)event->value_f32;
         pf_web_replay_event_values[base + (size_t)6] =
-            event->velocity_x_q16;
+            event->velocity_x_f32;
         pf_web_replay_event_values[base + (size_t)7] =
-            event->velocity_y_q16;
+            event->velocity_y_f32;
         pf_web_replay_event_values[base + (size_t)8] =
             (int32_t)event->flags;
         pf_web_replay_event_values[base + (size_t)9] =

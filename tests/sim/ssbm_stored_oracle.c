@@ -107,13 +107,13 @@ static int production_digest(
                 const pf_ssbm_stored_hurt_capsule *capsule =
                     &capsules[capsule_index];
 
-                hash_i32_le(&hash, capsule->endpoint_a_x_q16);
-                hash_i32_le(&hash, capsule->endpoint_a_y_q16);
-                hash_i32_le(&hash, capsule->endpoint_a_z_q16);
-                hash_i32_le(&hash, capsule->endpoint_b_x_q16);
-                hash_i32_le(&hash, capsule->endpoint_b_y_q16);
-                hash_i32_le(&hash, capsule->endpoint_b_z_q16);
-                hash_i32_le(&hash, capsule->radius_q16);
+                hash_i32_le(&hash, capsule->endpoint_a_x_f32);
+                hash_i32_le(&hash, capsule->endpoint_a_y_f32);
+                hash_i32_le(&hash, capsule->endpoint_a_z_f32);
+                hash_i32_le(&hash, capsule->endpoint_b_x_f32);
+                hash_i32_le(&hash, capsule->endpoint_b_y_f32);
+                hash_i32_le(&hash, capsule->endpoint_b_z_f32);
+                hash_i32_le(&hash, capsule->radius_f32);
                 hash_u8(&hash, capsule->hurtbox_id);
                 hash_u8(&hash, capsule->height);
                 hash_u8(&hash, capsule->grabbable);
@@ -353,30 +353,30 @@ int pf_ssbm_stored_trace_oracle_run(
     } while (0)
                 PF_HASH_TRACE_FIELD(
                     PF_SSBM_TRACE_POSITION_X,
-                    hash_i32_le(&hash, sample->position_x_q16));
+                    hash_i32_le(&hash, sample->position_x_f32));
                 PF_HASH_TRACE_FIELD(
                     PF_SSBM_TRACE_POSITION_Y,
-                    hash_i32_le(&hash, sample->position_y_q16));
+                    hash_i32_le(&hash, sample->position_y_f32));
                 PF_HASH_TRACE_FIELD(
                     PF_SSBM_TRACE_SELF_VELOCITY_X,
-                    hash_i32_le(&hash, sample->self_velocity_x_q16));
+                    hash_i32_le(&hash, sample->self_velocity_x_f32));
                 PF_HASH_TRACE_FIELD(
                     PF_SSBM_TRACE_SELF_VELOCITY_Y,
-                    hash_i32_le(&hash, sample->self_velocity_y_q16));
+                    hash_i32_le(&hash, sample->self_velocity_y_f32));
                 PF_HASH_TRACE_FIELD(
                     PF_SSBM_TRACE_KNOCKBACK_VELOCITY_X,
-                    hash_i32_le(&hash, sample->knockback_velocity_x_q16));
+                    hash_i32_le(&hash, sample->knockback_velocity_x_f32));
                 PF_HASH_TRACE_FIELD(
                     PF_SSBM_TRACE_KNOCKBACK_VELOCITY_Y,
-                    hash_i32_le(&hash, sample->knockback_velocity_y_q16));
+                    hash_i32_le(&hash, sample->knockback_velocity_y_f32));
                 PF_HASH_TRACE_FIELD(
                     PF_SSBM_TRACE_GROUND_KNOCKBACK_VELOCITY,
                     hash_i32_le(
                         &hash,
-                        sample->ground_knockback_velocity_q16));
+                        sample->ground_knockback_velocity_f32));
                 PF_HASH_TRACE_FIELD(
                     PF_SSBM_TRACE_DAMAGE,
-                    hash_u32_le(&hash, sample->damage_q16));
+                    hash_u32_le(&hash, sample->damage_f32));
                 PF_HASH_TRACE_FIELD(
                     PF_SSBM_TRACE_ACTION_TICKS,
                     hash_u16_le(&hash, sample->action_ticks));

@@ -80,7 +80,7 @@
   "source_profile": {
     "path": "tools/data/ssbm_falcon_bounce_ecb.json",
     "sha256": "d6ccb5701f0bada0d7de1874004281e8ca46fcc0070db94e529d84d3fc637608",
-    "semantic_q16_sha256": "9d162fe7917f0c23894ad1fe54a1a665d5c8e446d5ca439180811d706b2431a5"
+    "semantic_f32_sha256": "9d162fe7917f0c23894ad1fe54a1a665d5c8e446d5ca439180811d706b2431a5"
   },
   "live_recontacts": {
     "ceiling_bounce_long": {

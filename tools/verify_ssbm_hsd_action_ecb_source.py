@@ -21,8 +21,8 @@ from hsd_joint_pose import (
     read_joint_tree,
 )
 from ssbm_dat import read_hsd_archive
-from ssbm_ecb_pose import canonical_source_ecb, pose_q16
-from verify_ssbm_dynamic_hurt_pose_source import source_joint_ecb_q16
+from ssbm_ecb_pose import canonical_source_ecb, pose_f32
+from verify_ssbm_dynamic_hurt_pose_source import source_joint_ecb_f32
 
 
 def require(condition: bool, message: str) -> None:
@@ -144,7 +144,7 @@ def main() -> int:
     ecb_sets = [point_set for point_set in point_sets if point_set["id"] == "ecb"]
     require(len(ecb_sets) == 1, "manifest ECB joint point set is not unique")
     ecb_source_joints = tuple(ecb_sets[0]["source_joint_indices"])
-    tolerance = int(qualification["coordinate_tolerance_q16"])
+    tolerance = int(qualification["coordinate_tolerance_f32"])
     require(tolerance >= 0, "action ECB tolerance must be nonnegative")
     disc_sha256 = qualification["disc_sha256"]
     probe_version = qualification["probe_engine_version"]
@@ -310,7 +310,7 @@ def main() -> int:
                         <= float(frame_range[1])
                         for frame_range in bottom_lock_ranges
                     )
-                locked_bottom_y_q16: int | None = None
+                locked_bottom_y_f32: int | None = None
                 if evaluated_bottom_locked:
                     lock_source = case.get("locked_bottom_source")
                     for candidate in case.get("locked_bottom_sources", []):
@@ -326,7 +326,7 @@ def main() -> int:
                             lock_source = candidate
                             break
                     if lock_source is None:
-                        locked_bottom_y_q16 = 0
+                        locked_bottom_y_f32 = 0
                     else:
                         require(
                             isinstance(lock_source, dict),
@@ -342,7 +342,7 @@ def main() -> int:
                                     lock_submotion,
                                 )
                             )
-                        lock_pose = source_joint_ecb_q16(
+                        lock_pose = source_joint_ecb_f32(
                             evaluate_joint_matrices(
                                 source_joints,
                                 animation_cache[lock_submotion],
@@ -356,9 +356,9 @@ def main() -> int:
                             ),
                             bool(lock_source["grounded"]),
                         )
-                        locked_bottom_y_q16 = lock_pose["bottom"][1]
-                expected = pose_q16(canonical_source_ecb(captured_ecb, int(facing)))
-                actual = source_joint_ecb_q16(
+                        locked_bottom_y_f32 = lock_pose["bottom"][1]
+                expected = pose_f32(canonical_source_ecb(captured_ecb, int(facing)))
+                actual = source_joint_ecb_f32(
                     evaluate_joint_matrices(
                         source_joints,
                         animation_cache[evaluated_submotion],
@@ -370,7 +370,7 @@ def main() -> int:
                     & FIGHTER_ANIMATION_TRANSLATION_FLAG
                     else None,
                     evaluated_grounded,
-                    locked_bottom_y_q16,
+                    locked_bottom_y_f32,
                 )
                 difference = max(
                     abs(actual[point][axis] - expected[point][axis])
@@ -390,7 +390,7 @@ def main() -> int:
                 "ssbm-hsd-action-ecb-case="
                 f"{'report' if args.report_only else 'pass'} "
                 f"capture={spec['id']} action={action} rows={len(selected)} "
-                f"unique_frames={len(frames)} max_q16={case_maximum} "
+                f"unique_frames={len(frames)} max_f32={case_maximum} "
                 f"within_tolerance={int(case_maximum <= tolerance)} "
                 f"components={','.join(compared_components)}"
             )
@@ -403,7 +403,7 @@ def main() -> int:
         f"{'report' if args.report_only else 'pass'} "
         f"captures={len(capture_specs)} motions={len(animation_cache)} "
         f"rows={total_rows} unique_frames={total_unique_frames} "
-        f"max_q16={maximum_difference}"
+        f"max_f32={maximum_difference}"
     )
     return 0
 

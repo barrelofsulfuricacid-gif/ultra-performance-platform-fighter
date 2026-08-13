@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 from pathlib import Path
 import struct
 from typing import Any
@@ -20,7 +21,7 @@ from ssbm_dat import ft_common_data
 from ssbm_ecb_pose import (
     ECB_POINTS,
     canonical_sha256 as ecb_canonical_sha256,
-    pose_q16 as ecb_pose_q16,
+    pose_f32 as ecb_pose_f32,
     semantic_payload as ecb_semantic_payload,
 )
 
@@ -57,76 +58,76 @@ PLATFORM_DROP_ECB_SEMANTIC_SHA256 = (
     "90060e614f359189c32b25d76b780b3fa92861dfdcfae0fd357dcc07ec10e6f8"
 )
 AIRBORNE_ECB_PROFILE_SHA256 = (
-    "407a62269b2aa65002bb4a78152f12a49b56d36d8b68a684c6d55a11ce69a1ba"
+    "b2c423622e1794008e7c8b579dacb1b0953fcbdfd590d6b3d8111c809c54b18b"
 )
 AIRBORNE_ECB_CAPTURE_SHA256 = (
     "4e6768e0862307eb32a14532fae8e2991e2900ea932b7af45850803c2ec8673f"
 )
 AIRBORNE_ECB_SEMANTIC_SHA256 = (
-    "21a2d02fbb3abfcd9c29bb170c4c378fc8972fe191098fb5587140e965dac25a"
+    "6f9a131604c9b40d683759ab8c8eb15b946ca201ab31773cdb9354054a1478fb"
 )
 AERIAL_ATTACK_ECB_PROFILE_SHA256 = (
-    "209fa9712c2f12f81f9eededd15e08fcfaef20f87cffc3f0f00a4c6d42f50b04"
+    "0a826acad85fb69612985b472f565029abbc4a3212f877eac925327e7494d11e"
 )
 AERIAL_ATTACK_ECB_CAPTURE_SHA256 = (
     "9978972ba84a870ae5456c2403234d837c8b425f6dde4f3df83993a809e5534d"
 )
 AERIAL_ATTACK_ECB_SEMANTIC_SHA256 = (
-    "55e686a07cf3d064618104051f0085ed2a398e9a1612847200b2cba51a665f10"
+    "e4f5861010ffc5184caa7cfff58db550249ef2f4156f34e438da9a3ec8d97206"
 )
 SHIELD_BREAK_ECB_PROFILE_SHA256 = (
-    "2b4354f075594264ddb1686c9123c78459658a8dec145d78445c1b115585bc7c"
+    "be0e6532a5ab350331f7f314cbdde5c217fab10d6738bef64fcabdde72c9ba1c"
 )
 SHIELD_BREAK_ECB_CAPTURE_SHA256 = (
     "1109c92ec4c57bff5658d25c432383ccc4c63e2caed73a1575ae3ef80c7c802d"
 )
 SHIELD_BREAK_ECB_SEMANTIC_SHA256 = (
-    "11b28d22f68f7bb87c99dbc5f949f5456d1a69ab7bfa78360927ecb334064eeb"
+    "7ad4c2d2e36b40f55cfb55e79ac764415492cae3ce648ee70b103ae6c4cf2095"
 )
 GUARD_ECB_PROFILE_SHA256 = (
-    "4ac108b18b77438b84760dd0dbea1ac830e8b5f323429aaeb01ecd4b66e48165"
+    "08bf823fd41cb9fc606d9f5f6f6e9390cede1b0fc5996e25e0135c0d81fa2b20"
 )
 GUARD_ECB_CAPTURE_SHA256 = (
     "e9141d1ce253bee82233d9545cf20145d594d60510cee5ea77b19ca5e12390b9"
 )
 GUARD_ECB_SEMANTIC_SHA256 = (
-    "a1bd5b9937cb342a053415ecc674b36dc5a01fb575ed688b32f8e097e1b209c1"
+    "789bfc726a146ad6b796a2f2d4050c8efe7c50224d4c1fcbe2c8d38a73349b1c"
 )
 DOWN_BOUND_ECB_PROFILE_SHA256 = (
-    "a51838128df5c2df0df68a1df507b05ef868217d76b1c5fe57471f094d084f28"
+    "8091fa5eaf8cd87fe8db3660d974e3ee7d08ebbce48af92a8e3dd00b94458b4d"
 )
 DOWN_BOUND_ECB_CAPTURE_SHA256 = (
     "c9bca1cb43fad6c0b6fb73c123faaeef0725b9737b84de4abf38d917386a2cfb"
 )
 DOWN_BOUND_ECB_SEMANTIC_SHA256 = (
-    "3c4a4ce4586b11617aa99a08bac8709ea6d7aa8a179b5494c6f3f7fe4785c7df"
+    "8f42c1eea5507e089be3275f5051cd187690de08602fd8657f65dd9a66cb2432"
 )
 GETUP_ECB_PROFILE_SHA256 = (
-    "9c3dfc58d1f34acf1ff264fc443d70e0ba283f5bd09da71bb7134fe8e8e9a1e0"
+    "14fb7fba797af1a5561a0d17aa5b507c18599f870096acd3360a5b72e38b943d"
 )
 GETUP_ECB_CAPTURE_SHA256 = (
     "22d96deaa0e2c32ce9edba670285ce6268b442edf05ae97c01abe85a93c8059c"
 )
 GETUP_ECB_SEMANTIC_SHA256 = (
-    "f519d632a88bcb582cb68865dd9a58d27e862fe619fc05d76ff3252ad5204f19"
+    "af92dec06b20de798a9309170de6314206ccdf8ea629ba7af96897ebdb47f93d"
 )
 GROUND_LOOP_ECB_PROFILE_SHA256 = (
-    "a1d4a9eb47dd16630812fbdb59eaaf377f3580e313436523d0ea81088cafceb3"
+    "9de0d9ef89e0d578205326fb9dc56c8ba57cb3b04229b147c1e43fb4a28d2b68"
 )
 GROUND_LOOP_ECB_CAPTURE_SHA256 = (
     "cb07f5c3bff1f55e7f223e3863822a6d023bb6adf9ad13b69918111fcb341ba6"
 )
 GROUND_LOOP_ECB_SEMANTIC_SHA256 = (
-    "ba47ef2736a5677d1909262a20f32991b7c2515407fae26626d5869b95edd265"
+    "158267ef074f57056a6be09650757d375dcc0002aeb21de4347a97c2b736a206"
 )
 BOUNCE_ECB_PROFILE_SHA256 = (
-    "d6ccb5701f0bada0d7de1874004281e8ca46fcc0070db94e529d84d3fc637608"
+    "efa5bf140770c2fff8697b73f618ecb658d851c0d03361a992ec7a4ecc29f9d3"
 )
 BOUNCE_ECB_CAPTURE_SHA256 = (
     "f1989a139185635d41d5cc2a51b0f88d41c1a26cf24c57fa82614feed6fda1c2"
 )
 BOUNCE_ECB_SEMANTIC_SHA256 = (
-    "9d162fe7917f0c23894ad1fe54a1a665d5c8e446d5ca439180811d706b2431a5"
+    "fa689a969a864fcac018e7479e29d30807af189b62fa84f38ab5ae39fc5b6e60"
 )
 LEDGE_ROOT_CAPTURE_SHA256 = (
     "0b23132b7a217ff173397faf8ac9e59169092c99095b4b4e3fbd885526b7a3f3"
@@ -163,23 +164,42 @@ LEDGE_OPTION_GROUND_FRAME = (37, 19, 28, 21, 37, 17, 0, 0, 0, 0)
 # collision callback resolves the animated ECB against the ledge wall; the X
 # result therefore cannot be reconstructed from the character root track
 # alone. The left ledge is the exact mirror in the compact stage profile.
-LEDGE_JUMP1_HYRULE_QUICK_FROM_WAIT_Q16 = (
-    (-2241, -19023), (-4704, -39525), (-7286, -60950),
-    (-9886, -82744), (-11067, -104351), (-11406, -125215),
-    (-10904, -144782), (-11240, -155183), (-14591, -168594),
-    (-14382, -199956), (-14753, -237028),
+LEDGE_JUMP1_HYRULE_QUICK_FROM_WAIT_F32 = (
+    (-0.034194946289, -0.290267944336),
+    (-0.07177734375, -0.603103637695),
+    (-0.111175537109, -0.930023193359),
+    (-0.150848388672, -1.262573242188),
+    (-0.168869018555, -1.592269897461),
+    (-0.174041748047, -1.910629272461),
+    (-0.166381835938, -2.209197998047),
+    (-0.171508789062, -2.367904663086),
+    (-0.222640991211, -2.572540283203),
+    (-0.219451904297, -3.051086425781),
+    (-0.225112915039, -3.616760253906),
 )
-LEDGE_JUMP1_HYRULE_SLOW_FROM_WAIT_Q16 = (
-    (-1276, -18300), (-2717, -37657), (-4235, -57819),
-    (-5741, -78532), (-7148, -99543), (-8369, -120598),
-    (-9315, -141444), (-9956, -163244), (-10345, -186483),
-    (-10520, -209898), (-10518, -232223), (-10379, -252195),
-    (-10140, -268548), (-9157, -274407), (-7621, -270851),
-    (-6823, -268548), (-7130, -272307), (-8174, -277320),
+LEDGE_JUMP1_HYRULE_SLOW_FROM_WAIT_F32 = (
+    (-0.019470214844, -0.279235839844),
+    (-0.041458129883, -0.574600219727),
+    (-0.06462097168, -0.882247924805),
+    (-0.087600708008, -1.198303222656),
+    (-0.109069824219, -1.518905639648),
+    (-0.127700805664, -1.840179443359),
+    (-0.142135620117, -2.158264160156),
+    (-0.151916503906, -2.490905761719),
+    (-0.157852172852, -2.845504760742),
+    (-0.160522460938, -3.202789306641),
+    (-0.160491943359, -3.543441772461),
+    (-0.15837097168, -3.848190307617),
+    (-0.154724121094, -4.097717285156),
+    (-0.139724731445, -4.187118530273),
+    (-0.116287231445, -4.132858276367),
+    (-0.104110717773, -4.097717285156),
+    (-0.108795166016, -4.155075073242),
+    (-0.124725341797, -4.231567382812),
 )
-LEDGE_JUMP2_HYRULE_FRAME_ONE_FROM_WAIT_Q16 = (
-    (-20192, -275398),
-    (-15013, -315690),
+LEDGE_JUMP2_HYRULE_FRAME_ONE_FROM_WAIT_F32 = (
+    (-0.30810546875, -4.202239990234),
+    (-0.229080200195, -4.817047119141),
 )
 
 COMMON_ATTRIBUTE_COUNT = 97
@@ -188,8 +208,8 @@ SPECIAL_ATTRIBUTE_SIZE = 0x8C
 STALE_MOVE_SLOT_COUNT = 9
 
 # ftCaptain_DatAttrs at doldecomp/melee revision 9509dc0. Keep the raw words
-# as the source of truth; the typed Q16 view below exists only so the runtime
-# never has to reinterpret host floats or duplicate these values by hand.
+# as the source of truth; generated fields preserve their IEEE-754 binary32
+# values and apply only the documented world-unit conversion.
 SPECIAL_FLOAT_ATTRIBUTES = (
     "specialn_stick_range_y_neg",
     "specialn_stick_range_y_pos",
@@ -303,8 +323,8 @@ ELEMENTS = {
 
 ANIMATION_TRANSLATION_FLAG = 0x80000000
 ANIMATION_TRANSLATION_NODE_MASK = 0x3F
-MELEE_X_TO_SIM_Q16 = 65536.0 * 12.0 / 115.0
-MELEE_Y_TO_SIM_Q16 = 65536.0 * 11.0 / 62.0
+MELEE_X_TO_SIM = 12.0 / 115.0
+MELEE_Y_TO_SIM = 11.0 / 62.0
 
 # ftCa_SpecialHiThrow0 starts by running ftCo_800DE2A8. When Falcon caught a
 # grounded victim, that source routine relocates the thrower from the victim's
@@ -408,7 +428,7 @@ DAMAGE_FLY_ECB_BOTTOM_Y_MELEE = (
 )
 
 # Complete DamageFlyN ECB top and symmetric side point. Three independently
-# captured Hyrule routes produce the same 24-frame Q16 table and semantic
+# captured Hyrule routes produce the same 24-frame float table and semantic
 # digest above. Melee's wall and ceiling queries consume these points; the
 # bottom-only table is insufficient for sloped Battlefield collision.
 DAMAGE_FLY_ECB_TOP_Y_MELEE = (
@@ -559,14 +579,38 @@ def canonical_sha256(data: dict[str, Any]) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
-def render_ecb_pose_q16(frame: dict[str, Any]) -> str:
-    ecb = frame["ecb_q16"]
+def binary32(value: float) -> float:
+    """Round once to the runtime's IEEE-754 binary32 representation."""
+
+    return struct.unpack(">f", struct.pack(">f", float(value)))[0]
+
+
+def c_f32(value: float) -> str:
+    """Render a finite, round-trippable C binary32 literal."""
+
+    rounded = binary32(value)
+    if not math.isfinite(rounded):
+        raise ValueError("non-finite generated float")
+    rendered = format(rounded, ".9g")
+    if "e" not in rendered.lower() and "." not in rendered:
+        rendered += ".0"
+    return rendered + "f"
+
+
+def captured_fixed_f32(value: int | float) -> float:
+    """Decode legacy stored ECB capture units while profiles are regenerated."""
+
+    return binary32(float(value) / 65536.0) if isinstance(value, int) else binary32(value)
+
+
+def render_ecb_pose_f32(frame: dict[str, Any]) -> str:
+    ecb = frame["ecb_f32"]
     values = [
         value
         for point in ECB_POINTS
         for value in ecb[point]
     ]
-    return "{ " + ", ".join(f"INT32_C({value})" for value in values) + " }"
+    return "{ " + ", ".join(c_f32(captured_fixed_f32(value)) for value in values) + " }"
 
 
 def render_ecb_pose_track(
@@ -574,7 +618,7 @@ def render_ecb_pose_track(
 ) -> list[str]:
     return [
         f"{indentation}{{",
-        *(f"{indentation}    {render_ecb_pose_q16(frame)}," for frame in frames),
+        *(f"{indentation}    {render_ecb_pose_f32(frame)}," for frame in frames),
         f"{indentation}}},",
     ]
 
@@ -615,13 +659,13 @@ def load_ecb_profile(
         raise ValueError(f"unexpected ECB profile SHA-256: {digest}")
     profile = json.loads(raw)
     if (
-        profile.get("schema") != 1
+        profile.get("schema") != 2
         or profile.get("scope") != "ssbm-action-owned-ecb-pose-tracks"
         or profile.get("capture_sha256") != expected_capture_sha256
         or profile.get("semantic_sha256") != expected_semantic_sha256
         or profile.get("coordinate_conversion")
         != {
-            "rounding": "nearest-python-round",
+            "rounding": "ieee754-binary32",
             "x_sim_units_per_melee_unit": "12/115",
             "y_sim_units_per_melee_unit": "11/62",
         }
@@ -647,21 +691,21 @@ def load_ecb_profile(
         for frame_index, frame in enumerate(track["frames"]):
             displayed_frame = first_displayed_frame + frame_index
             source_ecb = frame.get("source_ecb")
-            q16_ecb = frame.get("ecb_q16")
+            stored_ecb = frame.get("ecb_f32")
             if (
                 not isinstance(frame, dict)
                 or frame.get("displayed_frame") != displayed_frame
                 or not isinstance(source_ecb, dict)
-                or not isinstance(q16_ecb, dict)
+                or not isinstance(stored_ecb, dict)
                 or set(source_ecb) != set(ECB_POINTS)
-                or set(q16_ecb) != set(ECB_POINTS)
-                or ecb_pose_q16(source_ecb) != q16_ecb
+                or set(stored_ecb) != set(ECB_POINTS)
+                or ecb_pose_f32(source_ecb) != stored_ecb
                 or any(
-                    not isinstance(value, int)
+                    not isinstance(value, (int, float))
                     or isinstance(value, bool)
-                    or not -(1 << 31) <= value < (1 << 31)
+                    or not math.isfinite(float(value))
                     for point in ECB_POINTS
-                    for value in q16_ecb[point]
+                    for value in stored_ecb[point]
                 )
             ):
                 raise ValueError(
@@ -735,7 +779,7 @@ def animation_translation_node(action_flags: int) -> int | None:
     return encoded_node - 1
 
 
-def animation_translation_q16(
+def animation_translation_f32(
     tree: Any,
     action_flags: int,
     model_scaling: float,
@@ -793,18 +837,18 @@ def animation_translation_q16(
     )
     return (
         [
-            round(
+            binary32(
                 (positions_x[frame] - positions_x[frame - 1])
                 * model_scaling
-                * MELEE_X_TO_SIM_Q16
+                * MELEE_X_TO_SIM
             )
             for frame in range(1, frame_count)
         ],
         [
-            round(
+            binary32(
                 -(positions_y[frame] - positions_y[frame - 1])
                 * model_scaling
-                * MELEE_Y_TO_SIM_Q16
+                * MELEE_Y_TO_SIM
             )
             for frame in range(1, frame_count)
         ],
@@ -850,10 +894,6 @@ def body_collision_timing(subaction: dict[str, Any]) -> tuple[int, int]:
 
 def u16(value: Any) -> int:
     return 0 if value is None else int(value)
-
-
-def q16(value: float) -> int:
-    return round(value * 65536.0)
 
 
 def c_hit_effect(effect: dict[str, Any]) -> str:
@@ -920,11 +960,11 @@ def source_attributes(source_dat: bytes) -> tuple[list[int], dict[str, int]]:
     special: dict[str, int] = {}
     for index, name in enumerate(SPECIAL_FLOAT_ATTRIBUTES):
         value = struct.unpack_from(">f", data, special_offset + index * 4)[0]
-        special[f"{name}_q16"] = q16(value)
+        special[f"{name}_f32"] = binary32(value)
     for name, kind, offset in SPECIAL_TAIL_ATTRIBUTES:
         if kind == "f32":
             value = struct.unpack_from(">f", data, special_offset + offset)[0]
-            special[f"{name}_q16"] = q16(value)
+            special[f"{name}_f32"] = binary32(value)
         elif kind == "i32":
             special[name] = struct.unpack_from(">i", data, special_offset + offset)[0]
         elif kind == "u32":
@@ -953,7 +993,7 @@ def source_collision_attributes(source_dat: bytes) -> dict[str, float]:
         "ecb_left_joint": joints_and_scale[3],
         "ecb_transn_joint": joints_and_scale[4],
         "ecb_joint_5": joints_and_scale[5],
-        "ecb_minimum_q16": q16(joints_and_scale[6]),
+        "ecb_minimum_f32": binary32(joints_and_scale[6]),
         "ledge_snap_x": joints_and_scale[7],
         "ledge_snap_y": joints_and_scale[8],
         "ledge_snap_height": joints_and_scale[9],
@@ -977,24 +1017,24 @@ def source_common_special_attributes(common_dat: bytes) -> dict[str, Any]:
     if stale_move_offset + STALE_MOVE_SLOT_COUNT * 4 > len(data):
         raise ValueError("stale-move reduction table is out of bounds")
     return {
-        "fast_ground_friction_multiplier_q16": q16(
+        "fast_ground_friction_multiplier_f32": binary32(
             struct.unpack_from(">f", data, common_offset + 0x6C)[0]
         ),
-        "air_drift_over_maximum_deceleration_q16": round(
+        "air_drift_over_maximum_deceleration_f32": binary32(
             struct.unpack_from(">f", data, common_offset + 0x1FC)[0]
-            * MELEE_X_TO_SIM_Q16
+            * MELEE_X_TO_SIM
         ),
-        "side_special_stick_threshold_q16": q16(
+        "side_special_stick_threshold_f32": binary32(
             struct.unpack_from(">f", data, common_offset + 0x218)[0]
         ),
-        "side_special_turn_threshold_q16": q16(
+        "side_special_turn_threshold_f32": binary32(
             struct.unpack_from(">f", data, common_offset + 0x220)[0]
         ),
-        "air_drift_dead_zone_q16": q16(
+        "air_drift_dead_zone_f32": binary32(
             struct.unpack_from(">f", data, common_offset + 0x258)[0]
         ),
-        "stale_move_slot_reduction_q16": [
-            q16(struct.unpack_from(">f", data, stale_move_offset + index * 4)[0])
+        "stale_move_slot_reduction_f32": [
+            binary32(struct.unpack_from(">f", data, stale_move_offset + index * 4)[0])
             for index in range(STALE_MOVE_SLOT_COUNT)
         ],
     }
@@ -1020,14 +1060,14 @@ def source_air_dodge_attributes(common_dat: bytes) -> dict[str, int]:
         raise ValueError("EscapeAir item-throw window does not fit runtime timing")
     return {
         # EscapeAir physics runs on the entry frame. Store the first visible
-        # velocity so the fixed-point runtime does not need a wider transient.
-        "initial_velocity_x_q16": round(
-            force * decay * MELEE_X_TO_SIM_Q16
+        # velocity so the runtime stores the source operation at binary32.
+        "initial_velocity_x_f32": binary32(
+            force * decay * MELEE_X_TO_SIM
         ),
-        "initial_velocity_y_q16": round(
-            force * decay * MELEE_Y_TO_SIM_Q16
+        "initial_velocity_y_f32": binary32(
+            force * decay * MELEE_Y_TO_SIM
         ),
-        "decay_q16": q16(decay),
+        "decay_f32": binary32(decay),
         "dead_zone": round(dead_zone_x * 32767.0),
         "item_throw_window_ticks": item_throw_window_ticks,
     }
@@ -1239,8 +1279,8 @@ def generate(
     effects: list[dict[str, Any]] = []
     throws: list[dict[str, Any]] = []
     moves: list[dict[str, int]] = []
-    motion_x_q16: list[int] = []
-    motion_y_q16: list[int] = []
+    motion_x_f32: list[float] = []
+    motion_y_f32: list[float] = []
     bounce_tracks = {
         str(track["id"]): track for track in bounce_ecb_profile["tracks"]
     }
@@ -1425,30 +1465,30 @@ def generate(
             source_dat_block,
             subactions_offset + submotion_index * 0x18 + 0x10,
         )[0]
-        motion_offset = len(motion_x_q16)
+        motion_offset = len(motion_x_f32)
         if animation_flags & ANIMATION_TRANSLATION_FLAG:
             if tree is None:
                 raise ValueError(
                     f"submotion {submotion_index}: translation without animation"
                 )
-            submotion_motion_x_q16, submotion_motion_y_q16 = (
-                animation_translation_q16(
+            submotion_motion_x_f32, submotion_motion_y_f32 = (
+                animation_translation_f32(
                     tree,
                     animation_flags,
                     model_scaling,
                 )
             )
             if (
-                len(submotion_motion_x_q16) != animation_frame_count - 1
-                or len(submotion_motion_y_q16) != animation_frame_count - 1
+                len(submotion_motion_x_f32) != animation_frame_count - 1
+                or len(submotion_motion_y_f32) != animation_frame_count - 1
             ):
                 raise ValueError(
                     f"submotion {submotion_index}: incomplete translation samples"
                 )
-            motion_x_q16.extend(submotion_motion_x_q16)
-            motion_y_q16.extend(submotion_motion_y_q16)
-        motion_count = len(motion_x_q16) - motion_offset
-        if len(motion_x_q16) != len(motion_y_q16):
+            motion_x_f32.extend(submotion_motion_x_f32)
+            motion_y_f32.extend(submotion_motion_y_f32)
+        motion_count = len(motion_x_f32) - motion_offset
+        if len(motion_x_f32) != len(motion_y_f32):
             raise ValueError(
                 f"submotion {submotion_index}: mismatched translation samples"
             )
@@ -1531,13 +1571,13 @@ def generate(
         )
     if (
         sum(row["motion_count"] != 0 for row in submotion_catalog) != 65
-        or len(motion_x_q16) != 2536
-        or len(motion_y_q16) != 2536
+        or len(motion_x_f32) != 2536
+        or len(motion_y_f32) != 2536
     ):
         raise ValueError(
             "unexpected complete Falcon translation coverage: "
             f"submotions={sum(row['motion_count'] != 0 for row in submotion_catalog)} "
-            f"samples={len(motion_x_q16)}"
+            f"samples={len(motion_x_f32)}"
         )
     animation_tracks_sha256 = animation_tracks_digest.hexdigest()
     submotion_catalog_digest = hashlib.sha256(
@@ -1574,10 +1614,10 @@ def generate(
     common_attribute_bits, special_attributes = source_attributes(source_dat)
     collision_attributes = source_collision_attributes(source_dat)
     ledge_attributes = {
-        "snap_x_q16": round(collision_attributes["ledge_snap_x"] * MELEE_X_TO_SIM_Q16),
-        "snap_y_q16": round(collision_attributes["ledge_snap_y"] * MELEE_Y_TO_SIM_Q16),
-        "snap_height_q16": round(
-            collision_attributes["ledge_snap_height"] * MELEE_Y_TO_SIM_Q16
+        "snap_x_f32": binary32(collision_attributes["ledge_snap_x"] * MELEE_X_TO_SIM),
+        "snap_y_f32": binary32(collision_attributes["ledge_snap_y"] * MELEE_Y_TO_SIM),
+        "snap_height_f32": binary32(
+            collision_attributes["ledge_snap_height"] * MELEE_Y_TO_SIM
         ),
     }
 
@@ -1725,134 +1765,134 @@ def generate(
     ):
         raise ValueError("unexpected Falcon jab action-script timeline")
     common_attributes = {
-        "initial_walk_velocity_q16": round(
-            raw_f32(common_attribute_bits, 0) * MELEE_X_TO_SIM_Q16
+        "initial_walk_velocity_f32": binary32(
+            raw_f32(common_attribute_bits, 0) * MELEE_X_TO_SIM
         ),
-        "walk_acceleration_q16": round(
-            raw_f32(common_attribute_bits, 1) * MELEE_X_TO_SIM_Q16
+        "walk_acceleration_f32": binary32(
+            raw_f32(common_attribute_bits, 1) * MELEE_X_TO_SIM
         ),
-        "walk_maximum_velocity_q16": round(
-            raw_f32(common_attribute_bits, 2) * MELEE_X_TO_SIM_Q16
+        "walk_maximum_velocity_f32": binary32(
+            raw_f32(common_attribute_bits, 2) * MELEE_X_TO_SIM
         ),
-        "slow_walk_animation_scaling_q16": round(
-            raw_f32(common_attribute_bits, 3) * MELEE_X_TO_SIM_Q16
+        "slow_walk_animation_scaling_f32": binary32(
+            raw_f32(common_attribute_bits, 3) * MELEE_X_TO_SIM
         ),
-        "middle_walk_animation_scaling_q16": round(
-            raw_f32(common_attribute_bits, 4) * MELEE_X_TO_SIM_Q16
+        "middle_walk_animation_scaling_f32": binary32(
+            raw_f32(common_attribute_bits, 4) * MELEE_X_TO_SIM
         ),
-        "fast_walk_animation_scaling_q16": round(
-            raw_f32(common_attribute_bits, 5) * MELEE_X_TO_SIM_Q16
+        "fast_walk_animation_scaling_f32": binary32(
+            raw_f32(common_attribute_bits, 5) * MELEE_X_TO_SIM
         ),
-        "run_animation_scaling_q16": round(
-            raw_f32(common_attribute_bits, 11) * MELEE_X_TO_SIM_Q16
+        "run_animation_scaling_f32": binary32(
+            raw_f32(common_attribute_bits, 11) * MELEE_X_TO_SIM
         ),
-        "friction_q16": round(raw_f32(common_attribute_bits, 6) * MELEE_X_TO_SIM_Q16),
+        "friction_f32": binary32(raw_f32(common_attribute_bits, 6) * MELEE_X_TO_SIM),
         "friction_q32": round(
             raw_f32(common_attribute_bits, 6)
-            * MELEE_X_TO_SIM_Q16
+            * MELEE_X_TO_SIM
             * 65536.0
         ),
-        "dash_initial_velocity_q16": round(
-            raw_f32(common_attribute_bits, 7) * MELEE_X_TO_SIM_Q16
+        "dash_initial_velocity_f32": binary32(
+            raw_f32(common_attribute_bits, 7) * MELEE_X_TO_SIM
         ),
-        "dash_run_acceleration_a_q16": round(
-            raw_f32(common_attribute_bits, 8) * MELEE_X_TO_SIM_Q16
+        "dash_run_acceleration_a_f32": binary32(
+            raw_f32(common_attribute_bits, 8) * MELEE_X_TO_SIM
         ),
-        "dash_run_acceleration_b_q16": round(
-            raw_f32(common_attribute_bits, 9) * MELEE_X_TO_SIM_Q16
+        "dash_run_acceleration_b_f32": binary32(
+            raw_f32(common_attribute_bits, 9) * MELEE_X_TO_SIM
         ),
-        "dash_run_terminal_velocity_q16": round(
-            raw_f32(common_attribute_bits, 10) * MELEE_X_TO_SIM_Q16
+        "dash_run_terminal_velocity_f32": binary32(
+            raw_f32(common_attribute_bits, 10) * MELEE_X_TO_SIM
         ),
-        "ground_maximum_horizontal_velocity_q16": round(
-            raw_f32(common_attribute_bits, 13) * MELEE_X_TO_SIM_Q16
+        "ground_maximum_horizontal_velocity_f32": binary32(
+            raw_f32(common_attribute_bits, 13) * MELEE_X_TO_SIM
         ),
-        "jump_horizontal_initial_velocity_q16": round(
-            raw_f32(common_attribute_bits, 15) * MELEE_X_TO_SIM_Q16
+        "jump_horizontal_initial_velocity_f32": binary32(
+            raw_f32(common_attribute_bits, 15) * MELEE_X_TO_SIM
         ),
-        "jump_vertical_initial_velocity_q16": round(
-            raw_f32(common_attribute_bits, 16) * MELEE_Y_TO_SIM_Q16
+        "jump_vertical_initial_velocity_f32": binary32(
+            raw_f32(common_attribute_bits, 16) * MELEE_Y_TO_SIM
         ),
-        "ground_air_jump_momentum_multiplier_q16": q16(
+        "ground_air_jump_momentum_multiplier_f32": binary32(
             raw_f32(common_attribute_bits, 17)
         ),
-        "jump_horizontal_maximum_velocity_q16": round(
-            raw_f32(common_attribute_bits, 18) * MELEE_X_TO_SIM_Q16
+        "jump_horizontal_maximum_velocity_f32": binary32(
+            raw_f32(common_attribute_bits, 18) * MELEE_X_TO_SIM
         ),
-        "shorthop_vertical_initial_velocity_q16": round(
-            raw_f32(common_attribute_bits, 19) * MELEE_Y_TO_SIM_Q16
+        "shorthop_vertical_initial_velocity_f32": binary32(
+            raw_f32(common_attribute_bits, 19) * MELEE_Y_TO_SIM
         ),
-        "air_jump_multiplier_q16": q16(raw_f32(common_attribute_bits, 20)),
-        "double_jump_momentum_q16": q16(raw_f32(common_attribute_bits, 21)),
-        "double_jump_vertical_velocity_q16": round(
+        "air_jump_multiplier_f32": binary32(raw_f32(common_attribute_bits, 20)),
+        "double_jump_momentum_f32": binary32(raw_f32(common_attribute_bits, 21)),
+        "double_jump_vertical_velocity_f32": binary32(
             raw_f32(common_attribute_bits, 16)
             * raw_f32(common_attribute_bits, 20)
-            * MELEE_Y_TO_SIM_Q16
+            * MELEE_Y_TO_SIM
         ),
-        "double_jump_horizontal_velocity_q16": round(
-            raw_f32(common_attribute_bits, 21) * MELEE_X_TO_SIM_Q16
+        "double_jump_horizontal_velocity_f32": binary32(
+            raw_f32(common_attribute_bits, 21) * MELEE_X_TO_SIM
         ),
-        "gravity_q16": round(raw_f32(common_attribute_bits, 23) * MELEE_Y_TO_SIM_Q16),
-        "terminal_velocity_q16": round(
-            raw_f32(common_attribute_bits, 24) * MELEE_Y_TO_SIM_Q16
+        "gravity_f32": binary32(raw_f32(common_attribute_bits, 23) * MELEE_Y_TO_SIM),
+        "terminal_velocity_f32": binary32(
+            raw_f32(common_attribute_bits, 24) * MELEE_Y_TO_SIM
         ),
-        "air_mobility_a_q16": round(
-            raw_f32(common_attribute_bits, 25) * MELEE_X_TO_SIM_Q16
+        "air_mobility_a_f32": binary32(
+            raw_f32(common_attribute_bits, 25) * MELEE_X_TO_SIM
         ),
-        "air_mobility_b_q16": round(
-            raw_f32(common_attribute_bits, 26) * MELEE_X_TO_SIM_Q16
+        "air_mobility_b_f32": binary32(
+            raw_f32(common_attribute_bits, 26) * MELEE_X_TO_SIM
         ),
-        # Preserve the source coefficients below one Q16.16 unit so the
+        # Preserve the source coefficients below one float32 unit so the
         # runtime can evaluate Melee's single combined A*stick+B expression
         # before rounding. Rounding A and B independently introduces a
         # systematic velocity bias that accumulates across complete matches.
         "air_mobility_a_q32": round(
             raw_f32(common_attribute_bits, 25)
-            * MELEE_X_TO_SIM_Q16
+            * MELEE_X_TO_SIM
             * 65536.0
         ),
         "air_mobility_b_q32": round(
             raw_f32(common_attribute_bits, 26)
-            * MELEE_X_TO_SIM_Q16
+            * MELEE_X_TO_SIM
             * 65536.0
         ),
-        "max_aerial_horizontal_velocity_q16": round(
-            raw_f32(common_attribute_bits, 27) * MELEE_X_TO_SIM_Q16
+        "max_aerial_horizontal_velocity_f32": binary32(
+            raw_f32(common_attribute_bits, 27) * MELEE_X_TO_SIM
         ),
-        "air_friction_q16": round(
-            raw_f32(common_attribute_bits, 28) * MELEE_X_TO_SIM_Q16
+        "air_friction_f32": binary32(
+            raw_f32(common_attribute_bits, 28) * MELEE_X_TO_SIM
         ),
-        "fast_fall_terminal_velocity_q16": round(
-            raw_f32(common_attribute_bits, 29) * MELEE_Y_TO_SIM_Q16
+        "fast_fall_terminal_velocity_f32": binary32(
+            raw_f32(common_attribute_bits, 29) * MELEE_Y_TO_SIM
         ),
-        "maximum_horizontal_air_velocity_q16": round(
-            raw_f32(common_attribute_bits, 30) * MELEE_X_TO_SIM_Q16
+        "maximum_horizontal_air_velocity_f32": binary32(
+            raw_f32(common_attribute_bits, 30) * MELEE_X_TO_SIM
         ),
-        "shield_break_initial_velocity_q16": round(
-            raw_f32(common_attribute_bits, 37) * MELEE_Y_TO_SIM_Q16
+        "shield_break_initial_velocity_f32": binary32(
+            raw_f32(common_attribute_bits, 37) * MELEE_Y_TO_SIM
         ),
-        "rebound_animation_length_q16": q16(
+        "rebound_animation_length_f32": binary32(
             raw_f32(common_attribute_bits, 39)
         ),
-        "ledge_jump_horizontal_velocity_q16": round(
-            raw_f32(common_attribute_bits, 42) * MELEE_X_TO_SIM_Q16
+        "ledge_jump_horizontal_velocity_f32": binary32(
+            raw_f32(common_attribute_bits, 42) * MELEE_X_TO_SIM
         ),
-        "ledge_jump_vertical_velocity_q16": round(
-            raw_f32(common_attribute_bits, 43) * MELEE_Y_TO_SIM_Q16
+        "ledge_jump_vertical_velocity_f32": binary32(
+            raw_f32(common_attribute_bits, 43) * MELEE_Y_TO_SIM
         ),
-        "wall_jump_horizontal_velocity_q16": round(
-            raw_f32(common_attribute_bits, 65) * MELEE_X_TO_SIM_Q16
+        "wall_jump_horizontal_velocity_f32": binary32(
+            raw_f32(common_attribute_bits, 65) * MELEE_X_TO_SIM
         ),
-        "wall_jump_vertical_velocity_q16": round(
-            raw_f32(common_attribute_bits, 66) * MELEE_Y_TO_SIM_Q16
+        "wall_jump_vertical_velocity_f32": binary32(
+            raw_f32(common_attribute_bits, 66) * MELEE_Y_TO_SIM
         ),
         # ftCo_800C6408 multiplies the per-fighter trophy scale by the
         # code-authored 1.497345 rise distance. Standard-match model scale is
         # 1.0 in the qualified ruleset.
-        "match_entry_rise_q16": round(
+        "match_entry_rise_f32": binary32(
             raw_f32(common_attribute_bits, 68)
             * 1.497345
-            * MELEE_Y_TO_SIM_Q16
+            * MELEE_Y_TO_SIM
         ),
         "jump_startup_ticks": round(raw_f32(common_attribute_bits, 14)),
         "number_of_jumps": common_attribute_bits[22],
@@ -1957,10 +1997,10 @@ def generate(
                 "falcon_airborne_ecb_semantic_sha256": (
                     AIRBORNE_ECB_SEMANTIC_SHA256
                 ),
-                "falcon_airborne_collision_pose_q16": {
+                "falcon_airborne_collision_pose_f32": {
                     track_id: tuple(
                         tuple(
-                            tuple(frame["ecb_q16"][point])
+                            tuple(frame["ecb_f32"][point])
                             for point in ECB_POINTS
                         )
                         for frame in track["frames"]
@@ -1973,9 +2013,9 @@ def generate(
                 "falcon_aerial_attack_ecb_semantic_sha256": (
                     AERIAL_ATTACK_ECB_SEMANTIC_SHA256
                 ),
-                "falcon_aerial_attack_bottom_y_q16": {
+                "falcon_aerial_attack_bottom_y_f32": {
                     track_id: tuple(
-                        int(frame["ecb_q16"]["bottom"][1])
+                        float(frame["ecb_f32"]["bottom"][1])
                         for frame in track["frames"]
                     )
                     for track_id, track in aerial_attack_tracks.items()
@@ -1986,9 +2026,9 @@ def generate(
                 "falcon_shield_break_ecb_semantic_sha256": (
                     SHIELD_BREAK_ECB_SEMANTIC_SHA256
                 ),
-                "falcon_shield_break_fly_collision_pose_q16": tuple(
+                "falcon_shield_break_fly_collision_pose_f32": tuple(
                     tuple(
-                        tuple(frame["ecb_q16"][point])
+                        tuple(frame["ecb_f32"][point])
                         for point in ECB_POINTS
                     )
                     for frame in shield_break_fly_frames
@@ -1999,10 +2039,10 @@ def generate(
                 "falcon_guard_ecb_semantic_sha256": (
                     GUARD_ECB_SEMANTIC_SHA256
                 ),
-                "falcon_guard_collision_pose_q16": {
+                "falcon_guard_collision_pose_f32": {
                     track_id: tuple(
                         tuple(
-                            tuple(frame["ecb_q16"][point])
+                            tuple(frame["ecb_f32"][point])
                             for point in ECB_POINTS
                         )
                         for frame in track["frames"]
@@ -2015,17 +2055,17 @@ def generate(
                 "falcon_down_bound_ecb_semantic_sha256": (
                     DOWN_BOUND_ECB_SEMANTIC_SHA256
                 ),
-                "falcon_down_bound_collision_pose_q16": {
+                "falcon_down_bound_collision_pose_f32": {
                     "back": tuple(
                         tuple(
-                            tuple(frame["ecb_q16"][point])
+                            tuple(frame["ecb_f32"][point])
                             for point in ECB_POINTS
                         )
                         for frame in down_bound_back_frames
                     ),
                     "stomach": tuple(
                         tuple(
-                            tuple(frame["ecb_q16"][point])
+                            tuple(frame["ecb_f32"][point])
                             for point in ECB_POINTS
                         )
                         for frame in down_bound_stomach_frames
@@ -2037,10 +2077,10 @@ def generate(
                 "falcon_getup_ecb_semantic_sha256": (
                     GETUP_ECB_SEMANTIC_SHA256
                 ),
-                "falcon_getup_collision_pose_q16": {
+                "falcon_getup_collision_pose_f32": {
                     track_id: tuple(
                         tuple(
-                            tuple(frame["ecb_q16"][point])
+                            tuple(frame["ecb_f32"][point])
                             for point in ECB_POINTS
                         )
                         for frame in track["frames"]
@@ -2053,9 +2093,9 @@ def generate(
                 "falcon_ground_loop_ecb_semantic_sha256": (
                     GROUND_LOOP_ECB_SEMANTIC_SHA256
                 ),
-                "falcon_crouch_wait_collision_pose_q16": tuple(
+                "falcon_crouch_wait_collision_pose_f32": tuple(
                     tuple(
-                        tuple(frame["ecb_q16"][point])
+                        tuple(frame["ecb_f32"][point])
                         for point in ECB_POINTS
                     )
                     for frame in crouch_wait_frames
@@ -2314,12 +2354,13 @@ def generate(
                 "weight",
                 "rapid_jab_input_count",
                 "rapid_jab_loop_frame_count",
+                "rapid_jab_decision_interval",
             }
             else f"    .{name} = UINT8_C({value}),"
             if name in {"weight_independent_throws_mask", "reserved"}
             else f"    .{name} = INT64_C({value}),"
             if name.endswith("_q32")
-            else f"    .{name} = INT32_C({value}),"
+            else f"    .{name} = {c_f32(value)},"
         )
         for name, value in common_attributes.items()
     )
@@ -2332,7 +2373,7 @@ def generate(
         )
     )
     lines.extend(
-        f"    .{name} = INT32_C({value})," for name, value in ledge_attributes.items()
+        f"    .{name} = {c_f32(value)}," for name, value in ledge_attributes.items()
     )
     lines.extend(
         (
@@ -2341,30 +2382,26 @@ def generate(
             f"/* qualified ledge-root capture SHA-256: {LEDGE_ROOT_CAPTURE_SHA256} */",
             "static const falcon_ledge_root_positions",
             "falcon_ledge_root_position_data = {",
-            "    .catch_frame_one_x_q16 = INT32_C("
-            f"{round(LEDGE_CATCH_FRAME_ONE_ROOT_MELEE[0] * MELEE_X_TO_SIM_Q16)}"
-            "),",
-            "    .catch_frame_one_y_q16 = INT32_C("
-            f"{round(-LEDGE_CATCH_FRAME_ONE_ROOT_MELEE[1] * MELEE_Y_TO_SIM_Q16)}"
-            "),",
-            "    .wait_frame_one_x_q16 = INT32_C("
-            f"{round(LEDGE_WAIT_FRAME_ONE_ROOT_MELEE[0] * MELEE_X_TO_SIM_Q16)}"
-            "),",
-            "    .wait_frame_one_y_q16 = INT32_C("
-            f"{round(-LEDGE_WAIT_FRAME_ONE_ROOT_MELEE[1] * MELEE_Y_TO_SIM_Q16)}"
-            "),",
-            "    .option_frame_one_x_q16 = {",
+            "    .catch_frame_one_x_f32 = "
+            f"{c_f32(LEDGE_CATCH_FRAME_ONE_ROOT_MELEE[0] * MELEE_X_TO_SIM)},",
+            "    .catch_frame_one_y_f32 = "
+            f"{c_f32(-LEDGE_CATCH_FRAME_ONE_ROOT_MELEE[1] * MELEE_Y_TO_SIM)},",
+            "    .wait_frame_one_x_f32 = "
+            f"{c_f32(LEDGE_WAIT_FRAME_ONE_ROOT_MELEE[0] * MELEE_X_TO_SIM)},",
+            "    .wait_frame_one_y_f32 = "
+            f"{c_f32(-LEDGE_WAIT_FRAME_ONE_ROOT_MELEE[1] * MELEE_Y_TO_SIM)},",
+            "    .option_frame_one_x_f32 = {",
             "        "
             + ", ".join(
-                f"INT32_C({round(value[0] * MELEE_X_TO_SIM_Q16)})"
+                c_f32(value[0] * MELEE_X_TO_SIM)
                 for value in LEDGE_OPTION_FRAME_ONE_ROOT_MELEE
             )
             + ",",
             "    },",
-            "    .option_frame_one_y_q16 = {",
+            "    .option_frame_one_y_f32 = {",
             "        "
             + ", ".join(
-                f"INT32_C({round(-value[1] * MELEE_Y_TO_SIM_Q16)})"
+                c_f32(-value[1] * MELEE_Y_TO_SIM)
                 for value in LEDGE_OPTION_FRAME_ONE_ROOT_MELEE
             )
             + ",",
@@ -2392,27 +2429,27 @@ def generate(
             "",
             "/* qualified Hyrule CliffJump1 trace SHA-256: "
             f"{LEDGE_JUMP1_HYRULE_SOURCE_TRACE_SHA256} */",
-            "static const int32_t",
-            "falcon_hyrule_ledge_jump1_quick_from_wait_q16"
+            "static const float",
+            "falcon_hyrule_ledge_jump1_quick_from_wait_f32"
             "[PF_M4_FALCON_LEDGE_JUMP1_QUICK_FRAME_COUNT][2] = {",
             *(
-                f"    {{ INT32_C({x}), INT32_C({y}) }},"
-                for x, y in LEDGE_JUMP1_HYRULE_QUICK_FROM_WAIT_Q16
+                f"    {{ {c_f32(x)}, {c_f32(y)} }},"
+                for x, y in LEDGE_JUMP1_HYRULE_QUICK_FROM_WAIT_F32
             ),
             "};",
-            "static const int32_t",
-            "falcon_hyrule_ledge_jump1_slow_from_wait_q16"
+            "static const float",
+            "falcon_hyrule_ledge_jump1_slow_from_wait_f32"
             "[PF_M4_FALCON_LEDGE_JUMP1_SLOW_FRAME_COUNT][2] = {",
             *(
-                f"    {{ INT32_C({x}), INT32_C({y}) }},"
-                for x, y in LEDGE_JUMP1_HYRULE_SLOW_FROM_WAIT_Q16
+                f"    {{ {c_f32(x)}, {c_f32(y)} }},"
+                for x, y in LEDGE_JUMP1_HYRULE_SLOW_FROM_WAIT_F32
             ),
             "};",
-            "static const int32_t",
-            "falcon_hyrule_ledge_jump2_frame_one_from_wait_q16[2][2] = {",
+            "static const float",
+            "falcon_hyrule_ledge_jump2_frame_one_from_wait_f32[2][2] = {",
             *(
-                f"    {{ INT32_C({x}), INT32_C({y}) }},"
-                for x, y in LEDGE_JUMP2_HYRULE_FRAME_ONE_FROM_WAIT_Q16
+                f"    {{ {c_f32(x)}, {c_f32(y)} }},"
+                for x, y in LEDGE_JUMP2_HYRULE_FRAME_ONE_FROM_WAIT_F32
             ),
             "};",
             "",
@@ -2421,9 +2458,9 @@ def generate(
         )
     )
     lines.extend(
-        f"    .{name} = INT32_C({value}),"
+        f"    .{name} = {c_f32(value)},"
         for name, value in common_special_attributes.items()
-        if name != "stale_move_slot_reduction_q16"
+        if name != "stale_move_slot_reduction_f32"
     )
     lines.extend(
         (
@@ -2431,12 +2468,12 @@ def generate(
             "",
             "static const falcon_air_dodge_attributes",
             "falcon_air_dodge_attribute_data = {",
-            "    .initial_velocity_x_q16 = "
-            f"INT32_C({air_dodge_attributes['initial_velocity_x_q16']}),",
-            "    .initial_velocity_y_q16 = "
-            f"INT32_C({air_dodge_attributes['initial_velocity_y_q16']}),",
-            "    .decay_q16 = "
-            f"INT32_C({air_dodge_attributes['decay_q16']}),",
+            "    .initial_velocity_x_f32 = "
+            f"{c_f32(air_dodge_attributes['initial_velocity_x_f32'])},",
+            "    .initial_velocity_y_f32 = "
+            f"{c_f32(air_dodge_attributes['initial_velocity_y_f32'])},",
+            "    .decay_f32 = "
+            f"{c_f32(air_dodge_attributes['decay_f32'])},",
             "    .dead_zone = "
             f"UINT16_C({air_dodge_attributes['dead_zone']}),",
             "    .item_throw_window_ticks = "
@@ -2448,11 +2485,11 @@ def generate(
             "",
             "static const melee_stale_move_data",
             "melee_stale_move_data_source = {",
-            "    .slot_reduction_q16 = {",
+            "    .slot_reduction_f32 = {",
             "        "
             + ", ".join(
-                f"UINT16_C({value})"
-                for value in common_special_attributes["stale_move_slot_reduction_q16"]
+                c_f32(value)
+                for value in common_special_attributes["stale_move_slot_reduction_f32"]
             )
             + ",",
             "    },",
@@ -2466,6 +2503,8 @@ def generate(
         (
             f"    .{name} = UINT32_C({value}),"
             if name in SPECIAL_UNSIGNED_FIELDS
+            else f"    .{name} = {c_f32(value)},"
+            if name.endswith("_f32")
             else f"    .{name} = INT32_C({value}),"
         )
         for name, value in special_attributes.items()
@@ -2506,14 +2545,10 @@ def generate(
             "    .victim_release_hitstun_ticks = "
             f"UINT16_C({SPECIALHI_CAPTURE_VICTIM_RELEASE_HITSTUN_TICKS}),",
             "    .reserved = UINT16_C(0),",
-            "    .grounded_throw_reposition_x_q16 = "
-            "INT32_C("
-            f"{round(SPECIALHI_GROUNDED_THROW_REPOSITION_X_MELEE * MELEE_X_TO_SIM_Q16)}"
-            "),",
-            "    .grounded_throw_reposition_y_q16 = "
-            "INT32_C("
-            f"{round(-SPECIALHI_GROUNDED_THROW_REPOSITION_Y_MELEE * MELEE_Y_TO_SIM_Q16)}"
-            "),",
+            "    .grounded_throw_reposition_x_f32 = "
+            f"{c_f32(SPECIALHI_GROUNDED_THROW_REPOSITION_X_MELEE * MELEE_X_TO_SIM)},",
+            "    .grounded_throw_reposition_y_f32 = "
+            f"{c_f32(-SPECIALHI_GROUNDED_THROW_REPOSITION_Y_MELEE * MELEE_Y_TO_SIM)},",
             "};",
             "",
             "static const falcon_down_special_timing",
@@ -2537,18 +2572,17 @@ def generate(
             "    .ground_origin_edge_fall_begin_frame = "
             f"UINT16_C({speciallw_ground_origin_edge_fall_begin}),",
             "    .reserved = UINT16_C(0),",
-            "    .ground_end_entry_velocity_scale_q16 = "
-            f"INT32_C({q16(FALCON_KICK_GROUND_END_ENTRY_VELOCITY_SCALE)}),",
+            "    .ground_end_entry_velocity_scale_f32 = "
+            f"{c_f32(FALCON_KICK_GROUND_END_ENTRY_VELOCITY_SCALE)},",
             "};",
             "",
             "static const falcon_collision_pose",
             "falcon_collision_pose_data = {",
-            "    .falling_bottom_y_from_origin_q16 = INT32_C("
-            f"{round(FALLING_ECB_BOTTOM_Y_MELEE * MELEE_Y_TO_SIM_Q16)}"
-            "),",
+            "    .falling_bottom_y_from_origin_f32 = "
+            f"{c_f32(FALLING_ECB_BOTTOM_Y_MELEE * MELEE_Y_TO_SIM)},",
             "    .crouch_wait = {",
             *(
-                f"        {render_ecb_pose_q16(frame)},"
+                f"        {render_ecb_pose_f32(frame)},"
                 for frame in crouch_wait_frames
             ),
             "    },",
@@ -2575,111 +2609,111 @@ def generate(
             "    .getup_roll = {",
             *render_ecb_pose_track_matrix(getup_roll_frames, "        "),
             "    },",
-            "    .damage_fly_bottom_y_from_origin_q16 = {",
+            "    .damage_fly_bottom_y_from_origin_f32 = {",
             "        "
             + ", ".join(
-                f"INT32_C({round(value * MELEE_Y_TO_SIM_Q16)})"
+                c_f32(value * MELEE_Y_TO_SIM)
                 for value in DAMAGE_FLY_ECB_BOTTOM_Y_MELEE
             )
             + ",",
             "    },",
-            "    .damage_fly_top_y_from_origin_q16 = {",
+            "    .damage_fly_top_y_from_origin_f32 = {",
             "        "
             + ", ".join(
-                f"INT32_C({round(value * MELEE_Y_TO_SIM_Q16)})"
+                c_f32(value * MELEE_Y_TO_SIM)
                 for value in DAMAGE_FLY_ECB_TOP_Y_MELEE
             )
             + ",",
             "    },",
-            "    .damage_fly_side_x_from_origin_q16 = {",
+            "    .damage_fly_side_x_from_origin_f32 = {",
             "        "
             + ", ".join(
-                f"INT32_C({round(value * MELEE_X_TO_SIM_Q16)})"
+                c_f32(value * MELEE_X_TO_SIM)
                 for value in DAMAGE_FLY_ECB_SIDE_X_MELEE
             )
             + ",",
             "    },",
-            "    .damage_fly_side_y_from_origin_q16 = {",
+            "    .damage_fly_side_y_from_origin_f32 = {",
             "        "
             + ", ".join(
-                f"INT32_C({round(value * MELEE_Y_TO_SIM_Q16)})"
+                c_f32(value * MELEE_Y_TO_SIM)
                 for value in DAMAGE_FLY_ECB_SIDE_Y_MELEE
             )
             + ",",
             "    },",
-            "    .air_dodge_bottom_y_from_origin_q16 = {",
+            "    .air_dodge_bottom_y_from_origin_f32 = {",
             "        "
             + ", ".join(
-                f"INT32_C({round(value * MELEE_Y_TO_SIM_Q16)})"
+                c_f32(value * MELEE_Y_TO_SIM)
                 for value in AIR_DODGE_ECB_BOTTOM_Y_MELEE
             )
             + ",",
             "    },",
-            "    .platform_drop_bottom_y_from_origin_q16 = {",
+            "    .platform_drop_bottom_y_from_origin_f32 = {",
             "        "
             + ", ".join(
-                f"INT32_C({round(value * MELEE_Y_TO_SIM_Q16)})"
+                c_f32(value * MELEE_Y_TO_SIM)
                 for value in PLATFORM_DROP_ECB_BOTTOM_Y_MELEE
             )
             + ",",
             "    },",
             "    .airborne = {",
             *(
-                f"        {render_ecb_pose_q16(frame)},"
+                f"        {render_ecb_pose_f32(frame)},"
                 for frame in airborne_frames
             ),
             "    },",
             "    .shield_break_fly = {",
             *(
-                f"        {render_ecb_pose_q16(frame)},"
+                f"        {render_ecb_pose_f32(frame)},"
                 for frame in shield_break_fly_frames
             ),
             "    },",
             "    .shield_break_down_down = {",
             *(
-                f"        {render_ecb_pose_q16(frame)},"
+                f"        {render_ecb_pose_f32(frame)},"
                 for frame in shield_break_down_down_frames
             ),
             "    },",
             "    .shield_break_stand_down = {",
             *(
-                f"        {render_ecb_pose_q16(frame)},"
+                f"        {render_ecb_pose_f32(frame)},"
                 for frame in shield_break_stand_down_frames
             ),
             "    },",
             "    .shield_break_stun = {",
             *(
-                f"        {render_ecb_pose_q16(frame)},"
+                f"        {render_ecb_pose_f32(frame)},"
                 for frame in shield_break_stun_frames
             ),
             "    },",
             "    .guard_on = {",
             *(
-                f"        {render_ecb_pose_q16(frame)},"
+                f"        {render_ecb_pose_f32(frame)},"
                 for frame in guard_on_frames
             ),
             "    },",
             "    .guard = {",
             *(
-                f"        {render_ecb_pose_q16(frame)},"
+                f"        {render_ecb_pose_f32(frame)},"
                 for frame in guard_frames
             ),
             "    },",
             "    .guard_off = {",
             *(
-                f"        {render_ecb_pose_q16(frame)},"
+                f"        {render_ecb_pose_f32(frame)},"
                 for frame in guard_off_frames
             ),
             "    },",
             "    .ceiling_bounce = {",
             *(
-                f"        {render_ecb_pose_q16(frame)},"
+                f"        {render_ecb_pose_f32(frame)},"
                 for frame in ceiling_bounce_frames
             ),
             "    },",
             "    .wall_bounce = {",
             *(
-                f"        {render_ecb_pose_q16(frame)},"
+                f"        {render_ecb_pose_f32(frame)},"
                 for frame in wall_bounce_frames
             ),
             "    },",
@@ -2720,7 +2754,7 @@ def generate(
         (
             "};",
             "",
-            "static const reference_move falcon_moves[PF_M4_FALCON_MOVE_COUNT] = {",
+            "static const struct reference_move falcon_moves[PF_M4_FALCON_MOVE_COUNT] = {",
         )
     )
     for move in moves:
@@ -2745,29 +2779,29 @@ def generate(
         (
             "};",
             "",
-            "static const int32_t "
-            "falcon_translation_x_q16[PF_M4_FALCON_TRANSLATION_SAMPLE_COUNT] = {",
+            "static const float "
+            "falcon_translation_x_f32[PF_M4_FALCON_TRANSLATION_SAMPLE_COUNT] = {",
         )
     )
     lines.extend(
         "    "
-        + ", ".join(f"INT32_C({value})" for value in motion_x_q16[index : index + 8])
+        + ", ".join(c_f32(value) for value in motion_x_f32[index : index + 8])
         + ","
-        for index in range(0, len(motion_x_q16), 8)
+        for index in range(0, len(motion_x_f32), 8)
     )
     lines.extend(
         (
             "};",
             "",
-            "static const int32_t "
-            "falcon_translation_y_q16[PF_M4_FALCON_TRANSLATION_SAMPLE_COUNT] = {",
+            "static const float "
+            "falcon_translation_y_f32[PF_M4_FALCON_TRANSLATION_SAMPLE_COUNT] = {",
         )
     )
     lines.extend(
         "    "
-        + ", ".join(f"INT32_C({value})" for value in motion_y_q16[index : index + 8])
+        + ", ".join(c_f32(value) for value in motion_y_f32[index : index + 8])
         + ","
-        for index in range(0, len(motion_y_q16), 8)
+        for index in range(0, len(motion_y_f32), 8)
     )
     lines.extend(("};", ""))
     return "\n".join(lines)

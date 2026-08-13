@@ -35,8 +35,8 @@
         "action_ticks",
         "facing",
         "grounded",
-        "velocity_x_q16",
-        "velocity_y_q16"
+        "velocity_x_f32",
+        "velocity_y_f32"
       ]
     },
     {
@@ -74,8 +74,8 @@
         "action_ticks",
         "facing",
         "grounded",
-        "velocity_x_q16",
-        "velocity_y_q16"
+        "velocity_x_f32",
+        "velocity_y_f32"
       ]
     },
     {
@@ -113,8 +113,8 @@
         "action_ticks",
         "facing",
         "grounded",
-        "velocity_x_q16",
-        "velocity_y_q16"
+        "velocity_x_f32",
+        "velocity_y_f32"
       ]
     },
     {
@@ -152,8 +152,8 @@
         "action_ticks",
         "facing",
         "grounded",
-        "velocity_x_q16",
-        "velocity_y_q16"
+        "velocity_x_f32",
+        "velocity_y_f32"
       ]
     },
     {
@@ -191,8 +191,8 @@
         "action_ticks",
         "facing",
         "grounded",
-        "velocity_x_q16",
-        "velocity_y_q16"
+        "velocity_x_f32",
+        "velocity_y_f32"
       ]
     },
     {
@@ -230,8 +230,8 @@
         "action_ticks",
         "facing",
         "grounded",
-        "velocity_x_q16",
-        "velocity_y_q16"
+        "velocity_x_f32",
+        "velocity_y_f32"
       ]
     },
     {
@@ -269,8 +269,8 @@
         "action_ticks",
         "facing",
         "grounded",
-        "velocity_x_q16",
-        "velocity_y_q16"
+        "velocity_x_f32",
+        "velocity_y_f32"
       ]
     },
     {
@@ -308,8 +308,8 @@
         "action_ticks",
         "facing",
         "grounded",
-        "velocity_x_q16",
-        "velocity_y_q16"
+        "velocity_x_f32",
+        "velocity_y_f32"
       ]
     },
     {
@@ -347,8 +347,8 @@
         "action_ticks",
         "facing",
         "grounded",
-        "velocity_x_q16",
-        "velocity_y_q16"
+        "velocity_x_f32",
+        "velocity_y_f32"
       ]
     },
     {
@@ -386,8 +386,8 @@
         "action_ticks",
         "facing",
         "grounded",
-        "velocity_x_q16",
-        "velocity_y_q16"
+        "velocity_x_f32",
+        "velocity_y_f32"
       ]
     },
     {
@@ -425,8 +425,8 @@
         "action_ticks",
         "facing",
         "grounded",
-        "velocity_x_q16",
-        "velocity_y_q16"
+        "velocity_x_f32",
+        "velocity_y_f32"
       ]
     },
     {
@@ -464,8 +464,8 @@
         "action_ticks",
         "facing",
         "grounded",
-        "velocity_x_q16",
-        "velocity_y_q16"
+        "velocity_x_f32",
+        "velocity_y_f32"
       ]
     },
     {
@@ -503,8 +503,8 @@
         "action_ticks",
         "facing",
         "grounded",
-        "velocity_x_q16",
-        "velocity_y_q16"
+        "velocity_x_f32",
+        "velocity_y_f32"
       ]
     },
     {
@@ -542,8 +542,8 @@
         "action_ticks",
         "facing",
         "grounded",
-        "velocity_x_q16",
-        "velocity_y_q16"
+        "velocity_x_f32",
+        "velocity_y_f32"
       ]
     },
     {
@@ -581,8 +581,8 @@
         "action_ticks",
         "facing",
         "grounded",
-        "velocity_x_q16",
-        "velocity_y_q16"
+        "velocity_x_f32",
+        "velocity_y_f32"
       ]
     },
     {
@@ -620,8 +620,8 @@
         "action_ticks",
         "facing",
         "grounded",
-        "velocity_x_q16",
-        "velocity_y_q16"
+        "velocity_x_f32",
+        "velocity_y_f32"
       ]
     }
   ],

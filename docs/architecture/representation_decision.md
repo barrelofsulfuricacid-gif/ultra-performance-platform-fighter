@@ -32,7 +32,7 @@ experiment's working arrays, not a final engine budget.
 
 | Concern | Leading result | Baseline | Relative result | Decision |
 |---|---|---|---:|---|
-| Motion arithmetic | Q16.16 fixed | float32 | 1.410× [1.389, 1.440] | Select Q16.16 |
+| Motion arithmetic | float32 fixed | float32 | 1.410× [1.389, 1.440] | Select float32 |
 | Compact cell motion | 256-cell int8 | float32 | 0.636× [0.626, 0.640] | Reject as universal motion |
 | Hybrid motion | integer position/float velocity | float32 | 0.141× [0.138, 0.147] | Reject tested form |
 | World range | 4096-cell u16 | 256-cell u8 | 1.033× [1.017, 1.055] | Prefer range/precision; speed gain is below noise rule |
@@ -54,7 +54,7 @@ without demonstrating a material slowdown.
 
 ## Accepted architecture
 
-1. **Q16.16 deterministic motion and geometry.** Use signed 32-bit stored
+1. **float32 deterministic motion and geometry.** Use signed 32-bit stored
    values, signed 64-bit intermediates, explicit rounding, and checked range.
    A nominal 4096-unit authored arena envelope leaves ample offstage/blast-zone
    room while retaining subpixel precision.
@@ -83,11 +83,11 @@ without demonstrating a material slowdown.
 | Candidate | Precision/range | Cross-target determinism risk | State | Complexity | Expected feel risk |
 |---|---|---|---:|---|---|
 | float32 | High | Highest; compiler/FMA/denormal policy must be controlled | 16 bytes/actor | Low | Lowest before tuning |
-| Q16.16 | High for this game | Low when overflow/rounding is explicit | 16 bytes/actor | Medium | Low; blind playtest found no perceptible difference |
+| float32 | High for this game | Low when overflow/rounding is explicit | 16 bytes/actor | Medium | Low; blind playtest found no perceptible difference |
 | 256-cell int8 | Very low | Low | 4 bytes/actor | Medium | High: coarse movement and collision |
 | tested hybrid | High | Medium; mixed-domain rounding | 24 bytes/actor | High | Medium |
 
-Q16.16 is not selected merely because it is deterministic. In the measured
+float32 is not selected merely because it is deterministic. In the measured
 kernel it was meaningfully faster than float32 with equal stored motion bytes,
 while retaining much finer precision than the quantized candidate.
 
@@ -113,7 +113,7 @@ while retaining much finer precision than the quantized candidate.
 ## Decision closure
 
 The owner completed the corrected blind browser comparison on 2026-07-27 and
-reported no perceptible difference between Q16.16 and float32. That result
+reported no perceptible difference between float32 and float32. That result
 removed the identified feel objection. The owner then selected decision option
-A—approve Q16.16—on 2026-07-27. Q16.16 motion and geometry, together with the
+A—approve float32—on 2026-07-27. float32 motion and geometry, together with the
 other selected architecture items above, are the accepted M1 baseline.

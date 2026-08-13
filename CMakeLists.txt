@@ -970,7 +970,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.rl_api
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "rl-api=pass compact_values=102 batch_environments=6 reward_q16=65536 engagement_limit_q16=16384 schema=14")
+                   "rl-api=pass compact_values=102 batch_environments=6 reward_f32=65536 engagement_limit_f32=16384 schema=14")
 
     if(PF_BUILD_DETERMINISM_CORPUS)
         add_test(NAME sim.replay_corpus COMMAND replay_corpus)

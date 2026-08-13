@@ -14,9 +14,9 @@ from ssbm_live_trace import (
     normalized_sha256,
     parse_integer_observations,
     require_equal,
-    require_q16_close,
-    source_x_to_sim_q16,
-    source_y_to_sim_q16,
+    require_f32_close,
+    source_x_to_sim_f32,
+    source_y_to_sim_f32,
     validate_capture_provenance,
 )
 
@@ -223,8 +223,8 @@ def compare_sim(
     sim_output: Path,
     comparison_policy: dict[str, Any],
 ) -> None:
-    velocity_tolerance = int(comparison_policy.get("velocity_tolerance_q16", 0))
-    position_tolerance = int(comparison_policy.get("position_tolerance_q16", 0))
+    velocity_tolerance = int(comparison_policy.get("velocity_tolerance_f32", 0))
+    position_tolerance = int(comparison_policy.get("position_tolerance_f32", 0))
     if velocity_tolerance > 32 or position_tolerance > 288:
         raise SystemExit("ledge-option live tolerance exceeds the qualified Q16 envelope")
     produced = parse_integer_observations(
@@ -279,27 +279,27 @@ def compare_sim(
                     f"{prefix} ledge regrab cooldown",
                 )
                 continue
-            require_q16_close(
+            require_f32_close(
                 sample["dx"],
-                source_x_to_sim_q16(float(row["position_x"]) - source_origin_x),
+                source_x_to_sim_f32(float(row["position_x"]) - source_origin_x),
                 position_tolerance,
                 f"{prefix} position x",
             )
-            require_q16_close(
+            require_f32_close(
                 sample["dy"],
-                source_y_to_sim_q16(float(row["position_y"]) - source_origin_y),
+                source_y_to_sim_f32(float(row["position_y"]) - source_origin_y),
                 position_tolerance,
                 f"{prefix} position y",
             )
-            require_q16_close(
+            require_f32_close(
                 sample["self_vx"],
-                source_x_to_sim_q16(float(row["air_velocity_x"])),
+                source_x_to_sim_f32(float(row["air_velocity_x"])),
                 velocity_tolerance,
                 f"{prefix} self velocity x",
             )
-            require_q16_close(
+            require_f32_close(
                 sample["self_vy"],
-                source_y_to_sim_q16(float(row["velocity_y"])),
+                source_y_to_sim_f32(float(row["velocity_y"])),
                 velocity_tolerance,
                 f"{prefix} self velocity y",
             )

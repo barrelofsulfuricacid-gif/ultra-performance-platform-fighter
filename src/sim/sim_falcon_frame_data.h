@@ -22,7 +22,7 @@
 #define PF_M4_FALCON_TRANSLATION_SAMPLE_COUNT UINT16_C(2536)
 #define PF_M4_MELEE_STALE_MOVE_SLOT_COUNT UINT16_C(9)
 #define PF_M4_FALCON_AIR_DODGE_ECB_FRAME_COUNT UINT16_C(48)
-#define PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16 INT32_MIN
+#define PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_F32 INT32_MIN
 #define PF_M4_FALCON_PRONE_ORIENTATION_COUNT UINT16_C(2)
 #define PF_M4_FALCON_GETUP_ROLL_DIRECTION_COUNT UINT16_C(2)
 #define PF_M4_FALCON_DOWN_BOUND_ECB_FRAME_COUNT UINT16_C(26)
@@ -237,12 +237,12 @@ typedef enum falcon_submotion_index
 
 static inline int falcon_wait_hsd_pose_is_direct(
     uint16_t source_submotion,
-    int32_t source_animation_frame_q16)
+    float source_animation_frame_f32)
 {
     return source_submotion == (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT_2 ||
            source_submotion == (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT_3 ||
            (source_submotion == (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT &&
-            source_animation_frame_q16 >=
+            source_animation_frame_f32 >=
                 (int32_t)PF_M4_FALCON_WAIT_HSD_FIRST_UNBLENDED_FRAME *
                     INT32_C(65536));
 }
@@ -366,10 +366,10 @@ typedef struct reference_hit_frame
 
 typedef struct reference_hit_sphere
 {
-    int32_t offset_x_q16;
-    int32_t offset_y_q16;
-    int32_t offset_z_q16;
-    int32_t radius_q16;
+    float offset_x_f32;
+    float offset_y_f32;
+    float offset_z_f32;
+    float radius_f32;
     uint8_t effect_index;
     uint8_t hitbox_id;
     uint8_t group_id;
@@ -378,13 +378,13 @@ typedef struct reference_hit_sphere
 
 typedef struct reference_hurt_capsule
 {
-    int32_t endpoint_a_x_q16;
-    int32_t endpoint_a_y_q16;
-    int32_t endpoint_a_z_q16;
-    int32_t endpoint_b_x_q16;
-    int32_t endpoint_b_y_q16;
-    int32_t endpoint_b_z_q16;
-    int32_t radius_q16;
+    float endpoint_a_x_f32;
+    float endpoint_a_y_f32;
+    float endpoint_a_z_f32;
+    float endpoint_b_x_f32;
+    float endpoint_b_y_f32;
+    float endpoint_b_z_f32;
+    float radius_f32;
     uint8_t hurtbox_id;
     uint8_t height;
     uint8_t grabbable;
@@ -412,46 +412,46 @@ typedef struct reference_hurt_frame
  */
 typedef struct falcon_common_attributes
 {
-    int32_t initial_walk_velocity_q16;
-    int32_t walk_acceleration_q16;
-    int32_t walk_maximum_velocity_q16;
-    int32_t slow_walk_animation_scaling_q16;
-    int32_t middle_walk_animation_scaling_q16;
-    int32_t fast_walk_animation_scaling_q16;
-    int32_t run_animation_scaling_q16;
-    int32_t friction_q16;
+    float initial_walk_velocity_f32;
+    float walk_acceleration_f32;
+    float walk_maximum_velocity_f32;
+    float slow_walk_animation_scaling_f32;
+    float middle_walk_animation_scaling_f32;
+    float fast_walk_animation_scaling_f32;
+    float run_animation_scaling_f32;
+    float friction_f32;
     int64_t friction_q32;
-    int32_t dash_initial_velocity_q16;
-    int32_t dash_run_acceleration_a_q16;
-    int32_t dash_run_acceleration_b_q16;
-    int32_t dash_run_terminal_velocity_q16;
-    int32_t ground_maximum_horizontal_velocity_q16;
-    int32_t jump_horizontal_initial_velocity_q16;
-    int32_t jump_vertical_initial_velocity_q16;
-    int32_t ground_air_jump_momentum_multiplier_q16;
-    int32_t jump_horizontal_maximum_velocity_q16;
-    int32_t shorthop_vertical_initial_velocity_q16;
-    int32_t air_jump_multiplier_q16;
-    int32_t double_jump_momentum_q16;
-    int32_t double_jump_vertical_velocity_q16;
-    int32_t double_jump_horizontal_velocity_q16;
-    int32_t gravity_q16;
-    int32_t terminal_velocity_q16;
-    int32_t air_mobility_a_q16;
-    int32_t air_mobility_b_q16;
+    float dash_initial_velocity_f32;
+    float dash_run_acceleration_a_f32;
+    float dash_run_acceleration_b_f32;
+    float dash_run_terminal_velocity_f32;
+    float ground_maximum_horizontal_velocity_f32;
+    float jump_horizontal_initial_velocity_f32;
+    float jump_vertical_initial_velocity_f32;
+    float ground_air_jump_momentum_multiplier_f32;
+    float jump_horizontal_maximum_velocity_f32;
+    float shorthop_vertical_initial_velocity_f32;
+    float air_jump_multiplier_f32;
+    float double_jump_momentum_f32;
+    float double_jump_vertical_velocity_f32;
+    float double_jump_horizontal_velocity_f32;
+    float gravity_f32;
+    float terminal_velocity_f32;
+    float air_mobility_a_f32;
+    float air_mobility_b_f32;
     int64_t air_mobility_a_q32;
     int64_t air_mobility_b_q32;
-    int32_t max_aerial_horizontal_velocity_q16;
-    int32_t air_friction_q16;
-    int32_t fast_fall_terminal_velocity_q16;
-    int32_t maximum_horizontal_air_velocity_q16;
-    int32_t shield_break_initial_velocity_q16;
-    int32_t rebound_animation_length_q16;
-    int32_t ledge_jump_horizontal_velocity_q16;
-    int32_t ledge_jump_vertical_velocity_q16;
-    int32_t wall_jump_horizontal_velocity_q16;
-    int32_t wall_jump_vertical_velocity_q16;
-    int32_t match_entry_rise_q16;
+    float max_aerial_horizontal_velocity_f32;
+    float air_friction_f32;
+    float fast_fall_terminal_velocity_f32;
+    float maximum_horizontal_air_velocity_f32;
+    float shield_break_initial_velocity_f32;
+    float rebound_animation_length_f32;
+    float ledge_jump_horizontal_velocity_f32;
+    float ledge_jump_vertical_velocity_f32;
+    float wall_jump_horizontal_velocity_f32;
+    float wall_jump_vertical_velocity_f32;
+    float match_entry_rise_f32;
     uint16_t jump_startup_ticks;
     uint16_t number_of_jumps;
     uint16_t turn_duration_ticks;
@@ -479,20 +479,20 @@ typedef struct falcon_common_attributes
 
 typedef struct falcon_ledge_attributes
 {
-    int32_t snap_x_q16;
-    int32_t snap_y_q16;
-    int32_t snap_height_q16;
+    float snap_x_f32;
+    float snap_y_f32;
+    float snap_height_f32;
 } falcon_ledge_attributes;
 
 typedef struct falcon_ledge_root_positions
 {
-    int32_t catch_frame_one_x_q16;
-    int32_t catch_frame_one_y_q16;
-    int32_t wait_frame_one_x_q16;
-    int32_t wait_frame_one_y_q16;
-    int32_t option_frame_one_x_q16[
+    float catch_frame_one_x_f32;
+    float catch_frame_one_y_f32;
+    float wait_frame_one_x_f32;
+    float wait_frame_one_y_f32;
+    float option_frame_one_x_f32[
         PF_M4_FALCON_LEDGE_OPTION_SUBMOTION_COUNT];
-    int32_t option_frame_one_y_q16[
+    float option_frame_one_y_f32[
         PF_M4_FALCON_LEDGE_OPTION_SUBMOTION_COUNT];
     uint16_t option_ground_frame[
         PF_M4_FALCON_LEDGE_OPTION_SUBMOTION_COUNT];
@@ -510,62 +510,62 @@ typedef struct falcon_ledge_attack_reference
 /*
  * Exact deterministic view of the 0x8c-byte ftCaptain_DatAttrs block. Float
  * members are converted from the owner DAT's big-endian IEEE-754 words to
- * Q16.16 by the pinned importer. The raw source words remain in the generated
+ * float32 by the pinned importer. The raw source words remain in the generated
  * table as a completeness/provenance surface.
  */
 typedef struct falcon_special_attributes
 {
-    int32_t specialn_stick_range_y_neg_q16;
-    int32_t specialn_stick_range_y_pos_q16;
-    int32_t specialn_angle_diff_q16;
-    int32_t specialn_vel_x_q16;
-    int32_t specialn_vel_mul_q16;
-    int32_t specials_gr_vel_x_q16;
-    int32_t specials_grav_q16;
-    int32_t specials_terminal_vel_q16;
-    int32_t specials_unk0_q16;
-    int32_t specials_unk1_q16;
-    int32_t specials_unk2_q16;
-    int32_t specials_unk3_q16;
-    int32_t specials_unk4_q16;
-    int32_t specials_unk5_q16;
-    int32_t specials_miss_landing_lag_q16;
-    int32_t specials_hit_landing_lag_q16;
-    int32_t specialhi_air_friction_mul_q16;
-    int32_t specialhi_horz_vel_q16;
-    int32_t specialhi_freefall_air_spd_mul_q16;
-    int32_t specialhi_landing_lag_q16;
-    int32_t specialhi_unk0_q16;
-    int32_t specialhi_unk1_q16;
-    int32_t specialhi_input_var_q16;
-    int32_t specialhi_unk2_q16;
-    int32_t specialhi_catch_grav_q16;
+    float specialn_stick_range_y_neg_f32;
+    float specialn_stick_range_y_pos_f32;
+    float specialn_angle_diff_f32;
+    float specialn_vel_x_f32;
+    float specialn_vel_mul_f32;
+    float specials_gr_vel_x_f32;
+    float specials_grav_f32;
+    float specials_terminal_vel_f32;
+    float specials_unk0_f32;
+    float specials_unk1_f32;
+    float specials_unk2_f32;
+    float specials_unk3_f32;
+    float specials_unk4_f32;
+    float specials_unk5_f32;
+    float specials_miss_landing_lag_f32;
+    float specials_hit_landing_lag_f32;
+    float specialhi_air_friction_mul_f32;
+    float specialhi_horz_vel_f32;
+    float specialhi_freefall_air_spd_mul_f32;
+    float specialhi_landing_lag_f32;
+    float specialhi_unk0_f32;
+    float specialhi_unk1_f32;
+    float specialhi_input_var_f32;
+    float specialhi_unk2_f32;
+    float specialhi_catch_grav_f32;
     int32_t specialhi_air_var;
     uint32_t x68_bits;
     uint32_t speciallw_unk1;
-    int32_t speciallw_flame_particle_angle_q16;
-    int32_t speciallw_on_hit_spd_modifier_q16;
+    float speciallw_flame_particle_angle_f32;
+    float speciallw_on_hit_spd_modifier_f32;
     int32_t speciallw_unk2;
-    int32_t speciallw_ground_lag_mul_q16;
-    int32_t speciallw_landing_lag_mul_q16;
-    int32_t speciallw_ground_traction_q16;
-    int32_t speciallw_air_landing_traction_q16;
+    float speciallw_ground_lag_mul_f32;
+    float speciallw_landing_lag_mul_f32;
+    float speciallw_ground_traction_f32;
+    float speciallw_air_landing_traction_f32;
 } falcon_special_attributes;
 
 typedef struct falcon_common_special_attributes
 {
-    int32_t fast_ground_friction_multiplier_q16;
-    int32_t air_drift_over_maximum_deceleration_q16;
-    int32_t side_special_stick_threshold_q16;
-    int32_t side_special_turn_threshold_q16;
-    int32_t air_drift_dead_zone_q16;
+    float fast_ground_friction_multiplier_f32;
+    float air_drift_over_maximum_deceleration_f32;
+    float side_special_stick_threshold_f32;
+    float side_special_turn_threshold_f32;
+    float air_drift_dead_zone_f32;
 } falcon_common_special_attributes;
 
 typedef struct falcon_air_dodge_attributes
 {
-    int32_t initial_velocity_x_q16;
-    int32_t initial_velocity_y_q16;
-    int32_t decay_q16;
+    float initial_velocity_x_f32;
+    float initial_velocity_y_f32;
+    float decay_f32;
     uint16_t dead_zone;
     uint16_t item_throw_window_ticks;
     /* Raw EscapeAir displayed frame from command-variable zero becoming one. */
@@ -605,13 +605,13 @@ typedef struct falcon_up_special_timing
     uint16_t throw_gravity_begin_frame;
     uint16_t victim_release_hitstun_ticks;
     uint16_t reserved;
-    int32_t grounded_throw_reposition_x_q16;
-    int32_t grounded_throw_reposition_y_q16;
+    float grounded_throw_reposition_x_f32;
+    float grounded_throw_reposition_y_f32;
 } falcon_up_special_timing;
 
 typedef struct melee_stale_move_data
 {
-    uint16_t slot_reduction_q16[PF_M4_MELEE_STALE_MOVE_SLOT_COUNT];
+    float slot_reduction_f32[PF_M4_MELEE_STALE_MOVE_SLOT_COUNT];
 } melee_stale_move_data;
 
 typedef struct falcon_down_special_timing
@@ -626,84 +626,84 @@ typedef struct falcon_down_special_timing
     uint16_t ground_origin_air_physics_begin_frame;
     uint16_t ground_origin_edge_fall_begin_frame;
     uint16_t reserved;
-    int32_t ground_end_entry_velocity_scale_q16;
+    float ground_end_entry_velocity_scale_f32;
 } falcon_down_special_timing;
 
-typedef struct falcon_ecb_pose_q16
+typedef struct falcon_ecb_pose_f32
 {
-    int32_t top_x_from_origin_q16;
-    int32_t top_y_from_origin_q16;
-    int32_t bottom_x_from_origin_q16;
-    int32_t bottom_y_from_origin_q16;
-    int32_t right_x_from_origin_q16;
-    int32_t right_y_from_origin_q16;
-    int32_t left_x_from_origin_q16;
-    int32_t left_y_from_origin_q16;
-} falcon_ecb_pose_q16;
+    float top_x_from_origin_f32;
+    float top_y_from_origin_f32;
+    float bottom_x_from_origin_f32;
+    float bottom_y_from_origin_f32;
+    float right_x_from_origin_f32;
+    float right_y_from_origin_f32;
+    float left_x_from_origin_f32;
+    float left_y_from_origin_f32;
+} falcon_ecb_pose_f32;
 
 typedef struct falcon_collision_pose
 {
-    int32_t falling_bottom_y_from_origin_q16;
-    falcon_ecb_pose_q16 crouch_wait[
+    float falling_bottom_y_from_origin_f32;
+    falcon_ecb_pose_f32 crouch_wait[
         PF_M4_FALCON_CROUCH_WAIT_ECB_FRAME_COUNT];
     uint32_t down_bound_floor_contact_mask[
         PF_M4_FALCON_PRONE_ORIENTATION_COUNT];
-    falcon_ecb_pose_q16 down_bound[
+    falcon_ecb_pose_f32 down_bound[
         PF_M4_FALCON_PRONE_ORIENTATION_COUNT]
         [PF_M4_FALCON_DOWN_BOUND_ECB_FRAME_COUNT];
-    falcon_ecb_pose_q16 down_wait[
+    falcon_ecb_pose_f32 down_wait[
         PF_M4_FALCON_PRONE_ORIENTATION_COUNT]
         [PF_M4_FALCON_DOWN_WAIT_ECB_FRAME_COUNT];
-    falcon_ecb_pose_q16 getup_neutral[
+    falcon_ecb_pose_f32 getup_neutral[
         PF_M4_FALCON_PRONE_ORIENTATION_COUNT]
         [PF_M4_FALCON_GETUP_NEUTRAL_ECB_FRAME_COUNT];
-    falcon_ecb_pose_q16 getup_attack[
+    falcon_ecb_pose_f32 getup_attack[
         PF_M4_FALCON_PRONE_ORIENTATION_COUNT]
         [PF_M4_FALCON_GETUP_ATTACK_ECB_FRAME_COUNT];
-    falcon_ecb_pose_q16 getup_roll[
+    falcon_ecb_pose_f32 getup_roll[
         PF_M4_FALCON_PRONE_ORIENTATION_COUNT]
         [PF_M4_FALCON_GETUP_ROLL_DIRECTION_COUNT]
         [PF_M4_FALCON_GETUP_ROLL_ECB_FRAME_COUNT];
-    int32_t damage_fly_bottom_y_from_origin_q16[
+    float damage_fly_bottom_y_from_origin_f32[
         PF_M4_FALCON_DAMAGE_FLY_ECB_FRAME_COUNT];
-    int32_t damage_fly_top_y_from_origin_q16[
+    float damage_fly_top_y_from_origin_f32[
         PF_M4_FALCON_DAMAGE_FLY_ECB_FRAME_COUNT];
-    int32_t damage_fly_side_x_from_origin_q16[
+    float damage_fly_side_x_from_origin_f32[
         PF_M4_FALCON_DAMAGE_FLY_ECB_FRAME_COUNT];
-    int32_t damage_fly_side_y_from_origin_q16[
+    float damage_fly_side_y_from_origin_f32[
         PF_M4_FALCON_DAMAGE_FLY_ECB_FRAME_COUNT];
-    int32_t air_dodge_bottom_y_from_origin_q16[
+    float air_dodge_bottom_y_from_origin_f32[
         PF_M4_FALCON_AIR_DODGE_ECB_FRAME_COUNT];
-    int32_t platform_drop_bottom_y_from_origin_q16[
+    float platform_drop_bottom_y_from_origin_f32[
         PF_M4_FALCON_PLATFORM_DROP_ECB_FRAME_COUNT];
-    falcon_ecb_pose_q16 airborne[
+    falcon_ecb_pose_f32 airborne[
         PF_M4_FALCON_AIRBORNE_ECB_FRAME_COUNT];
-    falcon_ecb_pose_q16 shield_break_fly[
+    falcon_ecb_pose_f32 shield_break_fly[
         PF_M4_FALCON_SHIELD_BREAK_FLY_ECB_FRAME_COUNT];
-    falcon_ecb_pose_q16 shield_break_down_down[
+    falcon_ecb_pose_f32 shield_break_down_down[
         PF_M4_FALCON_SHIELD_BREAK_DOWN_ECB_FRAME_COUNT];
-    falcon_ecb_pose_q16 shield_break_stand_down[
+    falcon_ecb_pose_f32 shield_break_stand_down[
         PF_M4_FALCON_SHIELD_BREAK_STAND_ECB_FRAME_COUNT];
-    falcon_ecb_pose_q16 shield_break_stun[
+    falcon_ecb_pose_f32 shield_break_stun[
         PF_M4_FALCON_SHIELD_BREAK_STUN_ECB_FRAME_COUNT];
-    falcon_ecb_pose_q16 guard_on[
+    falcon_ecb_pose_f32 guard_on[
         PF_M4_FALCON_GUARD_ON_FRAME_COUNT];
-    falcon_ecb_pose_q16 guard[
+    falcon_ecb_pose_f32 guard[
         PF_M4_FALCON_GUARD_FRAME_COUNT];
-    falcon_ecb_pose_q16 guard_off[
+    falcon_ecb_pose_f32 guard_off[
         PF_M4_FALCON_GUARD_OFF_FRAME_COUNT];
-    falcon_ecb_pose_q16 ceiling_bounce[
+    falcon_ecb_pose_f32 ceiling_bounce[
         PF_M4_FALCON_CEILING_BOUNCE_ECB_FRAME_COUNT];
-    falcon_ecb_pose_q16 wall_bounce[
+    falcon_ecb_pose_f32 wall_bounce[
         PF_M4_FALCON_WALL_BOUNCE_ECB_FRAME_COUNT];
 } falcon_collision_pose;
 
 typedef struct reference_search_sphere
 {
-    int32_t offset_x_q16;
-    int32_t offset_y_q16;
-    int32_t offset_z_q16;
-    int32_t radius_q16;
+    float offset_x_f32;
+    float offset_y_f32;
+    float offset_z_f32;
+    float radius_f32;
 } reference_search_sphere;
 
 typedef struct reference_throw
@@ -806,19 +806,19 @@ falcon_reference_ledge_root_positions(void);
 const falcon_ledge_attack_reference *
 falcon_reference_ledge_attack(uint16_t submotion_index);
 
-int falcon_reference_ledge_option_anchor_q16(
+int falcon_reference_ledge_option_anchor_f32(
     uint16_t submotion_index,
-    int32_t *out_x_q16,
-    int32_t *out_y_q16);
+    float *out_x_f32,
+    float *out_y_f32);
 
 uint16_t falcon_reference_ledge_option_ground_frame(
     uint16_t submotion_index);
 
-int falcon_reference_hyrule_ledge_jump_position_q16(
+int falcon_reference_hyrule_ledge_jump_position_f32(
     uint16_t submotion_index,
     uint16_t displayed_frame,
-    int32_t *out_x_from_wait_q16,
-    int32_t *out_y_from_wait_q16);
+    float *out_x_from_wait_f32,
+    float *out_y_from_wait_f32);
 
 int falcon_reference_body_invulnerable(
     uint16_t submotion_index,
@@ -854,7 +854,7 @@ falcon_reference_down_special_timing(void);
 const falcon_collision_pose *
 falcon_reference_collision_pose(void);
 
-const falcon_ecb_pose_q16 *
+const falcon_ecb_pose_f32 *
 falcon_reference_prone_ecb_pose(
     uint8_t action_state,
     uint16_t action_ticks,
@@ -863,36 +863,36 @@ falcon_reference_prone_ecb_pose(
     int8_t tech_direction,
     int8_t facing);
 
-const falcon_ecb_pose_q16 *
+const falcon_ecb_pose_f32 *
 falcon_reference_guard_ecb_pose(
     uint8_t action_state,
     uint16_t source_submotion,
     uint16_t action_ticks);
 
-int falcon_reference_ecb_apply_bottom_lock_q16(
-    int32_t locked_bottom_y_q16,
-    falcon_ecb_pose_q16 *pose);
+int falcon_reference_ecb_apply_bottom_lock_f32(
+    float locked_bottom_y_f32,
+    falcon_ecb_pose_f32 *pose);
 
 int
 falcon_reference_hsd_ecb_pose(
     uint16_t source_submotion,
-    int32_t source_animation_frame_q16,
+    float source_animation_frame_f32,
     int grounded,
-    int32_t locked_bottom_y_q16,
-    falcon_ecb_pose_q16 *out_pose);
+    float locked_bottom_y_f32,
+    falcon_ecb_pose_f32 *out_pose);
 
 int falcon_reference_action_hsd_ecb_pose(
     uint8_t action_state,
     uint16_t action_ticks,
     uint8_t grounded,
-    int32_t locked_bottom_y_q16,
-    falcon_ecb_pose_q16 *out_pose);
+    float locked_bottom_y_f32,
+    falcon_ecb_pose_f32 *out_pose);
 
 int falcon_reference_action_hsd_source(
     uint8_t action_state,
     uint16_t action_ticks,
     uint16_t *out_submotion,
-    int32_t *out_frame_q16);
+    float *out_frame_f32);
 
 const hsd_pose_data *
 falcon_reference_hsd_pose_data(void);
@@ -900,8 +900,8 @@ const hsd_local_pose *
 falcon_reference_guard_target_hsd_pose(void);
 int falcon_resolve_compact_hsd_pose(
     uint16_t source_submotion,
-    int32_t source_animation_frame_q16,
-    int32_t progress_q16,
+    float source_animation_frame_f32,
+    float progress_f32,
     const hsd_compact_pose *compact,
     hsd_local_pose out_pose[PF_M4_HSD_POSE_MAX_JOINTS]);
 
@@ -916,21 +916,21 @@ int falcon_reference_direct_hsd_pose(
     uint16_t action_ticks,
     uint8_t grounded,
     uint16_t *out_submotion,
-    int32_t *out_frame_q16);
+    float *out_frame_f32);
 
 int falcon_reference_hsd_ground_ecb_pose_from_local_pose(
     const hsd_local_pose pose[PF_M4_HSD_POSE_MAX_JOINTS],
-    falcon_ecb_pose_q16 *out_pose);
+    falcon_ecb_pose_f32 *out_pose);
 
 int falcon_reference_hsd_fall_ecb_pose(
     uint16_t directional_submotion,
-    int32_t source_animation_frame_q16,
-    int32_t directional_blend_q16,
+    float source_animation_frame_f32,
+    float directional_blend_f32,
     uint8_t directional_target_switched,
-    int32_t locked_bottom_y_q16,
-    falcon_ecb_pose_q16 *out_pose);
+    float locked_bottom_y_f32,
+    falcon_ecb_pose_f32 *out_pose);
 
-const falcon_ecb_pose_q16 *
+const falcon_ecb_pose_f32 *
 falcon_reference_airborne_ecb_pose(
     uint16_t source_submotion,
     uint16_t action_ticks);
@@ -942,32 +942,32 @@ falcon_reference_side_special_search_spheres(
 
 const uint8_t *falcon_reference_geometry_sha256(void);
 
-void falcon_reference_capture_offset_q16(
-    int32_t *out_x_q16,
-    int32_t *out_y_q16);
+void falcon_reference_capture_offset_f32(
+    float *out_x_f32,
+    float *out_y_f32);
 
-int falcon_reference_capture_constraint_q16(
+int falcon_reference_capture_constraint_f32(
     uint16_t holder_submotion,
-    int32_t holder_frame_q16,
+    float holder_frame_f32,
     int8_t holder_facing,
     uint16_t victim_submotion,
-    int32_t victim_frame_q16,
+    float victim_frame_f32,
     int8_t victim_facing,
-    int32_t *out_x_q16,
-    int32_t *out_y_q16);
+    float *out_x_f32,
+    float *out_y_f32);
 
-int falcon_reference_collision_sweep_step_count_q16(
-    int32_t position_delta_x_q16,
-    int32_t position_delta_y_q16,
-    const falcon_ecb_pose_q16 *current_ecb,
-    const falcon_ecb_pose_q16 *desired_ecb,
+int falcon_reference_collision_sweep_step_count_f32(
+    float position_delta_x_f32,
+    float position_delta_y_f32,
+    const falcon_ecb_pose_f32 *current_ecb,
+    const falcon_ecb_pose_f32 *desired_ecb,
     uint16_t *out_step_count);
 
 int falcon_reference_throw_motions(
     uint8_t action_state,
     uint16_t *out_holder_submotion,
     uint16_t *out_victim_submotion,
-    int32_t *out_animation_rate_q16);
+    float *out_animation_rate_f32);
 
 const struct reference_move *falcon_reference_move(
     falcon_move_index move_index);
@@ -1027,7 +1027,7 @@ falcon_reference_common_hurt_capsules_for_submotion_at_frame(
 
 int falcon_reference_hsd_hurt_capsules(
     uint16_t source_submotion,
-    int32_t source_animation_frame_q16,
+    float source_animation_frame_f32,
     reference_hurt_capsule
         out_capsules[PF_M4_HSD_POSE_MAX_CAPSULES],
     uint8_t *out_count);
@@ -1040,36 +1040,36 @@ int falcon_reference_hsd_hurt_capsules_from_local_pose(
 
 int falcon_reference_damage_hsd_hurt_capsules(
     uint16_t source_submotion,
-    int32_t source_animation_frame_q16,
+    float source_animation_frame_f32,
     int8_t facing,
-    int32_t total_velocity_x_q16,
-    int32_t total_velocity_y_q16,
+    float total_velocity_x_f32,
+    float total_velocity_y_f32,
     reference_hurt_capsule
         out_capsules[PF_M4_HSD_POSE_MAX_CAPSULES],
     uint8_t *out_count);
 
 int falcon_reference_damage_hsd_ecb_pose(
     uint16_t source_submotion,
-    int32_t source_animation_frame_q16,
+    float source_animation_frame_f32,
     int8_t facing,
-    int32_t total_velocity_x_q16,
-    int32_t total_velocity_y_q16,
+    float total_velocity_x_f32,
+    float total_velocity_y_f32,
     int grounded,
-    int32_t locked_bottom_y_q16,
-    falcon_ecb_pose_q16 *out_pose);
+    float locked_bottom_y_f32,
+    falcon_ecb_pose_f32 *out_pose);
 
 int falcon_reference_retained_hsd_pose(
     uint8_t action_state,
     uint16_t source_submotion,
     uint16_t action_ticks,
-    int32_t source_animation_frame_q16,
-    int32_t *out_frame_q16);
+    float source_animation_frame_f32,
+    float *out_frame_f32);
 
 int falcon_reference_retained_hsd_hurt_capsules(
     uint8_t action_state,
     uint16_t source_submotion,
     uint16_t action_ticks,
-    int32_t source_animation_frame_q16,
+    float source_animation_frame_f32,
     reference_hurt_capsule
         out_capsules[PF_M4_HSD_POSE_MAX_CAPSULES],
     uint8_t *out_count);
@@ -1089,12 +1089,12 @@ reference_timing falcon_reference_timing(
 const struct reference_move *falcon_reference_attack(
     uint8_t action_state,
     reference_timing authored_timing,
-    uint32_t authored_damage_q16);
+    float authored_damage_f32);
 
 int falcon_reference_attack_matches(
     uint8_t action_state,
     reference_timing authored_timing,
-    uint32_t authored_damage_q16);
+    float authored_damage_f32);
 
 reference_iasa_policy falcon_reference_iasa_policy_for_action(
     uint8_t action_state);
@@ -1115,21 +1115,21 @@ int falcon_reference_special_iasa_active(
  * This accessor deliberately does not decide whether a state callback replaces
  * velocity, adds displacement, or ignores the track.
  */
-int falcon_reference_translation_q16(
+int falcon_reference_translation_f32(
     uint16_t submotion_index,
     uint16_t displayed_frame,
-    int32_t *out_translation_x_q16,
-    int32_t *out_translation_y_q16);
+    float *out_translation_x_f32,
+    float *out_translation_y_f32);
 
-int falcon_reference_motion_x_q16(
+int falcon_reference_motion_x_f32(
     uint8_t action_state,
     uint16_t action_frame,
-    int32_t *out_motion_x_q16);
+    float *out_motion_x_f32);
 
-int falcon_reference_motion_y_q16(
+int falcon_reference_motion_y_f32(
     uint8_t action_state,
     uint16_t action_frame,
-    int32_t *out_motion_y_q16);
+    float *out_motion_y_f32);
 
 /*
  * Returns one while an aerial's source-defined landing-lag flag is active,

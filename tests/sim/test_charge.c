@@ -133,12 +133,12 @@ static int make_charge_content(
     }
     content->fighter.reference_frame_data_enabled = UINT8_C(0);
     content->charge.enabled = UINT8_C(1);
-    content->charge.hitbox_offset_x_q16 = INT32_C(0);
-    content->charge.hitbox_half_width_q16 = INT32_C(4) * PF_Q16_ONE;
-    content->fighter.jab_hitbox_offset_x_q16 = INT32_C(0);
-    content->fighter.jab_hitbox_half_width_q16 =
-        INT32_C(4) * PF_Q16_ONE;
-    content->stage.spawn_spacing_q16 = PF_Q16_ONE;
+    content->charge.hitbox_offset_x_f32 = INT32_C(0);
+    content->charge.hitbox_half_width_f32 = INT32_C(4) * PF_F32_ONE;
+    content->fighter.jab_hitbox_offset_x_f32 = INT32_C(0);
+    content->fighter.jab_hitbox_half_width_f32 =
+        INT32_C(4) * PF_F32_ONE;
+    content->stage.spawn_spacing_f32 = PF_F32_ONE;
     return expect_status(
         make_content_view(content, view),
         PF_STATUS_OK,
@@ -377,7 +377,7 @@ static int run_cancel_and_resume_contract(
 static int release_damage_after_charge(
     pf_sim *sim,
     uint16_t charge_ticks,
-    uint32_t *out_damage_q16)
+    float *out_damage_f32)
 {
     pf_tick_result result;
     struct inspection inspection;
@@ -431,7 +431,7 @@ static int release_damage_after_charge(
             {
                 return fail("charge-release-event-detail");
             }
-            *out_damage_q16 = hit->value_q16;
+            *out_damage_f32 = hit->value_f32;
             return 1;
         }
         if (!step_sim(
@@ -486,7 +486,7 @@ static int run_release_and_interrupt_contract(
     }
     for (tick = UINT32_C(0); tick < UINT32_C(8); ++tick)
     {
-        if (inspection.players[0].damage_q16 != UINT32_C(0))
+        if (inspection.players[0].damage_f32 != UINT32_C(0))
         {
             break;
         }
@@ -500,7 +500,7 @@ static int run_release_and_interrupt_contract(
             return 0;
         }
     }
-    if (inspection.players[0].damage_q16 == UINT32_C(0) ||
+    if (inspection.players[0].damage_f32 == UINT32_C(0) ||
         inspection.players[0].charge_ticks != UINT16_C(0) ||
         inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_HITLAG)
@@ -508,7 +508,7 @@ static int run_release_and_interrupt_contract(
         (void)fprintf(
             stderr,
             "m4-charge=debug interruption damage=%u charge=%u action=%u\n",
-            inspection.players[0].damage_q16,
+            inspection.players[0].damage_f32,
             (unsigned int)inspection.players[0].charge_ticks,
             (unsigned int)inspection.players[0].action_state);
         return fail("charge-interruption-clears");

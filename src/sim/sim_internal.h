@@ -7,31 +7,44 @@
 #include "sim_hsd_pose.h"
 
 #include <stdint.h>
+#include <string.h>
 
 #define PF_SIM_HANDLE_MAGIC UINT64_C(0x504653494D303032)
-#define PF_SIM_MAX_MOTION_SPEED_Q16 INT32_C(262144)
+#define PF_SIM_MAX_MOTION_SPEED_F32 4.0f
+
+static inline float pf_sim_f32_from_bits(uint32_t bits)
+{
+    float value;
+
+    (void)memcpy(&value, &bits, sizeof(value));
+    return value;
+}
+
+static inline uint32_t pf_sim_f32_bits(float value)
+{
+    uint32_t bits;
+
+    (void)memcpy(&bits, &value, sizeof(bits));
+    return bits;
+}
 
 static inline int pf_sim_vertical_coordinate_is_within_arena(
-    int32_t coordinate_q16,
-    int32_t arena_extent_q16)
+    float coordinate_f32,
+    float arena_extent_f32)
 {
-    return coordinate_q16 >= -arena_extent_q16 &&
-           coordinate_q16 <= arena_extent_q16;
+    return coordinate_f32 >= -arena_extent_f32 &&
+           coordinate_f32 <= arena_extent_f32;
 }
 
-static inline int32_t total_velocity_q16(
-    int32_t self_velocity_q16,
-    int32_t knockback_velocity_q16)
+static inline float total_velocity_f32(
+    float self_velocity_f32,
+    float knockback_velocity_f32)
 {
-    /* Both channels are independently bounded by
-     * PF_SIM_MAX_MOTION_SPEED_Q16, so their sum is representable in i32. */
-    return (int32_t)(
-        (int64_t)self_velocity_q16 + (int64_t)knockback_velocity_q16);
+    return self_velocity_f32 + knockback_velocity_f32;
 }
 
-#define PF_SIM_MAX_DAMAGE_Q16 (UINT32_C(999) * UINT32_C(65536))
-#define PF_SIM_MAX_SHIELD_HEALTH_Q16 \
-    (UINT32_C(100) * UINT32_C(65536))
+#define PF_SIM_MAX_DAMAGE_F32 999.0f
+#define PF_SIM_MAX_SHIELD_HEALTH_F32 100.0f
 #define PF_SIM_MAX_HITSTUN_TICKS UINT16_C(600)
 #define PF_SIM_MAX_GRAB_ESCAPE_TICKS UINT16_C(2048)
 #define PF_M4_COMMON_AIR_ENTRY_ECB_LOCK_TICKS UINT8_C(10)
@@ -337,66 +350,35 @@ static inline int action_uses_source_animation_clock(
            action_uses_direct_hsd_pose(effective_action);
 }
 
-static inline int32_t multiply_q16(
-    int32_t value_q16,
-    int32_t multiplier_q16)
+static inline float multiply_f32(
+    float value_f32,
+    float multiplier_f32)
 {
-    return (int32_t)(
-        ((int64_t)value_q16 * (int64_t)multiplier_q16) /
-        (int64_t)PF_Q16_ONE);
+    return value_f32 * multiplier_f32;
 }
 
-static inline int32_t multiply_q16_nearest(
-    int32_t value_q16,
-    int32_t multiplier_q16)
+static inline float multiply_f32_nearest(
+    float value_f32,
+    float multiplier_f32)
 {
-    const int64_t product =
-        (int64_t)value_q16 * (int64_t)multiplier_q16;
-
-    return product < INT64_C(0)
-               ? (int32_t)(
-                     -((-product + (int64_t)PF_Q16_ONE / INT64_C(2)) /
-                       (int64_t)PF_Q16_ONE))
-               : (int32_t)(
-                     (product + (int64_t)PF_Q16_ONE / INT64_C(2)) /
-                     (int64_t)PF_Q16_ONE);
+    return value_f32 * multiplier_f32;
 }
 
-/* Quantize one step of a constant positive Q16.32 rate without accumulating
- * the same sub-Q16 remainder every tick. The phase makes the integer sequence
- * telescope: any contiguous run differs from the source rate by less than one
- * Q16.16 unit and requires no per-action state. */
-static inline int32_t q32_rate_step(
+/* Transitional decoder for generated rates that have not yet been regenerated
+ * as binary32 literals. The phase no longer affects a float rate. */
+static inline float q32_rate_step(
     int64_t rate_q32,
     uint64_t phase)
 {
-    const uint64_t bounded_phase = phase & UINT64_C(0xFFFF);
-    const int64_t whole_q16 = rate_q32 / INT64_C(65536);
-    const int64_t fraction_q32 = rate_q32 % INT64_C(65536);
-    const int64_t before =
-        ((int64_t)bounded_phase * fraction_q32 + INT64_C(32768)) /
-        INT64_C(65536);
-    const int64_t after =
-        ((int64_t)(bounded_phase + UINT64_C(1)) * fraction_q32 +
-         INT64_C(32768)) /
-        INT64_C(65536);
-
-    return (int32_t)(whole_q16 + after - before);
+    (void)phase;
+    return (float)rate_q32 * 0x1p-32f;
 }
 
-static inline int32_t axis_q16(int16_t axis)
+static inline float axis_f32(int16_t axis)
 {
-    const int64_t denominator =
-        axis < INT16_C(0) ? INT64_C(32768) : INT64_C(32767);
-    const int64_t product = (int64_t)axis * (int64_t)PF_Q16_ONE;
-
-    return product < INT64_C(0)
-               ? (int32_t)(
-                     -((-product + denominator / INT64_C(2)) /
-                       denominator))
-               : (int32_t)(
-                     (product + denominator / INT64_C(2)) /
-                     denominator);
+    return axis < INT16_C(0)
+               ? (float)axis / 32768.0f
+               : (float)axis / 32767.0f;
 }
 
 static inline int8_t source_stick_direction(
@@ -533,8 +515,8 @@ typedef struct pf_world_state
     uint16_t arithmetic_version;
     uint16_t rng_version;
     uint16_t input_schema_version;
-    int32_t arena_half_width_q16;
-    int32_t arena_ceiling_q16;
+    float arena_half_width_f32;
+    float arena_ceiling_f32;
     uint16_t respawn_delay_config_ticks;
     uint16_t respawn_invulnerability_config_ticks;
     uint8_t player_count;
@@ -547,21 +529,21 @@ typedef struct pf_world_state
     uint8_t shield_recoil_mask;
     uint8_t reference_match_input_lock_ticks;
     uint64_t previous_buttons[PF_SIM_MAX_PLAYERS];
-    int32_t position_x_q16[PF_SIM_MAX_PLAYERS];
-    int32_t position_y_q16[PF_SIM_MAX_PLAYERS];
-    int32_t velocity_x_q16[PF_SIM_MAX_PLAYERS];
-    int32_t velocity_y_q16[PF_SIM_MAX_PLAYERS];
+    float position_x_f32[PF_SIM_MAX_PLAYERS];
+    float position_y_f32[PF_SIM_MAX_PLAYERS];
+    float velocity_x_f32[PF_SIM_MAX_PLAYERS];
+    float velocity_y_f32[PF_SIM_MAX_PLAYERS];
     uint16_t match_kos[PF_SIM_MAX_PLAYERS];
     uint16_t match_falls[PF_SIM_MAX_PLAYERS];
     uint16_t action_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t source_submotion[PF_SIM_MAX_PLAYERS];
-    int32_t source_animation_frame_q16[PF_SIM_MAX_PLAYERS];
-    int32_t source_animation_rate_q16[PF_SIM_MAX_PLAYERS];
-    int32_t fall_animation_blend_q16[PF_SIM_MAX_PLAYERS];
+    float source_animation_frame_f32[PF_SIM_MAX_PLAYERS];
+    float source_animation_rate_f32[PF_SIM_MAX_PLAYERS];
+    float fall_animation_blend_f32[PF_SIM_MAX_PLAYERS];
     uint8_t fall_animation_target_switched[PF_SIM_MAX_PLAYERS];
-    int32_t ecb_locked_bottom_y_q16[PF_SIM_MAX_PLAYERS];
+    float ecb_locked_bottom_y_f32[PF_SIM_MAX_PLAYERS];
     hsd_compact_pose ground_blend_pose[PF_SIM_MAX_PLAYERS];
-    int32_t ground_blend_progress_q16[PF_SIM_MAX_PLAYERS];
+    float ground_blend_progress_f32[PF_SIM_MAX_PLAYERS];
     uint16_t respawn_count[PF_SIM_MAX_PLAYERS];
     uint16_t respawn_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t respawn_invulnerability_ticks[PF_SIM_MAX_PLAYERS];
@@ -610,20 +592,20 @@ typedef struct pf_world_state
     uint8_t ucf_pad_buffer_count[PF_SIM_MAX_PLAYERS];
     uint8_t horizontal_input_age[PF_SIM_MAX_PLAYERS];
     int8_t horizontal_input_direction[PF_SIM_MAX_PLAYERS];
-    uint32_t damage_q16[PF_SIM_MAX_PLAYERS];
-    int32_t knockback_velocity_x_q16[PF_SIM_MAX_PLAYERS];
-    int32_t knockback_velocity_y_q16[PF_SIM_MAX_PLAYERS];
-    int32_t ground_knockback_velocity_q16[PF_SIM_MAX_PLAYERS];
+    float damage_f32[PF_SIM_MAX_PLAYERS];
+    float knockback_velocity_x_f32[PF_SIM_MAX_PLAYERS];
+    float knockback_velocity_y_f32[PF_SIM_MAX_PLAYERS];
+    float ground_knockback_velocity_f32[PF_SIM_MAX_PLAYERS];
     uint32_t last_hit_sequence[PF_SIM_MAX_PLAYERS];
     uint64_t last_hit_tick[PF_SIM_MAX_PLAYERS];
-    uint32_t last_hit_damage_q16[PF_SIM_MAX_PLAYERS];
+    float last_hit_damage_f32[PF_SIM_MAX_PLAYERS];
     uint8_t damage_time_since_hit_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t hitlag_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t hitstun_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t tech_window_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t tech_lockout_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t shield_stun_ticks[PF_SIM_MAX_PLAYERS];
-    uint32_t shield_health_q16[PF_SIM_MAX_PLAYERS];
+    float shield_health_f32[PF_SIM_MAX_PLAYERS];
     uint8_t hitlag_resume_action[PF_SIM_MAX_PLAYERS];
     uint8_t attack_hit_mask[PF_SIM_MAX_PLAYERS];
     uint8_t attack_stale_registered[PF_SIM_MAX_PLAYERS];
@@ -650,10 +632,10 @@ typedef struct pf_world_state
     int8_t tech_direction[PF_SIM_MAX_PLAYERS];
     uint8_t prone_orientation[PF_SIM_MAX_PLAYERS];
     uint8_t prone_roll_motion_orientation[PF_SIM_MAX_PLAYERS];
-    int32_t item_position_x_q16;
-    int32_t item_position_y_q16;
-    int32_t item_velocity_x_q16;
-    int32_t item_velocity_y_q16;
+    float item_position_x_f32;
+    float item_position_y_f32;
+    float item_velocity_x_f32;
+    float item_velocity_y_f32;
     uint16_t item_lifetime_ticks;
     uint16_t item_respawn_ticks;
     uint16_t item_pickup_lockout_ticks;
@@ -663,35 +645,35 @@ typedef struct pf_world_state
     uint8_t item_hit_mask;
     uint8_t item_stale_registered;
     uint8_t item_throw_direction;
-    int32_t projectile_position_x_q16;
-    int32_t projectile_position_y_q16;
-    int32_t projectile_velocity_x_q16;
-    int32_t projectile_velocity_y_q16;
+    float projectile_position_x_f32;
+    float projectile_position_y_f32;
+    float projectile_velocity_x_f32;
+    float projectile_velocity_y_f32;
     uint16_t projectile_lifetime_ticks;
     uint8_t projectile_state;
     uint8_t projectile_owner_slot;
     uint32_t combat_event_sequence;
-    int32_t shield_recoil_x_q16[PF_SIM_MAX_PLAYERS];
+    float shield_recoil_x_f32[PF_SIM_MAX_PLAYERS];
 } pf_world_state;
 
 typedef struct pf_sim_scratch
 {
     uint64_t previous_buttons[PF_SIM_MAX_PLAYERS];
-    int32_t position_x_q16[PF_SIM_MAX_PLAYERS];
-    int32_t position_y_q16[PF_SIM_MAX_PLAYERS];
-    int32_t velocity_x_q16[PF_SIM_MAX_PLAYERS];
-    int32_t velocity_y_q16[PF_SIM_MAX_PLAYERS];
+    float position_x_f32[PF_SIM_MAX_PLAYERS];
+    float position_y_f32[PF_SIM_MAX_PLAYERS];
+    float velocity_x_f32[PF_SIM_MAX_PLAYERS];
+    float velocity_y_f32[PF_SIM_MAX_PLAYERS];
     uint16_t match_kos[PF_SIM_MAX_PLAYERS];
     uint16_t match_falls[PF_SIM_MAX_PLAYERS];
     uint16_t action_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t source_submotion[PF_SIM_MAX_PLAYERS];
-    int32_t source_animation_frame_q16[PF_SIM_MAX_PLAYERS];
-    int32_t source_animation_rate_q16[PF_SIM_MAX_PLAYERS];
-    int32_t fall_animation_blend_q16[PF_SIM_MAX_PLAYERS];
+    float source_animation_frame_f32[PF_SIM_MAX_PLAYERS];
+    float source_animation_rate_f32[PF_SIM_MAX_PLAYERS];
+    float fall_animation_blend_f32[PF_SIM_MAX_PLAYERS];
     uint8_t fall_animation_target_switched[PF_SIM_MAX_PLAYERS];
-    int32_t ecb_locked_bottom_y_q16[PF_SIM_MAX_PLAYERS];
+    float ecb_locked_bottom_y_f32[PF_SIM_MAX_PLAYERS];
     hsd_compact_pose ground_blend_pose[PF_SIM_MAX_PLAYERS];
-    int32_t ground_blend_progress_q16[PF_SIM_MAX_PLAYERS];
+    float ground_blend_progress_f32[PF_SIM_MAX_PLAYERS];
     uint16_t respawn_count[PF_SIM_MAX_PLAYERS];
     uint16_t respawn_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t respawn_invulnerability_ticks[PF_SIM_MAX_PLAYERS];
@@ -739,20 +721,20 @@ typedef struct pf_sim_scratch
     uint8_t ucf_pad_buffer_count[PF_SIM_MAX_PLAYERS];
     uint8_t horizontal_input_age[PF_SIM_MAX_PLAYERS];
     int8_t horizontal_input_direction[PF_SIM_MAX_PLAYERS];
-    uint32_t damage_q16[PF_SIM_MAX_PLAYERS];
-    int32_t knockback_velocity_x_q16[PF_SIM_MAX_PLAYERS];
-    int32_t knockback_velocity_y_q16[PF_SIM_MAX_PLAYERS];
-    int32_t ground_knockback_velocity_q16[PF_SIM_MAX_PLAYERS];
+    float damage_f32[PF_SIM_MAX_PLAYERS];
+    float knockback_velocity_x_f32[PF_SIM_MAX_PLAYERS];
+    float knockback_velocity_y_f32[PF_SIM_MAX_PLAYERS];
+    float ground_knockback_velocity_f32[PF_SIM_MAX_PLAYERS];
     uint32_t last_hit_sequence[PF_SIM_MAX_PLAYERS];
     uint64_t last_hit_tick[PF_SIM_MAX_PLAYERS];
-    uint32_t last_hit_damage_q16[PF_SIM_MAX_PLAYERS];
+    float last_hit_damage_f32[PF_SIM_MAX_PLAYERS];
     uint8_t damage_time_since_hit_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t hitlag_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t hitstun_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t tech_window_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t tech_lockout_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t shield_stun_ticks[PF_SIM_MAX_PLAYERS];
-    uint32_t shield_health_q16[PF_SIM_MAX_PLAYERS];
+    float shield_health_f32[PF_SIM_MAX_PLAYERS];
     uint8_t hitlag_resume_action[PF_SIM_MAX_PLAYERS];
     uint8_t attack_hit_mask[PF_SIM_MAX_PLAYERS];
     uint8_t attack_stale_registered[PF_SIM_MAX_PLAYERS];
@@ -779,10 +761,10 @@ typedef struct pf_sim_scratch
     int8_t tech_direction[PF_SIM_MAX_PLAYERS];
     uint8_t prone_orientation[PF_SIM_MAX_PLAYERS];
     uint8_t prone_roll_motion_orientation[PF_SIM_MAX_PLAYERS];
-    int32_t item_position_x_q16;
-    int32_t item_position_y_q16;
-    int32_t item_velocity_x_q16;
-    int32_t item_velocity_y_q16;
+    float item_position_x_f32;
+    float item_position_y_f32;
+    float item_velocity_x_f32;
+    float item_velocity_y_f32;
     uint16_t item_lifetime_ticks;
     uint16_t item_respawn_ticks;
     uint16_t item_pickup_lockout_ticks;
@@ -792,10 +774,10 @@ typedef struct pf_sim_scratch
     uint8_t item_hit_mask;
     uint8_t item_stale_registered;
     uint8_t item_throw_direction;
-    int32_t projectile_position_x_q16;
-    int32_t projectile_position_y_q16;
-    int32_t projectile_velocity_x_q16;
-    int32_t projectile_velocity_y_q16;
+    float projectile_position_x_f32;
+    float projectile_position_y_f32;
+    float projectile_velocity_x_f32;
+    float projectile_velocity_y_f32;
     uint16_t projectile_lifetime_ticks;
     uint8_t projectile_state;
     uint8_t projectile_owner_slot;
@@ -806,7 +788,7 @@ typedef struct pf_sim_scratch
     uint8_t action_transition_mask;
     uint8_t shield_recoil_mask;
     pf_sim_event combat_events[PF_SIM_MAX_EVENTS_PER_TICK];
-    int32_t shield_recoil_x_q16[PF_SIM_MAX_PLAYERS];
+    float shield_recoil_x_f32[PF_SIM_MAX_PLAYERS];
 } pf_sim_scratch;
 
 static inline void track_action_transition(
@@ -907,16 +889,16 @@ pf_status pf_sim_push_event(
     pf_sim_event_type type,
     uint8_t source_player,
     uint8_t target_player,
-    uint32_t value_q16,
-    int32_t velocity_x_q16,
-    int32_t velocity_y_q16,
+    float value_f32,
+    float velocity_x_f32,
+    float velocity_y_f32,
     uint16_t flags,
     uint16_t detail,
     uint32_t *out_sequence);
 pf_status content_from_view(
     const pf_content_view *view,
     struct content *out_content);
-int32_t platform_center_x_q16(
+float platform_center_x_f32(
     const stage_data *stage,
     uint64_t tick);
 void reset_player(
@@ -972,7 +954,7 @@ pf_status step_player(
     const pf_input_frame *input,
     const pf_input_frame *raw_input,
     uint32_t player_index,
-    int32_t player_nudge_x_q16,
+    float player_nudge_x_f32,
     uint64_t *rng_state);
 pf_status resolve_combat(
     const struct content *content,
@@ -980,7 +962,7 @@ pf_status resolve_combat(
     pf_sim_scratch *scratch,
     uint64_t *rng_state);
 uint8_t stale_move_id_for_action(uint8_t action_state);
-uint32_t stale_move_multiplier_q16(
+float stale_move_multiplier_f32(
     const fighter_data *fighter,
     const uint8_t stale_move_ids[PF_SIM_STALE_MOVE_QUEUE_CAPACITY],
     uint8_t stale_move_count,
@@ -999,31 +981,31 @@ uint16_t getup_attack_invulnerability_ticks_for(
     uint8_t prone_orientation);
 int attack_hitbox(
     const struct content *content,
-    int32_t position_x_q16,
-    int32_t position_y_q16,
+    float position_x_f32,
+    float position_y_f32,
     int8_t facing,
     uint8_t action_state,
     uint16_t action_ticks,
     uint16_t source_submotion,
-    int32_t *out_left_q16,
-    int32_t *out_right_q16,
-    int32_t *out_top_q16,
-    int32_t *out_bottom_q16);
+    float *out_left_f32,
+    float *out_right_f32,
+    float *out_top_f32,
+    float *out_bottom_f32);
 int grabbox(
     const struct content *content,
-    int32_t position_x_q16,
-    int32_t position_y_q16,
+    float position_x_f32,
+    float position_y_f32,
     int8_t facing,
     uint8_t action_state,
     uint16_t action_ticks,
-    int32_t *out_left_q16,
-    int32_t *out_right_q16,
-    int32_t *out_top_q16,
-    int32_t *out_bottom_q16);
+    float *out_left_f32,
+    float *out_right_f32,
+    float *out_top_f32,
+    float *out_bottom_f32);
 uint8_t attack_hit_spheres(
     const struct content *content,
-    int32_t position_x_q16,
-    int32_t position_y_q16,
+    float position_x_f32,
+    float position_y_f32,
     int8_t facing,
     uint8_t action_state,
     uint16_t action_ticks,
@@ -1031,36 +1013,36 @@ uint8_t attack_hit_spheres(
         out_spheres[PF_M4_INSPECTION_HIT_SPHERE_CAPACITY]);
 uint8_t reference_world_hurt_capsules(
     const fighter_data *fighter,
-    int32_t position_x_q16,
-    int32_t position_y_q16,
+    float position_x_f32,
+    float position_y_f32,
     int8_t facing,
     int8_t dash_direction,
     uint8_t grounded,
     uint8_t action_state,
     uint8_t hitlag_resume_action,
     uint16_t source_submotion,
-    int32_t source_animation_frame_q16,
+    float source_animation_frame_f32,
     uint16_t action_ticks,
-    int32_t total_velocity_x_q16,
-    int32_t total_velocity_y_q16,
+    float total_velocity_x_f32,
+    float total_velocity_y_f32,
     const hsd_local_pose *ground_loop_pose,
     hurt_capsule_inspection
         out_capsules[PF_M4_INSPECTION_HURT_CAPSULE_CAPACITY]);
 int shield_box(
     const fighter_data *fighter,
-    int32_t position_x_q16,
-    int32_t position_y_q16,
+    float position_x_f32,
+    float position_y_f32,
     uint8_t action_state,
     uint8_t hitlag_resume_action,
-    uint32_t shield_health_q16,
+    float shield_health_f32,
     uint16_t shield_strength,
     int8_t facing,
     uint16_t shield_angle_turn,
     uint16_t shield_magnitude,
-    int32_t *out_left_q16,
-    int32_t *out_right_q16,
-    int32_t *out_top_q16,
-    int32_t *out_bottom_q16);
+    float *out_left_f32,
+    float *out_right_f32,
+    float *out_top_f32,
+    float *out_bottom_f32);
 void shield_tilt_axes(
     uint16_t angle_turn,
     uint16_t magnitude,

@@ -241,8 +241,8 @@ static int run_determinism_test(const pf_content_view *content)
     }
 
     if (first_observation.tick != UINT64_C(180) ||
-        first_observation.players[0].position_x_q16 <= INT32_C(0) ||
-        first_observation.players[1].position_x_q16 >= INT32_C(0))
+        first_observation.players[0].position_x_f32 <= INT32_C(0) ||
+        first_observation.players[1].position_x_f32 >= INT32_C(0))
     {
         (void)fprintf(stderr, "sim-world=fail operation=movement\n");
         return 0;
@@ -438,9 +438,9 @@ static int run_four_player_test(const pf_content_view *content)
         result.events[0].type != (uint16_t)PF_SIM_EVENT_FORFEIT ||
         result.events[0].source_player != PF_SIM_EVENT_NO_PLAYER ||
         result.events[0].target_player != PF_SIM_EVENT_NO_PLAYER ||
-        result.events[0].value_q16 != UINT32_C(0) ||
-        result.events[0].velocity_x_q16 != INT32_C(0) ||
-        result.events[0].velocity_y_q16 != INT32_C(0) ||
+        result.events[0].value_f32 != UINT32_C(0) ||
+        result.events[0].velocity_x_f32 != INT32_C(0) ||
+        result.events[0].velocity_y_f32 != INT32_C(0) ||
         result.events[0].flags != UINT16_C(0) ||
         result.events[0].detail != UINT16_C(5) ||
         result.events[1].type !=

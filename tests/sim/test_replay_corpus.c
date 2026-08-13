@@ -174,11 +174,11 @@ static void hash_tick_events(
         pf_sha256_update(hash, bytes, (size_t)8);
         write_u32_le(bytes, event->sequence);
         pf_sha256_update(hash, bytes, (size_t)4);
-        write_u32_le(bytes, event->value_q16);
+        write_u32_le(bytes, event->value_f32);
         pf_sha256_update(hash, bytes, (size_t)4);
-        write_u32_le(bytes, (uint32_t)event->velocity_x_q16);
+        write_u32_le(bytes, (uint32_t)event->velocity_x_f32);
         pf_sha256_update(hash, bytes, (size_t)4);
-        write_u32_le(bytes, (uint32_t)event->velocity_y_q16);
+        write_u32_le(bytes, (uint32_t)event->velocity_y_f32);
         pf_sha256_update(hash, bytes, (size_t)4);
         write_u16_le(bytes, event->type);
         pf_sha256_update(hash, bytes, (size_t)2);

@@ -17,7 +17,7 @@ from import_ssbm_falcon_frame_data import (
     command_variable_assignments,
 )
 from ssbm_collision import (
-    canonical_hurt_pose_q16,
+    canonical_hurt_pose_f32,
     q16_hurt_poses_equivalent,
 )
 
@@ -347,7 +347,7 @@ def captured_search_spheres(
     return tuple(spheres)
 
 
-def collision_keys_q16_equivalent(
+def collision_keys_f32_equivalent(
     left: tuple[object, ...], right: tuple[object, ...]
 ) -> bool:
     if len(left) != len(right):
@@ -369,7 +369,7 @@ def collision_keys_q16_equivalent(
     return True
 
 
-def captured_positions_q16_equivalent(
+def captured_positions_f32_equivalent(
     left: object, right: object
 ) -> bool:
     left_position = tuple(
@@ -393,7 +393,7 @@ def captured_hurt_capsules(
     facing: int,
 ) -> tuple[tuple[int, ...], ...]:
     """Canonicalize one live pose into facing-right simulation space."""
-    return canonical_hurt_pose_q16(
+    return canonical_hurt_pose_f32(
         memory,
         hurtbox_key,
         fighter_position_key,
@@ -402,7 +402,7 @@ def captured_hurt_capsules(
     )
 
 
-hurt_poses_q16_equivalent = q16_hurt_poses_equivalent
+hurt_poses_f32_equivalent = q16_hurt_poses_equivalent
 
 
 def validate_capture(
@@ -641,7 +641,7 @@ def generate(
     capture_facing = int(capture_anchor["facing"])
     if capture_facing not in (-1, 1):
         raise ValueError("invalid pummel capture-anchor facing")
-    capture_offset_x_q16 = round(
+    capture_offset_x_f32 = round(
         (
             float(capture_anchor["opponent_position_x"])
             - float(capture_anchor["position_x"])
@@ -649,7 +649,7 @@ def generate(
         * capture_facing
         * MELEE_TO_SIM_Q16
     )
-    capture_offset_y_q16 = round(
+    capture_offset_y_f32 = round(
         (
             float(capture_anchor["opponent_position_y"])
             - float(capture_anchor["position_y"])
@@ -706,7 +706,7 @@ def generate(
                 facing,
             )
             previous_pose = hurt_by_frame.get(action_frame)
-            if previous_pose is not None and not hurt_poses_q16_equivalent(
+            if previous_pose is not None and not hurt_poses_f32_equivalent(
                 previous_pose, pose
             ):
                 raise ValueError(
@@ -774,7 +774,7 @@ def generate(
             previous = captured_by_frame.get(action_frame)
             if previous is not None:
                 previous_memory = dict(previous["hitbox_memory"])
-                if not collision_keys_q16_equivalent(
+                if not collision_keys_f32_equivalent(
                     captured_collision_key(previous_memory),
                     captured_collision_key(memory),
                 ):
@@ -862,7 +862,7 @@ def generate(
                         )
                     collision_state = int(captured["state"])
                     if collision_state == 2:
-                        if not captured_positions_q16_equivalent(
+                        if not captured_positions_f32_equivalent(
                             captured["previous_position"],
                             captured["position"],
                         ):
@@ -875,7 +875,7 @@ def generate(
                             hitbox_id >= len(previous_captured_hitboxes)
                             or int(previous_captured_hitboxes[hitbox_id]["state"])
                             == 0
-                            or not captured_positions_q16_equivalent(
+                            or not captured_positions_f32_equivalent(
                                 captured["previous_position"],
                                 previous_captured_hitboxes[hitbox_id]["position"],
                             )
@@ -973,7 +973,7 @@ def generate(
                 facing,
             )
             previous_pose = hurt_by_frame.get(action_frame)
-            if previous_pose is not None and not hurt_poses_q16_equivalent(
+            if previous_pose is not None and not hurt_poses_f32_equivalent(
                 previous_pose, pose
             ):
                 raise ValueError(
@@ -1017,7 +1017,7 @@ def generate(
                 facing,
             )
             previous_pose = hurt_by_frame.get(action_frame)
-            if previous_pose is not None and not hurt_poses_q16_equivalent(
+            if previous_pose is not None and not hurt_poses_f32_equivalent(
                 previous_pose, pose
             ):
                 raise ValueError(
@@ -1048,8 +1048,8 @@ def generate(
                 "hurt_frames": hurt_frames,
                 "hurt_capsules": hurt_capsules,
                 "standing_hurt_capsules": standing_hurtboxes,
-                "capture_offset_x_q16": capture_offset_x_q16,
-                "capture_offset_y_q16": capture_offset_y_q16,
+                "capture_offset_x_f32": capture_offset_x_f32,
+                "capture_offset_y_f32": capture_offset_y_f32,
                 "side_special_search_spheres": search_spheres,
                 "side_special_search_offsets": search_offsets,
                 "side_special_search_counts": search_counts,
@@ -1082,10 +1082,10 @@ def generate(
         ),
         "};",
         "",
-        "static const int32_t falcon_capture_offset_x_q16 = "
-        f"INT32_C({capture_offset_x_q16});",
-        "static const int32_t falcon_capture_offset_y_q16 = "
-        f"INT32_C({capture_offset_y_q16});",
+        "static const int32_t falcon_capture_offset_x_f32 = "
+        f"INT32_C({capture_offset_x_f32});",
+        "static const int32_t falcon_capture_offset_y_f32 = "
+        f"INT32_C({capture_offset_y_f32});",
         "",
         "static const uint16_t falcon_side_special_ground_search_offset = "
         f"UINT16_C({search_offsets[0]});",

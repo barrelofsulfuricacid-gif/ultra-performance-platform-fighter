@@ -105,20 +105,20 @@ static int run_teeter_pre_roll(
     {
         pf_input_frame inputs[PF_SIM_MAX_PLAYERS];
         pf_tick_result result;
-        const int32_t distance_q16 =
+        const float distance_f32 =
             direction > 0
-                ? content->stage.floor_right_q16 -
-                      inspection->players[0].position_x_q16
-                : inspection->players[0].position_x_q16 -
-                      content->stage.floor_left_q16;
-        const int32_t velocity_q16 =
-            direction * inspection->players[0].velocity_x_q16;
-        const int32_t release_velocity_q16 =
-            velocity_q16 > content->fighter.traction_q16
-                ? velocity_q16 - content->fighter.traction_q16
+                ? content->stage.floor_right_f32 -
+                      inspection->players[0].position_x_f32
+                : inspection->players[0].position_x_f32 -
+                      content->stage.floor_left_f32;
+        const float velocity_f32 =
+            direction * inspection->players[0].velocity_x_f32;
+        const float release_velocity_f32 =
+            velocity_f32 > content->fighter.traction_f32
+                ? velocity_f32 - content->fighter.traction_f32
                 : INT32_C(0);
         int16_t selected_axis = INT16_C(0);
-        int32_t selected_velocity_q16 = INT32_C(0);
+        float selected_velocity_f32 = INT32_C(0);
         uint32_t axis;
 
         (void)memset(inputs, 0, sizeof(inputs));
@@ -129,56 +129,56 @@ static int run_teeter_pre_roll(
         inputs[1].schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
         inputs[1].player_slot = UINT8_C(1);
 
-        if (release_velocity_q16 <= distance_q16)
+        if (release_velocity_f32 <= distance_f32)
         {
             for (axis =
                      (uint32_t)content->fighter.axis_dead_zone + UINT32_C(1);
                  axis < (uint32_t)content->fighter.dash_axis_threshold;
                  ++axis)
             {
-                const int32_t target_q16 =
+                const float target_f32 =
                     (int32_t)(
                         (int64_t)(int32_t)axis *
-                        (int64_t)content->fighter.walk_speed_q16 /
+                        (int64_t)content->fighter.walk_speed_f32 /
                         INT64_C(32767));
-                int32_t next_velocity_q16 = velocity_q16;
-                const int32_t acceleration_q16 =
-                    content->fighter.ground_acceleration_q16;
-                int32_t next_release_velocity_q16;
+                float next_velocity_f32 = velocity_f32;
+                const float acceleration_f32 =
+                    content->fighter.ground_acceleration_f32;
+                float next_release_velocity_f32;
 
-                if (next_velocity_q16 < target_q16)
+                if (next_velocity_f32 < target_f32)
                 {
-                    next_velocity_q16 += acceleration_q16;
-                    if (next_velocity_q16 > target_q16)
+                    next_velocity_f32 += acceleration_f32;
+                    if (next_velocity_f32 > target_f32)
                     {
-                        next_velocity_q16 = target_q16;
+                        next_velocity_f32 = target_f32;
                     }
                 }
-                else if (next_velocity_q16 > target_q16)
+                else if (next_velocity_f32 > target_f32)
                 {
-                    next_velocity_q16 -= acceleration_q16;
-                    if (next_velocity_q16 < target_q16)
+                    next_velocity_f32 -= acceleration_f32;
+                    if (next_velocity_f32 < target_f32)
                     {
-                        next_velocity_q16 = target_q16;
+                        next_velocity_f32 = target_f32;
                     }
                 }
-                next_release_velocity_q16 =
-                    next_velocity_q16 > content->fighter.traction_q16
-                        ? next_velocity_q16 -
-                              content->fighter.traction_q16
+                next_release_velocity_f32 =
+                    next_velocity_f32 > content->fighter.traction_f32
+                        ? next_velocity_f32 -
+                              content->fighter.traction_f32
                         : INT32_C(0);
-                if (next_velocity_q16 < distance_q16 &&
-                    distance_q16 - next_velocity_q16 <
-                        next_release_velocity_q16)
+                if (next_velocity_f32 < distance_f32 &&
+                    distance_f32 - next_velocity_f32 <
+                        next_release_velocity_f32)
                 {
                     selected_axis = (int16_t)axis;
                     break;
                 }
-                if (next_velocity_q16 < distance_q16 &&
-                    next_velocity_q16 > selected_velocity_q16)
+                if (next_velocity_f32 < distance_f32 &&
+                    next_velocity_f32 > selected_velocity_f32)
                 {
                     selected_axis = (int16_t)axis;
-                    selected_velocity_q16 = next_velocity_q16;
+                    selected_velocity_f32 = next_velocity_f32;
                 }
             }
             if (selected_axis == INT16_C(0))
@@ -346,9 +346,9 @@ static int run_attacker_approach_and_settle(
 
     for (tick = UINT32_C(0); tick < approach_limit; ++tick)
     {
-        if (inspection->players[1].position_x_q16 -
-                inspection->players[0].position_x_q16 <=
-            (INT32_C(8) * PF_Q16_ONE) / INT32_C(5))
+        if (inspection->players[1].position_x_f32 -
+                inspection->players[0].position_x_f32 <=
+            (INT32_C(8) * PF_F32_ONE) / INT32_C(5))
         {
             break;
         }
@@ -375,7 +375,7 @@ static int run_attacker_approach_and_settle(
         if (inspection->players[1].action_state ==
                 (uint8_t)PF_M4_ACTION_GROUND_IDLE &&
             inspection->players[1].facing == INT8_C(-1) &&
-            inspection->players[1].velocity_x_q16 == INT32_C(0))
+            inspection->players[1].velocity_x_f32 == INT32_C(0))
         {
             return 0;
         }
@@ -407,7 +407,7 @@ static int run_ucf_tumble_input_pre_roll(
      * native theorem in DamageFall without writing fighter state directly. */
     for (hit = UINT32_C(0); hit < UINT32_C(5); ++hit)
     {
-        uint32_t damage_before = inspection->players[0].damage_q16;
+        uint32_t damage_before = inspection->players[0].damage_f32;
 
         if (run_duel_pre_roll_tick(
                 sim,
@@ -424,7 +424,7 @@ static int run_ucf_tumble_input_pre_roll(
         }
         for (tick = UINT32_C(0); tick < UINT32_C(600); ++tick)
         {
-            if (inspection->players[0].damage_q16 > damage_before &&
+            if (inspection->players[0].damage_f32 > damage_before &&
                 inspection->players[0].action_state ==
                     (uint8_t)PF_M4_ACTION_GROUND_IDLE &&
                 inspection->players[0].grounded != UINT8_C(0) &&
@@ -640,10 +640,10 @@ int main(int argc, char **argv)
     pf_sim_config config;
     pf_sim *sim = NULL;
     struct inspection inspection;
-    int32_t origin_x_q16;
-    int32_t origin_y_q16;
-    int32_t opponent_origin_x_q16;
-    int32_t opponent_origin_y_q16;
+    float origin_x_f32;
+    float origin_y_f32;
+    float opponent_origin_x_f32;
+    float opponent_origin_y_f32;
     uint32_t trace_frame = UINT32_C(0);
     int input_x;
     int input_y;
@@ -877,7 +877,7 @@ int main(int argc, char **argv)
      * original live projectile into later movement/collision frames.
      */
     content.projectile.enabled = UINT8_C(1);
-    content.projectile.speed_q16 = INT32_C(1);
+    content.projectile.speed_f32 = INT32_C(1);
     content.projectile.lifetime_ticks = UINT16_C(1);
     content.reflector.enabled = UINT8_C(1);
     if (platform_mode == 0)
@@ -885,73 +885,73 @@ int main(int argc, char **argv)
         if (falcon_punch_air_mode == 0 && falcon_kick_air_mode == 0 &&
             falcon_dive_air_ledge_mode == 0 && teeter_special_mode == 0)
         {
-            content.stage.floor_left_q16 = -INT32_C(128) * PF_Q16_ONE;
-            content.stage.floor_right_q16 = INT32_C(128) * PF_Q16_ONE;
+            content.stage.floor_left_f32 = -INT32_C(128) * PF_F32_ONE;
+            content.stage.floor_right_f32 = INT32_C(128) * PF_F32_ONE;
         }
-        content.stage.blast_left_q16 = -INT32_C(160) * PF_Q16_ONE;
-        content.stage.blast_right_q16 = INT32_C(160) * PF_Q16_ONE;
-        content.stage.platform_center_x_q16 =
-            -INT32_C(28) * PF_Q16_ONE;
-        content.stage.platform_half_width_q16 = PF_Q16_ONE;
-        content.stage.platform_motion_amplitude_q16 = INT32_C(0);
-        content.stage.solid_left_q16 = -INT32_C(22) * PF_Q16_ONE;
-        content.stage.solid_right_q16 = -INT32_C(21) * PF_Q16_ONE;
-        content.stage.solid_top_q16 = INT32_C(28) * PF_Q16_ONE;
-        content.stage.solid_bottom_q16 = INT32_C(29) * PF_Q16_ONE;
-        content.stage.upper_platform_center_x_q16 =
-            -INT32_C(25) * PF_Q16_ONE;
-        content.stage.upper_platform_half_width_q16 = PF_Q16_ONE;
+        content.stage.blast_left_f32 = -INT32_C(160) * PF_F32_ONE;
+        content.stage.blast_right_f32 = INT32_C(160) * PF_F32_ONE;
+        content.stage.platform_center_x_f32 =
+            -INT32_C(28) * PF_F32_ONE;
+        content.stage.platform_half_width_f32 = PF_F32_ONE;
+        content.stage.platform_motion_amplitude_f32 = INT32_C(0);
+        content.stage.solid_left_f32 = -INT32_C(22) * PF_F32_ONE;
+        content.stage.solid_right_f32 = -INT32_C(21) * PF_F32_ONE;
+        content.stage.solid_top_f32 = INT32_C(28) * PF_F32_ONE;
+        content.stage.solid_bottom_f32 = INT32_C(29) * PF_F32_ONE;
+        content.stage.upper_platform_center_x_f32 =
+            -INT32_C(25) * PF_F32_ONE;
+        content.stage.upper_platform_half_width_f32 = PF_F32_ONE;
     }
     if (ucf_sdi_hitlag_mode != 0 || ucf_shield_sdi_hitlag_mode != 0)
     {
         /* The source fixture places the victim 12 Melee units from Falcon. */
-        content.stage.spawn_spacing_q16 =
+        content.stage.spawn_spacing_f32 =
             (int32_t)(
-                (INT64_C(6) * INT64_C(12) * PF_Q16_ONE) /
+                (INT64_C(6) * INT64_C(12) * PF_F32_ONE) /
                 INT64_C(115));
     }
     else if (ucf_tumble_mode != 0)
     {
         /* Keep the victim barely supported at the left edge. The ordinary
          * forward-smash launch then creates a natural airborne DamageFall. */
-        content.stage.spawn_spacing_q16 =
-            (INT32_C(4) * PF_Q16_ONE) / INT32_C(5);
-        content.stage.floor_left_q16 = -INT32_C(5) * PF_Q16_ONE;
-        content.stage.platform_center_x_q16 = INT32_C(28) * PF_Q16_ONE;
-        content.stage.solid_left_q16 = INT32_C(21) * PF_Q16_ONE;
-        content.stage.solid_right_q16 = INT32_C(22) * PF_Q16_ONE;
-        content.stage.upper_platform_center_x_q16 =
-            INT32_C(25) * PF_Q16_ONE;
-        content.stage.blast_bottom_q16 = INT32_C(2048) * PF_Q16_ONE;
+        content.stage.spawn_spacing_f32 =
+            (INT32_C(4) * PF_F32_ONE) / INT32_C(5);
+        content.stage.floor_left_f32 = -INT32_C(5) * PF_F32_ONE;
+        content.stage.platform_center_x_f32 = INT32_C(28) * PF_F32_ONE;
+        content.stage.solid_left_f32 = INT32_C(21) * PF_F32_ONE;
+        content.stage.solid_right_f32 = INT32_C(22) * PF_F32_ONE;
+        content.stage.upper_platform_center_x_f32 =
+            INT32_C(25) * PF_F32_ONE;
+        content.stage.blast_bottom_f32 = INT32_C(2048) * PF_F32_ONE;
     }
     else if (push_mode != 0 ||
         (shield_hit_mode != 0 && shield_hit_place_mode == 0))
     {
         /* Final Destination starts ports one and two at -60/+60. */
-        content.stage.spawn_spacing_q16 =
-            (int32_t)((INT64_C(144) * PF_Q16_ONE) / INT64_C(23));
+        content.stage.spawn_spacing_f32 =
+            (int32_t)((INT64_C(144) * PF_F32_ONE) / INT64_C(23));
     }
     else if (shield_hit_place_mode != 0)
     {
         /* The pinned shield-hit route places the defender at x=0 and the
          * attacker at x=22 Melee units.  Spawn spacing is the symmetric
          * half-separation, translated through the comparison scale. */
-        content.stage.spawn_spacing_q16 =
+        content.stage.spawn_spacing_f32 =
             (int32_t)(
-                (INT64_C(11) * INT64_C(12) * PF_Q16_ONE) /
+                (INT64_C(11) * INT64_C(12) * PF_F32_ONE) /
                 INT64_C(115));
     }
     else if (falcon_punch_air_mode != 0 || falcon_kick_air_mode != 0 ||
              falcon_dive_air_miss_mode != 0)
     {
-        content.stage.spawn_spacing_q16 = INT32_C(10) * PF_Q16_ONE;
-        content.stage.blast_bottom_q16 =
-            INT32_C(2048) * PF_Q16_ONE;
+        content.stage.spawn_spacing_f32 = INT32_C(10) * PF_F32_ONE;
+        content.stage.blast_bottom_f32 =
+            INT32_C(2048) * PF_F32_ONE;
     }
     else if (raptor_boost_air_miss_mode != 0)
     {
-        content.stage.spawn_spacing_q16 = PF_Q16_ONE / INT32_C(32);
-        content.fighter.player_push_half_width_q16 = INT32_C(1);
+        content.stage.spawn_spacing_f32 = PF_F32_ONE / INT32_C(32);
+        content.fighter.player_push_half_width_f32 = INT32_C(1);
     }
     else if (raptor_boost_ground_hit_mode != 0 ||
              raptor_boost_air_hit_mode != 0)
@@ -959,31 +959,31 @@ int main(int argc, char **argv)
         /* The pinned Dolphin capture starts Falcon 10 Melee units from the
          * stationary target. Translate that symmetric half-spacing through
          * the repository's exact horizontal world scale. */
-        content.stage.spawn_spacing_q16 =
+        content.stage.spawn_spacing_f32 =
             (int32_t)(
-                (INT64_C(5) * INT64_C(12) * PF_Q16_ONE) /
+                (INT64_C(5) * INT64_C(12) * PF_F32_ONE) /
                 INT64_C(115));
     }
     else if (raptor_boost_ground_edge_mode != 0)
     {
-        int32_t before_crossing_q16 = INT32_C(0);
-        int32_t after_crossing_q16 = INT32_C(0);
+        float before_crossing_f32 = INT32_C(0);
+        float after_crossing_f32 = INT32_C(0);
         uint16_t displayed_frame;
 
-        content.stage.spawn_spacing_q16 = PF_Q16_ONE / INT32_C(32);
-        content.fighter.player_push_half_width_q16 = INT32_C(1);
-        content.stage.revival_platform_half_width_q16 =
-            content.fighter.half_width_q16;
+        content.stage.spawn_spacing_f32 = PF_F32_ONE / INT32_C(32);
+        content.fighter.player_push_half_width_f32 = INT32_C(1);
+        content.stage.revival_platform_half_width_f32 =
+            content.fighter.half_width_f32;
         for (displayed_frame = UINT16_C(1);
              displayed_frame <= UINT16_C(20);
              ++displayed_frame)
         {
-            int32_t motion_q16 = INT32_C(0);
+            float motion_f32 = INT32_C(0);
 
-            if (!falcon_reference_motion_x_q16(
+            if (!falcon_reference_motion_x_f32(
                     (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_START_GROUND,
                     displayed_frame,
-                    &motion_q16))
+                    &motion_f32))
             {
                 (void)fprintf(
                     stderr,
@@ -993,25 +993,25 @@ int main(int argc, char **argv)
             }
             if (displayed_frame <= UINT16_C(19))
             {
-                before_crossing_q16 += motion_q16;
+                before_crossing_f32 += motion_f32;
             }
-            after_crossing_q16 += motion_q16;
+            after_crossing_f32 += motion_f32;
         }
-        content.stage.floor_right_q16 =
-            -content.stage.spawn_spacing_q16 +
-            before_crossing_q16 +
-            (after_crossing_q16 - before_crossing_q16) / INT32_C(2);
+        content.stage.floor_right_f32 =
+            -content.stage.spawn_spacing_f32 +
+            before_crossing_f32 +
+            (after_crossing_f32 - before_crossing_f32) / INT32_C(2);
     }
     else if (falcon_kick_ground_hit_mode != 0)
     {
         /* Align source sphere contact after five root-motion steps. The
          * symmetric half-separation is 14 + 4/256 Melee units, translated
          * through the repository's exact horizontal world scale. */
-        content.stage.spawn_spacing_q16 =
+        content.stage.spawn_spacing_f32 =
             (int32_t)(
-                (INT64_C(3588) * INT64_C(12) * PF_Q16_ONE) /
+                (INT64_C(3588) * INT64_C(12) * PF_F32_ONE) /
                 (INT64_C(256) * INT64_C(115)));
-        content.fighter.player_push_half_width_q16 = INT32_C(1);
+        content.fighter.player_push_half_width_f32 = INT32_C(1);
     }
     else if (falcon_kick_ground_wall_mode != 0)
     {
@@ -1021,46 +1021,46 @@ int main(int argc, char **argv)
          * that same next row. The wall is deliberately tall so only the
          * Falcon Kick callback, rather than unrelated stage topology, is
          * under comparison. */
-        content.stage.solid_left_q16 =
-            -content.stage.spawn_spacing_q16 +
-            content.fighter.half_width_q16 + INT32_C(201290);
-        content.stage.solid_right_q16 =
-            content.stage.solid_left_q16 + PF_Q16_ONE;
-        content.stage.solid_bottom_q16 =
-            content.stage.floor_y_q16 - PF_Q16_ONE / INT32_C(4);
+        content.stage.solid_left_f32 =
+            -content.stage.spawn_spacing_f32 +
+            content.fighter.half_width_f32 + INT32_C(201290);
+        content.stage.solid_right_f32 =
+            content.stage.solid_left_f32 + PF_F32_ONE;
+        content.stage.solid_bottom_f32 =
+            content.stage.floor_y_f32 - PF_F32_ONE / INT32_C(4);
     }
     else if (falcon_dive_ground_catch_mode != 0)
     {
         /* The pinned catch trace starts Falcon and the victim 6.2 Melee
          * units apart. Spawn spacing is the symmetric half-separation. */
-        content.stage.spawn_spacing_q16 =
+        content.stage.spawn_spacing_f32 =
             (int32_t)(
-                (INT64_C(31) * INT64_C(12) * PF_Q16_ONE) /
+                (INT64_C(31) * INT64_C(12) * PF_F32_ONE) /
                 (INT64_C(10) * INT64_C(115)));
     }
     else if (falcon_dive_air_catch_mode != 0)
     {
         /* The pinned aerial capture starts Falcon five Melee units from the
          * airborne victim. Spawn spacing is the symmetric half-separation. */
-        content.stage.spawn_spacing_q16 =
+        content.stage.spawn_spacing_f32 =
             (int32_t)(
-                (INT64_C(5) * INT64_C(12) * PF_Q16_ONE) /
+                (INT64_C(5) * INT64_C(12) * PF_F32_ONE) /
                 (INT64_C(2) * INT64_C(115)));
     }
     else if (falcon_dive_air_ledge_mode != 0)
     {
         /* Final Destination's left enum ledge and the controller route's safe
          * on-stage start, transformed through the comparison scale. */
-        content.stage.floor_left_q16 = -INT32_C(585144);
-        content.stage.floor_right_q16 = INT32_C(585144);
-        content.stage.spawn_spacing_q16 = INT32_C(2) * PF_Q16_ONE;
-        content.stage.platform_center_x_q16 = INT32_C(0);
-        content.stage.platform_half_width_q16 = PF_Q16_ONE;
-        content.stage.upper_platform_center_x_q16 = INT32_C(2) * PF_Q16_ONE;
-        content.stage.upper_platform_half_width_q16 = PF_Q16_ONE;
-        content.stage.solid_left_q16 = INT32_C(2) * PF_Q16_ONE;
-        content.stage.solid_right_q16 = INT32_C(3) * PF_Q16_ONE;
-        content.stage.blast_bottom_q16 = INT32_C(2048) * PF_Q16_ONE;
+        content.stage.floor_left_f32 = -INT32_C(585144);
+        content.stage.floor_right_f32 = INT32_C(585144);
+        content.stage.spawn_spacing_f32 = INT32_C(2) * PF_F32_ONE;
+        content.stage.platform_center_x_f32 = INT32_C(0);
+        content.stage.platform_half_width_f32 = PF_F32_ONE;
+        content.stage.upper_platform_center_x_f32 = INT32_C(2) * PF_F32_ONE;
+        content.stage.upper_platform_half_width_f32 = PF_F32_ONE;
+        content.stage.solid_left_f32 = INT32_C(2) * PF_F32_ONE;
+        content.stage.solid_right_f32 = INT32_C(3) * PF_F32_ONE;
+        content.stage.blast_bottom_f32 = INT32_C(2048) * PF_F32_ONE;
     }
     else if (falcon_kick_ground_edge_mode != 0)
     {
@@ -1072,13 +1072,13 @@ int main(int argc, char **argv)
          * this floor; displayed frame 14 crosses it, exactly as in the owner
          * Final Destination capture.
          */
-        content.stage.spawn_spacing_q16 = PF_Q16_ONE / INT32_C(32);
-        content.fighter.player_push_half_width_q16 = INT32_C(1);
-        content.stage.revival_platform_half_width_q16 =
-            content.fighter.half_width_q16;
-        content.stage.floor_right_q16 =
-            content.fighter.half_width_q16 +
-            INT32_C(3) * content.stage.spawn_spacing_q16;
+        content.stage.spawn_spacing_f32 = PF_F32_ONE / INT32_C(32);
+        content.fighter.player_push_half_width_f32 = INT32_C(1);
+        content.stage.revival_platform_half_width_f32 =
+            content.fighter.half_width_f32;
+        content.stage.floor_right_f32 =
+            content.fighter.half_width_f32 +
+            INT32_C(3) * content.stage.spawn_spacing_f32;
     }
     else if (teeter_special_mode != 0)
     {
@@ -1086,24 +1086,24 @@ int main(int argc, char **argv)
          * endpoint through ordinary low-stick walking. The pre-roll below
          * releases inside Falcon's imported teeter snap distance, so the
          * first stdin row starts from Ottotto rather than mutating state. */
-        content.stage.spawn_spacing_q16 = PF_Q16_ONE;
-        content.fighter.player_push_half_width_q16 = INT32_C(1);
-        content.stage.revival_platform_half_width_q16 =
-            content.fighter.half_width_q16;
-        content.stage.floor_right_q16 = INT32_C(5) * PF_Q16_ONE;
+        content.stage.spawn_spacing_f32 = PF_F32_ONE;
+        content.fighter.player_push_half_width_f32 = INT32_C(1);
+        content.stage.revival_platform_half_width_f32 =
+            content.fighter.half_width_f32;
+        content.stage.floor_right_f32 = INT32_C(5) * PF_F32_ONE;
     }
     if (raptor_boost_air_miss_mode != 0)
     {
         /* Start both fighters on a legitimate floor, then let the imported
          * rightward root track carry Falcon beyond its endpoint. This
          * recreates the high offstage capture without mutating fighter state. */
-        content.stage.floor_right_q16 =
-            content.fighter.half_width_q16 +
-            INT32_C(3) * content.stage.spawn_spacing_q16;
-        content.stage.revival_platform_half_width_q16 =
-            content.fighter.half_width_q16;
-        content.stage.blast_bottom_q16 =
-            INT32_C(2048) * PF_Q16_ONE;
+        content.stage.floor_right_f32 =
+            content.fighter.half_width_f32 +
+            INT32_C(3) * content.stage.spawn_spacing_f32;
+        content.stage.revival_platform_half_width_f32 =
+            content.fighter.half_width_f32;
+        content.stage.blast_bottom_f32 =
+            INT32_C(2048) * PF_F32_ONE;
     }
     status = make_content_view(&content, &view);
     if (status != PF_STATUS_OK)
@@ -1119,8 +1119,8 @@ int main(int argc, char **argv)
         return fail_status("default-config", status);
     }
     config.max_ticks = UINT64_C(100000);
-    config.arena_half_width_q16 = INT32_C(256) * PF_Q16_ONE;
-    config.arena_ceiling_q16 =
+    config.arena_half_width_f32 = INT32_C(256) * PF_F32_ONE;
+    config.arena_ceiling_f32 =
         (falcon_punch_air_mode != 0 || falcon_kick_air_mode != 0 ||
          falcon_dive_air_catch_mode != 0 ||
          falcon_dive_air_miss_mode != 0 ||
@@ -1129,7 +1129,7 @@ int main(int argc, char **argv)
          raptor_boost_air_hit_mode != 0 || ucf_tumble_mode != 0
              ? INT32_C(4096)
              : INT32_C(256)) *
-        PF_Q16_ONE;
+        PF_F32_ONE;
     config.stock_count = UINT8_C(0);
     status = pf_sim_init(
         storage.state,
@@ -1181,7 +1181,7 @@ int main(int argc, char **argv)
                 (unsigned int)inspection.players[0].tumble,
                 (unsigned int)inspection.players[0].hitlag_ticks,
                 (unsigned int)inspection.players[0].hitstun_ticks,
-                inspection.players[0].damage_q16);
+                inspection.players[0].damage_f32);
             return 1;
         }
     }
@@ -1222,7 +1222,7 @@ int main(int argc, char **argv)
     {
         reference_stage_line platform_line;
         const uint16_t source_platform_line = UINT16_C(2);
-        int32_t platform_center_x_q16;
+        float platform_center_x_f32;
         uint32_t pre_roll_tick;
         int platform_ready = 0;
 
@@ -1237,9 +1237,9 @@ int main(int argc, char **argv)
         {
             return fail_status("platform-geometry", status);
         }
-        platform_center_x_q16 = (int32_t)(
-            ((int64_t)platform_line.start_x_q16 +
-             (int64_t)platform_line.end_x_q16) /
+        platform_center_x_f32 = (int32_t)(
+            ((int64_t)platform_line.start_x_f32 +
+             (int64_t)platform_line.end_x_f32) /
             INT64_C(2));
         for (pre_roll_tick = UINT32_C(0);
              pre_roll_tick < UINT32_C(240);
@@ -1252,8 +1252,8 @@ int main(int argc, char **argv)
             inputs[0].tick = inspection.tick;
             inputs[0].schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
             inputs[0].player_slot = UINT8_C(0);
-            if (inspection.players[0].position_x_q16 >
-                platform_center_x_q16)
+            if (inspection.players[0].position_x_f32 >
+                platform_center_x_f32)
             {
                 inputs[0].main_stick_x = -INT16_C(12000);
             }
@@ -1270,9 +1270,9 @@ int main(int argc, char **argv)
             {
                 return fail_status("platform-walk-inspect", status);
             }
-            if (inspection.players[0].position_x_q16 <=
-                    platform_center_x_q16 &&
-                inspection.players[0].velocity_x_q16 == INT32_C(0) &&
+            if (inspection.players[0].position_x_f32 <=
+                    platform_center_x_f32 &&
+                inspection.players[0].velocity_x_f32 == INT32_C(0) &&
                 inspection.players[0].grounded != UINT8_C(0) &&
                 inspection.players[0].action_state ==
                     (uint8_t)PF_M4_ACTION_GROUND_IDLE)
@@ -1363,7 +1363,7 @@ int main(int argc, char **argv)
                 return fail_status("platform-turn-inspect", status);
             }
             if (inspection.players[0].facing == INT8_C(1) &&
-                inspection.players[0].velocity_x_q16 == INT32_C(0) &&
+                inspection.players[0].velocity_x_f32 == INT32_C(0) &&
                 inspection.players[0].grounded != UINT8_C(0) &&
                 inspection.players[0].support ==
                     (uint8_t)platform_line.support &&
@@ -1530,7 +1530,7 @@ int main(int argc, char **argv)
     {
         uint32_t pre_roll_tick;
         int setup_ready = 0;
-        const int32_t setup_target_x_q16 = -INT32_C(302203);
+        const float setup_target_x_f32 = -INT32_C(302203);
 
         /* Walk to the capture's safe on-stage start without mutating fighter
          * state, settle, and face inward. The content validator deliberately
@@ -1546,7 +1546,7 @@ int main(int argc, char **argv)
             inputs[0].tick = inspection.tick;
             inputs[0].schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
             inputs[0].player_slot = UINT8_C(0);
-            if (inspection.players[0].position_x_q16 > setup_target_x_q16)
+            if (inspection.players[0].position_x_f32 > setup_target_x_f32)
             {
                 inputs[0].main_stick_x = -INT16_C(12000);
             }
@@ -1563,8 +1563,8 @@ int main(int argc, char **argv)
             {
                 return fail_status("falcon-dive-ledge-walk-inspect", status);
             }
-            if (inspection.players[0].position_x_q16 <= setup_target_x_q16 &&
-                inspection.players[0].velocity_x_q16 == INT32_C(0) &&
+            if (inspection.players[0].position_x_f32 <= setup_target_x_f32 &&
+                inspection.players[0].velocity_x_f32 == INT32_C(0) &&
                 inspection.players[0].grounded != UINT8_C(0) &&
                 inspection.players[0].action_state ==
                     (uint8_t)PF_M4_ACTION_GROUND_IDLE)
@@ -1611,7 +1611,7 @@ int main(int argc, char **argv)
                 return fail_status("falcon-dive-ledge-turn-inspect", status);
             }
             if (inspection.players[0].facing == INT8_C(1) &&
-                inspection.players[0].velocity_x_q16 == INT32_C(0) &&
+                inspection.players[0].velocity_x_f32 == INT32_C(0) &&
                 inspection.players[0].action_state ==
                     (uint8_t)PF_M4_ACTION_GROUND_IDLE)
             {
@@ -1721,35 +1721,35 @@ int main(int argc, char **argv)
             return 1;
         }
     }
-    origin_x_q16 = inspection.players[0].position_x_q16;
-    origin_y_q16 = inspection.players[0].position_y_q16;
-    opponent_origin_x_q16 = inspection.players[1].position_x_q16;
-    opponent_origin_y_q16 = inspection.players[1].position_y_q16;
+    origin_x_f32 = inspection.players[0].position_x_f32;
+    origin_y_f32 = inspection.players[0].position_y_f32;
+    opponent_origin_x_f32 = inspection.players[1].position_x_f32;
+    opponent_origin_y_f32 = inspection.players[1].position_y_f32;
     (void)puts(
         "trace_frame,input_x,input_y,input_c_x,input_c_y,left_trigger,"
         "right_trigger,buttons,tick,"
         "action_state,action_ticks,source_submotion,"
-        "source_animation_frame_q16,source_animation_rate_q16,"
-        "fall_animation_blend_q16,fall_animation_target_switched,"
-        "ecb_bottom_y_from_origin_q16,"
+        "source_animation_frame_f32,source_animation_rate_f32,"
+        "fall_animation_blend_f32,fall_animation_target_switched,"
+        "ecb_bottom_y_from_origin_f32,"
         "facing,grounded,support,"
-        "surface_normal_source_x_q16,surface_normal_source_y_q16,"
+        "surface_normal_source_x_f32,surface_normal_source_y_f32,"
         "dash_direction,previous_strong_direction,tilt_x_age,"
-        "position_x_q16_from_origin,"
-        "position_y_q16_from_origin,"
-        "velocity_x_q16,velocity_y_q16,shield_recoil_x_q16,"
-        "shield_health_q16,shield_strength,shield_angle_turn,"
-        "shield_magnitude,shield_center_offset_x_q16,"
-        "shield_center_offset_y_q16,shield_radius_x_q16,shield_radius_y_q16,"
+        "position_x_f32_from_origin,"
+        "position_y_f32_from_origin,"
+        "velocity_x_f32,velocity_y_f32,shield_recoil_x_f32,"
+        "shield_health_f32,shield_strength,shield_angle_turn,"
+        "shield_magnitude,shield_center_offset_x_f32,"
+        "shield_center_offset_y_f32,shield_radius_x_f32,shield_radius_y_f32,"
         "powershield,hitlag_ticks,tumble,shield_stun_ticks,"
         "invulnerable,"
         "opponent_action_state,opponent_action_ticks,opponent_hitlag_ticks,"
         "opponent_hitstun_ticks,"
         "opponent_facing,opponent_grounded,"
-        "opponent_position_x_q16_from_origin,"
-        "opponent_position_y_q16_from_origin,"
-        "opponent_velocity_x_q16,opponent_velocity_y_q16,"
-        "opponent_shield_recoil_x_q16,opponent_damage_q16,"
+        "opponent_position_x_f32_from_origin,"
+        "opponent_position_y_f32_from_origin,"
+        "opponent_velocity_x_f32,opponent_velocity_y_f32,"
+        "opponent_shield_recoil_x_f32,opponent_damage_f32,"
         "tilt_y_age,ucf_tilt_x_age,ucf_tilt_y_age,"
         "ucf_pad_buffer_count,effective_main_x_q15,effective_main_y_q15,"
         "effective_c_x_q15,effective_c_y_q15");
@@ -1758,8 +1758,8 @@ int main(int argc, char **argv)
         pf_input_frame inputs[PF_SIM_MAX_PLAYERS];
         pf_tick_result result;
         reference_stage_line selected_surface;
-        int32_t surface_normal_source_x_q16 = INT32_C(0);
-        int32_t surface_normal_source_y_q16 = INT32_C(0);
+        float surface_normal_source_x_f32 = INT32_C(0);
+        float surface_normal_source_y_f32 = INT32_C(0);
         int parsed_input_count;
 
         opponent_buttons = UINT64_C(0);
@@ -1887,10 +1887,10 @@ int main(int argc, char **argv)
                 (uint16_t)(inspection.players[0].support - UINT8_C(1)),
                 &selected_surface) == PF_STATUS_OK)
         {
-            surface_normal_source_x_q16 =
-                selected_surface.source_normal_x_q16;
-            surface_normal_source_y_q16 =
-                selected_surface.source_normal_y_q16;
+            surface_normal_source_x_f32 =
+                selected_surface.source_normal_x_f32;
+            surface_normal_source_y_f32 =
+                selected_surface.source_normal_y_f32;
         }
         (void)printf(
             "%" PRIu32 ",%d,%d,%d,%d,%u,%u,%" PRIu64 ",%" PRIu64
@@ -1912,44 +1912,44 @@ int main(int argc, char **argv)
             (unsigned int)inspection.players[0].action_state,
             (unsigned int)inspection.players[0].action_ticks,
             (unsigned int)inspection.players[0].source_submotion,
-            inspection.players[0].source_animation_frame_q16,
-            inspection.players[0].source_animation_rate_q16,
-            inspection.players[0].fall_animation_blend_q16,
+            inspection.players[0].source_animation_frame_f32,
+            inspection.players[0].source_animation_rate_f32,
+            inspection.players[0].fall_animation_blend_f32,
             (unsigned int)
                 inspection.players[0].fall_animation_target_switched,
-            inspection.players[0].ecb_bottom_y_from_origin_q16,
+            inspection.players[0].ecb_bottom_y_from_origin_f32,
             (int)inspection.players[0].facing,
             (unsigned int)inspection.players[0].grounded,
             (unsigned int)inspection.players[0].support,
-            surface_normal_source_x_q16,
-            surface_normal_source_y_q16,
+            surface_normal_source_x_f32,
+            surface_normal_source_y_f32,
             (int)inspection.players[0].dash_direction,
             (int)inspection.players[0].previous_strong_direction,
             (unsigned int)inspection.players[0].tilt_x_age,
-            inspection.players[0].position_x_q16 - origin_x_q16,
-            inspection.players[0].position_y_q16 - origin_y_q16,
-            inspection.players[0].velocity_x_q16,
-            inspection.players[0].velocity_y_q16,
-            inspection.players[0].shield_recoil_x_q16,
-            inspection.players[0].shield_health_q16,
+            inspection.players[0].position_x_f32 - origin_x_f32,
+            inspection.players[0].position_y_f32 - origin_y_f32,
+            inspection.players[0].velocity_x_f32,
+            inspection.players[0].velocity_y_f32,
+            inspection.players[0].shield_recoil_x_f32,
+            inspection.players[0].shield_health_f32,
             (unsigned int)inspection.players[0].shield_strength,
             (unsigned int)inspection.players[0].shield_angle_turn,
             (unsigned int)inspection.players[0].shield_magnitude,
-            inspection.players[0].shield_left_q16 +
-                (inspection.players[0].shield_right_q16 -
-                 inspection.players[0].shield_left_q16) /
+            inspection.players[0].shield_left_f32 +
+                (inspection.players[0].shield_right_f32 -
+                 inspection.players[0].shield_left_f32) /
                     INT32_C(2) -
-                inspection.players[0].position_x_q16,
-            inspection.players[0].shield_top_q16 +
-                (inspection.players[0].shield_bottom_q16 -
-                 inspection.players[0].shield_top_q16) /
+                inspection.players[0].position_x_f32,
+            inspection.players[0].shield_top_f32 +
+                (inspection.players[0].shield_bottom_f32 -
+                 inspection.players[0].shield_top_f32) /
                     INT32_C(2) -
-                inspection.players[0].position_y_q16,
-            (inspection.players[0].shield_right_q16 -
-             inspection.players[0].shield_left_q16) /
+                inspection.players[0].position_y_f32,
+            (inspection.players[0].shield_right_f32 -
+             inspection.players[0].shield_left_f32) /
                 INT32_C(2),
-            (inspection.players[0].shield_bottom_q16 -
-             inspection.players[0].shield_top_q16) /
+            (inspection.players[0].shield_bottom_f32 -
+             inspection.players[0].shield_top_f32) /
                 INT32_C(2),
             (unsigned int)inspection.players[0].powershield,
             (unsigned int)inspection.players[0].hitlag_ticks,
@@ -1962,14 +1962,14 @@ int main(int argc, char **argv)
             (unsigned int)inspection.players[1].hitstun_ticks,
             (int)inspection.players[1].facing,
             (unsigned int)inspection.players[1].grounded,
-            inspection.players[1].position_x_q16 -
-                opponent_origin_x_q16,
-            inspection.players[1].position_y_q16 -
-                opponent_origin_y_q16,
-            inspection.players[1].velocity_x_q16,
-            inspection.players[1].velocity_y_q16,
-            inspection.players[1].shield_recoil_x_q16,
-            inspection.players[1].damage_q16,
+            inspection.players[1].position_x_f32 -
+                opponent_origin_x_f32,
+            inspection.players[1].position_y_f32 -
+                opponent_origin_y_f32,
+            inspection.players[1].velocity_x_f32,
+            inspection.players[1].velocity_y_f32,
+            inspection.players[1].shield_recoil_x_f32,
+            inspection.players[1].damage_f32,
             (unsigned int)sim->world.tilt_y_age[0],
             (unsigned int)sim->world.ucf_tilt_x_age[0],
             (unsigned int)sim->world.ucf_tilt_y_age[0],

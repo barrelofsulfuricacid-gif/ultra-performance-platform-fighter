@@ -1669,7 +1669,7 @@ mergeInto(LibraryManager.library, {
     subtitle.textContent =
       "Keyboard, Standard Gamepads, and the Mayflash four-port GameCube " +
       "adapter in PC or native Wii U mode drive the same deterministic " +
-      "Q16.16 simulation used by native, replay, rollback, and headless " +
+      "float32 simulation used by native, replay, rollback, and headless " +
       "execution. The collision inspector draws production stage surfaces, " +
       "hurtboxes, shield volumes, attack and grab boxes, item/projectile " +
       "extents, and blast zones.";
@@ -4143,7 +4143,7 @@ mergeInto(LibraryManager.library, {
     context.textAlign = "left";
     context.fillText("blast zone", padding + 8, padding + 18);
     context.textAlign = "right";
-    context.fillText("real sim · Q16.16 · 60 Hz", canvas.width - padding, 22);
+    context.fillText("real sim · float32 · 60 Hz", canvas.width - padding, 22);
 
     state.tickLabel.textContent =
       "tick " +

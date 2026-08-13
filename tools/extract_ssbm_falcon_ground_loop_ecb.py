@@ -62,7 +62,7 @@ def main() -> int:
         "coordinate_conversion": {
             "x_sim_units_per_melee_unit": "12/115",
             "y_sim_units_per_melee_unit": "11/62",
-            "rounding": "nearest-python-round",
+            "rounding": "ieee754-binary32",
         },
         "tracks": tracks,
     }

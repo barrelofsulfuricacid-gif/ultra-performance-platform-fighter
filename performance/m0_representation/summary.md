@@ -18,7 +18,7 @@ Cases: 23; samples: 345. Higher throughput is better. The relative column is the
 | layout_update | hot_cold_split | 811.262 M | 2.08% | 1.377x [1.331, 1.391] | 2359296 | entity_updates |
 | layout_update | soa | 4.190 G | 1.03% | 7.076x [6.966, 7.193] | 2359296 | entity_updates |
 | numeric_motion | cell_256_int8 | 522.885 M | 1.93% | 0.636x [0.626, 0.640] | 16384 | fighter_ticks |
-| numeric_motion | fixed_q16_16 | 1.170 G | 1.35% | 1.410x [1.389, 1.440] | 65536 | fighter_ticks |
+| numeric_motion | fixed_f32_16 | 1.170 G | 1.35% | 1.410x [1.389, 1.440] | 65536 | fighter_ticks |
 | numeric_motion | float32 | 821.264 M | 0.77% | 1.000x [1.000, 1.000] | 65536 | fighter_ticks |
 | numeric_motion | hybrid_int_position_float_velocity | 115.845 M | 1.75% | 0.141x [0.138, 0.147] | 98304 | fighter_ticks |
 | snapshot_64k | full_copy_restore | 348.387 k | 1.23% | 1.000x [1.000, 1.000] | 65536 | snapshots |

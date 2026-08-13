@@ -6,7 +6,7 @@ establish final-engine performance.
 
 ## Candidate families
 
-- Motion arithmetic: float32, Q16.16 fixed point, 256-cell integers, and
+- Motion arithmetic: float32, float32 fixed point, 256-cell integers, and
   integer-position/float-velocity hybrid.
 - World coordinate range: 256-cell `uint8_t` and 4096-cell `uint16_t`.
 - Sparse and dense broadphase: naive pairs, rebuilt sweep, 16×16 grid, and a

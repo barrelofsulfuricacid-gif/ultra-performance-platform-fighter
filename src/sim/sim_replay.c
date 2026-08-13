@@ -482,9 +482,9 @@ static int pf_replay_forfeit_event_valid(
 {
     return event->source_player == PF_SIM_EVENT_NO_PLAYER &&
            event->target_player == PF_SIM_EVENT_NO_PLAYER &&
-           event->value_q16 == UINT32_C(0) &&
-           event->velocity_x_q16 == INT32_C(0) &&
-           event->velocity_y_q16 == INT32_C(0) &&
+           event->value_f32 == UINT32_C(0) &&
+           event->velocity_x_f32 == INT32_C(0) &&
+           event->velocity_y_f32 == INT32_C(0) &&
            event->flags == UINT16_C(0) &&
            pf_replay_player_mask_valid(event->detail, player_count);
 }
@@ -494,12 +494,13 @@ static int pf_replay_action_transition_event_valid(
     uint8_t player_count)
 {
     const uint32_t previous_actions =
-        (uint32_t)event->velocity_x_q16;
+        pf_sim_f32_bits(event->velocity_x_f32);
+    const uint32_t next_actions = pf_sim_f32_bits(event->value_f32);
     uint32_t player_index;
 
     if (event->source_player != PF_SIM_EVENT_NO_PLAYER ||
         event->target_player != PF_SIM_EVENT_NO_PLAYER ||
-        event->velocity_y_q16 != INT32_C(0) ||
+        event->velocity_y_f32 != INT32_C(0) ||
         event->flags != UINT16_C(0) ||
         !pf_replay_player_mask_valid(event->detail, player_count))
     {
@@ -514,7 +515,7 @@ static int pf_replay_action_transition_event_valid(
         const uint8_t previous_action =
             (uint8_t)(previous_actions >> shift);
         const uint8_t next_action =
-            (uint8_t)(event->value_q16 >> shift);
+            (uint8_t)(next_actions >> shift);
         const int changed = previous_action != next_action;
 
         if (player_index < (uint32_t)player_count)

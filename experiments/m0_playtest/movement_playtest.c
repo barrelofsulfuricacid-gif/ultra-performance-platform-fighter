@@ -130,7 +130,7 @@ static const char *candidate_model(const Playtest *playtest,
 {
     int wants_float =
         (candidate == CANDIDATE_A) == (playtest->float_is_a != 0);
-    return wants_float ? "FLOAT32" : "Q16.16";
+    return wants_float ? "FLOAT32" : "float32";
 }
 
 static void playtest_tick(Playtest *playtest, Controls controls)

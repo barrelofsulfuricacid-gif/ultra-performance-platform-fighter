@@ -79,9 +79,9 @@ def generate(capture: dict[str, Any], source_digest: str) -> str:
             )
             samples.append(
                 {
-                    "frame_q16": round(float(frame) * 65536.0),
-                    "rate_q16": round(float(rate) * 65536.0),
-                    "velocity_x_q16": round(
+                    "frame_f32": round(float(frame) * 65536.0),
+                    "rate_f32": round(float(rate) * 65536.0),
+                    "velocity_x_f32": round(
                         float(velocity) * MELEE_X_TO_SIM_Q16
                     ),
                 }

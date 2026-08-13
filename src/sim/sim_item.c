@@ -1,53 +1,50 @@
 #include "sim_internal.h"
 
-#include <limits.h>
+#include <math.h>
 #include <stdint.h>
 
-static int32_t item_clamp_speed(int64_t value)
+static float item_clamp_speed(float value)
 {
-    if (value > (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16)
+    if (value > PF_SIM_MAX_MOTION_SPEED_F32)
     {
-        return PF_SIM_MAX_MOTION_SPEED_Q16;
+        return PF_SIM_MAX_MOTION_SPEED_F32;
     }
-    if (value < -(int64_t)PF_SIM_MAX_MOTION_SPEED_Q16)
+    if (value < -PF_SIM_MAX_MOTION_SPEED_F32)
     {
-        return -PF_SIM_MAX_MOTION_SPEED_Q16;
+        return -PF_SIM_MAX_MOTION_SPEED_F32;
     }
-    return (int32_t)value;
+    return value;
 }
 
 static int item_checked_add(
-    int32_t left,
-    int32_t right,
-    int32_t *out_value)
+    float left,
+    float right,
+    float *out_value)
 {
-    const int64_t value = (int64_t)left + (int64_t)right;
+    const float value = left + right;
 
-    if (out_value == NULL || value < (int64_t)INT32_MIN ||
-        value > (int64_t)INT32_MAX)
+    if (out_value == NULL || !isfinite(value))
     {
         return 0;
     }
-    *out_value = (int32_t)value;
+    *out_value = value;
     return 1;
 }
 
 static int item_player_in_pickup_range(
     const item_data *item,
-    int32_t player_x_q16,
-    int32_t player_y_q16,
-    int32_t item_x_q16,
-    int32_t item_y_q16)
+    float player_x_f32,
+    float player_y_f32,
+    float item_x_f32,
+    float item_y_f32)
 {
-    const int64_t delta_x =
-        (int64_t)player_x_q16 - (int64_t)item_x_q16;
-    const int64_t delta_y =
-        (int64_t)player_y_q16 - (int64_t)item_y_q16;
+    const float delta_x = player_x_f32 - item_x_f32;
+    const float delta_y = player_y_f32 - item_y_f32;
 
-    return delta_x >= -(int64_t)item->pickup_half_width_q16 &&
-           delta_x <= (int64_t)item->pickup_half_width_q16 &&
-           delta_y >= -(int64_t)item->pickup_half_height_q16 &&
-           delta_y <= (int64_t)item->pickup_half_height_q16;
+    return delta_x >= -item->pickup_half_width_f32 &&
+           delta_x <= item->pickup_half_width_f32 &&
+           delta_y >= -item->pickup_half_height_f32 &&
+           delta_y <= item->pickup_half_height_f32;
 }
 
 static int item_action_can_throw(uint8_t action_state)
@@ -116,13 +113,13 @@ static void item_attach_to_player(
     pf_sim_scratch *scratch,
     uint32_t player_index)
 {
-    scratch->item_position_x_q16 =
-        scratch->position_x_q16[player_index] +
+    scratch->item_position_x_f32 =
+        scratch->position_x_f32[player_index] +
         (int32_t)scratch->facing[player_index] *
-            item->held_offset_x_q16;
-    scratch->item_position_y_q16 =
-        scratch->position_y_q16[player_index] +
-        item->held_offset_y_q16;
+            item->held_offset_x_f32;
+    scratch->item_position_y_f32 =
+        scratch->position_y_f32[player_index] +
+        item->held_offset_y_f32;
 }
 
 static void item_enter_respawn_wait(
@@ -130,10 +127,10 @@ static void item_enter_respawn_wait(
     pf_sim_scratch *scratch)
 {
     scratch->item_state = (uint8_t)PF_M4_ITEM_STATE_RESPAWN_WAIT;
-    scratch->item_position_x_q16 = INT32_C(0);
-    scratch->item_position_y_q16 = INT32_C(0);
-    scratch->item_velocity_x_q16 = INT32_C(0);
-    scratch->item_velocity_y_q16 = INT32_C(0);
+    scratch->item_position_x_f32 = INT32_C(0);
+    scratch->item_position_y_f32 = INT32_C(0);
+    scratch->item_velocity_x_f32 = INT32_C(0);
+    scratch->item_velocity_y_f32 = INT32_C(0);
     scratch->item_lifetime_ticks = UINT16_C(0);
     scratch->item_respawn_ticks = item->respawn_ticks;
     scratch->item_pickup_lockout_ticks = UINT16_C(0);
@@ -160,8 +157,8 @@ void reset_item(pf_sim *sim)
         world->item_stale_registered = UINT8_C(0);
         return;
     }
-    world->item_position_x_q16 = sim->content.item.spawn_x_q16;
-    world->item_position_y_q16 = sim->content.item.spawn_y_q16;
+    world->item_position_x_f32 = sim->content.item.spawn_x_f32;
+    world->item_position_y_f32 = sim->content.item.spawn_y_f32;
     world->item_lifetime_ticks = sim->content.item.lifetime_ticks;
     world->item_state = (uint8_t)PF_M4_ITEM_STATE_GROUND;
     world->item_stale_registered = UINT8_C(0);
@@ -171,10 +168,10 @@ void begin_item_tick(
     const pf_world_state *world,
     pf_sim_scratch *scratch)
 {
-    scratch->item_position_x_q16 = world->item_position_x_q16;
-    scratch->item_position_y_q16 = world->item_position_y_q16;
-    scratch->item_velocity_x_q16 = world->item_velocity_x_q16;
-    scratch->item_velocity_y_q16 = world->item_velocity_y_q16;
+    scratch->item_position_x_f32 = world->item_position_x_f32;
+    scratch->item_position_y_f32 = world->item_position_y_f32;
+    scratch->item_velocity_x_f32 = world->item_velocity_x_f32;
+    scratch->item_velocity_y_f32 = world->item_velocity_y_f32;
     scratch->item_lifetime_ticks = world->item_lifetime_ticks;
     scratch->item_respawn_ticks = world->item_respawn_ticks;
     scratch->item_pickup_lockout_ticks =
@@ -269,10 +266,10 @@ item_input_intent prepare_item_input(
              light_pressed != 0 && shield_held != 0 &&
              item_player_in_pickup_range(
                  &content->item,
-                 world->position_x_q16[player_index],
-                 world->position_y_q16[player_index],
-                 scratch->item_position_x_q16,
-                 scratch->item_position_y_q16))
+                 world->position_x_f32[player_index],
+                 world->position_y_f32[player_index],
+                 scratch->item_position_x_f32,
+                 scratch->item_position_y_f32))
     {
         intent = PF_M4_ITEM_INPUT_PICKUP;
     }
@@ -317,10 +314,10 @@ pf_status apply_item_input(
                 (uint8_t)PF_M4_ACTION_REVIVAL_PLATFORM ||
             !item_player_in_pickup_range(
                 item,
-                scratch->position_x_q16[player_index],
-                scratch->position_y_q16[player_index],
-                scratch->item_position_x_q16,
-                scratch->item_position_y_q16))
+                scratch->position_x_f32[player_index],
+                scratch->position_y_f32[player_index],
+                scratch->item_position_x_f32,
+                scratch->item_position_y_f32))
         {
             return PF_STATUS_OK;
         }
@@ -331,8 +328,8 @@ pf_status apply_item_input(
         scratch->item_stale_registered = UINT8_C(0);
         scratch->item_throw_direction =
             (uint8_t)PF_M4_ITEM_THROW_NONE;
-        scratch->item_velocity_x_q16 = INT32_C(0);
-        scratch->item_velocity_y_q16 = INT32_C(0);
+        scratch->item_velocity_x_f32 = INT32_C(0);
+        scratch->item_velocity_y_f32 = INT32_C(0);
         scratch->item_lifetime_ticks = item->lifetime_ticks;
         item_attach_to_player(item, scratch, player_index);
         if (pf_sim_push_event(
@@ -370,14 +367,14 @@ pf_status apply_item_input(
     {
         scratch->item_throw_direction =
             (uint8_t)PF_M4_ITEM_THROW_NONE;
-        scratch->item_velocity_x_q16 = INT32_C(0);
-        scratch->item_velocity_y_q16 = item->drop_velocity_y_q16;
+        scratch->item_velocity_x_f32 = INT32_C(0);
+        scratch->item_velocity_y_f32 = item->drop_velocity_y_f32;
         if (scratch->grounded[player_index] != UINT8_C(0))
         {
             scratch->item_state = (uint8_t)PF_M4_ITEM_STATE_GROUND;
-            scratch->item_position_y_q16 =
-                content->stage.floor_y_q16 - item->half_height_q16;
-            scratch->item_velocity_y_q16 = INT32_C(0);
+            scratch->item_position_y_f32 =
+                content->stage.floor_y_f32 - item->half_height_f32;
+            scratch->item_velocity_y_f32 = INT32_C(0);
         }
         else
         {
@@ -391,8 +388,8 @@ pf_status apply_item_input(
                 (uint8_t)player_index,
                 PF_SIM_EVENT_NO_PLAYER,
                 UINT32_C(0),
-                scratch->item_velocity_x_q16,
-                scratch->item_velocity_y_q16,
+                scratch->item_velocity_x_f32,
+                scratch->item_velocity_y_f32,
                 UINT16_C(0),
                 (uint16_t)scratch->item_state,
                 NULL) != PF_STATUS_OK)
@@ -410,32 +407,30 @@ pf_status apply_item_input(
                 world->facing[player_index]);
         const item_velocity *throw_velocity =
             item_velocity_for_direction(item, direction);
-        const int64_t momentum_x =
-            ((int64_t)scratch->velocity_x_q16[player_index] *
-             (int64_t)item->momentum_transfer_q16) /
-            (int64_t)PF_Q16_ONE;
-        const int64_t momentum_y =
-            ((int64_t)scratch->velocity_y_q16[player_index] *
-             (int64_t)item->momentum_transfer_q16) /
-            (int64_t)PF_Q16_ONE;
+        const float momentum_x =
+            scratch->velocity_x_f32[player_index] *
+            item->momentum_transfer_f32;
+        const float momentum_y =
+            scratch->velocity_y_f32[player_index] *
+            item->momentum_transfer_f32;
 
         scratch->item_state = (uint8_t)PF_M4_ITEM_STATE_AIRBORNE;
         scratch->item_throw_direction = (uint8_t)direction;
-        scratch->item_velocity_x_q16 = item_clamp_speed(
-            (int64_t)world->facing[player_index] *
-                (int64_t)throw_velocity->velocity_x_q16 +
+        scratch->item_velocity_x_f32 = item_clamp_speed(
+            (float)world->facing[player_index] *
+                throw_velocity->velocity_x_f32 +
             momentum_x);
-        scratch->item_velocity_y_q16 = item_clamp_speed(
-            (int64_t)throw_velocity->velocity_y_q16 + momentum_y);
+        scratch->item_velocity_y_f32 = item_clamp_speed(
+            throw_velocity->velocity_y_f32 + momentum_y);
 
         if (scratch->grounded[player_index] != UINT8_C(0) ||
             intent == PF_M4_ITEM_INPUT_JUMP_CANCEL_THROW)
         {
             if (intent == PF_M4_ITEM_INPUT_JUMP_CANCEL_THROW)
             {
-                scratch->position_y_q16[player_index] =
-                    world->position_y_q16[player_index];
-                scratch->velocity_y_q16[player_index] = INT32_C(0);
+                scratch->position_y_f32[player_index] =
+                    world->position_y_f32[player_index];
+                scratch->velocity_y_f32[player_index] = INT32_C(0);
                 scratch->grounded[player_index] = UINT8_C(1);
                 scratch->support[player_index] =
                     world->support[player_index];
@@ -452,9 +447,9 @@ pf_status apply_item_input(
             scratch->short_hop_latched[player_index] = UINT8_C(0);
             if (intent == PF_M4_ITEM_INPUT_DASH_THROW)
             {
-                scratch->velocity_x_q16[player_index] =
-                    (int32_t)scratch->facing[player_index] *
-                    item->dash_throw_speed_q16;
+                scratch->velocity_x_f32[player_index] =
+                    (float)scratch->facing[player_index] *
+                    item->dash_throw_speed_f32;
             }
         }
         if (pf_sim_push_event(
@@ -464,8 +459,8 @@ pf_status apply_item_input(
                 (uint8_t)player_index,
                 PF_SIM_EVENT_NO_PLAYER,
                 UINT32_C(0),
-                scratch->item_velocity_x_q16,
-                scratch->item_velocity_y_q16,
+                scratch->item_velocity_x_f32,
+                scratch->item_velocity_y_f32,
                 UINT16_C(0),
                 (uint16_t)direction,
                 NULL) != PF_STATUS_OK)
@@ -511,26 +506,26 @@ pf_status step_item(
                 (uint8_t)PF_M4_ITEM_STATE_AIRBORNE;
             scratch->item_source_slot = scratch->item_holder_slot;
             scratch->item_holder_slot = UINT8_C(0);
-            scratch->item_velocity_x_q16 = INT32_C(0);
-            scratch->item_velocity_y_q16 = item->drop_velocity_y_q16;
+            scratch->item_velocity_x_f32 = INT32_C(0);
+            scratch->item_velocity_y_f32 = item->drop_velocity_y_f32;
             scratch->item_pickup_lockout_ticks =
                 item->pickup_lockout_ticks;
         }
         else
         {
             item_attach_to_player(item, scratch, holder_index);
-            scratch->item_velocity_x_q16 = INT32_C(0);
-            scratch->item_velocity_y_q16 = INT32_C(0);
+            scratch->item_velocity_x_f32 = INT32_C(0);
+            scratch->item_velocity_y_f32 = INT32_C(0);
             return PF_STATUS_OK;
         }
     }
 
     if (scratch->item_state == (uint8_t)PF_M4_ITEM_STATE_GROUND)
     {
-        scratch->item_position_y_q16 =
-            content->stage.floor_y_q16 - item->half_height_q16;
-        scratch->item_velocity_x_q16 = INT32_C(0);
-        scratch->item_velocity_y_q16 = INT32_C(0);
+        scratch->item_position_y_f32 =
+            content->stage.floor_y_f32 - item->half_height_f32;
+        scratch->item_velocity_x_f32 = INT32_C(0);
+        scratch->item_velocity_y_f32 = INT32_C(0);
         scratch->item_holder_slot = UINT8_C(0);
         scratch->item_source_slot = UINT8_C(0);
         scratch->item_hit_mask = UINT8_C(0);
@@ -541,41 +536,40 @@ pf_status step_item(
     else if (scratch->item_state ==
              (uint8_t)PF_M4_ITEM_STATE_AIRBORNE)
     {
-        int32_t next_x;
-        int32_t next_y;
+        float next_x;
+        float next_y;
 
-        scratch->item_velocity_y_q16 = item_clamp_speed(
-            (int64_t)scratch->item_velocity_y_q16 +
-            (int64_t)item->gravity_q16);
-        if (scratch->item_velocity_y_q16 > item->fall_speed_q16)
+        scratch->item_velocity_y_f32 = item_clamp_speed(
+            scratch->item_velocity_y_f32 + item->gravity_f32);
+        if (scratch->item_velocity_y_f32 > item->fall_speed_f32)
         {
-            scratch->item_velocity_y_q16 = item->fall_speed_q16;
+            scratch->item_velocity_y_f32 = item->fall_speed_f32;
         }
         if (!item_checked_add(
-                scratch->item_position_x_q16,
-                scratch->item_velocity_x_q16,
+                scratch->item_position_x_f32,
+                scratch->item_velocity_x_f32,
                 &next_x) ||
             !item_checked_add(
-                scratch->item_position_y_q16,
-                scratch->item_velocity_y_q16,
+                scratch->item_position_y_f32,
+                scratch->item_velocity_y_f32,
                 &next_y))
         {
             return PF_STATUS_DETERMINISTIC_FAULT;
         }
-        scratch->item_position_x_q16 = next_x;
-        scratch->item_position_y_q16 = next_y;
-        if (scratch->item_position_y_q16 + item->half_height_q16 >=
-                content->stage.floor_y_q16 &&
-            scratch->item_velocity_y_q16 >= INT32_C(0) &&
-            scratch->item_position_x_q16 >=
-                content->stage.floor_left_q16 &&
-            scratch->item_position_x_q16 <=
-                content->stage.floor_right_q16)
+        scratch->item_position_x_f32 = next_x;
+        scratch->item_position_y_f32 = next_y;
+        if (scratch->item_position_y_f32 + item->half_height_f32 >=
+                content->stage.floor_y_f32 &&
+            scratch->item_velocity_y_f32 >= INT32_C(0) &&
+            scratch->item_position_x_f32 >=
+                content->stage.floor_left_f32 &&
+            scratch->item_position_x_f32 <=
+                content->stage.floor_right_f32)
         {
-            scratch->item_position_y_q16 =
-                content->stage.floor_y_q16 - item->half_height_q16;
-            scratch->item_velocity_x_q16 = INT32_C(0);
-            scratch->item_velocity_y_q16 = INT32_C(0);
+            scratch->item_position_y_f32 =
+                content->stage.floor_y_f32 - item->half_height_f32;
+            scratch->item_velocity_x_f32 = INT32_C(0);
+            scratch->item_velocity_y_f32 = INT32_C(0);
             scratch->item_state = (uint8_t)PF_M4_ITEM_STATE_GROUND;
             scratch->item_source_slot = UINT8_C(0);
             scratch->item_hit_mask = UINT8_C(0);
@@ -593,8 +587,8 @@ pf_status step_item(
         }
         if (scratch->item_respawn_ticks == UINT16_C(0))
         {
-            scratch->item_position_x_q16 = item->spawn_x_q16;
-            scratch->item_position_y_q16 = item->spawn_y_q16;
+            scratch->item_position_x_f32 = item->spawn_x_f32;
+            scratch->item_position_y_f32 = item->spawn_y_f32;
             scratch->item_lifetime_ticks = item->lifetime_ticks;
             scratch->item_state = (uint8_t)PF_M4_ITEM_STATE_GROUND;
             if (pf_sim_push_event(
@@ -625,10 +619,10 @@ pf_status step_item(
         --scratch->item_lifetime_ticks;
     }
     if (scratch->item_lifetime_ticks == UINT16_C(0) ||
-        scratch->item_position_x_q16 < content->stage.blast_left_q16 ||
-        scratch->item_position_x_q16 > content->stage.blast_right_q16 ||
-        scratch->item_position_y_q16 < content->stage.blast_top_q16 ||
-        scratch->item_position_y_q16 > content->stage.blast_bottom_q16)
+        scratch->item_position_x_f32 < content->stage.blast_left_f32 ||
+        scratch->item_position_x_f32 > content->stage.blast_right_f32 ||
+        scratch->item_position_y_f32 < content->stage.blast_top_f32 ||
+        scratch->item_position_y_f32 > content->stage.blast_bottom_f32)
     {
         item_enter_respawn_wait(item, scratch);
     }

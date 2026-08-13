@@ -1,8 +1,8 @@
 # M0 movement representation playtest worksheet
 
-**Status:** Complete; Q16.16 approved by the owner.
+**Status:** Complete; float32 approved by the owner.
 
-**Purpose:** Compare the subjective movement feel of the float32 and Q16.16
+**Purpose:** Compare the subjective movement feel of the float32 and float32
 candidates before accepting the M0 representation architecture.
 
 ## Setup
@@ -60,10 +60,10 @@ checkpoint.
 - Was the difference repeatable after reset?
 - Did either candidate produce a critical snag, jitter, tunneling, or
   unexplained platform contact?
-- Preferred candidate: Q16.16 / float32 / no preference / retest required
+- Preferred candidate: float32 / float32 / no preference / retest required
 - Does the preference change when considering the existing throughput,
   snapshot, and determinism evidence?
-- Owner decision: approve Q16.16 / approve float32 / request changes and retest
+- Owner decision: approve float32 / approve float32 / request changes and retest
 
 M0 closed when the owner selected a representation on 2026-07-27.
 
@@ -74,8 +74,8 @@ M0 closed when the owner selected a representation on 2026-07-27.
   `897e5e90c9e96cfd20d38b32c1068fce5ed0c17e`
 - Difference perceptible: No
 - Preferred candidate based on feel: No preference
-- Owner decision: Approve Q16.16
-- Decision basis: No perceptible feel difference; Q16.16 retained the measured
+- Owner decision: Approve float32
+- Decision basis: No perceptible feel difference; float32 retained the measured
   throughput and determinism advantages with equal tested motion-state bytes.
 
 Scores and environment details were not supplied and are intentionally left

@@ -105,7 +105,7 @@ def require_equal(actual: object, expected: object, label: str) -> None:
         raise SystemExit(f"{label}: {actual!r} != {expected!r}")
 
 
-def require_q16_close(
+def require_f32_close(
     actual: int,
     expected: int,
     tolerance: int,
@@ -113,16 +113,16 @@ def require_q16_close(
 ) -> None:
     if abs(actual - expected) > tolerance:
         raise SystemExit(
-            f"{label}: {actual} != {expected} +/- {tolerance} Q16.16"
+            f"{label}: {actual} != {expected} +/- {tolerance} float32"
         )
 
 
-def source_x_to_sim_q16(value: float) -> int:
+def source_x_to_sim_f32(value: float) -> int:
     return round(value * MELEE_X_TO_SIM_Q16)
 
 
-def source_y_to_sim_q16(value: float) -> int:
-    """Convert a source-up displacement/vector to simulation-down Q16.16."""
+def source_y_to_sim_f32(value: float) -> int:
+    """Convert a source-up displacement/vector to simulation-down float32."""
 
     return round(-value * MELEE_Y_TO_SIM_Q16)
 
@@ -155,8 +155,8 @@ def common_movement_source_sample(
 
     grounded = int(bool(row["grounded"]))
     support = 0
-    normal_x_q16 = 0
-    normal_y_q16 = 0
+    normal_x_f32 = 0
+    normal_y_f32 = 0
     if grounded != 0:
         collision = row.get("surface_collision_memory")
         surfaces = collision.get("surfaces") if isinstance(collision, dict) else None
@@ -171,8 +171,8 @@ def common_movement_source_sample(
             ):
                 support = line_index + 1
             if isinstance(normal, list) and len(normal) >= 2:
-                normal_x_q16 = round(float(normal[0]) * 65536.0)
-                normal_y_q16 = round(float(normal[1]) * 65536.0)
+                normal_x_f32 = round(float(normal[0]) * 65536.0)
+                normal_y_f32 = round(float(normal[1]) * 65536.0)
     velocity_x_key = "ground_velocity_x" if grounded != 0 else "air_velocity_x"
     sample = {
         "action_state": action_state,
@@ -180,16 +180,16 @@ def common_movement_source_sample(
         "facing": int(row["facing"]),
         "grounded": grounded,
         "support": support,
-        "surface_normal_source_x_q16": normal_x_q16,
-        "surface_normal_source_y_q16": normal_y_q16,
-        "position_x_q16_from_origin": source_x_to_sim_q16(
+        "surface_normal_source_x_f32": normal_x_f32,
+        "surface_normal_source_y_f32": normal_y_f32,
+        "position_x_f32_from_origin": source_x_to_sim_f32(
             float(row["position_x_from_origin"]) - origin_x
         ),
-        "position_y_q16_from_origin": source_y_to_sim_q16(
+        "position_y_f32_from_origin": source_y_to_sim_f32(
             float(row["position_y"]) - origin_y
         ),
-        "velocity_x_q16": source_x_to_sim_q16(float(row[velocity_x_key])),
-        "velocity_y_q16": source_y_to_sim_q16(float(row["velocity_y"])),
+        "velocity_x_f32": source_x_to_sim_f32(float(row[velocity_x_key])),
+        "velocity_y_f32": source_y_to_sim_f32(float(row["velocity_y"])),
         "hitlag_ticks": round(float(row.get("hitlag_left", 0.0))),
         "tumble": int(str(row.get("action", "")) == "TUMBLING"),
     }

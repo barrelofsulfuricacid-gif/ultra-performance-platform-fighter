@@ -17,12 +17,22 @@ SOURCE_COMMON_DAT_SHA256 = (
 )
 DECOMP_REVISION = "9509dc04406fb2028bfab01243841ba4787c0fb7"
 FT_COMMON_DATA_SIZE = 0x818
-MELEE_X_TO_SIM_Q16 = 65536.0 * 12.0 / 115.0
-MELEE_Y_TO_SIM_Q16 = 65536.0 * 11.0 / 62.0
+MELEE_X_TO_SIM = 12.0 / 115.0
+MELEE_Y_TO_SIM = 11.0 / 62.0
 
 
-def q16(value: float) -> int:
-    return round(value * 65536.0)
+def binary32(value: float) -> float:
+    return struct.unpack("<f", struct.pack("<f", value))[0]
+
+
+def c_f32(value: float) -> str:
+    rounded = binary32(float(value))
+    if not math.isfinite(rounded):
+        raise ValueError("non-finite generated float")
+    text = format(rounded, ".9g")
+    if "." not in text and "e" not in text.lower():
+        text += ".0"
+    return text + "f"
 
 
 def generate(raw: bytes) -> str:
@@ -303,45 +313,45 @@ def generate(raw: bytes) -> str:
 
     attributes = {
         "stick_tilt_threshold": round(tilt_x * 32767.0),
-        "hitstun_per_knockback_q16": q16(f32(0x154)),
-        "launch_speed_x_per_knockback_q16": round(
-            f32(0x100) * MELEE_X_TO_SIM_Q16
+        "hitstun_per_knockback_f32": binary32(f32(0x154)),
+        "launch_speed_x_per_knockback_f32": binary32(
+            f32(0x100) * MELEE_X_TO_SIM
         ),
-        "launch_speed_y_per_knockback_q16": round(
-            f32(0x100) * MELEE_Y_TO_SIM_Q16
+        "launch_speed_y_per_knockback_f32": binary32(
+            f32(0x100) * MELEE_Y_TO_SIM
         ),
-        "sakurai_air_angle_degrees_q16": q16(math.degrees(f32(0x144))),
-        "sakurai_max_ground_angle_degrees_q16": q16(f32(0x148)),
-        "sakurai_low_knockback_q16": q16(f32(0x14C)),
-        "sakurai_high_knockback_q16": q16(f32(0x150)),
-        "damage_level_1_threshold_q16": q16(f32(0x158)),
-        "damage_level_2_threshold_q16": q16(f32(0x15C)),
-        "grounded_damage_max_level_q16": q16(f32(0x160)),
-        "ground_knockback_max_speed_q16": round(
-            f32(0x164) * MELEE_X_TO_SIM_Q16
+        "sakurai_air_angle_degrees_f32": binary32(math.degrees(f32(0x144))),
+        "sakurai_max_ground_angle_degrees_f32": binary32(f32(0x148)),
+        "sakurai_low_knockback_f32": binary32(f32(0x14C)),
+        "sakurai_high_knockback_f32": binary32(f32(0x150)),
+        "damage_level_1_threshold_f32": binary32(f32(0x158)),
+        "damage_level_2_threshold_f32": binary32(f32(0x15C)),
+        "grounded_damage_max_level_f32": binary32(f32(0x160)),
+        "ground_knockback_max_speed_f32": binary32(
+            f32(0x164) * MELEE_X_TO_SIM
         ),
         "di_max_angle_radians_q30": round(
             math.radians(f32(0x1A8)) * float(1 << 30)
         ),
-        "ground_knockback_decay_scale_q16": q16(f32(0x200)),
+        "ground_knockback_decay_scale_f32": binary32(f32(0x200)),
         # Knockback decay is a magnitude subtraction in Melee coordinates.
         # Keep the source scalar: per-axis conversion before the vector
         # operation changes the angle under this project's anisotropic scale.
-        "air_knockback_decay_q16": q16(f32(0x204)),
+        "air_knockback_decay_f32": binary32(f32(0x204)),
         "sdi_stick_threshold": round(sdi_threshold * 32767.0),
         "sdi_stick_window_ticks": sdi_window,
-        "sdi_distance_x_q16": round(f32(0x4B8) * MELEE_X_TO_SIM_Q16),
-        "sdi_distance_y_q16": round(f32(0x4B8) * MELEE_Y_TO_SIM_Q16),
-        "asdi_distance_x_q16": round(f32(0x4BC) * MELEE_X_TO_SIM_Q16),
-        "asdi_distance_y_q16": round(f32(0x4BC) * MELEE_Y_TO_SIM_Q16),
-        "shield_sdi_scale_q16": q16(f32(0x4C0)),
+        "sdi_distance_x_f32": binary32(f32(0x4B8) * MELEE_X_TO_SIM),
+        "sdi_distance_y_f32": binary32(f32(0x4B8) * MELEE_Y_TO_SIM),
+        "asdi_distance_x_f32": binary32(f32(0x4BC) * MELEE_X_TO_SIM),
+        "asdi_distance_y_f32": binary32(f32(0x4BC) * MELEE_Y_TO_SIM),
+        "shield_sdi_scale_f32": binary32(f32(0x4C0)),
         "hitlag_damage_scale_q30": round(
             hitlag_damage_scale * float(1 << 30)
         ),
-        "crouch_hitlag_scale_q16": q16(crouch_hitlag_scale),
-        "electric_hitlag_scale_q16": q16(electric_hitlag_scale),
-        "crouch_knockback_scale_q16": q16(crouch_knockback_scale),
-        "smash_charge_knockback_scale_q16": q16(
+        "crouch_hitlag_scale_f32": binary32(crouch_hitlag_scale),
+        "electric_hitlag_scale_f32": binary32(electric_hitlag_scale),
+        "crouch_knockback_scale_f32": binary32(crouch_knockback_scale),
+        "smash_charge_knockback_scale_f32": binary32(
             smash_charge_knockback_scale
         ),
         "hitlag_base_ticks": int(hitlag_base_ticks),
@@ -364,17 +374,17 @@ def generate(raw: bytes) -> str:
         "damage_jump_buffer_window_ticks": int(
             damage_jump_buffer_window_ticks
         ),
-        "damage_floor_down_speed_q16": q16(damage_floor_down_speed),
-        "damage_floor_landing_speed_q16": q16(
+        "damage_floor_down_speed_f32": binary32(damage_floor_down_speed),
+        "damage_floor_landing_speed_f32": binary32(
             damage_floor_landing_speed
         ),
-        "damage_fly_top_horizontal_ratio_q16": q16(
+        "damage_fly_top_horizontal_ratio_f32": binary32(
             math.tan(math.pi / 2.0 - damage_fly_top_min_angle)
         ),
-        "ground_damage_steep_angle_sine_q16": q16(
+        "ground_damage_steep_angle_sine_f32": binary32(
             math.sin(f32(0x1E8))
         ),
-        "ground_damage_vertical_reflection_q16": q16(f32(0x1EC)),
+        "ground_damage_vertical_reflection_f32": binary32(f32(0x1EC)),
         "damage_fly_roll_damage_threshold": (
             damage_fly_roll_damage_threshold
         ),
@@ -386,9 +396,9 @@ def generate(raw: bytes) -> str:
         ),
     }
     surface_attributes = {
-        "collision_threshold_x_q16": round(f32(0x1B0) * MELEE_X_TO_SIM_Q16),
-        "collision_threshold_y_q16": round(f32(0x1B0) * MELEE_Y_TO_SIM_Q16),
-        "bounce_multiplier_q16": q16(f32(0x1BC)),
+        "collision_threshold_x_f32": binary32(f32(0x1B0) * MELEE_X_TO_SIM),
+        "collision_threshold_y_f32": binary32(f32(0x1B0) * MELEE_Y_TO_SIM),
+        "bounce_multiplier_f32": binary32(f32(0x1BC)),
         "wall_tech_stall_ticks": wall_tech_stall_ticks,
         "wall_tech_invulnerability_ticks": wall_tech_invulnerability_ticks,
         "bounce_invulnerability_ticks": bounce_invulnerability_ticks,
@@ -399,7 +409,7 @@ def generate(raw: bytes) -> str:
             tech_roll_axis_threshold * 32767.0
         ),
         "down_wait_ticks": int(down_wait_ticks),
-        "down_horizontal_angle_tan_q16": q16(
+        "down_horizontal_angle_tan_f32": binary32(
             math.tan(down_horizontal_angle)
         ),
         "down_up_axis_threshold": round(
@@ -416,7 +426,7 @@ def generate(raw: bytes) -> str:
         ),
     }
     ledge_attributes = {
-        "direction_angle_tan_q16": q16(math.tan(down_horizontal_angle)),
+        "direction_angle_tan_f32": binary32(math.tan(down_horizontal_angle)),
         "grab_down_axis_threshold": round(
             ledge_grab_down_axis_threshold * 32767.0
         ),
@@ -436,13 +446,13 @@ def generate(raw: bytes) -> str:
         ),
     }
     mash_attributes = {
-        "furafura_shield_health_q16": q16(f32(0x280)),
-        "capture_base_q16": q16(f32(0x354)),
-        "capture_handicap_scale_q16": q16(f32(0x358)),
-        "capture_handicap_reference_q16": q16(f32(0x35C)),
-        "capture_rank_scale_q16": q16(f32(0x360)),
-        "capture_rank_reference_q16": q16(f32(0x364)),
-        "capture_damage_scale_q16": q16(f32(0x368)),
+        "furafura_shield_health_f32": binary32(f32(0x280)),
+        "capture_base_f32": binary32(f32(0x354)),
+        "capture_handicap_scale_f32": binary32(f32(0x358)),
+        "capture_handicap_reference_f32": binary32(f32(0x35C)),
+        "capture_rank_scale_f32": binary32(f32(0x360)),
+        "capture_rank_reference_f32": binary32(f32(0x364)),
+        "capture_damage_scale_f32": binary32(f32(0x368)),
         "stick_axis_threshold": round(mash_stick_axis_threshold * 32767.0),
         "furafura_max_damage_reduction_ticks": int(
             furafura_max_damage_reduction_ticks
@@ -456,16 +466,16 @@ def generate(raw: bytes) -> str:
         "capture_mash_reduction_ticks": int(capture_mash_reduction_ticks),
     }
     ground_input_attributes = {
-        "grab_release_speed_x_q16": round(
-            f32(0x370) * MELEE_X_TO_SIM_Q16
+        "grab_release_speed_x_f32": binary32(
+            f32(0x370) * MELEE_X_TO_SIM
         ),
-        "grab_release_air_speed_x_q16": round(
-            grab_release_air_speed_x * MELEE_X_TO_SIM_Q16
+        "grab_release_air_speed_x_f32": binary32(
+            grab_release_air_speed_x * MELEE_X_TO_SIM
         ),
-        "grab_release_air_speed_y_q16": round(
-            grab_release_air_speed_y * MELEE_Y_TO_SIM_Q16
+        "grab_release_air_speed_y_f32": binary32(
+            grab_release_air_speed_y * MELEE_Y_TO_SIM
         ),
-        "throw_animation_weight_scale_q16": q16(
+        "throw_animation_weight_scale_f32": binary32(
             throw_animation_weight_scale
         ),
         "throw_animation_weight_scale_q30": round(
@@ -479,8 +489,8 @@ def generate(raw: bytes) -> str:
             teeter_walk_axis_threshold * 32767.0
         ),
         "walk_axis_threshold": round(walk_axis_threshold * 32767.0),
-        "walk_middle_speed_ratio_q16": q16(walk_middle_speed_ratio),
-        "walk_fast_speed_ratio_q16": q16(walk_fast_speed_ratio),
+        "walk_middle_speed_ratio_f32": binary32(walk_middle_speed_ratio),
+        "walk_fast_speed_ratio_f32": binary32(walk_fast_speed_ratio),
         "aerial_neutral_x_threshold": round(
             aerial_neutral_x_threshold * 32767.0
         ),
@@ -525,7 +535,7 @@ def generate(raw: bytes) -> str:
         "initial_dash_special_end_frame": int(
             initial_dash_special_end_frame
         ),
-        "initial_dash_iasa_velocity_decay_q16": q16(
+        "initial_dash_iasa_velocity_decay_f32": binary32(
             initial_dash_iasa_velocity_decay
         ),
         "running_jump_axis_threshold": round(
@@ -546,22 +556,22 @@ def generate(raw: bytes) -> str:
         "vertical_smash_axis_threshold": round(
             vertical_smash_axis_threshold * 32767.0
         ),
-        "aerial_direction_angle_tan_q16": q16(
+        "aerial_direction_angle_tan_f32": binary32(
             math.tan(down_horizontal_angle)
         ),
-        "tilt_direction_angle_tan_q16": q16(
+        "tilt_direction_angle_tan_f32": binary32(
             math.tan(tilt_direction_angle)
         ),
-        "forward_tilt_outer_angle_tan_q16": q16(
+        "forward_tilt_outer_angle_tan_f32": binary32(
             math.tan(forward_tilt_angles[0])
         ),
-        "forward_tilt_inner_angle_tan_q16": q16(
+        "forward_tilt_inner_angle_tan_f32": binary32(
             math.tan(forward_tilt_angles[1])
         ),
-        "forward_smash_outer_angle_tan_q16": q16(
+        "forward_smash_outer_angle_tan_f32": binary32(
             math.tan(forward_smash_angles[0])
         ),
-        "forward_smash_inner_angle_tan_q16": q16(
+        "forward_smash_inner_angle_tan_f32": binary32(
             math.tan(forward_smash_angles[1])
         ),
     }
@@ -578,21 +588,21 @@ def generate(raw: bytes) -> str:
         "player_delay_stride_ticks": 5,
     }
     clank_attributes = {
-        "rebound_strength_damage_scale_q16": q16(f32(0x3D0)),
-        "rebound_strength_base_q16": q16(f32(0x3D4)),
-        "rebound_velocity_strength_scale_q16": round(
-            f32(0x3D8) * MELEE_X_TO_SIM_Q16
+        "rebound_strength_damage_scale_f32": binary32(f32(0x3D0)),
+        "rebound_strength_base_f32": binary32(f32(0x3D4)),
+        "rebound_velocity_strength_scale_f32": binary32(
+            f32(0x3D8) * MELEE_X_TO_SIM
         ),
-        "rebound_velocity_base_q16": round(
-            f32(0x3DC) * MELEE_X_TO_SIM_Q16
+        "rebound_velocity_base_f32": binary32(
+            f32(0x3DC) * MELEE_X_TO_SIM
         ),
         "damage_margin": i32(0x3CC),
     }
     fall_animation_attributes = {
-        "direction_threshold_q16": q16(
+        "direction_threshold_f32": binary32(
             fall_animation_direction_threshold
         ),
-        "blend_rate_q16": q16(fall_animation_blend_rate),
+        "blend_rate_f32": binary32(fall_animation_blend_rate),
     }
 
     lines = [
@@ -629,30 +639,30 @@ def generate(raw: bytes) -> str:
             "",
             "static const ssbm_damage_response_attributes",
             "ssbm_damage_response_attribute_data = {",
-            f"    INT32_C({attributes['hitstun_per_knockback_q16']}),",
-            f"    INT32_C({attributes['launch_speed_x_per_knockback_q16']}),",
-            f"    INT32_C({attributes['launch_speed_y_per_knockback_q16']}),",
-            f"    INT32_C({attributes['sakurai_air_angle_degrees_q16']}),",
-            f"    INT32_C({attributes['sakurai_max_ground_angle_degrees_q16']}),",
-            f"    INT32_C({attributes['sakurai_low_knockback_q16']}),",
-            f"    INT32_C({attributes['sakurai_high_knockback_q16']}),",
-            f"    INT32_C({attributes['damage_level_1_threshold_q16']}),",
-            f"    INT32_C({attributes['damage_level_2_threshold_q16']}),",
-            f"    INT32_C({attributes['grounded_damage_max_level_q16']}),",
-            f"    INT32_C({attributes['ground_knockback_max_speed_q16']}),",
+            f"    {c_f32(attributes['hitstun_per_knockback_f32'])},",
+            f"    {c_f32(attributes['launch_speed_x_per_knockback_f32'])},",
+            f"    {c_f32(attributes['launch_speed_y_per_knockback_f32'])},",
+            f"    {c_f32(attributes['sakurai_air_angle_degrees_f32'])},",
+            f"    {c_f32(attributes['sakurai_max_ground_angle_degrees_f32'])},",
+            f"    {c_f32(attributes['sakurai_low_knockback_f32'])},",
+            f"    {c_f32(attributes['sakurai_high_knockback_f32'])},",
+            f"    {c_f32(attributes['damage_level_1_threshold_f32'])},",
+            f"    {c_f32(attributes['damage_level_2_threshold_f32'])},",
+            f"    {c_f32(attributes['grounded_damage_max_level_f32'])},",
+            f"    {c_f32(attributes['ground_knockback_max_speed_f32'])},",
             f"    INT32_C({attributes['di_max_angle_radians_q30']}),",
-            f"    INT32_C({attributes['ground_knockback_decay_scale_q16']}),",
-            f"    INT32_C({attributes['air_knockback_decay_q16']}),",
-            f"    INT32_C({attributes['sdi_distance_x_q16']}),",
-            f"    INT32_C({attributes['sdi_distance_y_q16']}),",
-            f"    INT32_C({attributes['asdi_distance_x_q16']}),",
-            f"    INT32_C({attributes['asdi_distance_y_q16']}),",
-            f"    INT32_C({attributes['shield_sdi_scale_q16']}),",
+            f"    {c_f32(attributes['ground_knockback_decay_scale_f32'])},",
+            f"    {c_f32(attributes['air_knockback_decay_f32'])},",
+            f"    {c_f32(attributes['sdi_distance_x_f32'])},",
+            f"    {c_f32(attributes['sdi_distance_y_f32'])},",
+            f"    {c_f32(attributes['asdi_distance_x_f32'])},",
+            f"    {c_f32(attributes['asdi_distance_y_f32'])},",
+            f"    {c_f32(attributes['shield_sdi_scale_f32'])},",
             f"    INT32_C({attributes['hitlag_damage_scale_q30']}),",
-            f"    UINT32_C({attributes['crouch_hitlag_scale_q16']}),",
-            f"    UINT32_C({attributes['electric_hitlag_scale_q16']}),",
-            f"    UINT32_C({attributes['crouch_knockback_scale_q16']}),",
-            f"    UINT32_C({attributes['smash_charge_knockback_scale_q16']}),",
+            f"    {c_f32(attributes['crouch_hitlag_scale_f32'])},",
+            f"    {c_f32(attributes['electric_hitlag_scale_f32'])},",
+            f"    {c_f32(attributes['crouch_knockback_scale_f32'])},",
+            f"    {c_f32(attributes['smash_charge_knockback_scale_f32'])},",
             f"    UINT16_C({attributes['stick_tilt_threshold']}),",
             f"    UINT16_C({attributes['sdi_stick_threshold']}),",
             f"    UINT16_C({attributes['sdi_stick_window_ticks']}),",
@@ -666,20 +676,20 @@ def generate(raw: bytes) -> str:
             f"    UINT16_C({attributes['damage_fall_wiggle_tilt_window_ticks']}),",
             f"    UINT16_C({attributes['damage_velocity_replace_window_ticks']}),",
             f"    UINT16_C({attributes['damage_jump_buffer_window_ticks']}),",
-            f"    INT32_C({attributes['damage_fly_top_horizontal_ratio_q16']}),",
-            f"    INT32_C({attributes['damage_floor_down_speed_q16']}),",
-            f"    INT32_C({attributes['damage_floor_landing_speed_q16']}),",
-            f"    INT32_C({attributes['ground_damage_steep_angle_sine_q16']}),",
-            f"    INT32_C({attributes['ground_damage_vertical_reflection_q16']}),",
+            f"    {c_f32(attributes['damage_fly_top_horizontal_ratio_f32'])},",
+            f"    {c_f32(attributes['damage_floor_down_speed_f32'])},",
+            f"    {c_f32(attributes['damage_floor_landing_speed_f32'])},",
+            f"    {c_f32(attributes['ground_damage_steep_angle_sine_f32'])},",
+            f"    {c_f32(attributes['ground_damage_vertical_reflection_f32'])},",
             f"    UINT16_C({attributes['damage_fly_roll_damage_threshold']}),",
             f"    UINT16_C({attributes['damage_fly_roll_random_threshold_u16']}),",
             "};",
             "",
             "static const ssbm_surface_response_attributes",
             "ssbm_surface_response_attribute_data = {",
-            f"    INT32_C({surface_attributes['collision_threshold_x_q16']}),",
-            f"    INT32_C({surface_attributes['collision_threshold_y_q16']}),",
-            f"    INT32_C({surface_attributes['bounce_multiplier_q16']}),",
+            f"    {c_f32(surface_attributes['collision_threshold_x_f32'])},",
+            f"    {c_f32(surface_attributes['collision_threshold_y_f32'])},",
+            f"    {c_f32(surface_attributes['bounce_multiplier_f32'])},",
             f"    UINT16_C({surface_attributes['wall_tech_stall_ticks']}),",
             f"    UINT16_C({surface_attributes['wall_tech_invulnerability_ticks']}),",
             f"    UINT16_C({surface_attributes['bounce_invulnerability_ticks']}),",
@@ -688,7 +698,7 @@ def generate(raw: bytes) -> str:
             f"    UINT16_C({surface_attributes['tech_lockout_ticks']}),",
             f"    UINT16_C({surface_attributes['tech_roll_axis_threshold']}),",
             f"    UINT16_C({surface_attributes['down_wait_ticks']}),",
-            f"    INT32_C({surface_attributes['down_horizontal_angle_tan_q16']}),",
+            f"    {c_f32(surface_attributes['down_horizontal_angle_tan_f32'])},",
             f"    UINT16_C({surface_attributes['down_up_axis_threshold']}),",
             f"    UINT16_C({surface_attributes['down_horizontal_axis_threshold']}),",
             f"    UINT16_C({surface_attributes['down_attack_input_window_ticks']}),",
@@ -697,7 +707,7 @@ def generate(raw: bytes) -> str:
             "",
             "static const ssbm_ledge_response_attributes",
             "ssbm_ledge_response_attribute_data = {",
-            f"    INT32_C({ledge_attributes['direction_angle_tan_q16']}),",
+            f"    {c_f32(ledge_attributes['direction_angle_tan_f32'])},",
             f"    UINT16_C({ledge_attributes['grab_down_axis_threshold']}),",
             f"    UINT16_C({ledge_attributes['damage_threshold_percent']}),",
             f"    UINT16_C({ledge_attributes['quick_wait_ticks']}),",
@@ -711,13 +721,13 @@ def generate(raw: bytes) -> str:
             "",
             "static const ssbm_mash_attributes",
             "ssbm_mash_attribute_data = {",
-            f"    UINT32_C({mash_attributes['furafura_shield_health_q16']}),",
-            f"    INT32_C({mash_attributes['capture_base_q16']}),",
-            f"    INT32_C({mash_attributes['capture_handicap_scale_q16']}),",
-            f"    INT32_C({mash_attributes['capture_handicap_reference_q16']}),",
-            f"    INT32_C({mash_attributes['capture_rank_scale_q16']}),",
-            f"    INT32_C({mash_attributes['capture_rank_reference_q16']}),",
-            f"    INT32_C({mash_attributes['capture_damage_scale_q16']}),",
+            f"    {c_f32(mash_attributes['furafura_shield_health_f32'])},",
+            f"    {c_f32(mash_attributes['capture_base_f32'])},",
+            f"    {c_f32(mash_attributes['capture_handicap_scale_f32'])},",
+            f"    {c_f32(mash_attributes['capture_handicap_reference_f32'])},",
+            f"    {c_f32(mash_attributes['capture_rank_scale_f32'])},",
+            f"    {c_f32(mash_attributes['capture_rank_reference_f32'])},",
+            f"    {c_f32(mash_attributes['capture_damage_scale_f32'])},",
             f"    UINT16_C({mash_attributes['stick_axis_threshold']}),",
             f"    UINT16_C({mash_attributes['furafura_max_damage_reduction_ticks']}),",
             f"    UINT16_C({mash_attributes['furafura_minimum_ticks']}),",
@@ -730,16 +740,16 @@ def generate(raw: bytes) -> str:
             "",
             "static const ssbm_ground_input_attributes",
             "ssbm_ground_input_attribute_data = {",
-            f"    INT32_C({ground_input_attributes['grab_release_speed_x_q16']}),",
-            f"    INT32_C({ground_input_attributes['grab_release_air_speed_x_q16']}),",
-            f"    INT32_C({ground_input_attributes['grab_release_air_speed_y_q16']}),",
-            f"    INT32_C({ground_input_attributes['throw_animation_weight_scale_q16']}),",
+            f"    {c_f32(ground_input_attributes['grab_release_speed_x_f32'])},",
+            f"    {c_f32(ground_input_attributes['grab_release_air_speed_x_f32'])},",
+            f"    {c_f32(ground_input_attributes['grab_release_air_speed_y_f32'])},",
+            f"    {c_f32(ground_input_attributes['throw_animation_weight_scale_f32'])},",
             f"    INT32_C({ground_input_attributes['throw_animation_weight_scale_q30']}),",
             f"    UINT16_C({ground_input_attributes['teeter_turn_axis_threshold']}),",
             f"    UINT16_C({ground_input_attributes['teeter_walk_axis_threshold']}),",
             f"    UINT16_C({ground_input_attributes['walk_axis_threshold']}),",
-            f"    UINT16_C({ground_input_attributes['walk_middle_speed_ratio_q16']}),",
-            f"    UINT16_C({ground_input_attributes['walk_fast_speed_ratio_q16']}),",
+            f"    {c_f32(ground_input_attributes['walk_middle_speed_ratio_f32'])},",
+            f"    {c_f32(ground_input_attributes['walk_fast_speed_ratio_f32'])},",
             f"    UINT16_C({ground_input_attributes['aerial_neutral_x_threshold']}),",
             f"    UINT16_C({ground_input_attributes['aerial_neutral_y_threshold']}),",
             f"    UINT16_C({ground_input_attributes['c_stick_horizontal_smash_threshold']}),",
@@ -763,13 +773,13 @@ def generate(raw: bytes) -> str:
             f"    UINT16_C({ground_input_attributes['forward_tilt_axis_threshold']}),",
             f"    UINT16_C({ground_input_attributes['vertical_tilt_axis_threshold']}),",
             f"    UINT16_C({ground_input_attributes['vertical_smash_axis_threshold']}),",
-            f"    INT32_C({ground_input_attributes['aerial_direction_angle_tan_q16']}),",
-            f"    INT32_C({ground_input_attributes['tilt_direction_angle_tan_q16']}),",
-            f"    INT32_C({ground_input_attributes['forward_tilt_outer_angle_tan_q16']}),",
-            f"    INT32_C({ground_input_attributes['forward_tilt_inner_angle_tan_q16']}),",
-            f"    INT32_C({ground_input_attributes['forward_smash_outer_angle_tan_q16']}),",
-            f"    INT32_C({ground_input_attributes['forward_smash_inner_angle_tan_q16']}),",
-            f"    INT32_C({ground_input_attributes['initial_dash_iasa_velocity_decay_q16']}),",
+            f"    {c_f32(ground_input_attributes['aerial_direction_angle_tan_f32'])},",
+            f"    {c_f32(ground_input_attributes['tilt_direction_angle_tan_f32'])},",
+            f"    {c_f32(ground_input_attributes['forward_tilt_outer_angle_tan_f32'])},",
+            f"    {c_f32(ground_input_attributes['forward_tilt_inner_angle_tan_f32'])},",
+            f"    {c_f32(ground_input_attributes['forward_smash_outer_angle_tan_f32'])},",
+            f"    {c_f32(ground_input_attributes['forward_smash_inner_angle_tan_f32'])},",
+            f"    {c_f32(ground_input_attributes['initial_dash_iasa_velocity_decay_f32'])},",
             "};",
             "",
             "static const ssbm_rebirth_attributes",
@@ -790,18 +800,18 @@ def generate(raw: bytes) -> str:
             "",
             "static const ssbm_clank_attributes",
             "ssbm_clank_attribute_data = {",
-            f"    INT32_C({clank_attributes['rebound_strength_damage_scale_q16']}),",
-            f"    INT32_C({clank_attributes['rebound_strength_base_q16']}),",
-            f"    INT32_C({clank_attributes['rebound_velocity_strength_scale_q16']}),",
-            f"    INT32_C({clank_attributes['rebound_velocity_base_q16']}),",
+            f"    {c_f32(clank_attributes['rebound_strength_damage_scale_f32'])},",
+            f"    {c_f32(clank_attributes['rebound_strength_base_f32'])},",
+            f"    {c_f32(clank_attributes['rebound_velocity_strength_scale_f32'])},",
+            f"    {c_f32(clank_attributes['rebound_velocity_base_f32'])},",
             f"    UINT16_C({clank_attributes['damage_margin']}),",
             "    UINT16_C(0),",
             "};",
             "",
             "static const ssbm_fall_animation_attributes",
             "ssbm_fall_animation_attribute_data = {",
-            f"    INT32_C({fall_animation_attributes['direction_threshold_q16']}),",
-            f"    INT32_C({fall_animation_attributes['blend_rate_q16']}),",
+            f"    {c_f32(fall_animation_attributes['direction_threshold_f32'])},",
+            f"    {c_f32(fall_animation_attributes['blend_rate_f32'])},",
             "};",
             "",
         ]

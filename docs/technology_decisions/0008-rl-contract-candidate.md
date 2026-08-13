@@ -80,9 +80,9 @@ The compact layout is:
 | 62–65 | Per-player Arc Reservoir charge ticks |
 | 66–69 | Per-player smash-charge ticks |
 | 70–73 | Per-player raw shield strength; zero outside shield, shield stun, or hitlag resuming into shield stun |
-| 74–77 | Per-player canonical shield health in Q16.16 |
+| 74–77 | Per-player canonical shield health in float32 |
 | 78–85 | Per-player signed x/y shield tilt; two consecutive values per fixed player slot |
-| 86–101 | Four four-value stale-move records: current/resume move multiplier in Q16.16; count in bits 0–7 plus IDs 0–2 in bits 8–31; IDs 3–6; then IDs 7–8 with high bits reserved zero |
+| 86–101 | Four four-value stale-move records: current/resume move multiplier in float32; count in bits 0–7 plus IDs 0–2 in bits 8–31; IDs 3–6; then IDs 7–8 with high bits reserved zero |
 
 The stale multiplier describes the player's current attack, or the attack that
 will resume after hitlag; it is exactly one for a state without a stale-capable
@@ -99,7 +99,7 @@ define or enter simulation.
 
 ## Rewards and episode signals
 
-Rewards are signed Q16.16 integers and combine two advertised components:
+Rewards are signed float32 integers and combine two advertised components:
 
 1. A bounded engagement-potential delta on every successful step.
 2. A terminal match-outcome component.
@@ -111,7 +111,7 @@ For active player `i`, the provisional M2 engagement potential is:
 
 The step component is `potential(after) - potential(before)`. Opponents are
 active players on a different team. The fixed-point implementation uses
-integer arithmetic, exposes the `0.25` (`16384` Q16.16) potential limit in
+integer arithmetic, exposes the `0.25` (`16384` float32) potential limit in
 `pf_rl_spec`, and uses a fixed 128-world-unit reference distance so the
 per-unit signal does not change with stage width. It remains the provisional
 M2 horizontal-distance contract even though M4 now has an initial combat

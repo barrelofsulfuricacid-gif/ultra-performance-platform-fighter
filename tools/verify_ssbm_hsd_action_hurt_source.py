@@ -16,13 +16,13 @@ from hsd_joint_pose import (
     fighter_animation_flags,
     fighter_animation_slice,
 )
-from ssbm_ecb_pose import canonical_source_ecb, pose_q16
+from ssbm_ecb_pose import canonical_source_ecb, pose_f32
 from verify_ssbm_dynamic_hurt_pose_source import (
     build_hurt_pose_source,
-    compare_hurt_pose_q16,
+    compare_hurt_pose_f32,
     load_pinned_source,
     require,
-    source_joint_ecb_q16,
+    source_joint_ecb_f32,
 )
 
 
@@ -136,10 +136,10 @@ def main() -> int:
         common_raw,
         model_raw,
     )
-    tolerance = int(qualification["coordinate_tolerance_q16"])
+    tolerance = int(qualification["coordinate_tolerance_f32"])
     require(tolerance >= 0, "action hurt tolerance must be nonnegative")
-    frame_tolerance = int(qualification.get("frame_tolerance_q16", 0))
-    rate_tolerance = int(qualification.get("rate_tolerance_q16", 0))
+    frame_tolerance = int(qualification.get("frame_tolerance_f32", 0))
+    rate_tolerance = int(qualification.get("rate_tolerance_f32", 0))
     require(
         frame_tolerance >= 0 and rate_tolerance >= 0,
         "action hurt clock tolerances must be nonnegative",
@@ -269,8 +269,8 @@ def main() -> int:
                 ),
                 f"{capture_name}/{action}: invalid excluded label suffixes",
             )
-            minimum_frame_q16 = case.get("minimum_source_frame_exclusive_q16")
-            maximum_frame_q16 = case.get("maximum_source_frame_inclusive_q16")
+            minimum_frame_f32 = case.get("minimum_source_frame_exclusive_f32")
+            maximum_frame_f32 = case.get("maximum_source_frame_inclusive_f32")
             selected = []
             row_indices: dict[int, int] = {}
             for row_index, row in enumerate(rows):
@@ -296,15 +296,15 @@ def main() -> int:
                     isinstance(source_frame, (int, float)),
                     f"{capture_name}/{action}: invalid source frame",
                 )
-                source_frame_q16 = round(float(source_frame) * 65536.0)
+                source_frame_f32 = round(float(source_frame) * 65536.0)
                 if (
-                    minimum_frame_q16 is not None
-                    and source_frame_q16 <= int(minimum_frame_q16)
+                    minimum_frame_f32 is not None
+                    and source_frame_f32 <= int(minimum_frame_f32)
                 ):
                     continue
                 if (
-                    maximum_frame_q16 is not None
-                    and source_frame_q16 > int(maximum_frame_q16)
+                    maximum_frame_f32 is not None
+                    and source_frame_f32 > int(maximum_frame_f32)
                 ):
                     continue
                 selected.append(row)
@@ -314,62 +314,62 @@ def main() -> int:
                 f"{capture_name}/{action}: expected "
                 f"{case['expected_samples']} rows, got {len(selected)}",
             )
-            source_frames_q16 = [
+            source_frames_f32 = [
                 round(
                     float(row["hitbox_memory"]["fighter_animation_frame"])
                     * 65536.0
                 )
                 for row in selected
             ]
-            expected_frames_q16 = case.get("expected_source_frames_q16")
-            expected_frame_pattern_q16 = case.get(
-                "expected_source_frame_pattern_q16"
+            expected_frames_f32 = case.get("expected_source_frames_f32")
+            expected_frame_pattern_f32 = case.get(
+                "expected_source_frame_pattern_f32"
             )
             require(
-                expected_frames_q16 is None or expected_frame_pattern_q16 is None,
+                expected_frames_f32 is None or expected_frame_pattern_f32 is None,
                 f"{capture_name}/{action}: source-frame expectations overlap",
             )
-            if expected_frames_q16 is not None:
+            if expected_frames_f32 is not None:
                 require(
-                    isinstance(expected_frames_q16, list)
-                    and len(expected_frames_q16) == len(selected)
-                    and all(isinstance(value, int) for value in expected_frames_q16),
+                    isinstance(expected_frames_f32, list)
+                    and len(expected_frames_f32) == len(selected)
+                    and all(isinstance(value, int) for value in expected_frames_f32),
                     f"{capture_name}/{action}: invalid expected source frames",
                 )
                 require(
                     all(
                         abs(actual - expected) <= frame_tolerance
                         for actual, expected in zip(
-                            source_frames_q16,
-                            expected_frames_q16,
+                            source_frames_f32,
+                            expected_frames_f32,
                             strict=True,
                         )
                     ),
                     f"{capture_name}/{action}: source-frame sequence differs",
                 )
-            elif expected_frame_pattern_q16 is not None:
+            elif expected_frame_pattern_f32 is not None:
                 repetitions = case.get("expected_source_frame_pattern_repetitions")
                 require(
-                    isinstance(expected_frame_pattern_q16, list)
-                    and expected_frame_pattern_q16
+                    isinstance(expected_frame_pattern_f32, list)
+                    and expected_frame_pattern_f32
                     and all(
                         isinstance(value, int)
-                        for value in expected_frame_pattern_q16
+                        for value in expected_frame_pattern_f32
                     )
                     and isinstance(repetitions, int)
                     and repetitions > 0,
                     f"{capture_name}/{action}: invalid source-frame pattern",
                 )
-                expected_frames_q16 = (
-                    expected_frame_pattern_q16 * repetitions
+                expected_frames_f32 = (
+                    expected_frame_pattern_f32 * repetitions
                 )
                 require(
-                    len(expected_frames_q16) == len(selected)
+                    len(expected_frames_f32) == len(selected)
                     and all(
                         abs(actual - expected) <= frame_tolerance
                         for actual, expected in zip(
-                            source_frames_q16,
-                            expected_frames_q16,
+                            source_frames_f32,
+                            expected_frames_f32,
                             strict=True,
                         )
                     ),
@@ -380,7 +380,7 @@ def main() -> int:
                 last_source_frame = int(case["last_source_frame"])
                 source_frame_cycle = case.get("source_frame_cycle")
                 if source_frame_cycle is None:
-                    expected_frames_q16 = [
+                    expected_frames_f32 = [
                         frame * 65536
                         for frame in range(
                             first_source_frame,
@@ -395,18 +395,18 @@ def main() -> int:
                         and last_source_frame == cycle - 1,
                         f"{capture_name}/{action}: invalid source-frame cycle",
                     )
-                    expected_frames_q16 = [
+                    expected_frames_f32 = [
                         ((first_source_frame + index) % cycle) * 65536
                         for index in range(int(case["expected_samples"]))
                     ]
                 require(
-                    source_frames_q16 == expected_frames_q16,
+                    source_frames_f32 == expected_frames_f32,
                     f"{capture_name}/{action}: incomplete source-frame sequence",
                 )
-            expected_rate_q16 = case.get("expected_animation_rate_q16")
-            if expected_rate_q16 is not None:
-                require(isinstance(expected_rate_q16, int), "invalid animation rate")
-                actual_rates_q16 = [
+            expected_rate_f32 = case.get("expected_animation_rate_f32")
+            if expected_rate_f32 is not None:
+                require(isinstance(expected_rate_f32, int), "invalid animation rate")
+                actual_rates_f32 = [
                     round(
                         float(row["hitbox_memory"]["fighter_animation_rate"])
                         * 65536.0
@@ -415,8 +415,8 @@ def main() -> int:
                 ]
                 require(
                     all(
-                        abs(actual - expected_rate_q16) <= rate_tolerance
-                        for actual in actual_rates_q16
+                        abs(actual - expected_rate_f32) <= rate_tolerance
+                        for actual in actual_rates_f32
                     ),
                     f"{capture_name}/{action}: animation rate differs",
                 )
@@ -441,13 +441,13 @@ def main() -> int:
             for row in selected:
                 case_maximum = max(
                     case_maximum,
-                    compare_hurt_pose_q16(
+                    compare_hurt_pose_f32(
                         row,
                         source.source_joints,
                         animations[submotion],
                         source.capsules,
                         source.layout,
-                        source.coordinate_scale_q16,
+                        source.coordinate_scale_f32,
                         source.axis_sign,
                         tolerance,
                         f"{capture_name}/{action}",
@@ -516,10 +516,10 @@ def main() -> int:
                         isinstance(captured_ecb, dict),
                         f"{capture_name}/{action}: missing fighter ECB",
                     )
-                    expected_ecb = pose_q16(
+                    expected_ecb = pose_f32(
                         canonical_source_ecb(captured_ecb, facing)
                     )
-                    actual_ecb = source_joint_ecb_q16(
+                    actual_ecb = source_joint_ecb_f32(
                         evaluate_joint_matrices(
                             source.source_joints,
                             animations[ecb_submotion],
@@ -560,8 +560,8 @@ def main() -> int:
             print(
                 "ssbm-hsd-action-hurt-source-case=pass "
                 f"capture={capture_name} action={action} "
-                f"samples={len(selected)} max_q16={case_maximum} "
-                f"ecb_max_q16={case_ecb_maximum}"
+                f"samples={len(selected)} max_f32={case_maximum} "
+                f"ecb_max_f32={case_ecb_maximum}"
             )
             total_samples += len(selected)
             maximum_difference = max(maximum_difference, case_maximum)
@@ -574,7 +574,7 @@ def main() -> int:
         f"captures={len(capture_specs)} cases={total_cases} "
         f"motions={len(animations)} samples={total_samples} "
         f"capsules={total_samples * len(source.capsules)} "
-        f"max_q16={maximum_difference} ecb_max_q16={maximum_ecb_difference}"
+        f"max_f32={maximum_difference} ecb_max_f32={maximum_ecb_difference}"
     )
     return 0
 

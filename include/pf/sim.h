@@ -1,6 +1,8 @@
 #ifndef PF_SIM_H
 #define PF_SIM_H
 
+#include <float.h>
+#include <limits.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -9,17 +11,17 @@ extern "C"
 {
 #endif
 
-#define PF_SIM_ABI_VERSION UINT32_C(5)
+#define PF_SIM_ABI_VERSION UINT32_C(6)
 #define PF_SIM_TICK_RATE_HZ UINT32_C(60)
-#define PF_SIM_CONFIG_SCHEMA_VERSION UINT16_C(2)
+#define PF_SIM_CONFIG_SCHEMA_VERSION UINT16_C(3)
 #define PF_SIM_CONTENT_SCHEMA_VERSION UINT16_C(1)
 #define PF_SIM_INPUT_SCHEMA_VERSION UINT16_C(6)
-#define PF_SIM_STATE_SCHEMA_VERSION UINT16_C(81)
-#define PF_SIM_OBSERVATION_SCHEMA_VERSION UINT16_C(13)
+#define PF_SIM_STATE_SCHEMA_VERSION UINT16_C(82)
+#define PF_SIM_OBSERVATION_SCHEMA_VERSION UINT16_C(14)
 #define PF_SIM_IDENTITY_SCHEMA_VERSION UINT16_C(2)
-#define PF_SIM_ARITHMETIC_VERSION UINT16_C(1)
+#define PF_SIM_ARITHMETIC_VERSION UINT16_C(2)
 #define PF_SIM_RNG_VERSION UINT16_C(2)
-#define PF_SIM_SAVE_FORMAT_VERSION UINT16_C(71)
+#define PF_SIM_SAVE_FORMAT_VERSION UINT16_C(72)
 #define PF_SIM_STATE_HASH_ALGORITHM_SHA256 UINT16_C(1)
 #define PF_SIM_STATE_HASH_ALGORITHM_VERSION UINT16_C(1)
 #define PF_SIM_STATE_HASH_BYTES UINT16_C(32)
@@ -32,7 +34,19 @@ extern "C"
 #define PF_SIM_DEFAULT_STOCK_COUNT UINT8_C(4)
 #define PF_SIM_DEFAULT_RESPAWN_DELAY_TICKS UINT16_C(60)
 #define PF_SIM_DEFAULT_RESPAWN_INVULNERABILITY_TICKS UINT16_C(120)
-#define PF_Q16_ONE INT32_C(65536)
+#define PF_F32_ONE 1.0f
+
+#if defined(__cplusplus)
+static_assert(
+    CHAR_BIT == 8 && sizeof(float) == 4 && FLT_RADIX == 2 &&
+        FLT_MANT_DIG == 24 && FLT_MAX_EXP == 128,
+    "platform-fighter requires IEEE-754 binary32 float");
+#else
+_Static_assert(
+    CHAR_BIT == 8 && sizeof(float) == 4 && FLT_RADIX == 2 &&
+        FLT_MANT_DIG == 24 && FLT_MAX_EXP == 128,
+    "platform-fighter requires IEEE-754 binary32 float");
+#endif
 
 #define PF_INPUT_BUTTON_JUMP (UINT64_C(1) << 0U)
 #define PF_INPUT_BUTTON_ATTACK (UINT64_C(1) << 1U)
@@ -146,9 +160,9 @@ typedef struct pf_sim_event
 {
     uint64_t tick;
     uint32_t sequence;
-    uint32_t value_q16;
-    int32_t velocity_x_q16;
-    int32_t velocity_y_q16;
+    float value_f32;
+    float velocity_x_f32;
+    float velocity_y_f32;
     uint16_t type;
     uint16_t flags;
     uint16_t detail;
@@ -212,8 +226,8 @@ typedef struct pf_sim_identity
     uint8_t mode;
     uint16_t reserved2;
     uint64_t max_ticks;
-    int32_t arena_half_width_q16;
-    int32_t arena_ceiling_q16;
+    float arena_half_width_f32;
+    float arena_ceiling_f32;
     uint8_t stock_count;
     uint8_t reserved3;
     uint16_t respawn_delay_ticks;
@@ -230,8 +244,8 @@ typedef struct pf_sim_config
     uint8_t player_count;
     uint8_t mode;
     uint64_t max_ticks;
-    int32_t arena_half_width_q16;
-    int32_t arena_ceiling_q16;
+    float arena_half_width_f32;
+    float arena_ceiling_f32;
     uint8_t stock_count;
     uint8_t reserved2;
     uint16_t respawn_delay_ticks;
@@ -434,10 +448,10 @@ typedef struct pf_tick_result
 typedef struct pf_player_observation
 {
     uint64_t previous_buttons;
-    int32_t position_x_q16;
-    int32_t position_y_q16;
-    int32_t velocity_x_q16;
-    int32_t velocity_y_q16;
+    float position_x_f32;
+    float position_y_f32;
+    float velocity_x_f32;
+    float velocity_y_f32;
     uint8_t player_slot;
     uint8_t team;
     uint8_t grounded;
@@ -451,8 +465,8 @@ typedef struct pf_player_observation
     uint16_t shield_strength;
     int16_t shield_tilt_x;
     int16_t shield_tilt_y;
-    uint32_t shield_health_q16;
-    uint32_t stale_move_multiplier_q16;
+    float shield_health_f32;
+    float stale_move_multiplier_f32;
     uint8_t stale_move_count;
     uint8_t stale_move_ids[PF_SIM_STALE_MOVE_QUEUE_CAPACITY];
     uint8_t prone_orientation;
@@ -461,10 +475,10 @@ typedef struct pf_player_observation
 
 typedef struct pf_item_observation
 {
-    int32_t position_x_q16;
-    int32_t position_y_q16;
-    int32_t velocity_x_q16;
-    int32_t velocity_y_q16;
+    float position_x_f32;
+    float position_y_f32;
+    float velocity_x_f32;
+    float velocity_y_f32;
     uint16_t lifetime_ticks;
     uint16_t respawn_ticks;
     uint16_t pickup_lockout_ticks;
@@ -478,10 +492,10 @@ typedef struct pf_item_observation
 
 typedef struct pf_projectile_observation
 {
-    int32_t position_x_q16;
-    int32_t position_y_q16;
-    int32_t velocity_x_q16;
-    int32_t velocity_y_q16;
+    float position_x_f32;
+    float position_y_f32;
+    float velocity_x_f32;
+    float velocity_y_f32;
     uint16_t lifetime_ticks;
     uint8_t state;
     uint8_t owner_slot;

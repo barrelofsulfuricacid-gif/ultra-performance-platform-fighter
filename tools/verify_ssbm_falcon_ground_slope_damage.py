@@ -14,9 +14,9 @@ from ssbm_live_trace import (
     normalized_sha256,
     parse_integer_observations,
     require_equal,
-    require_q16_close,
-    source_x_to_sim_q16,
-    source_y_to_sim_q16,
+    require_f32_close,
+    source_x_to_sim_f32,
+    source_y_to_sim_f32,
     validate_capture_provenance,
 )
 
@@ -243,9 +243,9 @@ def compare_sim(
     )
     require_equal(set(produced), set(cases), "simulation case set")
     policy = manifest["stored_oracle"]["live_comparison"]
-    velocity_tolerance = int(policy["velocity_tolerance_q16"])
-    position_tolerance = int(policy["position_tolerance_q16"])
-    drift = int(policy["position_drift_per_tick_q16"])
+    velocity_tolerance = int(policy["velocity_tolerance_f32"])
+    position_tolerance = int(policy["position_tolerance_f32"])
+    drift = int(policy["position_drift_per_tick_f32"])
     if velocity_tolerance > 32 or position_tolerance > 192 or drift > 32:
         raise SystemExit("live tolerance exceeds the qualified Q16 envelope")
 
@@ -277,28 +277,28 @@ def compare_sim(
                 f"{label} hitstun",
             )
             require_equal(actual["facing"], int(row["facing"]), f"{label} facing")
-            require_q16_close(
+            require_f32_close(
                 actual["kb_vx"],
-                source_x_to_sim_q16(float(row["attack_velocity_x"])),
+                source_x_to_sim_f32(float(row["attack_velocity_x"])),
                 velocity_tolerance,
                 f"{label} knockback x",
             )
-            require_q16_close(
+            require_f32_close(
                 actual["kb_vy"],
-                source_y_to_sim_q16(float(row["attack_velocity_y"])),
+                source_y_to_sim_f32(float(row["attack_velocity_y"])),
                 velocity_tolerance,
                 f"{label} knockback y",
             )
             accumulated = position_tolerance + (index - 1) * drift
-            require_q16_close(
+            require_f32_close(
                 actual["dx"],
-                source_x_to_sim_q16(float(row["position_x"]) - source_origin_x),
+                source_x_to_sim_f32(float(row["position_x"]) - source_origin_x),
                 accumulated,
                 f"{label} position x",
             )
-            require_q16_close(
+            require_f32_close(
                 actual["dy"],
-                source_y_to_sim_q16(float(row["position_y"]) - source_origin_y),
+                source_y_to_sim_f32(float(row["position_y"]) - source_origin_y),
                 accumulated,
                 f"{label} position y",
             )

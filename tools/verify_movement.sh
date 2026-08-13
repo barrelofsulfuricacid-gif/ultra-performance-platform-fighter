@@ -8,7 +8,7 @@ compiler=${CC:-cc}
 mkdir -p "$output_dir"
 
 grep -Fq 'PF_M4_ACTION_LEDGE_ROLL = 85' "$root/include/pf/m4.h"
-grep -Fq 'ledge_roll_distance_q16' "$root/include/pf/m4.h"
+grep -Fq 'ledge_roll_distance_f32' "$root/include/pf/m4.h"
 grep -Fq 'ledge_roll_movement_ticks' "$root/include/pf/m4.h"
 grep -Fq 'PF_M4_ACTION_LEDGE_ROLL' "$root/src/sim/sim_movement.c"
 grep -Fq 'ledge_roll=1' "$root/tests/sim/test_movement.c"

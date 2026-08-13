@@ -3,7 +3,7 @@
 
 The live capture owns the source MapCollData topology and runtime world-space
 vertex reads.  This importer strips runtime addresses, converts source-up
-coordinates to the simulation's down-positive Q16.16 coordinates, translates
+coordinates to the simulation's down-positive float32 coordinates, translates
 the complete catalog into the simulation arena, and emits the immutable C
 table used by every environment.
 """
@@ -14,6 +14,7 @@ import argparse
 import hashlib
 import json
 import math
+import struct
 from pathlib import Path
 from typing import Any
 
@@ -33,11 +34,18 @@ KIND_VALUES = {
 }
 
 
-def q16(value: float) -> int:
-    result = round(value * 65536.0)
-    if not -(1 << 31) <= result < (1 << 31):
-        raise ValueError(f"Q16.16 coordinate is out of range: {value}")
+def binary32(value: float) -> float:
+    result = struct.unpack("<f", struct.pack("<f", value))[0]
+    if not math.isfinite(result):
+        raise ValueError(f"float32 coordinate is out of range: {value}")
     return result
+
+
+def c_f32(value: float) -> str:
+    rendered = format(binary32(value), ".9g")
+    if "." not in rendered and "e" not in rendered.lower():
+        rendered += ".0"
+    return rendered + "f"
 
 
 def canonical_bytes(value: object) -> bytes:
@@ -268,36 +276,26 @@ def render_inc(source: dict[str, Any], symbol: str) -> str:
         # Ground/self velocity scalars are stored in horizontally scaled Melee
         # units.  Project with the source-space unit tangent, then compensate
         # Y for the simulation's intentionally anisotropic world scale.
-        projection_x = (
-            q16(source_dx / source_length) if source_length != 0.0 else 0
-        )
+        projection_x = source_dx / source_length if source_length != 0.0 else 0.0
         projection_y = (
-            q16(
-                -source_dy
-                / source_length
-                * (MELEE_Y_TO_SIM / MELEE_X_TO_SIM)
-            )
+            -source_dy / source_length * (MELEE_Y_TO_SIM / MELEE_X_TO_SIM)
             if source_length != 0.0
-            else 0
+            else 0.0
         )
         # mpLineGetNormal at decomp revision 9509dc0 computes the source-space
         # unit basis (-dy, dx).  Keep it independent of the anisotropic render
         # transform so collision response can convert velocities back to Melee
         # units once, mirror there, and convert the result back once.
-        source_normal_x = (
-            q16(-source_dy / source_length) if source_length != 0.0 else 0
-        )
-        source_normal_y = (
-            q16(source_dx / source_length) if source_length != 0.0 else 0
-        )
+        source_normal_x = -source_dy / source_length if source_length != 0.0 else 0.0
+        source_normal_y = source_dx / source_length if source_length != 0.0 else 0.0
         neighbors = [int(value) for value in line["neighbors"]]
         rendered.extend(
             [
                 "    {",
-                f"        {c_i32(q16(start_x))}, {c_i32(q16(start_y))},",
-                f"        {c_i32(q16(end_x))}, {c_i32(q16(end_y))},",
-                f"        {c_i32(projection_x)}, {c_i32(projection_y)},",
-                f"        {c_i32(source_normal_x)}, {c_i32(source_normal_y)},",
+                f"        {c_f32(start_x)}, {c_f32(start_y)},",
+                f"        {c_f32(end_x)}, {c_f32(end_y)},",
+                f"        {c_f32(projection_x)}, {c_f32(projection_y)},",
+                f"        {c_f32(source_normal_x)}, {c_f32(source_normal_y)},",
                 "        " + ", ".join(c_i16(value) for value in neighbors) + ",",
                 f"        UINT32_C({int(line['runtime_flags'])}),",
                 f"        UINT16_C({int(line['hi_flags'])}), UINT16_C({int(line['lo_flags'])}),",
@@ -327,8 +325,8 @@ def render_inc(source: dict[str, Any], symbol: str) -> str:
             rendered.extend(
                 [
                     "    {",
-                    f"        {c_i32(q16(float(position[0]) * MELEE_X_TO_SIM))},",
-                    f"        {c_i32(q16(SIM_Y_ORIGIN - float(position[1]) * MELEE_Y_TO_SIM))},",
+                    f"        {c_f32(float(position[0]) * MELEE_X_TO_SIM)},",
+                    f"        {c_f32(SIM_Y_ORIGIN - float(position[1]) * MELEE_Y_TO_SIM)},",
                     f"        UINT8_C({support_line + 1}), UINT8_C({expected_index})",
                     "    },",
                 ]
@@ -344,14 +342,12 @@ def render_inc(source: dict[str, Any], symbol: str) -> str:
     def transformed_bounds(name: str) -> list[str]:
         bounds = source.get(name)
         if not isinstance(bounds, dict):
-            return [c_i32(0)] * 4
+            return [c_f32(0.0)] * 4
         return [
             (
-                c_i32(q16(float(bounds[side]) * MELEE_X_TO_SIM))
+                c_f32(float(bounds[side]) * MELEE_X_TO_SIM)
                 if side in ("left", "right")
-                else c_i32(
-                    q16(SIM_Y_ORIGIN - float(bounds[side]) * MELEE_Y_TO_SIM)
-                )
+                else c_f32(SIM_Y_ORIGIN - float(bounds[side]) * MELEE_Y_TO_SIM)
             )
             for side in ("left", "right", "top", "bottom")
         ]

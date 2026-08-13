@@ -86,12 +86,12 @@
         "facing",
         "grounded",
         "support",
-        "surface_normal_source_x_q16",
-        "surface_normal_source_y_q16",
-        "position_x_q16_from_origin",
-        "position_y_q16_from_origin",
-        "velocity_x_q16",
-        "velocity_y_q16"
+        "surface_normal_source_x_f32",
+        "surface_normal_source_y_f32",
+        "position_x_f32_from_origin",
+        "position_y_f32_from_origin",
+        "velocity_x_f32",
+        "velocity_y_f32"
       ]
     }
   ],

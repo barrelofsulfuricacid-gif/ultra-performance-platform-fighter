@@ -22,11 +22,11 @@
         "action_ticks",
         "facing",
         "grounded",
-        "position_x_q16_from_origin",
-        "position_y_q16_from_origin",
-        "velocity_x_q16",
-        "velocity_y_q16",
-        "shield_health_q16",
+        "position_x_f32_from_origin",
+        "position_y_f32_from_origin",
+        "velocity_x_f32",
+        "velocity_y_f32",
+        "shield_health_f32",
         "shield_strength"
       ]
     },
@@ -52,10 +52,10 @@
         "action_ticks",
         "facing",
         "grounded",
-        "position_x_q16_from_origin",
-        "velocity_x_q16",
-        "velocity_y_q16",
-        "shield_health_q16",
+        "position_x_f32_from_origin",
+        "velocity_x_f32",
+        "velocity_y_f32",
+        "shield_health_f32",
         "shield_strength"
       ]
     },
@@ -81,11 +81,11 @@
         "action_ticks",
         "facing",
         "grounded",
-        "position_x_q16_from_origin",
-        "position_y_q16_from_origin",
-        "velocity_x_q16",
-        "velocity_y_q16",
-        "shield_health_q16",
+        "position_x_f32_from_origin",
+        "position_y_f32_from_origin",
+        "velocity_x_f32",
+        "velocity_y_f32",
+        "shield_health_f32",
         "shield_strength"
       ]
     },
@@ -111,11 +111,11 @@
         "action_ticks",
         "facing",
         "grounded",
-        "position_x_q16_from_origin",
-        "position_y_q16_from_origin",
-        "velocity_x_q16",
-        "velocity_y_q16",
-        "shield_health_q16",
+        "position_x_f32_from_origin",
+        "position_y_f32_from_origin",
+        "velocity_x_f32",
+        "velocity_y_f32",
+        "shield_health_f32",
         "shield_strength"
       ]
     },
@@ -148,38 +148,38 @@
         "action_ticks",
         "facing",
         "grounded",
-        "position_x_q16_from_origin",
-        "position_y_q16_from_origin",
-        "velocity_x_q16",
-        "velocity_y_q16",
-        "shield_health_q16",
+        "position_x_f32_from_origin",
+        "position_y_f32_from_origin",
+        "velocity_x_f32",
+        "velocity_y_f32",
+        "shield_health_f32",
         "shield_strength",
         "hitlag_ticks",
         "opponent_hitlag_ticks",
-        "opponent_damage_q16"
+        "opponent_damage_f32"
       ]
     },
     {
       "field_exclusions": {
-        "position_x_q16_from_origin": [
+        "position_x_f32_from_origin": [
           [
             0,
             22
           ]
         ],
-        "position_y_q16_from_origin": [
+        "position_y_f32_from_origin": [
           [
             0,
             22
           ]
         ],
-        "velocity_x_q16": [
+        "velocity_x_f32": [
           [
             0,
             22
           ]
         ],
-        "velocity_y_q16": [
+        "velocity_y_f32": [
           [
             0,
             22
@@ -206,11 +206,11 @@
         "action_ticks",
         "facing",
         "grounded",
-        "position_x_q16_from_origin",
-        "position_y_q16_from_origin",
-        "velocity_x_q16",
-        "velocity_y_q16",
-        "shield_health_q16",
+        "position_x_f32_from_origin",
+        "position_y_f32_from_origin",
+        "velocity_x_f32",
+        "velocity_y_f32",
+        "shield_health_f32",
         "shield_strength"
       ]
     }

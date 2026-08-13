@@ -21,7 +21,7 @@
 #define PF_WEB_M4_DASH_AXIS INT16_C(32767)
 #define PF_WEB_M4_MAX_TICKS UINT64_C(1728000)
 #define PF_WEB_M4_RESET_SEED UINT64_C(0x4d34504c41595445)
-#define PF_WEB_M4_CAMPING_MINIMUM_SEPARATION_Q16 INT32_C(693712)
+#define PF_WEB_M4_CAMPING_MINIMUM_SEPARATION_F32 INT32_C(693712)
 #define PF_WEB_M4_VIEW_PLAYER_STRIDE 53
 #define PF_WEB_M4_VIEW_PLAYER0 25
 #define PF_WEB_M4_VIEW_EVENT_STRIDE 10
@@ -417,11 +417,11 @@ static int pf_web_initialize_team_wobble_lab(void)
     {
         return 0;
     }
-    pf_web_content.stage.spawn_spacing_q16 =
-        (INT32_C(2) * PF_Q16_ONE) / INT32_C(5);
-    pf_web_content.stage.platform_center_x_q16 =
-        -INT32_C(20) * PF_Q16_ONE;
-    pf_web_content.stage.platform_motion_amplitude_q16 = INT32_C(0);
+    pf_web_content.stage.spawn_spacing_f32 =
+        (INT32_C(2) * PF_F32_ONE) / INT32_C(5);
+    pf_web_content.stage.platform_center_x_f32 =
+        -INT32_C(20) * PF_F32_ONE;
+    pf_web_content.stage.platform_motion_amplitude_f32 = INT32_C(0);
     pf_web_content.item.enabled = UINT8_C(0);
     return pf_web_initialize_content(
                PF_WEB_M4_TEAM_PLAYER_COUNT,
@@ -455,13 +455,13 @@ static void pf_web_pack_dynamic_player_view(
     pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_HITBOX_ACTIVE] =
         (int32_t)player->hitbox_active;
     pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_HITBOX_LEFT] =
-        player->hitbox_left_q16;
+        player->hitbox_left_f32;
     pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_HITBOX_RIGHT] =
-        player->hitbox_right_q16;
+        player->hitbox_right_f32;
     pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_HITBOX_TOP] =
-        player->hitbox_top_q16;
+        player->hitbox_top_f32;
     pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_HITBOX_BOTTOM] =
-        player->hitbox_bottom_q16;
+        player->hitbox_bottom_f32;
     pf_web_view[hit_sphere_base] =
         (int32_t)player->hit_sphere_count;
     for (hit_sphere_index = UINT8_C(0);
@@ -474,9 +474,9 @@ static void pf_web_pack_dynamic_player_view(
             hit_sphere_base + INT32_C(1) +
             (int)hit_sphere_index * PF_WEB_M4_VIEW_HIT_SPHERE_STRIDE;
 
-        pf_web_view[sphere_base] = sphere->center_x_q16;
-        pf_web_view[sphere_base + 1] = sphere->center_y_q16;
-        pf_web_view[sphere_base + 2] = sphere->radius_q16;
+        pf_web_view[sphere_base] = sphere->center_x_f32;
+        pf_web_view[sphere_base + 1] = sphere->center_y_f32;
+        pf_web_view[sphere_base + 2] = sphere->radius_f32;
         pf_web_view[sphere_base + 3] =
             (int32_t)sphere->effect_index;
         pf_web_view[sphere_base + 4] =
@@ -489,13 +489,13 @@ static void pf_web_pack_dynamic_player_view(
     pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_SHIELD_ACTIVE] =
         (int32_t)player->shield_active;
     pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_SHIELD_LEFT] =
-        player->shield_left_q16;
+        player->shield_left_f32;
     pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_SHIELD_RIGHT] =
-        player->shield_right_q16;
+        player->shield_right_f32;
     pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_SHIELD_TOP] =
-        player->shield_top_q16;
+        player->shield_top_f32;
     pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_SHIELD_BOTTOM] =
-        player->shield_bottom_q16;
+        player->shield_bottom_f32;
     pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_SHIELD_TILT_X] =
         (int32_t)player->shield_tilt_x;
     pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_SHIELD_TILT_Y] =
@@ -552,37 +552,37 @@ static int pf_web_render(void)
     pf_web_view[PF_WEB_M4_VIEW_TICK] =
         (int32_t)inspection.tick;
     pf_web_view[PF_WEB_M4_VIEW_FLOOR_LEFT] =
-        inspection.stage.floor_left_q16;
+        inspection.stage.floor_left_f32;
     pf_web_view[PF_WEB_M4_VIEW_FLOOR_RIGHT] =
-        inspection.stage.floor_right_q16;
+        inspection.stage.floor_right_f32;
     pf_web_view[PF_WEB_M4_VIEW_FLOOR_Y] =
-        inspection.stage.floor_y_q16;
+        inspection.stage.floor_y_f32;
     pf_web_view[PF_WEB_M4_VIEW_PLATFORM_LEFT] =
-        inspection.stage.platform_left_q16;
+        inspection.stage.platform_left_f32;
     pf_web_view[PF_WEB_M4_VIEW_PLATFORM_RIGHT] =
-        inspection.stage.platform_right_q16;
+        inspection.stage.platform_right_f32;
     pf_web_view[PF_WEB_M4_VIEW_PLATFORM_Y] =
-        inspection.stage.platform_y_q16;
+        inspection.stage.platform_y_f32;
     pf_web_view[PF_WEB_M4_VIEW_BLAST_LEFT] =
-        inspection.stage.blast_left_q16;
+        inspection.stage.blast_left_f32;
     pf_web_view[PF_WEB_M4_VIEW_BLAST_RIGHT] =
-        inspection.stage.blast_right_q16;
+        inspection.stage.blast_right_f32;
     pf_web_view[PF_WEB_M4_VIEW_BLAST_TOP] =
-        inspection.stage.blast_top_q16;
+        inspection.stage.blast_top_f32;
     pf_web_view[PF_WEB_M4_VIEW_BLAST_BOTTOM] =
-        inspection.stage.blast_bottom_q16;
+        inspection.stage.blast_bottom_f32;
     pf_web_view[PF_WEB_M4_VIEW_FIGHTER_HALF_WIDTH] =
-        pf_web_content.fighter.half_width_q16;
+        pf_web_content.fighter.half_width_f32;
     pf_web_view[PF_WEB_M4_VIEW_FIGHTER_HALF_HEIGHT] =
-        pf_web_content.fighter.half_height_q16;
+        pf_web_content.fighter.half_height_f32;
     pf_web_view[PF_WEB_M4_VIEW_SOLID_LEFT] =
-        inspection.stage.solid_left_q16;
+        inspection.stage.solid_left_f32;
     pf_web_view[PF_WEB_M4_VIEW_SOLID_RIGHT] =
-        inspection.stage.solid_right_q16;
+        inspection.stage.solid_right_f32;
     pf_web_view[PF_WEB_M4_VIEW_SOLID_TOP] =
-        inspection.stage.solid_top_q16;
+        inspection.stage.solid_top_f32;
     pf_web_view[PF_WEB_M4_VIEW_SOLID_BOTTOM] =
-        inspection.stage.solid_bottom_q16;
+        inspection.stage.solid_bottom_f32;
     pf_web_view[PF_WEB_M4_VIEW_STOCK_COUNT] =
         (int32_t)inspection.stock_count;
     pf_web_view[PF_WEB_M4_VIEW_RESPAWN_DELAY] =
@@ -612,13 +612,13 @@ static int pf_web_render(void)
             (int)player_index * PF_WEB_M4_VIEW_HIT_SPHERE_PLAYER_STRIDE;
 
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_X] =
-            player->position_x_q16;
+            player->position_x_f32;
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_Y] =
-            player->position_y_q16;
+            player->position_y_f32;
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_VX] =
-            player->velocity_x_q16;
+            player->velocity_x_f32;
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_VY] =
-            player->velocity_y_q16;
+            player->velocity_y_f32;
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_ACTION] =
             (int32_t)player->action_state;
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_FACING] =
@@ -634,7 +634,7 @@ static int pf_web_render(void)
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_RESPAWNS] =
             (int32_t)player->respawn_count;
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_DAMAGE] =
-            (int32_t)player->damage_q16;
+            (int32_t)player->damage_f32;
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_HITLAG] =
             (int32_t)player->hitlag_ticks;
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_HITSTUN] =
@@ -661,7 +661,7 @@ static int pf_web_render(void)
             PF_WEB_M4_VIEW_PRONE_ORIENTATION0 + (int)player_index] =
             (int32_t)player->prone_orientation;
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_SHIELD_HEALTH] =
-            (int32_t)player->shield_health_q16;
+            (int32_t)player->shield_health_f32;
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_SHIELD_STUN] =
             (int32_t)player->shield_stun_ticks;
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_POWERSHIELD] =
@@ -686,13 +686,13 @@ static int pf_web_render(void)
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_GRABBOX_ACTIVE] =
             (int32_t)player->grabbox_active;
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_GRABBOX_LEFT] =
-            player->grabbox_left_q16;
+            player->grabbox_left_f32;
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_GRABBOX_RIGHT] =
-            player->grabbox_right_q16;
+            player->grabbox_right_f32;
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_GRABBOX_TOP] =
-            player->grabbox_top_q16;
+            player->grabbox_top_f32;
         pf_web_view[base + PF_WEB_M4_VIEW_PLAYER_GRABBOX_BOTTOM] =
-            player->grabbox_bottom_q16;
+            player->grabbox_bottom_f32;
         pf_web_view[
             base + PF_WEB_M4_VIEW_PLAYER_GRAB_ESCAPE_TICKS] =
             (int32_t)player->grab_escape_ticks;
@@ -721,7 +721,7 @@ static int pf_web_render(void)
 
         if (event->tick > (uint64_t)INT32_MAX ||
             event->sequence > (uint32_t)INT32_MAX ||
-            event->value_q16 > (uint32_t)INT32_MAX)
+            event->value_f32 > (uint32_t)INT32_MAX)
         {
             return 0;
         }
@@ -736,11 +736,11 @@ static int pf_web_render(void)
         pf_web_view[base + PF_WEB_M4_VIEW_EVENT_TARGET] =
             (int32_t)event->target_player;
         pf_web_view[base + PF_WEB_M4_VIEW_EVENT_VALUE] =
-            (int32_t)event->value_q16;
+            (int32_t)event->value_f32;
         pf_web_view[base + PF_WEB_M4_VIEW_EVENT_VELOCITY_X] =
-            event->velocity_x_q16;
+            event->velocity_x_f32;
         pf_web_view[base + PF_WEB_M4_VIEW_EVENT_VELOCITY_Y] =
-            event->velocity_y_q16;
+            event->velocity_y_f32;
         pf_web_view[base + PF_WEB_M4_VIEW_EVENT_FLAGS] =
             (int32_t)event->flags;
         pf_web_view[base + PF_WEB_M4_VIEW_EVENT_DETAIL] =
@@ -766,13 +766,13 @@ static int pf_web_render(void)
         PF_WEB_M4_VIEW_ITEM0 + PF_WEB_M4_VIEW_ITEM_HITBOX_ACTIVE] =
         (int32_t)inspection.item.hitbox_active;
     pf_web_view[PF_WEB_M4_VIEW_ITEM0 + PF_WEB_M4_VIEW_ITEM_X] =
-        inspection.item.position_x_q16;
+        inspection.item.position_x_f32;
     pf_web_view[PF_WEB_M4_VIEW_ITEM0 + PF_WEB_M4_VIEW_ITEM_Y] =
-        inspection.item.position_y_q16;
+        inspection.item.position_y_f32;
     pf_web_view[PF_WEB_M4_VIEW_ITEM0 + PF_WEB_M4_VIEW_ITEM_VX] =
-        inspection.item.velocity_x_q16;
+        inspection.item.velocity_x_f32;
     pf_web_view[PF_WEB_M4_VIEW_ITEM0 + PF_WEB_M4_VIEW_ITEM_VY] =
-        inspection.item.velocity_y_q16;
+        inspection.item.velocity_y_f32;
     pf_web_view[
         PF_WEB_M4_VIEW_ITEM0 + PF_WEB_M4_VIEW_ITEM_LIFETIME] =
         (int32_t)inspection.item.lifetime_ticks;
@@ -787,16 +787,16 @@ static int pf_web_render(void)
         (int32_t)inspection.item.hit_mask;
     pf_web_view[
         PF_WEB_M4_VIEW_ITEM0 + PF_WEB_M4_VIEW_ITEM_HALF_WIDTH] =
-        pf_web_content.item.half_width_q16;
+        pf_web_content.item.half_width_f32;
     pf_web_view[
         PF_WEB_M4_VIEW_ITEM0 + PF_WEB_M4_VIEW_ITEM_HALF_HEIGHT] =
-        pf_web_content.item.half_height_q16;
+        pf_web_content.item.half_height_f32;
     pf_web_view[
         PF_WEB_M4_VIEW_ITEM0 + PF_WEB_M4_VIEW_ITEM_HITBOX_HALF_WIDTH] =
-        pf_web_content.item.hitbox_half_width_q16;
+        pf_web_content.item.hitbox_half_width_f32;
     pf_web_view[
         PF_WEB_M4_VIEW_ITEM0 + PF_WEB_M4_VIEW_ITEM_HITBOX_HALF_HEIGHT] =
-        pf_web_content.item.hitbox_half_height_q16;
+        pf_web_content.item.hitbox_half_height_f32;
 
     pf_web_view[
         PF_WEB_M4_VIEW_PROJECTILE0 +
@@ -816,16 +816,16 @@ static int pf_web_render(void)
         (int32_t)inspection.projectile.hitbox_active;
     pf_web_view[
         PF_WEB_M4_VIEW_PROJECTILE0 + PF_WEB_M4_VIEW_PROJECTILE_X] =
-        inspection.projectile.position_x_q16;
+        inspection.projectile.position_x_f32;
     pf_web_view[
         PF_WEB_M4_VIEW_PROJECTILE0 + PF_WEB_M4_VIEW_PROJECTILE_Y] =
-        inspection.projectile.position_y_q16;
+        inspection.projectile.position_y_f32;
     pf_web_view[
         PF_WEB_M4_VIEW_PROJECTILE0 + PF_WEB_M4_VIEW_PROJECTILE_VX] =
-        inspection.projectile.velocity_x_q16;
+        inspection.projectile.velocity_x_f32;
     pf_web_view[
         PF_WEB_M4_VIEW_PROJECTILE0 + PF_WEB_M4_VIEW_PROJECTILE_VY] =
-        inspection.projectile.velocity_y_q16;
+        inspection.projectile.velocity_y_f32;
     pf_web_view[
         PF_WEB_M4_VIEW_PROJECTILE0 +
         PF_WEB_M4_VIEW_PROJECTILE_LIFETIME] =
@@ -833,11 +833,11 @@ static int pf_web_render(void)
     pf_web_view[
         PF_WEB_M4_VIEW_PROJECTILE0 +
         PF_WEB_M4_VIEW_PROJECTILE_HALF_WIDTH] =
-        pf_web_content.projectile.half_width_q16;
+        pf_web_content.projectile.half_width_f32;
     pf_web_view[
         PF_WEB_M4_VIEW_PROJECTILE0 +
         PF_WEB_M4_VIEW_PROJECTILE_HALF_HEIGHT] =
-        pf_web_content.projectile.half_height_q16;
+        pf_web_content.projectile.half_height_f32;
     pf_web_view[
         PF_WEB_M4_VIEW_PROJECTILE0 +
         PF_WEB_M4_VIEW_PROJECTILE_REFLECT_WINDOW] =
@@ -864,19 +864,19 @@ static int pf_web_render(void)
             (int32_t)player->revival_platform_active;
         pf_web_view[
             revival_base + PF_WEB_M4_VIEW_REVIVAL_LEFT] =
-            player->revival_platform_left_q16;
+            player->revival_platform_left_f32;
         pf_web_view[
             revival_base + PF_WEB_M4_VIEW_REVIVAL_RIGHT] =
-            player->revival_platform_right_q16;
+            player->revival_platform_right_f32;
         pf_web_view[
             revival_base + PF_WEB_M4_VIEW_REVIVAL_Y] =
-            player->revival_platform_y_q16;
+            player->revival_platform_y_f32;
         pf_web_view[
             stale_move_base + PF_WEB_M4_VIEW_STALE_MOVE_COUNT] =
             (int32_t)player->stale_move_count;
         pf_web_view[
             stale_move_base + PF_WEB_M4_VIEW_STALE_MOVE_MULTIPLIER] =
-            (int32_t)player->stale_move_multiplier_q16;
+            (int32_t)player->stale_move_multiplier_f32;
         pf_web_view[
             stale_move_base + PF_WEB_M4_VIEW_STALE_MOVE_REGISTERED] =
             (int32_t)player->attack_stale_registered;
@@ -896,15 +896,15 @@ static int pf_web_render(void)
     pf_web_view[
         PF_WEB_M4_VIEW_UPPER_PLATFORM0 +
         PF_WEB_M4_VIEW_UPPER_PLATFORM_LEFT] =
-        inspection.stage.upper_platform_left_q16;
+        inspection.stage.upper_platform_left_f32;
     pf_web_view[
         PF_WEB_M4_VIEW_UPPER_PLATFORM0 +
         PF_WEB_M4_VIEW_UPPER_PLATFORM_RIGHT] =
-        inspection.stage.upper_platform_right_q16;
+        inspection.stage.upper_platform_right_f32;
     pf_web_view[
         PF_WEB_M4_VIEW_UPPER_PLATFORM0 +
         PF_WEB_M4_VIEW_UPPER_PLATFORM_Y] =
-        inspection.stage.upper_platform_y_q16;
+        inspection.stage.upper_platform_y_f32;
 
     pf_web_playtest_render(
         pf_web_view,

@@ -162,7 +162,7 @@ def compare_sim(
                 if abs(produced["dx"] - expected_position) > POSITION_TOLERANCE_Q16:
                     raise SystemExit(
                         f"{case_id} sample {sample_index} lane {lane_index}: "
-                        "position exceeded Q16.16 push allowance"
+                        "position exceeded float32 push allowance"
                     )
                 expected_velocity = round(
                     expected["self_velocity_x"] * SOURCE_TO_PROJECT_Q16
@@ -170,7 +170,7 @@ def compare_sim(
                 if abs(produced["self_vx"] - expected_velocity) > VELOCITY_TOLERANCE_Q16:
                     raise SystemExit(
                         f"{case_id} sample {sample_index} lane {lane_index}: "
-                        "velocity exceeded Q16.16 allowance"
+                        "velocity exceeded float32 allowance"
                     )
 
 
@@ -217,8 +217,8 @@ def main() -> int:
         "ssbm-falcon-player-push=pass "
         f"rows={len(rows)} cases={len(cases)} samples={len(rows) * 2} "
         f"sim_trace={int(args.sim_output is not None)} "
-        f"position_tolerance_q16={POSITION_TOLERANCE_Q16} "
-        f"velocity_tolerance_q16={VELOCITY_TOLERANCE_Q16} "
+        f"position_tolerance_f32={POSITION_TOLERANCE_Q16} "
+        f"velocity_tolerance_f32={VELOCITY_TOLERANCE_Q16} "
         f"source_trace_sha256={observed}"
     )
     return 0

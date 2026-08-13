@@ -61,31 +61,23 @@ ssbm_common_reference_ground_input(void)
     return &ssbm_ground_input_attribute_data;
 }
 
-int32_t ssbm_throw_animation_rate_q16(
+float ssbm_throw_animation_rate_f32(
     uint16_t fighter_weight,
     int weight_independent)
 {
-    const uint64_t denominator_q30 =
-        (uint64_t)fighter_weight *
-        (uint64_t)(uint32_t)
-            ssbm_ground_input_attribute_data
-                .throw_animation_weight_scale_q30;
-    uint64_t rate_q16;
+    const float denominator =
+        (float)fighter_weight *
+        ssbm_ground_input_attribute_data.throw_animation_weight_scale_f32;
 
     if (weight_independent != 0)
     {
-        return INT32_C(65536);
+        return 1.0f;
     }
-    if (fighter_weight == UINT16_C(0) || denominator_q30 == UINT64_C(0))
+    if (denominator <= 0.0f)
     {
-        return INT32_C(0);
+        return 0.0f;
     }
-    rate_q16 =
-        (UINT64_C(1) << 46U) + denominator_q30 / UINT64_C(2);
-    rate_q16 /= denominator_q30;
-    return rate_q16 <= (uint64_t)INT32_MAX
-               ? (int32_t)rate_q16
-               : INT32_C(0);
+    return 1.0f / denominator;
 }
 
 uint16_t ssbm_throw_animation_ticks(
@@ -93,28 +85,26 @@ uint16_t ssbm_throw_animation_ticks(
     uint16_t fighter_weight,
     int weight_independent)
 {
-    const uint64_t denominator_q30 =
-        (uint64_t)fighter_weight *
-        (uint64_t)(uint32_t)
-            ssbm_ground_input_attribute_data
-                .throw_animation_weight_scale_q30;
-    uint64_t ticks;
+    const float duration =
+        (float)source_frames * (float)fighter_weight *
+        ssbm_ground_input_attribute_data.throw_animation_weight_scale_f32;
+    uint32_t ticks;
 
     if (weight_independent != 0)
     {
         return source_frames;
     }
     if (source_frames == UINT16_C(0) || fighter_weight == UINT16_C(0) ||
-        denominator_q30 == UINT64_C(0))
+        duration <= 0.0f || duration > (float)UINT16_MAX)
     {
         return UINT16_C(0);
     }
-    ticks = (uint64_t)source_frames * denominator_q30 +
-            ((UINT64_C(1) << 30U) - UINT64_C(1));
-    ticks >>= 30U;
-    return ticks <= (uint64_t)UINT16_MAX
-               ? (uint16_t)ticks
-               : UINT16_C(0);
+    ticks = (uint32_t)duration;
+    if ((float)ticks < duration)
+    {
+        ++ticks;
+    }
+    return (uint16_t)ticks;
 }
 
 const ssbm_rebirth_attributes *

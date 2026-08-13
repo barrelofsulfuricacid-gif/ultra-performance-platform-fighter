@@ -16,7 +16,7 @@ The first M2 slice replaces the M1 ABI placeholder with simulation ABI 2 and:
 - One authored-C tick path supporting two-player duel and four-player team
   configurations.
 - Normalized per-player input frames with exact tick and stable-slot checks.
-- Provisional Q16.16 arena movement, jump-edge handling, fixed 60 Hz stepping,
+- Provisional float32 arena movement, jump-edge handling, fixed 60 Hz stepping,
   forfeit termination, and time-limit truncation.
 - Atomic rejection of invalid input: a failed tick leaves state unchanged.
 - A structured observation view suitable for kernel conformance tests.
@@ -30,7 +30,7 @@ The first M2 slice replaces the M1 ABI placeholder with simulation ABI 2 and:
   exact first-divergence reporting.
 - The owner-approved RL C surface with normalized analog actions, structured
   and 36-word seed-redacted observations, legal-button masks, bounded
-  potential-based engagement plus terminal Q16.16 rewards, and single/batched
+  potential-based engagement plus terminal float32 rewards, and single/batched
   reset and step.
 - An uncapped 64-environment headless throughput runner with single/batch
   state-hash equivalence.

@@ -24,12 +24,12 @@ from hsd_joint_pose import (
     read_fighter_part_layout,
     read_joint_tree,
 )
-from ssbm_collision import canonical_hurt_pose_q16
+from ssbm_collision import canonical_hurt_pose_f32
 from ssbm_dat import read_hsd_archive
 from ssbm_ecb_pose import (
     Y_Q16_PER_MELEE_UNIT,
     canonical_source_ecb,
-    pose_q16,
+    pose_f32,
 )
 from ssbm_ecb_pose import (
     canonical_sha256 as ecb_canonical_sha256,
@@ -97,20 +97,20 @@ def load_pinned_source(
     return raw
 
 
-def canonical_source_pose_q16(
+def canonical_source_pose_f32(
     capsules: tuple[tuple[float, ...], ...],
-    coordinate_scale_q16: float,
+    coordinate_scale_f32: float,
     axis_sign: tuple[int, int, int],
 ) -> tuple[tuple[int, ...], ...]:
     return tuple(
         (
-            round(capsule[0] * coordinate_scale_q16 * axis_sign[0]),
-            round(capsule[1] * coordinate_scale_q16 * axis_sign[1]),
-            round(capsule[2] * coordinate_scale_q16 * axis_sign[2]),
-            round(capsule[3] * coordinate_scale_q16 * axis_sign[0]),
-            round(capsule[4] * coordinate_scale_q16 * axis_sign[1]),
-            round(capsule[5] * coordinate_scale_q16 * axis_sign[2]),
-            round(capsule[6] * coordinate_scale_q16),
+            round(capsule[0] * coordinate_scale_f32 * axis_sign[0]),
+            round(capsule[1] * coordinate_scale_f32 * axis_sign[1]),
+            round(capsule[2] * coordinate_scale_f32 * axis_sign[2]),
+            round(capsule[3] * coordinate_scale_f32 * axis_sign[0]),
+            round(capsule[4] * coordinate_scale_f32 * axis_sign[1]),
+            round(capsule[5] * coordinate_scale_f32 * axis_sign[2]),
+            round(capsule[6] * coordinate_scale_f32),
             hurtbox_id,
             int(capsule[7]),
             int(capsule[8]),
@@ -119,13 +119,13 @@ def canonical_source_pose_q16(
     )
 
 
-def compare_hurt_pose_q16(
+def compare_hurt_pose_f32(
     row: dict[str, Any],
     source_joints: tuple[Any, ...],
     animation: Any,
     capsules: tuple[Any, ...],
     layout: Any,
-    coordinate_scale_q16: float,
+    coordinate_scale_f32: float,
     axis_sign: tuple[int, int, int],
     tolerance: int,
     context: str,
@@ -138,15 +138,15 @@ def compare_hurt_pose_q16(
         isinstance(frame, (int, float)) and facing in (-1, 1),
         f"{context}: invalid pose clock or facing",
     )
-    expected = canonical_hurt_pose_q16(
+    expected = canonical_hurt_pose_f32(
         memory,
         "fighter_hurtboxes",
         "fighter_position",
         int(facing),
-        coordinate_scale_q16,
+        coordinate_scale_f32,
         "position",
     )
-    actual = canonical_source_pose_q16(
+    actual = canonical_source_pose_f32(
         evaluate_hurt_capsules(
             source_joints,
             animation,
@@ -154,7 +154,7 @@ def compare_hurt_pose_q16(
             float(frame),
             layout,
         ),
-        coordinate_scale_q16,
+        coordinate_scale_f32,
         axis_sign,
     )
     require(len(actual) == len(expected), f"{context}: capsule count mismatch")
@@ -187,7 +187,7 @@ class HurtPoseSource:
     source_joints: tuple[Any, ...]
     layout: Any
     capsules: tuple[Any, ...]
-    coordinate_scale_q16: float
+    coordinate_scale_f32: float
     axis_sign: tuple[int, int, int]
 
 
@@ -244,19 +244,19 @@ def build_hurt_pose_source(
             int(manifest["fighter_kind"]),
         ),
         capsules=read_fighter_hurt_capsules(fighter_archive, fighter_root),
-        coordinate_scale_q16=(
+        coordinate_scale_f32=(
             65536.0 * float(numerator) / float(denominator)
         ),
         axis_sign=axis_sign,
     )
 
 
-def source_joint_ecb_q16(
+def source_joint_ecb_f32(
     matrices: tuple[tuple[tuple[float, ...], ...], ...],
     source_joint_indices: tuple[int, ...],
     reference_joint_index: int | None = None,
     grounded: bool = True,
-    locked_bottom_y_q16: int | None = None,
+    locked_bottom_y_f32: int | None = None,
 ) -> dict[str, list[int]]:
     reference_x = (
         0.0 if reference_joint_index is None
@@ -289,8 +289,8 @@ def source_joint_ecb_q16(
     left = min(left, -2.0)
     bottom = 0.0 if grounded else max(bottom, 0.0)
     side_y = 0.5 * (bottom + top)
-    if locked_bottom_y_q16 is not None:
-        bottom = locked_bottom_y_q16 / Y_Q16_PER_MELEE_UNIT
+    if locked_bottom_y_f32 is not None:
+        bottom = locked_bottom_y_f32 / Y_Q16_PER_MELEE_UNIT
         if abs(top - bottom) < 1.0:
             top += 1.0
             side_y = 0.5 * (top + bottom)
@@ -301,7 +301,7 @@ def source_joint_ecb_q16(
             side_y = 0.5 * (top + bottom)
         if top - side_y < 0.001 or side_y - bottom < 0.001:
             side_y = 0.5 * (top + bottom)
-    return pose_q16(
+    return pose_f32(
         {
             "top": [0.0, top],
             "bottom": [0.0, bottom],
@@ -404,7 +404,7 @@ def main() -> int:
     source_joints = source.source_joints
     layout = source.layout
     capsules = source.capsules
-    coordinate_scale_q16 = source.coordinate_scale_q16
+    coordinate_scale_f32 = source.coordinate_scale_f32
     axis_sign = source.axis_sign
     point_sets = manifest.get("joint_point_sets")
     require(isinstance(point_sets, list), "manifest joint point sets are missing")
@@ -426,9 +426,9 @@ def main() -> int:
     )
     ecb_source_joints = tuple(int(index) for index in raw_ecb_source_joints)
     tolerance = (
-        int(qualification["coordinate_tolerance_q16"])
-        if args.tolerance_q16 is None
-        else args.tolerance_q16
+        int(qualification["coordinate_tolerance_f32"])
+        if args.tolerance_f32 is None
+        else args.tolerance_f32
     )
     require(tolerance >= 0, "coordinate tolerance must be nonnegative")
     animations = {
@@ -490,13 +490,13 @@ def main() -> int:
                 memory = row["hitbox_memory"]
                 frame = memory.get("fighter_animation_frame")
                 facing = row.get("facing")
-                difference = compare_hurt_pose_q16(
+                difference = compare_hurt_pose_f32(
                     row,
                     source_joints,
                     animation,
                     capsules,
                     layout,
-                    coordinate_scale_q16,
+                    coordinate_scale_f32,
                     axis_sign,
                     tolerance,
                     f"{capture_name}/{action}",
@@ -507,10 +507,10 @@ def main() -> int:
                     isinstance(captured_ecb, dict),
                     f"{capture_name}/{action}: missing fighter ECB",
                 )
-                expected_ecb = pose_q16(
+                expected_ecb = pose_f32(
                     canonical_source_ecb(captured_ecb, int(facing))
                 )
-                actual_ecb = source_joint_ecb_q16(
+                actual_ecb = source_joint_ecb_f32(
                     evaluate_joint_matrices(
                         source_joints,
                         animation,
@@ -539,7 +539,7 @@ def main() -> int:
             print(
                 "ssbm-dynamic-hurt-source-case=pass "
                 f"capture={capture_name} action={action} "
-                f"samples={len(selected)} max_q16={case_maximum}"
+                f"samples={len(selected)} max_f32={case_maximum}"
             )
             total_samples += len(selected)
             total_capsules += len(selected) * len(capsules)
@@ -549,7 +549,7 @@ def main() -> int:
         "ssbm-dynamic-hurt-source=pass "
         f"captures={len(capture_specs)} cases={len(cases)} "
         f"samples={total_samples} capsules={total_capsules} "
-        f"max_q16={maximum_difference} ecb_max_q16={maximum_ecb_difference} "
+        f"max_f32={maximum_difference} ecb_max_f32={maximum_ecb_difference} "
         f"capture_sha256={','.join(capture_digests)}"
     )
 
@@ -655,12 +655,12 @@ def main() -> int:
             branch_animation,
             branch_animation.frame_count - 1.0,
         )[source_joint][matrix_row][matrix_column]
-        component_q16 = round(component * 65536.0)
+        component_f32 = round(component * 65536.0)
         expected_positive = branch_qualification.get("expected_positive")
         require(
             isinstance(expected_positive, bool)
             and (component > 0.0) == expected_positive,
-            f"pose branch source result differs: component_q16={component_q16}",
+            f"pose branch source result differs: component_f32={component_f32}",
         )
 
         expected_sequence = branch_qualification.get("expected_sequence")
@@ -764,7 +764,7 @@ def main() -> int:
             )
         print(
             "ssbm-pose-branch-source=pass "
-            f"branch={branch_id} component_q16={component_q16} "
+            f"branch={branch_id} component_f32={component_f32} "
             f"positive={int(component > 0.0)} "
             f"captures={len(branch_capture_specs)} "
             f"ecb_semantic_sha256={ecb_semantic_digest} "

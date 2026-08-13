@@ -310,8 +310,8 @@ static int make_benchmark_content(
     content->item.enabled = UINT8_C(1);
     content->item.lifetime_ticks = UINT16_C(3600);
     content->projectile.enabled = UINT8_C(1);
-    content->projectile.spawn_offset_y_q16 =
-        -INT32_C(4) * PF_Q16_ONE;
+    content->projectile.spawn_offset_y_f32 =
+        -INT32_C(4) * PF_F32_ONE;
     content->reflector.enabled = UINT8_C(1);
     content->charge.enabled = UINT8_C(1);
     content->recovery.enabled = UINT8_C(1);
@@ -322,23 +322,23 @@ static int make_benchmark_content(
 
     if (maximum_entities != 0)
     {
-        content->stage.spawn_spacing_q16 = PF_Q16_ONE;
-        content->stage.platform_center_x_q16 =
-            -INT32_C(20) * PF_Q16_ONE;
-        content->stage.platform_motion_amplitude_q16 = INT32_C(0);
-        content->item.spawn_x_q16 =
-            -(INT32_C(3) * PF_Q16_ONE) / INT32_C(2);
-        content->item.spawn_y_q16 =
-            content->stage.floor_y_q16 -
-            content->item.half_height_q16;
+        content->stage.spawn_spacing_f32 = PF_F32_ONE;
+        content->stage.platform_center_x_f32 =
+            -INT32_C(20) * PF_F32_ONE;
+        content->stage.platform_motion_amplitude_f32 = INT32_C(0);
+        content->item.spawn_x_f32 =
+            -(INT32_C(3) * PF_F32_ONE) / INT32_C(2);
+        content->item.spawn_y_f32 =
+            content->stage.floor_y_f32 -
+            content->item.half_height_f32;
         content->projectile.fire_recovery_ticks = UINT16_C(2);
     }
     else
     {
-        content->stage.spawn_spacing_q16 = PF_Q16_ONE;
-        content->stage.platform_center_x_q16 =
-            -INT32_C(20) * PF_Q16_ONE;
-        content->stage.platform_motion_amplitude_q16 = INT32_C(0);
+        content->stage.spawn_spacing_f32 = PF_F32_ONE;
+        content->stage.platform_center_x_f32 =
+            -INT32_C(20) * PF_F32_ONE;
+        content->stage.platform_motion_amplitude_f32 = INT32_C(0);
     }
 
     status = make_content_view(content, view);

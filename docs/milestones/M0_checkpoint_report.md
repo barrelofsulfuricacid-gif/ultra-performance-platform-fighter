@@ -1,6 +1,6 @@
 # M0 checkpoint report
 
-**Status:** Complete; Q16.16 accepted by the owner on 2026-07-27.
+**Status:** Complete; float32 accepted by the owner on 2026-07-27.
 
 **Date:** 2026-07-27
 
@@ -26,7 +26,7 @@ M0 now contains:
 - Current first-spike dependency pins, licenses, target roles, replacement
   seams, and adoption gates.
 - A blind, randomized, side-by-side SDL3 movement prototype comparing the
-  float32 and Q16.16 candidates with identical normalized input.
+  float32 and float32 candidates with identical normalized input.
 
 No external game assets or third-party game implementation data are present.
 
@@ -46,14 +46,14 @@ No external game assets or third-party game implementation data are present.
 | LeakSanitizer | Environment exception | Work Mode container cannot enumerate ptraced threads; M1 CI restores it |
 | Hardware counters | Unavailable | `perf=unavailable` recorded |
 | Pure-C movement trace | Pass | 7,200 ticks; 0.001699448 maximum world-unit delta |
-| Q16.16 replay/save-restore | Pass | `tools/verify_m0_playtest.sh` |
+| float32 replay/save-restore | Pass | `tools/verify_m0_playtest.sh` |
 | SDL3 offscreen render smoke | Pass | 600 ticks with deterministic seed `20260727` |
 
 ## Representation result
 
 The accepted architecture is:
 
-- Q16.16 deterministic motion/geometry.
+- float32 deterministic motion/geometry.
 - High-resolution authored world coordinates rather than a universal 256-cell
   world.
 - Structure-of-arrays hot pools with separate cold state.
@@ -63,7 +63,7 @@ The accepted architecture is:
 
 Key evidence:
 
-- Q16.16 motion: 1.410× float32, 95% CI [1.389, 1.440], equal tested motion
+- float32 motion: 1.410× float32, 95% CI [1.389, 1.440], equal tested motion
   state bytes.
 - SoA update: 7.076× AoS-with-cold, 95% CI [6.966, 7.193].
 - Dense uniform grid: 2.678× naive, 95% CI [2.556, 2.764].
@@ -80,9 +80,9 @@ reconsideration triggers are in
 
 M0 requires a human comparison of leading quantized and higher-precision
 movement prototypes. On 2026-07-27, the owner completed the corrected blind
-browser playtest and reported no perceptible difference between Q16.16 and
+browser playtest and reported no perceptible difference between float32 and
 float32. The owner then explicitly selected decision option A and approved
-Q16.16.
+float32.
 
 The prototype is under `experiments/m0_playtest/`. It randomizes which
 representation is Candidate A/B, feeds both the same keyboard or gamepad input,

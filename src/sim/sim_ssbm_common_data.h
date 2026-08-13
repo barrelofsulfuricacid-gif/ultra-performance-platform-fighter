@@ -7,30 +7,30 @@
 
 typedef struct ssbm_damage_response_attributes
 {
-    int32_t hitstun_per_knockback_q16;
-    int32_t launch_speed_x_per_knockback_q16;
-    int32_t launch_speed_y_per_knockback_q16;
-    int32_t sakurai_air_angle_degrees_q16;
-    int32_t sakurai_max_ground_angle_degrees_q16;
-    int32_t sakurai_low_knockback_q16;
-    int32_t sakurai_high_knockback_q16;
-    int32_t damage_level_1_threshold_q16;
-    int32_t damage_level_2_threshold_q16;
-    int32_t grounded_damage_max_level_q16;
-    int32_t ground_knockback_max_speed_q16;
+    float hitstun_per_knockback_f32;
+    float launch_speed_x_per_knockback_f32;
+    float launch_speed_y_per_knockback_f32;
+    float sakurai_air_angle_degrees_f32;
+    float sakurai_max_ground_angle_degrees_f32;
+    float sakurai_low_knockback_f32;
+    float sakurai_high_knockback_f32;
+    float damage_level_1_threshold_f32;
+    float damage_level_2_threshold_f32;
+    float grounded_damage_max_level_f32;
+    float ground_knockback_max_speed_f32;
     int32_t di_max_angle_radians_q30;
-    int32_t ground_knockback_decay_scale_q16;
-    int32_t air_knockback_decay_q16;
-    int32_t sdi_distance_x_q16;
-    int32_t sdi_distance_y_q16;
-    int32_t asdi_distance_x_q16;
-    int32_t asdi_distance_y_q16;
-    int32_t shield_sdi_scale_q16;
+    float ground_knockback_decay_scale_f32;
+    float air_knockback_decay_f32;
+    float sdi_distance_x_f32;
+    float sdi_distance_y_f32;
+    float asdi_distance_x_f32;
+    float asdi_distance_y_f32;
+    float shield_sdi_scale_f32;
     int32_t hitlag_damage_scale_q30;
-    uint32_t crouch_hitlag_scale_q16;
-    uint32_t electric_hitlag_scale_q16;
-    uint32_t crouch_knockback_scale_q16;
-    uint32_t smash_charge_knockback_scale_q16;
+    float crouch_hitlag_scale_f32;
+    float electric_hitlag_scale_f32;
+    float crouch_knockback_scale_f32;
+    float smash_charge_knockback_scale_f32;
     uint16_t stick_tilt_threshold;
     uint16_t sdi_stick_threshold;
     uint16_t sdi_stick_window_ticks;
@@ -44,20 +44,20 @@ typedef struct ssbm_damage_response_attributes
     uint16_t damage_fall_wiggle_tilt_window_ticks;
     uint16_t damage_velocity_replace_window_ticks;
     uint16_t damage_jump_buffer_window_ticks;
-    int32_t damage_fly_top_horizontal_ratio_q16;
-    int32_t damage_floor_down_speed_q16;
-    int32_t damage_floor_landing_speed_q16;
-    int32_t ground_damage_steep_angle_sine_q16;
-    int32_t ground_damage_vertical_reflection_q16;
+    float damage_fly_top_horizontal_ratio_f32;
+    float damage_floor_down_speed_f32;
+    float damage_floor_landing_speed_f32;
+    float ground_damage_steep_angle_sine_f32;
+    float ground_damage_vertical_reflection_f32;
     uint16_t damage_fly_roll_damage_threshold;
     uint16_t damage_fly_roll_random_threshold_u16;
 } ssbm_damage_response_attributes;
 
 typedef struct ssbm_surface_response_attributes
 {
-    int32_t collision_threshold_x_q16;
-    int32_t collision_threshold_y_q16;
-    int32_t bounce_multiplier_q16;
+    float collision_threshold_x_f32;
+    float collision_threshold_y_f32;
+    float bounce_multiplier_f32;
     uint16_t wall_tech_stall_ticks;
     uint16_t wall_tech_invulnerability_ticks;
     uint16_t bounce_invulnerability_ticks;
@@ -66,7 +66,7 @@ typedef struct ssbm_surface_response_attributes
     uint16_t tech_lockout_ticks;
     uint16_t tech_roll_axis_threshold;
     uint16_t down_wait_ticks;
-    int32_t down_horizontal_angle_tan_q16;
+    float down_horizontal_angle_tan_f32;
     uint16_t down_up_axis_threshold;
     uint16_t down_horizontal_axis_threshold;
     uint16_t down_attack_input_window_ticks;
@@ -75,7 +75,7 @@ typedef struct ssbm_surface_response_attributes
 
 typedef struct ssbm_ledge_response_attributes
 {
-    int32_t direction_angle_tan_q16;
+    float direction_angle_tan_f32;
     uint16_t grab_down_axis_threshold;
     uint16_t damage_threshold_percent;
     uint16_t quick_wait_ticks;
@@ -89,13 +89,13 @@ typedef struct ssbm_ledge_response_attributes
 
 typedef struct ssbm_mash_attributes
 {
-    uint32_t furafura_shield_health_q16;
-    int32_t capture_base_q16;
-    int32_t capture_handicap_scale_q16;
-    int32_t capture_handicap_reference_q16;
-    int32_t capture_rank_scale_q16;
-    int32_t capture_rank_reference_q16;
-    int32_t capture_damage_scale_q16;
+    float furafura_shield_health_f32;
+    float capture_base_f32;
+    float capture_handicap_scale_f32;
+    float capture_handicap_reference_f32;
+    float capture_rank_scale_f32;
+    float capture_rank_reference_f32;
+    float capture_damage_scale_f32;
     uint16_t stick_axis_threshold;
     uint16_t furafura_max_damage_reduction_ticks;
     uint16_t furafura_minimum_ticks;
@@ -108,16 +108,16 @@ typedef struct ssbm_mash_attributes
 
 typedef struct ssbm_ground_input_attributes
 {
-    int32_t grab_release_speed_x_q16;
-    int32_t grab_release_air_speed_x_q16;
-    int32_t grab_release_air_speed_y_q16;
-    int32_t throw_animation_weight_scale_q16;
+    float grab_release_speed_x_f32;
+    float grab_release_air_speed_x_f32;
+    float grab_release_air_speed_y_f32;
+    float throw_animation_weight_scale_f32;
     int32_t throw_animation_weight_scale_q30;
     uint16_t teeter_turn_axis_threshold;
     uint16_t teeter_walk_axis_threshold;
     uint16_t walk_axis_threshold;
-    uint16_t walk_middle_speed_ratio_q16;
-    uint16_t walk_fast_speed_ratio_q16;
+    float walk_middle_speed_ratio_f32;
+    float walk_fast_speed_ratio_f32;
     uint16_t aerial_neutral_x_threshold;
     uint16_t aerial_neutral_y_threshold;
     uint16_t c_stick_horizontal_smash_threshold;
@@ -141,13 +141,13 @@ typedef struct ssbm_ground_input_attributes
     uint16_t forward_tilt_axis_threshold;
     uint16_t vertical_tilt_axis_threshold;
     uint16_t vertical_smash_axis_threshold;
-    int32_t aerial_direction_angle_tan_q16;
-    int32_t tilt_direction_angle_tan_q16;
-    int32_t forward_tilt_outer_angle_tan_q16;
-    int32_t forward_tilt_inner_angle_tan_q16;
-    int32_t forward_smash_outer_angle_tan_q16;
-    int32_t forward_smash_inner_angle_tan_q16;
-    int32_t initial_dash_iasa_velocity_decay_q16;
+    float aerial_direction_angle_tan_f32;
+    float tilt_direction_angle_tan_f32;
+    float forward_tilt_outer_angle_tan_f32;
+    float forward_tilt_inner_angle_tan_f32;
+    float forward_smash_outer_angle_tan_f32;
+    float forward_smash_inner_angle_tan_f32;
+    float initial_dash_iasa_velocity_decay_f32;
 } ssbm_ground_input_attributes;
 
 typedef struct ssbm_rebirth_attributes
@@ -168,18 +168,18 @@ typedef struct ssbm_match_entry_attributes
 
 typedef struct ssbm_clank_attributes
 {
-    int32_t rebound_strength_damage_scale_q16;
-    int32_t rebound_strength_base_q16;
-    int32_t rebound_velocity_strength_scale_q16;
-    int32_t rebound_velocity_base_q16;
+    float rebound_strength_damage_scale_f32;
+    float rebound_strength_base_f32;
+    float rebound_velocity_strength_scale_f32;
+    float rebound_velocity_base_f32;
     uint16_t damage_margin;
     uint16_t reserved;
 } ssbm_clank_attributes;
 
 typedef struct ssbm_fall_animation_attributes
 {
-    int32_t direction_threshold_q16;
-    int32_t blend_rate_q16;
+    float direction_threshold_f32;
+    float blend_rate_f32;
 } ssbm_fall_animation_attributes;
 
 const uint8_t *ssbm_common_reference_source_sha256(void);
@@ -204,7 +204,7 @@ ssbm_common_reference_mash(void);
 const ssbm_ground_input_attributes *
 ssbm_common_reference_ground_input(void);
 
-int32_t ssbm_throw_animation_rate_q16(
+float ssbm_throw_animation_rate_f32(
     uint16_t fighter_weight,
     int weight_independent);
 

@@ -152,11 +152,11 @@ def main() -> int:
     ):
         actual_pose = tuple(
             tuple(int(value) for value in capsule)
-            for capsule in extracted_frame["capsules_q16"]
+            for capsule in extracted_frame["capsules_f32"]
         )
         expected_pose = tuple(
             tuple(int(value) for value in capsule)
-            for capsule in expected_frame["capsules_q16"]
+            for capsule in expected_frame["capsules_f32"]
         )
         if int(extracted_frame["displayed_frame"]) < 20:
             if not q16_hurt_poses_equivalent(actual_pose, expected_pose):
@@ -187,7 +187,7 @@ def main() -> int:
                 round(float(hitbox["radius"]) * MELEE_TO_SIM_Q16),
             ]
         )
-    if live_spheres != qualification.get("attacker_hit_spheres_q16"):
+    if live_spheres != qualification.get("attacker_hit_spheres_f32"):
         raise SystemExit("Falcon Dive pending grab-sphere signature drifted")
 
     actual_target = [
@@ -203,10 +203,10 @@ def main() -> int:
         raise SystemExit("Falcon Dive live collision winner drifted")
     margins: list[float] = []
     for case in manifest["stored_oracle"]["cases"]:
-        geometry = case["geometry_q16"]
-        offset_x_q16, offset_y_q16 = geometry["target_offset_q16"]
-        requested_dx = float(offset_x_q16) / MELEE_TO_SIM_Q16
-        requested_dy = -float(offset_y_q16) / MELEE_TO_SIM_Q16
+        geometry = case["geometry_f32"]
+        offset_x_f32, offset_y_f32 = geometry["target_offset_f32"]
+        requested_dx = float(offset_x_f32) / MELEE_TO_SIM_Q16
+        requested_dy = -float(offset_y_f32) / MELEE_TO_SIM_Q16
         margin, _ = maximum_grab_margin(
             memory,
             requested_dx - actual_dx,

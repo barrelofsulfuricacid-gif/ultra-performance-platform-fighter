@@ -5,6 +5,7 @@
 #include "sim_ssbm_stage_data.h"
 
 #include <limits.h>
+#include <math.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -19,20 +20,17 @@ static int checked_i32(int64_t value, int32_t *out_value)
     return 1;
 }
 
-static int32_t approach(
-    int32_t value,
-    int32_t target,
-    int32_t amount)
+static float approach(float value, float target, float amount)
 {
     if (value < target)
     {
-        const int64_t next = (int64_t)value + (int64_t)amount;
-        return next > (int64_t)target ? target : (int32_t)next;
+        const float next = value + amount;
+        return next > target ? target : next;
     }
     if (value > target)
     {
-        const int64_t next = (int64_t)value - (int64_t)amount;
-        return next < (int64_t)target ? target : (int32_t)next;
+        const float next = value - amount;
+        return next < target ? target : next;
     }
     return value;
 }
@@ -120,77 +118,77 @@ static uint16_t falcon_jump_submotion(
         aerial);
 }
 
-static int falcon_direct_hsd_locked_bottom_q16(
+static int falcon_direct_hsd_locked_bottom_f32(
     uint8_t action_state,
-    int32_t source_animation_frame_q16,
+    float source_animation_frame_f32,
     uint8_t grounded,
-    int32_t *out_locked_bottom_y_q16)
+    float *out_locked_bottom_y_f32)
 {
-    falcon_ecb_pose_q16 source_pose;
+    falcon_ecb_pose_f32 source_pose;
 
-    if (out_locked_bottom_y_q16 == NULL)
+    if (out_locked_bottom_y_f32 == NULL)
     {
         return 0;
     }
-    *out_locked_bottom_y_q16 =
-        PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16;
+    *out_locked_bottom_y_f32 =
+        PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_F32;
     if (action_state == (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_START_AIR &&
-        source_animation_frame_q16 <
-            INT32_C(5) * (int32_t)PF_Q16_ONE)
+        source_animation_frame_f32 <
+            5.0f)
     {
-        *out_locked_bottom_y_q16 = INT32_C(0);
+        *out_locked_bottom_y_f32 = 0.0f;
     }
     else if (action_state ==
                  (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_GROUND &&
              grounded == UINT8_C(0) &&
-             source_animation_frame_q16 >=
-                 INT32_C(14) * (int32_t)PF_Q16_ONE &&
-             source_animation_frame_q16 <=
-                 INT32_C(17) * (int32_t)PF_Q16_ONE)
+             source_animation_frame_f32 >=
+                 14.0f &&
+             source_animation_frame_f32 <=
+                 17.0f)
     {
-        *out_locked_bottom_y_q16 = INT32_C(0);
+        *out_locked_bottom_y_f32 = 0.0f;
     }
     else if (action_state ==
              (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_AIR)
     {
-        if (source_animation_frame_q16 <=
-            INT32_C(5) * (int32_t)PF_Q16_ONE)
+        if (source_animation_frame_f32 <=
+            5.0f)
         {
-            *out_locked_bottom_y_q16 = INT32_C(0);
+            *out_locked_bottom_y_f32 = 0.0f;
         }
-        else if (source_animation_frame_q16 >=
-                     INT32_C(14) * (int32_t)PF_Q16_ONE &&
-                 source_animation_frame_q16 <=
-                     INT32_C(17) * (int32_t)PF_Q16_ONE)
+        else if (source_animation_frame_f32 >=
+                     14.0f &&
+                 source_animation_frame_f32 <=
+                     17.0f)
         {
             if (!falcon_reference_hsd_ecb_pose(
                     (uint16_t)
                         PF_M4_FALCON_SUBMOTION_FALCON_DIVE_START_AIR,
-                    INT32_C(13) * (int32_t)PF_Q16_ONE,
+                    13.0f,
                     0,
-                    PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16,
+                    PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_F32,
                     &source_pose))
             {
                 return 0;
             }
-            *out_locked_bottom_y_q16 =
-                source_pose.bottom_y_from_origin_q16;
+            *out_locked_bottom_y_f32 =
+                source_pose.bottom_y_from_origin_f32;
         }
     }
     else if (action_state == (uint8_t)PF_M4_ACTION_FALCON_DIVE_THROW &&
-             source_animation_frame_q16 >= (int32_t)PF_Q16_ONE)
+             source_animation_frame_f32 >= PF_F32_ONE)
     {
         if (!falcon_reference_hsd_ecb_pose(
                 (uint16_t)PF_M4_FALCON_SUBMOTION_FALCON_DIVE_THROW,
-                INT32_C(0),
+                0.0f,
                 0,
-                PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16,
+                PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_F32,
                 &source_pose))
         {
             return 0;
         }
-        *out_locked_bottom_y_q16 =
-            source_pose.bottom_y_from_origin_q16;
+        *out_locked_bottom_y_f32 =
+            source_pose.bottom_y_from_origin_f32;
     }
     return 1;
 }
@@ -207,126 +205,111 @@ static int falcon_walk_submotion(uint16_t source_submotion)
 
 static uint16_t falcon_walk_submotion_for_velocity(
     const fighter_data *fighter,
-    int32_t ground_velocity_q16)
+    float ground_velocity_f32)
 {
-    const int32_t speed_q16 =
-        ground_velocity_q16 < INT32_C(0)
-            ? -ground_velocity_q16
-            : ground_velocity_q16;
-    const int32_t middle_threshold_q16 = multiply_q16(
-        fighter->walk_speed_q16,
-        (int32_t)fighter->walk_middle_speed_ratio_q16);
-    const int32_t fast_threshold_q16 = multiply_q16(
-        fighter->walk_speed_q16,
-        (int32_t)fighter->walk_fast_speed_ratio_q16);
+    const float speed_f32 =
+        ground_velocity_f32 < 0.0f
+            ? -ground_velocity_f32
+            : ground_velocity_f32;
+    const float middle_threshold_f32 = multiply_f32(
+        fighter->walk_speed_f32,
+        fighter->walk_middle_speed_ratio_f32);
+    const float fast_threshold_f32 = multiply_f32(
+        fighter->walk_speed_f32,
+        fighter->walk_fast_speed_ratio_f32);
 
-    if (speed_q16 >= fast_threshold_q16)
+    if (speed_f32 >= fast_threshold_f32)
     {
         return (uint16_t)PF_M4_FALCON_SUBMOTION_WALK_FAST;
     }
-    if (speed_q16 >= middle_threshold_q16)
+    if (speed_f32 >= middle_threshold_f32)
     {
         return (uint16_t)PF_M4_FALCON_SUBMOTION_WALK_MIDDLE;
     }
     return (uint16_t)PF_M4_FALCON_SUBMOTION_WALK_SLOW;
 }
 
-static int32_t falcon_ground_animation_rate_q16(
-    int32_t ground_velocity_q16,
+static float falcon_ground_animation_rate_f32(
+    float ground_velocity_f32,
     int8_t facing,
-    int32_t animation_scaling_q16)
+    float animation_scaling_f32)
 {
-    int64_t numerator;
-
-    if ((int64_t)ground_velocity_q16 * (int64_t)facing <= INT64_C(0))
+    if (ground_velocity_f32 * (float)facing <= 0.0f)
     {
-        return INT32_C(0);
+        return 0.0f;
     }
-    numerator =
-        (int64_t)(ground_velocity_q16 < INT32_C(0)
-                      ? -ground_velocity_q16
-                      : ground_velocity_q16) *
-        (int64_t)PF_Q16_ONE;
-    return (int32_t)(
-        (numerator + (int64_t)animation_scaling_q16 / INT64_C(2)) /
-        (int64_t)animation_scaling_q16);
+    return fabsf(ground_velocity_f32) / animation_scaling_f32;
 }
 
-static int32_t falcon_walk_animation_scaling_q16(
+static float falcon_walk_animation_scaling_f32(
     const fighter_data *fighter,
     uint16_t source_submotion)
 {
     switch (source_submotion)
     {
         case PF_M4_FALCON_SUBMOTION_WALK_SLOW:
-            return fighter->slow_walk_animation_scaling_q16;
+            return fighter->slow_walk_animation_scaling_f32;
         case PF_M4_FALCON_SUBMOTION_WALK_MIDDLE:
-            return fighter->middle_walk_animation_scaling_q16;
+            return fighter->middle_walk_animation_scaling_f32;
         case PF_M4_FALCON_SUBMOTION_WALK_FAST:
-            return fighter->fast_walk_animation_scaling_q16;
+            return fighter->fast_walk_animation_scaling_f32;
         default:
-            return INT32_C(0);
+            return 0.0f;
     }
 }
 
-static int falcon_advance_loop_animation_q16(
+static float falcon_advance_loop_animation_f32(
     uint16_t source_submotion,
-    int32_t source_animation_frame_q16,
-    int32_t source_animation_rate_q16,
-    int32_t *out_frame_q16)
+    float source_animation_frame_f32,
+    float source_animation_rate_f32,
+    float *out_frame_f32)
 {
     const falcon_submotion_data *motion =
         falcon_reference_submotion(source_submotion);
-    int64_t length_q16;
-    int64_t next_frame_q16;
+    float length_f32;
+    float next_frame_f32;
 
     if (motion == NULL || motion->animation_frame_count == UINT16_C(0) ||
-        source_animation_frame_q16 < INT32_C(0) ||
-        source_animation_rate_q16 < INT32_C(0))
+        source_animation_frame_f32 < 0.0f ||
+        source_animation_rate_f32 < 0.0f)
     {
         return 0;
     }
-    length_q16 =
-        (int64_t)motion->animation_frame_count * (int64_t)PF_Q16_ONE;
-    next_frame_q16 =
-        (int64_t)source_animation_frame_q16 +
-        (int64_t)source_animation_rate_q16;
-    *out_frame_q16 = (int32_t)(next_frame_q16 % length_q16);
+    length_f32 = (float)motion->animation_frame_count;
+    next_frame_f32 = source_animation_frame_f32 + source_animation_rate_f32;
+    *out_frame_f32 = fmodf(next_frame_f32, length_f32);
     return 1;
 }
 
-static int falcon_remap_walk_animation_q16(
+static float falcon_remap_walk_animation_f32(
     uint16_t old_submotion,
     uint16_t new_submotion,
-    int32_t advanced_frame_q16,
-    int32_t *out_frame_q16)
+    float advanced_frame_f32,
+    float *out_frame_f32)
 {
     const falcon_submotion_data *old_motion =
         falcon_reference_submotion(old_submotion);
     const falcon_submotion_data *new_motion =
         falcon_reference_submotion(new_submotion);
-    int64_t old_length_q16;
+    float old_length_f32;
     int64_t remapped_integer_frame;
 
     if (old_motion == NULL || new_motion == NULL ||
         old_motion->animation_frame_count == UINT16_C(0) ||
         new_motion->animation_frame_count == UINT16_C(0) ||
-        advanced_frame_q16 < INT32_C(0))
+        advanced_frame_f32 < 0.0f)
     {
         return 0;
     }
-    old_length_q16 =
-        (int64_t)old_motion->animation_frame_count *
-        (int64_t)PF_Q16_ONE;
+    old_length_f32 = (float)old_motion->animation_frame_count;
     remapped_integer_frame =
-        (int64_t)new_motion->animation_frame_count *
-        ((int64_t)advanced_frame_q16 % old_length_q16) /
-        old_length_q16;
+        (int64_t)((float)new_motion->animation_frame_count *
+                  fmodf(advanced_frame_f32, old_length_f32) /
+                  old_length_f32);
     remapped_integer_frame =
         (remapped_integer_frame + INT64_C(1)) %
         (int64_t)new_motion->animation_frame_count;
-    *out_frame_q16 =
-        (int32_t)(remapped_integer_frame * (int64_t)PF_Q16_ONE);
+    *out_frame_f32 = (float)remapped_integer_frame;
     return 1;
 }
 
@@ -382,15 +365,15 @@ static pf_status update_falcon_ground_animation_clock(
     uint8_t previous_action,
     uint8_t previous_resume_action,
     uint16_t previous_submotion,
-    int32_t previous_frame_q16,
-    int32_t previous_rate_q16,
-    int32_t previous_ground_velocity_q16,
+    float previous_frame_f32,
+    float previous_rate_f32,
+    float previous_ground_velocity_f32,
     int8_t previous_facing,
     uint8_t action,
     uint8_t resume_action,
     uint16_t *source_submotion,
-    int32_t *source_animation_frame_q16,
-    int32_t *source_animation_rate_q16)
+    float *source_animation_frame_f32,
+    float *source_animation_rate_f32)
 {
     const uint8_t effective_previous_action =
         previous_action == (uint8_t)PF_M4_ACTION_HITLAG
@@ -405,29 +388,29 @@ static pf_status update_falcon_ground_animation_clock(
         effective_action != (uint8_t)PF_M4_ACTION_WALK &&
         effective_action != (uint8_t)PF_M4_ACTION_RUN)
     {
-        *source_animation_frame_q16 = INT32_C(0);
-        *source_animation_rate_q16 = INT32_C(0);
+        *source_animation_frame_f32 = INT32_C(0);
+        *source_animation_rate_f32 = INT32_C(0);
         return PF_STATUS_OK;
     }
     if (action == (uint8_t)PF_M4_ACTION_HITLAG ||
         previous_action == (uint8_t)PF_M4_ACTION_HITLAG)
     {
         *source_submotion = previous_submotion;
-        *source_animation_frame_q16 = previous_frame_q16;
-        *source_animation_rate_q16 = previous_rate_q16;
+        *source_animation_frame_f32 = previous_frame_f32;
+        *source_animation_rate_f32 = previous_rate_f32;
         return PF_STATUS_OK;
     }
     if (effective_action == (uint8_t)PF_M4_ACTION_GROUND_IDLE)
     {
         const falcon_submotion_data *wait =
             falcon_reference_submotion(previous_submotion);
-        const int32_t terminal_frame_q16 =
+        const float terminal_frame_f32 =
             wait != NULL && wait->animation_frame_count != UINT16_C(0)
                 ? (int32_t)(wait->animation_frame_count - UINT16_C(1)) *
-                      PF_Q16_ONE
+                      PF_F32_ONE
                 : INT32_C(-1);
 
-        if (terminal_frame_q16 < INT32_C(0))
+        if (terminal_frame_f32 < INT32_C(0))
         {
             return PF_STATUS_DETERMINISTIC_FAULT;
         }
@@ -436,10 +419,10 @@ static pf_status update_falcon_ground_animation_clock(
         {
             *source_submotion =
                 (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT;
-            *source_animation_frame_q16 = INT32_C(0);
-            *source_animation_rate_q16 = PF_Q16_ONE;
+            *source_animation_frame_f32 = INT32_C(0);
+            *source_animation_rate_f32 = PF_F32_ONE;
         }
-        else if (previous_frame_q16 >= terminal_frame_q16)
+        else if (previous_frame_f32 >= terminal_frame_f32)
         {
             const hsd_wait_animation *selected =
                 falcon_select_wait_animation(
@@ -450,15 +433,15 @@ static pf_status update_falcon_ground_animation_clock(
                 return PF_STATUS_DETERMINISTIC_FAULT;
             }
             *source_submotion = selected->source_submotion;
-            *source_animation_frame_q16 = INT32_C(0);
-            *source_animation_rate_q16 = PF_Q16_ONE;
+            *source_animation_frame_f32 = INT32_C(0);
+            *source_animation_rate_f32 = PF_F32_ONE;
         }
         else
         {
             *source_submotion = previous_submotion;
-            *source_animation_frame_q16 =
-                previous_frame_q16 + previous_rate_q16;
-            *source_animation_rate_q16 = PF_Q16_ONE;
+            *source_animation_frame_f32 =
+                previous_frame_f32 + previous_rate_f32;
+            *source_animation_rate_f32 = PF_F32_ONE;
         }
         return PF_STATUS_OK;
     }
@@ -467,7 +450,7 @@ static pf_status update_falcon_ground_animation_clock(
         const uint16_t selected_submotion =
             falcon_walk_submotion_for_velocity(
                 fighter,
-                previous_ground_velocity_q16);
+                previous_ground_velocity_f32);
 
         if (effective_previous_action != (uint8_t)PF_M4_ACTION_WALK ||
             !falcon_walk_submotion(previous_submotion))
@@ -481,41 +464,41 @@ static pf_status update_falcon_ground_animation_clock(
                 return PF_STATUS_DETERMINISTIC_FAULT;
             }
             *source_submotion = selected_submotion;
-            *source_animation_frame_q16 =
+            *source_animation_frame_f32 =
                 motion->animation_frame_count > UINT16_C(1)
-                    ? PF_Q16_ONE
+                    ? PF_F32_ONE
                     : INT32_C(0);
-            *source_animation_rate_q16 = PF_Q16_ONE;
+            *source_animation_rate_f32 = PF_F32_ONE;
             return PF_STATUS_OK;
         }
-        if (!falcon_advance_loop_animation_q16(
+        if (!falcon_advance_loop_animation_f32(
                 previous_submotion,
-                previous_frame_q16,
-                previous_rate_q16,
-                source_animation_frame_q16))
+                previous_frame_f32,
+                previous_rate_f32,
+                source_animation_frame_f32))
         {
             return PF_STATUS_DETERMINISTIC_FAULT;
         }
         *source_submotion = selected_submotion;
         if (selected_submotion != previous_submotion)
         {
-            if (!falcon_remap_walk_animation_q16(
+            if (!falcon_remap_walk_animation_f32(
                     previous_submotion,
                     selected_submotion,
-                    *source_animation_frame_q16,
-                    source_animation_frame_q16))
+                    *source_animation_frame_f32,
+                    source_animation_frame_f32))
             {
                 return PF_STATUS_DETERMINISTIC_FAULT;
             }
-            *source_animation_rate_q16 = PF_Q16_ONE;
+            *source_animation_rate_f32 = PF_F32_ONE;
         }
         else
         {
-            *source_animation_rate_q16 =
-                falcon_ground_animation_rate_q16(
-                    previous_ground_velocity_q16,
+            *source_animation_rate_f32 =
+                falcon_ground_animation_rate_f32(
+                    previous_ground_velocity_f32,
                     previous_facing,
-                    falcon_walk_animation_scaling_q16(
+                    falcon_walk_animation_scaling_f32(
                         fighter,
                         selected_submotion));
         }
@@ -526,23 +509,23 @@ static pf_status update_falcon_ground_animation_clock(
     if (effective_previous_action != (uint8_t)PF_M4_ACTION_RUN ||
         previous_submotion != (uint16_t)PF_M4_FALCON_SUBMOTION_RUN)
     {
-        *source_animation_frame_q16 = INT32_C(0);
-        *source_animation_rate_q16 = PF_Q16_ONE;
+        *source_animation_frame_f32 = INT32_C(0);
+        *source_animation_rate_f32 = PF_F32_ONE;
         return PF_STATUS_OK;
     }
-    if (!falcon_advance_loop_animation_q16(
+    if (!falcon_advance_loop_animation_f32(
             previous_submotion,
-            previous_frame_q16,
-            previous_rate_q16,
-            source_animation_frame_q16))
+            previous_frame_f32,
+            previous_rate_f32,
+            source_animation_frame_f32))
     {
         return PF_STATUS_DETERMINISTIC_FAULT;
     }
-    *source_animation_rate_q16 =
-        falcon_ground_animation_rate_q16(
-            previous_ground_velocity_q16,
+    *source_animation_rate_f32 =
+        falcon_ground_animation_rate_f32(
+            previous_ground_velocity_f32,
             previous_facing,
-            fighter->run_animation_scaling_q16);
+            fighter->run_animation_scaling_f32);
     return PF_STATUS_OK;
 }
 
@@ -594,18 +577,18 @@ static pf_status update_falcon_fall_animation_clock(
     uint8_t previous_action,
     uint8_t previous_resume_action,
     uint16_t previous_submotion,
-    int32_t previous_frame_q16,
-    int32_t previous_rate_q16,
-    int32_t previous_blend_q16,
+    float previous_frame_f32,
+    float previous_rate_f32,
+    float previous_blend_f32,
     uint8_t previous_target_switched,
-    int32_t previous_velocity_x_q16,
+    float previous_velocity_x_f32,
     int8_t previous_facing,
     uint8_t action,
     uint8_t resume_action,
     uint16_t *source_submotion,
-    int32_t *source_animation_frame_q16,
-    int32_t *source_animation_rate_q16,
-    int32_t *fall_animation_blend_q16,
+    float *source_animation_frame_f32,
+    float *source_animation_rate_f32,
+    float *fall_animation_blend_f32,
     uint8_t *fall_animation_target_switched)
 {
     const ssbm_fall_animation_attributes *common =
@@ -615,10 +598,10 @@ static pf_status update_falcon_fall_animation_clock(
     const uint8_t effective_action =
         effective_action_state(action, resume_action);
     const falcon_submotion_data *neutral;
-    int32_t air_drift_fraction_q16;
-    int32_t magnitude_q16;
-    int32_t target_blend_q16 = INT32_C(0);
-    int32_t next_blend_q16;
+    float air_drift_fraction_f32;
+    float magnitude_f32;
+    float target_blend_f32 = 0.0f;
+    float next_blend_f32;
     uint16_t neutral_submotion;
     uint16_t forward_submotion;
     uint16_t backward_submotion;
@@ -634,7 +617,7 @@ static pf_status update_falcon_fall_animation_clock(
             &forward_submotion,
             &backward_submotion))
     {
-        *fall_animation_blend_q16 = INT32_C(0);
+        *fall_animation_blend_f32 = 0.0f;
         *fall_animation_target_switched = UINT8_C(0);
         return PF_STATUS_OK;
     }
@@ -642,7 +625,7 @@ static pf_status update_falcon_fall_animation_clock(
     selected_submotion = neutral_submotion;
     if (common == NULL || neutral == NULL ||
         neutral->animation_frame_count == UINT16_C(0) ||
-        fighter->air_speed_q16 <= INT32_C(0))
+        fighter->air_speed_f32 <= 0.0f)
     {
         return PF_STATUS_DETERMINISTIC_FAULT;
     }
@@ -650,9 +633,9 @@ static pf_status update_falcon_fall_animation_clock(
         previous_action == (uint8_t)PF_M4_ACTION_HITLAG)
     {
         *source_submotion = previous_submotion;
-        *source_animation_frame_q16 = previous_frame_q16;
-        *source_animation_rate_q16 = previous_rate_q16;
-        *fall_animation_blend_q16 = previous_blend_q16;
+        *source_animation_frame_f32 = previous_frame_f32;
+        *source_animation_rate_f32 = previous_rate_f32;
+        *fall_animation_blend_f32 = previous_blend_f32;
         *fall_animation_target_switched = previous_target_switched;
         return PF_STATUS_OK;
     }
@@ -665,110 +648,104 @@ static pf_status update_falcon_fall_animation_clock(
         previous_neutral_submotion != neutral_submotion)
     {
         *source_submotion = neutral_submotion;
-        *source_animation_frame_q16 = INT32_C(0);
-        *source_animation_rate_q16 = PF_Q16_ONE;
-        *fall_animation_blend_q16 = INT32_C(0);
+        *source_animation_frame_f32 = 0.0f;
+        *source_animation_rate_f32 = PF_F32_ONE;
+        *fall_animation_blend_f32 = 0.0f;
         *fall_animation_target_switched = UINT8_C(0);
         return PF_STATUS_OK;
     }
 
-    *source_animation_frame_q16 = previous_frame_q16 + previous_rate_q16;
-    while (*source_animation_frame_q16 >=
-           (int32_t)neutral->animation_frame_count * PF_Q16_ONE)
+    *source_animation_frame_f32 = previous_frame_f32 + previous_rate_f32;
+    while (*source_animation_frame_f32 >=
+           (float)neutral->animation_frame_count)
     {
-        *source_animation_frame_q16 -=
-            (int32_t)neutral->animation_frame_count * PF_Q16_ONE;
+        *source_animation_frame_f32 -=
+            (float)neutral->animation_frame_count;
     }
-    *source_animation_rate_q16 = PF_Q16_ONE;
+    *source_animation_rate_f32 = PF_F32_ONE;
 
-    air_drift_fraction_q16 = (int32_t)(
-        ((int64_t)previous_velocity_x_q16 * PF_Q16_ONE) /
-        fighter->air_speed_q16);
-    if (air_drift_fraction_q16 > PF_Q16_ONE)
+    air_drift_fraction_f32 = previous_velocity_x_f32 / fighter->air_speed_f32;
+    if (air_drift_fraction_f32 > PF_F32_ONE)
     {
-        air_drift_fraction_q16 = PF_Q16_ONE;
+        air_drift_fraction_f32 = PF_F32_ONE;
     }
-    else if (air_drift_fraction_q16 < -PF_Q16_ONE)
+    else if (air_drift_fraction_f32 < -PF_F32_ONE)
     {
-        air_drift_fraction_q16 = -PF_Q16_ONE;
+        air_drift_fraction_f32 = -PF_F32_ONE;
     }
-    magnitude_q16 = air_drift_fraction_q16 < INT32_C(0)
-                        ? -air_drift_fraction_q16
-                        : air_drift_fraction_q16;
-    if (magnitude_q16 > common->direction_threshold_q16)
+    magnitude_f32 = air_drift_fraction_f32 < 0.0f
+                        ? -air_drift_fraction_f32
+                        : air_drift_fraction_f32;
+    if (magnitude_f32 > common->direction_threshold_f32)
     {
-        target_blend_q16 = (int32_t)(
-            ((int64_t)(magnitude_q16 - common->direction_threshold_q16) *
-             PF_Q16_ONE) /
-            (PF_Q16_ONE - common->direction_threshold_q16));
+        target_blend_f32 =
+            (magnitude_f32 - common->direction_threshold_f32) /
+            (PF_F32_ONE - common->direction_threshold_f32);
         selected_submotion =
-            (air_drift_fraction_q16 * (int32_t)previous_facing > INT32_C(0))
+            (air_drift_fraction_f32 * (float)previous_facing > 0.0f)
                 ? forward_submotion
                 : backward_submotion;
     }
-    next_blend_q16 = previous_blend_q16 +
-                     multiply_q16(
-                         target_blend_q16 - previous_blend_q16,
-                         common->blend_rate_q16);
-    *fall_animation_blend_q16 = next_blend_q16;
+    next_blend_f32 = previous_blend_f32 +
+                     multiply_f32(
+                         target_blend_f32 - previous_blend_f32,
+                         common->blend_rate_f32);
+    *fall_animation_blend_f32 = next_blend_f32;
     *fall_animation_target_switched =
-        next_blend_q16 != INT32_C(0) &&
+        next_blend_f32 != 0.0f &&
                 selected_submotion != previous_submotion
             ? UINT8_C(1)
             : UINT8_C(0);
-    *source_submotion = next_blend_q16 != INT32_C(0)
+    *source_submotion = next_blend_f32 != 0.0f
                             ? selected_submotion
                             : previous_submotion;
     return PF_STATUS_OK;
 }
 
-static int32_t ground_blend_weight_q16(
-    int32_t old_progress_q16,
-    int32_t new_progress_q16)
+static float ground_blend_weight_f32(
+    float old_progress_f32,
+    float new_progress_f32)
 {
-    const int32_t old_remaining_q16 =
-        INT32_C(6) * PF_Q16_ONE - old_progress_q16;
-    const int32_t new_remaining_q16 =
-        INT32_C(6) * PF_Q16_ONE - new_progress_q16;
+    const float old_remaining_f32 =
+        6.0f - old_progress_f32;
+    const float new_remaining_f32 =
+        6.0f - new_progress_f32;
 
-    return old_remaining_q16 > INT32_C(0)
-               ? (int32_t)(
-                     ((int64_t)new_remaining_q16 * PF_Q16_ONE +
-                      old_remaining_q16 / INT32_C(2)) /
-                     old_remaining_q16)
-               : INT32_C(0);
+    return old_remaining_f32 > 0.0f
+               ? new_remaining_f32 / old_remaining_f32
+               : 0.0f;
 }
 
 static int falcon_continue_ground_blend_pose(
     const hsd_pose_data *data,
     const hsd_local_pose target[PF_M4_HSD_POSE_MAX_JOINTS],
     const hsd_compact_pose *previous_compact,
-    int32_t previous_progress_q16,
-    int32_t frame_delta_q16,
+    float previous_progress_f32,
+    float frame_delta_f32,
     hsd_local_pose out_pose[PF_M4_HSD_POSE_MAX_JOINTS],
-    int32_t *out_progress_q16)
+    float *out_progress_f32)
 {
     hsd_local_pose current[PF_M4_HSD_POSE_MAX_JOINTS];
-    const int32_t progress_q16 = previous_progress_q16 + frame_delta_q16;
+    const float progress_f32 = previous_progress_f32 + frame_delta_f32;
 
-    if (progress_q16 >= INT32_C(6) * PF_Q16_ONE)
+    if (progress_f32 >= 6.0f)
     {
         (void)memcpy(
             out_pose, target, sizeof(*target) * data->joint_count);
     }
-    else if (!hsd_inflate_compact_pose_q16(
+    else if (!hsd_inflate_compact_pose_f32(
                  data, target, previous_compact, current) ||
-             !hsd_blend_local_pose_q16(
+             !hsd_blend_local_pose_f32(
                  data,
                  target,
                  current,
-                 ground_blend_weight_q16(
-                     previous_progress_q16, progress_q16),
+                 ground_blend_weight_f32(
+                     previous_progress_f32, progress_f32),
                  out_pose))
     {
         return 0;
     }
-    *out_progress_q16 = progress_q16;
+    *out_progress_f32 = progress_f32;
     return 1;
 }
 
@@ -787,26 +764,26 @@ static int falcon_ground_blend_source_pose(
             previous_action,
             &previous_move_index);
     uint16_t source_submotion;
-    int32_t source_frame_q16;
+    float source_frame_f32;
 
     if (previous_action == (uint8_t)PF_M4_ACTION_WALK ||
         previous_action == (uint8_t)PF_M4_ACTION_RUN)
     {
         hsd_local_pose target[PF_M4_HSD_POSE_MAX_JOINTS];
-        int32_t ignored_progress_q16;
+        float ignored_progress_f32;
 
         source_submotion = world->source_submotion[player_index];
-        if (!falcon_advance_loop_animation_q16(
+        if (!falcon_advance_loop_animation_f32(
                 source_submotion,
-                world->source_animation_frame_q16[player_index],
-                world->source_animation_rate_q16[player_index],
-                &source_frame_q16) ||
-            !hsd_evaluate_local_pose_q16(
-                data, source_submotion, source_frame_q16, target))
+                world->source_animation_frame_f32[player_index],
+                world->source_animation_rate_f32[player_index],
+                &source_frame_f32) ||
+            !hsd_evaluate_local_pose_f32(
+                data, source_submotion, source_frame_f32, target))
         {
             return 0;
         }
-        if (world->ground_blend_progress_q16[player_index] <= INT32_C(0))
+        if (world->ground_blend_progress_f32[player_index] <= INT32_C(0))
         {
             (void)memcpy(
                 out_pose, target, sizeof(*target) * data->joint_count);
@@ -816,15 +793,15 @@ static int falcon_ground_blend_source_pose(
             data,
             target,
             &world->ground_blend_pose[player_index],
-            world->ground_blend_progress_q16[player_index],
-            world->source_animation_rate_q16[player_index],
+            world->ground_blend_progress_f32[player_index],
+            world->source_animation_rate_f32[player_index],
             out_pose,
-            &ignored_progress_q16);
+            &ignored_progress_f32);
     }
     else if (previous_action == (uint8_t)PF_M4_ACTION_GROUND_IDLE)
     {
         hsd_local_pose target[PF_M4_HSD_POSE_MAX_JOINTS];
-        int32_t ignored_progress_q16;
+        float ignored_progress_f32;
 
         if (falcon_reference_wait_animation(
                 world->source_submotion[player_index]) == NULL)
@@ -832,15 +809,15 @@ static int falcon_ground_blend_source_pose(
             return 0;
         }
         source_submotion = world->source_submotion[player_index];
-        source_frame_q16 =
-            world->source_animation_frame_q16[player_index] +
-            world->source_animation_rate_q16[player_index];
-        if (!hsd_evaluate_local_pose_q16(
-                data, source_submotion, source_frame_q16, target))
+        source_frame_f32 =
+            world->source_animation_frame_f32[player_index] +
+            world->source_animation_rate_f32[player_index];
+        if (!hsd_evaluate_local_pose_f32(
+                data, source_submotion, source_frame_f32, target))
         {
             return 0;
         }
-        if (world->ground_blend_progress_q16[player_index] <= INT32_C(0))
+        if (world->ground_blend_progress_f32[player_index] <= INT32_C(0))
         {
             (void)memcpy(
                 out_pose, target, sizeof(*target) * data->joint_count);
@@ -850,10 +827,10 @@ static int falcon_ground_blend_source_pose(
             data,
             target,
             &world->ground_blend_pose[player_index],
-            world->ground_blend_progress_q16[player_index],
-            world->source_animation_rate_q16[player_index],
+            world->ground_blend_progress_f32[player_index],
+            world->source_animation_rate_f32[player_index],
             out_pose,
-            &ignored_progress_q16);
+            &ignored_progress_f32);
     }
     else if (previous_action == (uint8_t)PF_M4_ACTION_INITIAL_DASH)
     {
@@ -866,12 +843,12 @@ static int falcon_ground_blend_source_pose(
             return 0;
         }
         source_submotion = (uint16_t)PF_M4_FALCON_SUBMOTION_DASH;
-        source_frame_q16 = (int32_t)(
+        source_frame_f32 = (int32_t)(
             world->action_ticks[player_index] + UINT16_C(1) <
                     dash->animation_frame_count
                 ? world->action_ticks[player_index] + UINT16_C(1)
                 : dash->animation_frame_count - UINT16_C(1)) *
-            PF_Q16_ONE;
+            PF_F32_ONE;
     }
     else if (previous_action == (uint8_t)PF_M4_ACTION_LANDING)
     {
@@ -884,12 +861,12 @@ static int falcon_ground_blend_source_pose(
             return 0;
         }
         source_submotion = (uint16_t)PF_M4_FALCON_SUBMOTION_LANDING;
-        source_frame_q16 = (int32_t)(
+        source_frame_f32 = (int32_t)(
             world->action_ticks[player_index] + UINT16_C(1) <
                     landing->animation_frame_count
                 ? world->action_ticks[player_index] + UINT16_C(1)
                 : landing->animation_frame_count - UINT16_C(1)) *
-            PF_Q16_ONE;
+            PF_F32_ONE;
     }
     else if (previous_action == (uint8_t)PF_M4_ACTION_STANDING_TURN)
     {
@@ -902,21 +879,21 @@ static int falcon_ground_blend_source_pose(
             return 0;
         }
         source_submotion = (uint16_t)PF_M4_FALCON_SUBMOTION_TURN;
-        source_frame_q16 = (int32_t)(
+        source_frame_f32 = (int32_t)(
             world->action_ticks[player_index] + UINT16_C(1) <
                     turn->animation_frame_count
                 ? world->action_ticks[player_index] + UINT16_C(1)
                 : turn->animation_frame_count - UINT16_C(1)) *
-            PF_Q16_ONE;
+            PF_F32_ONE;
     }
     else if (action_is_damage(previous_action) &&
-             world->source_animation_rate_q16[player_index] > INT32_C(0))
+             world->source_animation_rate_f32[player_index] > INT32_C(0))
     {
         const falcon_submotion_data *damage_motion =
             falcon_reference_submotion(
                 world->source_submotion[player_index]);
-        int64_t next_frame_q16;
-        int64_t terminal_frame_q16;
+        float next_frame_f32;
+        float terminal_frame_f32;
 
         /* Damage_Anim advances before Damage_IASA delegates to Wait/Fall.
          * A released grounded Damage can therefore acquire GuardOn in the
@@ -932,55 +909,55 @@ static int falcon_ground_blend_source_pose(
             return 0;
         }
         source_submotion = world->source_submotion[player_index];
-        next_frame_q16 =
-            (int64_t)world->source_animation_frame_q16[player_index] +
-            (int64_t)world->source_animation_rate_q16[player_index];
-        terminal_frame_q16 =
+        next_frame_f32 =
+            (int64_t)world->source_animation_frame_f32[player_index] +
+            (int64_t)world->source_animation_rate_f32[player_index];
+        terminal_frame_f32 =
             (int64_t)(damage_motion->animation_frame_count - UINT16_C(1)) *
-            (int64_t)PF_Q16_ONE;
-        source_frame_q16 =
-            (int32_t)(next_frame_q16 < terminal_frame_q16
-                          ? next_frame_q16
-                          : terminal_frame_q16);
+            (int64_t)PF_F32_ONE;
+        source_frame_f32 =
+            (int32_t)(next_frame_f32 < terminal_frame_f32
+                          ? next_frame_f32
+                          : terminal_frame_f32);
     }
     else if (previous_action ==
                  (uint8_t)PF_M4_ACTION_SPECIAL_LANDING &&
              world->source_submotion[player_index] ==
                  (uint16_t)PF_M4_FALCON_SUBMOTION_LANDING_FALL_SPECIAL &&
-             world->source_animation_rate_q16[player_index] > INT32_C(0))
+             world->source_animation_rate_f32[player_index] > INT32_C(0))
     {
         const falcon_submotion_data *landing =
             falcon_reference_submotion(
                 (uint16_t)
                     PF_M4_FALCON_SUBMOTION_LANDING_FALL_SPECIAL);
-        const int64_t next_frame_q16 =
-            (int64_t)world->source_animation_frame_q16[player_index] +
-            (int64_t)world->source_animation_rate_q16[player_index];
-        int64_t terminal_frame_q16;
+        const float next_frame_f32 =
+            (int64_t)world->source_animation_frame_f32[player_index] +
+            (int64_t)world->source_animation_rate_f32[player_index];
+        float terminal_frame_f32;
 
         if (landing == NULL ||
             landing->animation_frame_count == UINT16_C(0))
         {
             return 0;
         }
-        terminal_frame_q16 =
+        terminal_frame_f32 =
             (int64_t)(landing->animation_frame_count - UINT16_C(1)) *
-            (int64_t)PF_Q16_ONE;
+            (int64_t)PF_F32_ONE;
         source_submotion =
             (uint16_t)PF_M4_FALCON_SUBMOTION_LANDING_FALL_SPECIAL;
-        source_frame_q16 =
-            (int32_t)(next_frame_q16 < terminal_frame_q16
-                          ? next_frame_q16
-                          : terminal_frame_q16);
+        source_frame_f32 =
+            (int32_t)(next_frame_f32 < terminal_frame_f32
+                          ? next_frame_f32
+                          : terminal_frame_f32);
     }
     else if ((previous_action == (uint8_t)PF_M4_ACTION_CROUCH_END ||
               action_uses_direct_hsd_pose(previous_action)) &&
-             world->source_animation_rate_q16[player_index] > INT32_C(0))
+             world->source_animation_rate_f32[player_index] > INT32_C(0))
     {
         source_submotion = world->source_submotion[player_index];
-        source_frame_q16 =
-            world->source_animation_frame_q16[player_index] +
-            world->source_animation_rate_q16[player_index];
+        source_frame_f32 =
+            world->source_animation_frame_f32[player_index] +
+            world->source_animation_rate_f32[player_index];
     }
     else if (previous_reference_move != 0)
     {
@@ -989,31 +966,31 @@ static int falcon_ground_blend_source_pose(
          * just-advanced terminal move pose, not from an invented Wait row. */
         const struct reference_move *move =
             falcon_reference_move(previous_move_index);
-        const int32_t final_frame_q16 =
+        const float final_frame_f32 =
             move != NULL && move->present != UINT8_C(0)
-                ? (int32_t)move->total_frames * PF_Q16_ONE
+                ? (int32_t)move->total_frames * PF_F32_ONE
                 : INT32_C(-1);
 
-        if (final_frame_q16 < INT32_C(0) ||
+        if (final_frame_f32 < INT32_C(0) ||
             !falcon_reference_action_hsd_source(
                 previous_action,
                 world->action_ticks[player_index],
                 &source_submotion,
-                &source_frame_q16))
+                &source_frame_f32))
         {
             return 0;
         }
-        if (source_frame_q16 > final_frame_q16)
+        if (source_frame_f32 > final_frame_f32)
         {
-            source_frame_q16 = final_frame_q16;
+            source_frame_f32 = final_frame_f32;
         }
     }
     else
     {
         return 0;
     }
-    return hsd_evaluate_local_pose_q16(
-        data, source_submotion, source_frame_q16, out_pose);
+    return hsd_evaluate_local_pose_f32(
+        data, source_submotion, source_frame_f32, out_pose);
 }
 
 static pf_status evaluate_falcon_ground_blend_pose(
@@ -1022,10 +999,10 @@ static pf_status evaluate_falcon_ground_blend_pose(
     uint8_t action_state,
     uint8_t hitlag_resume_action,
     uint16_t source_submotion,
-    int32_t source_animation_frame_q16,
+    float source_animation_frame_f32,
     uint16_t action_ticks,
     hsd_compact_pose *out_pose,
-    int32_t *out_progress_q16)
+    float *out_progress_f32)
 {
     const hsd_pose_data *data =
         falcon_reference_hsd_pose_data();
@@ -1037,13 +1014,13 @@ static pf_status evaluate_falcon_ground_blend_pose(
     hsd_local_pose target[PF_M4_HSD_POSE_MAX_JOINTS];
     hsd_local_pose current[PF_M4_HSD_POSE_MAX_JOINTS];
     hsd_local_pose result[PF_M4_HSD_POSE_MAX_JOINTS];
-    int32_t progress_q16 = INT32_C(0);
+    float progress_f32 = INT32_C(0);
     int transition_steps = 0;
     const int guard_on =
         action == (uint8_t)PF_M4_ACTION_SHIELD &&
         source_submotion == (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD_ON;
 
-    if (out_pose == NULL || out_progress_q16 == NULL)
+    if (out_pose == NULL || out_progress_f32 == NULL)
     {
         return PF_STATUS_INVALID_ARGUMENT;
     }
@@ -1053,13 +1030,13 @@ static pf_status evaluate_falcon_ground_blend_pose(
             action_state, hitlag_resume_action)))
     {
         (void)memset(out_pose, 0, sizeof(*out_pose));
-        *out_progress_q16 = INT32_C(0);
+        *out_progress_f32 = INT32_C(0);
         return PF_STATUS_OK;
     }
     if (action_state == (uint8_t)PF_M4_ACTION_HITLAG)
     {
         *out_pose = world->ground_blend_pose[player_index];
-        *out_progress_q16 = world->ground_blend_progress_q16[player_index];
+        *out_progress_f32 = world->ground_blend_progress_f32[player_index];
         return PF_STATUS_OK;
     }
     if (guard_on)
@@ -1087,38 +1064,38 @@ static pf_status evaluate_falcon_ground_blend_pose(
                 action_ticks < PF_M4_FALCON_GUARD_ON_FRAME_COUNT
                     ? action_ticks
                     : PF_M4_FALCON_GUARD_ON_FRAME_COUNT;
-            const int32_t current_weight_q16 = (int32_t)(
+            const float current_weight_f32 = (int32_t)(
                 (PF_M4_FALCON_GUARD_ON_FRAME_COUNT - frame) *
-                (uint32_t)PF_Q16_ONE /
+                (uint32_t)PF_F32_ONE /
                 PF_M4_FALCON_GUARD_ON_FRAME_COUNT);
 
-            if (!hsd_inflate_compact_pose_q16(
+            if (!hsd_inflate_compact_pose_f32(
                     data,
                     guard_target,
                     &world->ground_blend_pose[player_index],
                     current) ||
-                !hsd_blend_local_pose_q16(
+                !hsd_blend_local_pose_f32(
                     data,
                     guard_target,
                     current,
-                    current_weight_q16,
+                    current_weight_f32,
                     result))
             {
                 return PF_STATUS_DETERMINISTIC_FAULT;
             }
         }
-        if (!hsd_pack_compact_pose_q16(data, result, out_pose))
+        if (!hsd_pack_compact_pose_f32(data, result, out_pose))
         {
             return PF_STATUS_DETERMINISTIC_FAULT;
         }
-        *out_progress_q16 =
-            ((int32_t)action_ticks + INT32_C(1)) * PF_Q16_ONE;
+        *out_progress_f32 =
+            ((int32_t)action_ticks + INT32_C(1)) * PF_F32_ONE;
         return PF_STATUS_OK;
     }
-    if (!hsd_evaluate_local_pose_q16(
+    if (!hsd_evaluate_local_pose_f32(
             data,
             source_submotion,
-            source_animation_frame_q16,
+            source_animation_frame_f32,
             target))
     {
         return PF_STATUS_DETERMINISTIC_FAULT;
@@ -1126,8 +1103,8 @@ static pf_status evaluate_falcon_ground_blend_pose(
     if (source_submotion != world->source_submotion[player_index] ||
         (action == (uint8_t)PF_M4_ACTION_GROUND_IDLE &&
          action == previous_action &&
-         source_animation_frame_q16 <
-             world->source_animation_frame_q16[player_index]) ||
+         source_animation_frame_f32 <
+             world->source_animation_frame_f32[player_index]) ||
         action != previous_action)
     {
         if (action == (uint8_t)PF_M4_ACTION_GROUND_IDLE)
@@ -1154,7 +1131,7 @@ static pf_status evaluate_falcon_ground_blend_pose(
             wait_animation->blend_frames == UINT8_C(0))
         {
             (void)memset(out_pose, 0, sizeof(*out_pose));
-            *out_progress_q16 = INT32_C(0);
+            *out_progress_f32 = INT32_C(0);
             return PF_STATUS_OK;
         }
         if (wait_animation != NULL &&
@@ -1168,20 +1145,20 @@ static pf_status evaluate_falcon_ground_blend_pose(
         (previous_action == (uint8_t)PF_M4_ACTION_CROUCH_END ||
          previous_action == (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
          action_uses_direct_hsd_pose(previous_action)) &&
-        world->source_animation_rate_q16[player_index] == PF_Q16_ONE)
+        world->source_animation_rate_f32[player_index] == PF_F32_ONE)
     {
         (void)memset(out_pose, 0, sizeof(*out_pose));
         out_pose->replay.source_submotion =
             world->source_submotion[player_index];
-        out_pose->replay.source_frame_q16 =
-            world->source_animation_frame_q16[player_index] + PF_Q16_ONE;
-        out_pose->replay.target_entry_frame_q16 =
-            source_animation_frame_q16;
-        out_pose->replay.target_step_q16 = PF_Q16_ONE;
-        out_pose->replay.blend_frames_q16 =
-            INT32_C(6) * PF_Q16_ONE;
+        out_pose->replay.source_frame_f32 =
+            world->source_animation_frame_f32[player_index] + PF_F32_ONE;
+        out_pose->replay.target_entry_frame_f32 =
+            source_animation_frame_f32;
+        out_pose->replay.target_step_f32 = PF_F32_ONE;
+        out_pose->replay.blend_frames_f32 =
+            INT32_C(6) * PF_F32_ONE;
         out_pose->mode = (uint8_t)PF_M4_HSD_COMPACT_POSE_REPLAY;
-        *out_progress_q16 = PF_Q16_ONE;
+        *out_progress_f32 = PF_F32_ONE;
         return PF_STATUS_OK;
     }
     if (transition_steps > 0 &&
@@ -1194,9 +1171,9 @@ static pf_status evaluate_falcon_ground_blend_pose(
         {
             hsd_local_pose step_target[PF_M4_HSD_POSE_MAX_JOINTS];
             hsd_local_pose next[PF_M4_HSD_POSE_MAX_JOINTS];
-            int32_t step_frame_q16 =
-                source_animation_frame_q16 -
-                (transition_steps - step) * PF_Q16_ONE;
+            float step_frame_f32 =
+                source_animation_frame_f32 -
+                (transition_steps - step) * PF_F32_ONE;
             const falcon_submotion_data *motion =
                 falcon_reference_submotion(
                     source_submotion);
@@ -1205,21 +1182,21 @@ static pf_status evaluate_falcon_ground_blend_pose(
             {
                 return PF_STATUS_DETERMINISTIC_FAULT;
             }
-            while (step_frame_q16 < INT32_C(0))
+            while (step_frame_f32 < INT32_C(0))
             {
-                step_frame_q16 +=
-                    (int32_t)motion->animation_frame_count * PF_Q16_ONE;
+                step_frame_f32 +=
+                    (int32_t)motion->animation_frame_count * PF_F32_ONE;
             }
-            if (!hsd_evaluate_local_pose_q16(
+            if (!hsd_evaluate_local_pose_f32(
                     data,
                     source_submotion,
-                    step_frame_q16,
+                    step_frame_f32,
                     step_target) ||
-                !hsd_blend_local_pose_q16(
+                !hsd_blend_local_pose_f32(
                     data,
                     step_target,
                     current,
-                    (int32_t)(INT32_C(6) - step) * PF_Q16_ONE /
+                    (int32_t)(INT32_C(6) - step) * PF_F32_ONE /
                         (int32_t)(INT32_C(7) - step),
                     next))
             {
@@ -1227,15 +1204,15 @@ static pf_status evaluate_falcon_ground_blend_pose(
             }
             (void)memcpy(current, next, sizeof(*next) * data->joint_count);
         }
-        progress_q16 = transition_steps * PF_Q16_ONE;
+        progress_f32 = transition_steps * PF_F32_ONE;
     }
-    else if (world->ground_blend_progress_q16[player_index] > INT32_C(0) &&
+    else if (world->ground_blend_progress_f32[player_index] > INT32_C(0) &&
              action == previous_action &&
              source_submotion == world->source_submotion[player_index])
     {
-        int32_t frame_delta_q16 =
-            source_animation_frame_q16 -
-            world->source_animation_frame_q16[player_index];
+        float frame_delta_f32 =
+            source_animation_frame_f32 -
+            world->source_animation_frame_f32[player_index];
         const falcon_submotion_data *motion =
             falcon_reference_submotion(
                 source_submotion);
@@ -1244,38 +1221,38 @@ static pf_status evaluate_falcon_ground_blend_pose(
         {
             return PF_STATUS_DETERMINISTIC_FAULT;
         }
-        if (frame_delta_q16 < INT32_C(0))
+        if (frame_delta_f32 < INT32_C(0))
         {
-            frame_delta_q16 +=
-                (int32_t)motion->animation_frame_count * PF_Q16_ONE;
+            frame_delta_f32 +=
+                (int32_t)motion->animation_frame_count * PF_F32_ONE;
         }
-        progress_q16 = world->ground_blend_progress_q16[player_index] +
-                       frame_delta_q16;
-        if (progress_q16 < INT32_C(6) * PF_Q16_ONE &&
+        progress_f32 = world->ground_blend_progress_f32[player_index] +
+                       frame_delta_f32;
+        if (progress_f32 < INT32_C(6) * PF_F32_ONE &&
             world->ground_blend_pose[player_index].mode ==
                 (uint8_t)PF_M4_HSD_COMPACT_POSE_REPLAY)
         {
             *out_pose = world->ground_blend_pose[player_index];
-            *out_progress_q16 = progress_q16;
+            *out_progress_f32 = progress_f32;
             return PF_STATUS_OK;
         }
-        else if (progress_q16 < INT32_C(6) * PF_Q16_ONE)
+        else if (progress_f32 < INT32_C(6) * PF_F32_ONE)
         {
             if (!falcon_continue_ground_blend_pose(
                     data,
                     target,
                     &world->ground_blend_pose[player_index],
-                    world->ground_blend_progress_q16[player_index],
-                    frame_delta_q16,
+                    world->ground_blend_progress_f32[player_index],
+                    frame_delta_f32,
                     result,
-                    &progress_q16))
+                    &progress_f32))
             {
                 return PF_STATUS_DETERMINISTIC_FAULT;
             }
         }
     }
-    if (progress_q16 > INT32_C(0) &&
-        progress_q16 < INT32_C(6) * PF_Q16_ONE)
+    if (progress_f32 > INT32_C(0) &&
+        progress_f32 < INT32_C(6) * PF_F32_ONE)
     {
         if (transition_steps > 0)
         {
@@ -1284,19 +1261,19 @@ static pf_status evaluate_falcon_ground_blend_pose(
                 current,
                 sizeof(*current) * data->joint_count);
         }
-        if (!hsd_pack_compact_pose_q16(
+        if (!hsd_pack_compact_pose_f32(
                 data,
                 result,
                 out_pose))
         {
             return PF_STATUS_DETERMINISTIC_FAULT;
         }
-        *out_progress_q16 = progress_q16;
+        *out_progress_f32 = progress_f32;
     }
     else
     {
         (void)memset(out_pose, 0, sizeof(*out_pose));
-        *out_progress_q16 = INT32_C(0);
+        *out_progress_f32 = INT32_C(0);
     }
     return PF_STATUS_OK;
 }
@@ -1369,7 +1346,7 @@ static pf_status advance_ground_damage_animation(
     uint8_t *action_state,
     uint16_t *action_ticks,
     uint16_t hitstun_ticks_value,
-    int32_t *ground_knockback_velocity_q16)
+    float *ground_knockback_velocity_f32)
 {
     const uint16_t submotion_index =
         ground_damage_submotion(*action_state);
@@ -1391,7 +1368,7 @@ static pf_status advance_ground_damage_animation(
     {
         *action_state = (uint8_t)PF_M4_ACTION_GROUND_IDLE;
         *action_ticks = UINT16_C(0);
-        *ground_knockback_velocity_q16 = INT32_C(0);
+        *ground_knockback_velocity_f32 = INT32_C(0);
     }
     return PF_STATUS_OK;
 }
@@ -1443,25 +1420,25 @@ static int32_t clamp_i32(int32_t value, int32_t minimum, int32_t maximum)
 }
 
 static uint32_t shield_health_add(
-    uint32_t health_q16,
-    uint32_t amount_q16,
-    uint32_t maximum_q16)
+    float health_f32,
+    float amount_f32,
+    float maximum_f32)
 {
-    if (health_q16 >= maximum_q16 ||
-        amount_q16 >= maximum_q16 - health_q16)
+    if (health_f32 >= maximum_f32 ||
+        amount_f32 >= maximum_f32 - health_f32)
     {
-        return maximum_q16;
+        return maximum_f32;
     }
-    return health_q16 + amount_q16;
+    return health_f32 + amount_f32;
 }
 
 static uint32_t shield_health_subtract(
-    uint32_t health_q16,
-    uint32_t amount_q16)
+    float health_f32,
+    float amount_f32)
 {
-    return amount_q16 >= health_q16
+    return amount_f32 >= health_f32
                ? UINT32_C(0)
-               : health_q16 - amount_q16;
+               : health_f32 - amount_f32;
 }
 
 static uint16_t input_shield_strength(
@@ -1506,13 +1483,13 @@ static uint32_t lerp_u32(
                (uint64_t)(high_value - low_value));
 }
 
-static uint32_t shield_hold_depletion_q16(
+static float shield_hold_depletion_f32(
     const fighter_data *fighter,
     uint16_t shield_strength)
 {
     return lerp_u32(
-        fighter->light_shield_hold_depletion_q16,
-        fighter->shield_hold_depletion_q16,
+        fighter->light_shield_hold_depletion_f32,
+        fighter->shield_hold_depletion_f32,
         shield_strength,
         UINT16_C(0),
         UINT16_MAX);
@@ -1541,10 +1518,10 @@ static int action_freezes_shield_strength(
 
 static uint16_t shield_break_stun_ticks(
     const fighter_data *fighter,
-    uint32_t damage_q16)
+    float damage_f32)
 {
     const uint32_t damage_percent =
-        damage_q16 / (uint32_t)PF_Q16_ONE;
+        damage_f32 / (uint32_t)PF_F32_ONE;
     const uint32_t maximum_reduction =
         (uint32_t)fighter->shield_break_stun_ticks -
         (uint32_t)fighter->shield_break_minimum_stun_ticks;
@@ -1556,14 +1533,14 @@ static uint16_t shield_break_stun_ticks(
                      damage_percent);
 }
 
-static int32_t scale_axis_q16(
+static float scale_axis_f32(
     int16_t axis,
-    int32_t magnitude_q16)
+    float magnitude_f32)
 {
     const int64_t denominator =
         axis < INT16_C(0) ? INT64_C(32768) : INT64_C(32767);
     const int64_t product =
-        (int64_t)axis * (int64_t)magnitude_q16;
+        (int64_t)axis * (int64_t)magnitude_f32;
 
     return product < INT64_C(0)
                ? (int32_t)(
@@ -1633,13 +1610,13 @@ static int32_t sine_q15(uint16_t angle_turn)
     return quadrant >= UINT32_C(2) ? -value : value;
 }
 
-static int32_t falcon_source_velocity_to_sim_q16(
-    int32_t source_velocity_q16,
+static float falcon_source_velocity_to_sim_f32(
+    float source_velocity_f32,
     int32_t numerator,
     int32_t denominator)
 {
     const int64_t product =
-        (int64_t)source_velocity_q16 * (int64_t)numerator;
+        (int64_t)source_velocity_f32 * (int64_t)numerator;
 
     return product < INT64_C(0)
                ? (int32_t)(
@@ -1654,43 +1631,43 @@ static void falcon_punch_launch_velocity(
     const falcon_special_attributes *attributes,
     int16_t stick_y,
     int8_t facing,
-    int32_t *out_velocity_x_q16,
-    int32_t *out_velocity_y_q16)
+    float *out_velocity_x_f32,
+    float *out_velocity_y_f32)
 {
-    const uint32_t stick_magnitude_q16 =
+    const float stick_magnitude_f32 =
         ((uint32_t)axis_magnitude(stick_y) * UINT32_C(65536) +
          UINT32_C(16384)) /
         UINT32_C(32768);
-    const uint32_t bounded_stick_q16 =
-        stick_magnitude_q16 >
-                (uint32_t)attributes->specialn_stick_range_y_pos_q16
-            ? (uint32_t)attributes->specialn_stick_range_y_pos_q16
-            : stick_magnitude_q16;
-    const uint32_t angle_input_q16 =
-        bounded_stick_q16 >
-                (uint32_t)attributes->specialn_stick_range_y_neg_q16
-            ? bounded_stick_q16 -
-                  (uint32_t)attributes->specialn_stick_range_y_neg_q16
+    const float bounded_stick_f32 =
+        stick_magnitude_f32 >
+                (uint32_t)attributes->specialn_stick_range_y_pos_f32
+            ? (uint32_t)attributes->specialn_stick_range_y_pos_f32
+            : stick_magnitude_f32;
+    const float angle_input_f32 =
+        bounded_stick_f32 >
+                (uint32_t)attributes->specialn_stick_range_y_neg_f32
+            ? bounded_stick_f32 -
+                  (uint32_t)attributes->specialn_stick_range_y_neg_f32
             : UINT32_C(0);
-    const uint32_t angle_range_q16 =
+    const float angle_range_f32 =
         (uint32_t)(
-            attributes->specialn_stick_range_y_pos_q16 -
-            attributes->specialn_stick_range_y_neg_q16);
-    const uint32_t angle_degrees_q16 =
+            attributes->specialn_stick_range_y_pos_f32 -
+            attributes->specialn_stick_range_y_neg_f32);
+    const float angle_degrees_f32 =
         (uint32_t)(
-            ((uint64_t)angle_input_q16 *
-             (uint64_t)(uint32_t)attributes->specialn_angle_diff_q16) /
-            angle_range_q16);
+            ((uint64_t)angle_input_f32 *
+             (uint64_t)(uint32_t)attributes->specialn_angle_diff_f32) /
+            angle_range_f32);
     uint16_t angle_turn = (uint16_t)(
-        angle_degrees_q16 / UINT32_C(360));
-    const int32_t source_x_q16 =
-        falcon_source_velocity_to_sim_q16(
-            attributes->specialn_vel_x_q16,
+        angle_degrees_f32 / UINT32_C(360));
+    const float source_x_f32 =
+        falcon_source_velocity_to_sim_f32(
+            attributes->specialn_vel_x_f32,
             INT32_C(12),
             INT32_C(115));
-    const int32_t source_y_q16 =
-        falcon_source_velocity_to_sim_q16(
-            attributes->specialn_vel_x_q16,
+    const float source_y_f32 =
+        falcon_source_velocity_to_sim_f32(
+            attributes->specialn_vel_x_f32,
             INT32_C(11),
             INT32_C(62));
 
@@ -1698,16 +1675,16 @@ static void falcon_punch_launch_velocity(
     {
         angle_turn = (uint16_t)(UINT16_C(0) - angle_turn);
     }
-    *out_velocity_x_q16 =
+    *out_velocity_x_f32 =
         (int32_t)facing *
         (int32_t)(
-            ((int64_t)source_x_q16 *
+            ((int64_t)source_x_f32 *
              (int64_t)sine_q15(
                  (uint16_t)(angle_turn + UINT16_C(16384)))) /
             INT64_C(32767));
-    *out_velocity_y_q16 =
+    *out_velocity_y_f32 =
         -(int32_t)(
-            ((int64_t)source_y_q16 *
+            ((int64_t)source_y_f32 *
              (int64_t)sine_q15(angle_turn)) /
             INT64_C(32767));
 }
@@ -1850,7 +1827,7 @@ static pf_status enter_air_dodge(
 
     component =
         (int64_t)stick_x *
-        (int64_t)fighter->air_dodge_speed_x_q16 /
+        (int64_t)fighter->air_dodge_speed_x_f32 /
         (int64_t)stick_magnitude;
     if (!checked_i32(component, velocity_x))
     {
@@ -1858,7 +1835,7 @@ static pf_status enter_air_dodge(
     }
     component =
         (int64_t)stick_y *
-        (int64_t)fighter->air_dodge_speed_y_q16 /
+        (int64_t)fighter->air_dodge_speed_y_f32 /
         (int64_t)stick_magnitude;
     if (!checked_i32(component, velocity_y))
     {
@@ -1891,23 +1868,23 @@ static int32_t ground_input_acceleration(
 {
     const int walk = movement_mode == 1;
     const int run = movement_mode == 2;
-    const int32_t stick_acceleration_q16 =
+    const float stick_acceleration_f32 =
         walk != 0
-            ? fighter->walk_initial_velocity_q16
-            : fighter->ground_acceleration_q16;
-    const int32_t base_acceleration_q16 =
+            ? fighter->walk_initial_velocity_f32
+            : fighter->ground_acceleration_f32;
+    const float base_acceleration_f32 =
         walk != 0
-            ? fighter->walk_acceleration_q16
-            : fighter->dash_run_base_acceleration_q16;
-    const int32_t taper_q16 =
+            ? fighter->walk_acceleration_f32
+            : fighter->dash_run_base_acceleration_f32;
+    const float taper_f32 =
         walk != 0
-            ? fighter->walk_acceleration_taper_q16
-            : fighter->run_acceleration_taper_q16;
+            ? fighter->walk_acceleration_taper_f32
+            : fighter->run_acceleration_taper_f32;
     int32_t acceleration =
-        scale_axis_q16(stick_x, stick_acceleration_q16) +
+        scale_axis_f32(stick_x, stick_acceleration_f32) +
         (stick_x < INT16_C(0)
-             ? -base_acceleration_q16
-             : base_acceleration_q16);
+             ? -base_acceleration_f32
+             : base_acceleration_f32);
 
     if (walk == 0 &&
         (stick_x >= INT16_C(32767) ||
@@ -1915,8 +1892,8 @@ static int32_t ground_input_acceleration(
     {
         acceleration =
             stick_x < INT16_C(0)
-                ? -fighter->turn_acceleration_q16
-                : fighter->turn_acceleration_q16;
+                ? -fighter->turn_acceleration_f32
+                : fighter->turn_acceleration_f32;
     }
 
     if ((walk != 0 || run != 0) &&
@@ -1933,11 +1910,11 @@ static int32_t ground_input_acceleration(
             target_x < INT32_C(0)
                 ? -(int64_t)target_x
                 : (int64_t)target_x;
-        const int64_t factor_q16 =
-            (remaining * (int64_t)taper_q16) / target_magnitude;
+        const float factor_f32 =
+            (remaining * (int64_t)taper_f32) / target_magnitude;
         int64_t tapered =
-            ((int64_t)acceleration * factor_q16) /
-            (int64_t)PF_Q16_ONE;
+            ((int64_t)acceleration * factor_f32) /
+            (int64_t)PF_F32_ONE;
 
         if (tapered == INT64_C(0))
         {
@@ -1954,11 +1931,11 @@ static int32_t apply_ground_input(
     const fighter_data *fighter,
     int32_t velocity_x,
     int16_t stick_x,
-    int32_t maximum_speed_q16,
+    float maximum_speed_f32,
     int movement_mode)
 {
     const int32_t target_x =
-        scale_axis_q16(stick_x, maximum_speed_q16);
+        scale_axis_f32(stick_x, maximum_speed_f32);
     int32_t acceleration;
     int64_t next;
 
@@ -1967,7 +1944,7 @@ static int32_t apply_ground_input(
         return approach(
             velocity_x,
             INT32_C(0),
-            fighter->traction_q16);
+            fighter->traction_f32);
     }
     acceleration = ground_input_acceleration(
         fighter,
@@ -1982,30 +1959,30 @@ static int32_t apply_ground_input(
         if (acceleration > INT32_C(0) && next > (int64_t)target_x)
         {
             next =
-                (int64_t)velocity_x - (int64_t)fighter->traction_q16;
+                (int64_t)velocity_x - (int64_t)fighter->traction_f32;
             if (next < (int64_t)target_x)
             {
                 next = target_x;
             }
             if (next >
-                (int64_t)fighter->ground_max_horizontal_speed_q16)
+                (int64_t)fighter->ground_max_horizontal_speed_f32)
             {
-                next = fighter->ground_max_horizontal_speed_q16;
+                next = fighter->ground_max_horizontal_speed_f32;
             }
         }
         else if (
             acceleration < INT32_C(0) && next < (int64_t)target_x)
         {
             next =
-                (int64_t)velocity_x + (int64_t)fighter->traction_q16;
+                (int64_t)velocity_x + (int64_t)fighter->traction_f32;
             if (next > (int64_t)target_x)
             {
                 next = target_x;
             }
             if (next <
-                -(int64_t)fighter->ground_max_horizontal_speed_q16)
+                -(int64_t)fighter->ground_max_horizontal_speed_f32)
             {
-                next = -fighter->ground_max_horizontal_speed_q16;
+                next = -fighter->ground_max_horizontal_speed_f32;
             }
         }
     }
@@ -2018,7 +1995,7 @@ static int32_t enter_initial_dash_velocity(
     int8_t direction)
 {
     const int32_t impulse =
-        (int32_t)direction * fighter->initial_dash_speed_q16;
+        (int32_t)direction * fighter->initial_dash_speed_f32;
 
     if (velocity_x * (int32_t)direction < INT32_C(0))
     {
@@ -2031,7 +2008,7 @@ static int32_t apply_air_input(
     const fighter_data *fighter,
     int32_t velocity_x,
     int16_t stick_x,
-    int32_t maximum_speed_q16)
+    float maximum_speed_f32)
 {
     const falcon_common_attributes *source_character =
         fighter->reference_frame_data_enabled != UINT8_C(0)
@@ -2042,7 +2019,7 @@ static int32_t apply_air_input(
             ? INT8_C(-1)
             : (stick_x > INT16_C(0) ? INT8_C(1) : INT8_C(0));
     const int32_t target_x =
-        scale_axis_q16(stick_x, maximum_speed_q16);
+        scale_axis_f32(stick_x, maximum_speed_f32);
     int32_t acceleration;
     int64_t next;
 
@@ -2067,10 +2044,10 @@ static int32_t apply_air_input(
     else
     {
         acceleration =
-            scale_axis_q16(
+            scale_axis_f32(
                 stick_x,
-                fighter->air_acceleration_q16) +
-            (int32_t)direction * fighter->air_base_acceleration_q16;
+                fighter->air_acceleration_f32) +
+            (int32_t)direction * fighter->air_base_acceleration_f32;
     }
 
     if (direction == INT8_C(0))
@@ -2080,34 +2057,34 @@ static int32_t apply_air_input(
             /* Falcon's ordinary horizontal source physics remains on a
              * 0.0005-Melee-unit lattice: processed sticks are 1/80 and
              * mobility A/B/friction are 0.04/0.02/0.01. Recover that lattice
-             * before the subtraction so repeated Q16.16 rounding cannot add
+             * before the subtraction so repeated float32 rounding cannot add
              * a systematic one-unit-per-tick drift. */
-            const int64_t magnitude_q16 =
+            const float magnitude_f32 =
                 velocity_x < INT32_C(0)
                     ? -(int64_t)velocity_x
                     : (int64_t)velocity_x;
             const int64_t source_lattice_units =
-                (magnitude_q16 * INT64_C(230000) +
+                (magnitude_f32 * INT64_C(230000) +
                  INT64_C(393216)) /
                 INT64_C(786432);
             const int64_t next_source_lattice_units =
                 source_lattice_units > INT64_C(20)
                     ? source_lattice_units - INT64_C(20)
                     : INT64_C(0);
-            const int32_t next_magnitude_q16 =
+            const float next_magnitude_f32 =
                 (int32_t)(
                     (next_source_lattice_units * INT64_C(786432) +
                      INT64_C(115000)) /
                     INT64_C(230000));
 
             return velocity_x < INT32_C(0)
-                       ? -next_magnitude_q16
-                       : next_magnitude_q16;
+                       ? -next_magnitude_f32
+                       : next_magnitude_f32;
         }
         return approach(
             velocity_x,
             INT32_C(0),
-            fighter->air_friction_q16);
+            fighter->air_friction_f32);
     }
 
     next = (int64_t)velocity_x + (int64_t)acceleration;
@@ -2117,15 +2094,15 @@ static int32_t apply_air_input(
         {
             next =
                 (int64_t)velocity_x -
-                (int64_t)fighter->air_friction_q16;
+                (int64_t)fighter->air_friction_f32;
             if (next < (int64_t)target_x)
             {
                 next = target_x;
             }
             if (next >
-                (int64_t)fighter->air_max_horizontal_speed_q16)
+                (int64_t)fighter->air_max_horizontal_speed_f32)
             {
-                next = fighter->air_max_horizontal_speed_q16;
+                next = fighter->air_max_horizontal_speed_f32;
             }
         }
         else if (
@@ -2133,15 +2110,15 @@ static int32_t apply_air_input(
         {
             next =
                 (int64_t)velocity_x +
-                (int64_t)fighter->air_friction_q16;
+                (int64_t)fighter->air_friction_f32;
             if (next > (int64_t)target_x)
             {
                 next = target_x;
             }
             if (next <
-                -(int64_t)fighter->air_max_horizontal_speed_q16)
+                -(int64_t)fighter->air_max_horizontal_speed_f32)
             {
-                next = -fighter->air_max_horizontal_speed_q16;
+                next = -fighter->air_max_horizontal_speed_f32;
             }
         }
     }
@@ -2152,46 +2129,46 @@ static int32_t falcon_dive_air_control(
     const fighter_data *fighter,
     const falcon_common_special_attributes *common,
     const falcon_special_attributes *special,
-    int32_t axis_q16_value,
-    int32_t internal_x_q16,
-    int32_t maximum_q16)
+    int32_t axis_f32_value,
+    float internal_x_f32,
+    float maximum_f32)
 {
-    int32_t acceleration_q16 = INT32_C(0);
-    int32_t target_q16 = INT32_C(0);
+    float acceleration_f32 = INT32_C(0);
+    float target_f32 = INT32_C(0);
     int64_t candidate;
 
-    if (internal_x_q16 > maximum_q16 ||
-        internal_x_q16 < -maximum_q16)
+    if (internal_x_f32 > maximum_f32 ||
+        internal_x_f32 < -maximum_f32)
     {
         return approach(
-            internal_x_q16,
+            internal_x_f32,
             INT32_C(0),
-            common->air_drift_over_maximum_deceleration_q16);
+            common->air_drift_over_maximum_deceleration_f32);
     }
-    if (axis_q16_value >= common->air_drift_dead_zone_q16 ||
-        axis_q16_value <= -common->air_drift_dead_zone_q16)
+    if (axis_f32_value >= common->air_drift_dead_zone_f32 ||
+        axis_f32_value <= -common->air_drift_dead_zone_f32)
     {
-        acceleration_q16 = multiply_q16(
-            axis_q16_value,
-            multiply_q16(
-                fighter->air_acceleration_q16,
-                special->specialhi_air_friction_mul_q16));
-        target_q16 = multiply_q16(axis_q16_value, maximum_q16);
+        acceleration_f32 = multiply_f32(
+            axis_f32_value,
+            multiply_f32(
+                fighter->air_acceleration_f32,
+                special->specialhi_air_friction_mul_f32));
+        target_f32 = multiply_f32(axis_f32_value, maximum_f32);
     }
-    if (target_q16 == INT32_C(0))
+    if (target_f32 == INT32_C(0))
     {
         return INT32_C(0);
     }
-    candidate = (int64_t)internal_x_q16 + (int64_t)acceleration_q16;
-    if ((int64_t)internal_x_q16 * (int64_t)acceleration_q16 >=
+    candidate = (int64_t)internal_x_f32 + (int64_t)acceleration_f32;
+    if ((int64_t)internal_x_f32 * (int64_t)acceleration_f32 >=
         INT64_C(0))
     {
-        if ((acceleration_q16 > INT32_C(0) &&
-             candidate > (int64_t)target_q16) ||
-            (acceleration_q16 < INT32_C(0) &&
-             candidate < (int64_t)target_q16))
+        if ((acceleration_f32 > INT32_C(0) &&
+             candidate > (int64_t)target_f32) ||
+            (acceleration_f32 < INT32_C(0) &&
+             candidate < (int64_t)target_f32))
         {
-            return target_q16;
+            return target_f32;
         }
     }
     return (int32_t)candidate;
@@ -2203,23 +2180,23 @@ static pf_status falcon_dive_start_velocity(
     uint8_t action_state,
     uint16_t action_ticks,
     int8_t *facing,
-    int32_t *velocity_x_q16,
-    int32_t *velocity_y_q16)
+    float *velocity_x_f32,
+    float *velocity_y_f32)
 {
     const falcon_common_special_attributes *common;
     const falcon_special_attributes *special;
     const falcon_up_special_timing *timing;
     uint16_t displayed_frame;
     int8_t previous_facing;
-    int32_t axis_q16_value;
-    int32_t maximum_q16;
-    int32_t previous_root_x_q16 = INT32_C(0);
-    int32_t root_x_q16;
-    int32_t root_y_q16;
-    int32_t internal_x_q16;
+    int32_t axis_f32_value;
+    float maximum_f32;
+    float previous_root_x_f32 = INT32_C(0);
+    float root_x_f32;
+    float root_y_f32;
+    float internal_x_f32;
 
     if (fighter == NULL || input == NULL || facing == NULL ||
-        velocity_x_q16 == NULL || velocity_y_q16 == NULL)
+        velocity_x_f32 == NULL || velocity_y_f32 == NULL)
     {
         return PF_STATUS_INVALID_ARGUMENT;
     }
@@ -2228,55 +2205,55 @@ static pf_status falcon_dive_start_velocity(
     timing = falcon_reference_up_special_timing();
     displayed_frame = (uint16_t)(action_ticks + UINT16_C(1));
     previous_facing = *facing;
-    axis_q16_value = axis_q16(input->main_stick_x);
-    maximum_q16 =
+    axis_f32_value = axis_f32(input->main_stick_x);
+    maximum_f32 =
         special != NULL
-            ? multiply_q16(
-                  fighter->air_speed_q16,
-                  special->specialhi_horz_vel_q16)
+            ? multiply_f32(
+                  fighter->air_speed_f32,
+                  special->specialhi_horz_vel_f32)
             : INT32_C(0);
     if (common == NULL || special == NULL || timing == NULL ||
-        maximum_q16 <= INT32_C(0) ||
-        !falcon_reference_motion_x_q16(
+        maximum_f32 <= INT32_C(0) ||
+        !falcon_reference_motion_x_f32(
             action_state,
             displayed_frame,
-            &root_x_q16) ||
-        !falcon_reference_motion_y_q16(
+            &root_x_f32) ||
+        !falcon_reference_motion_y_f32(
             action_state,
             displayed_frame,
-            &root_y_q16) ||
+            &root_y_f32) ||
         (action_ticks != UINT16_C(0) &&
-         !falcon_reference_motion_x_q16(
+         !falcon_reference_motion_x_f32(
              action_state,
              action_ticks,
-             &previous_root_x_q16)))
+             &previous_root_x_f32)))
     {
         return PF_STATUS_DETERMINISTIC_FAULT;
     }
-    internal_x_q16 =
+    internal_x_f32 =
         action_ticks == UINT16_C(0)
             ? INT32_C(0)
-            : *velocity_x_q16 -
-                  (int32_t)previous_facing * previous_root_x_q16;
+            : *velocity_x_f32 -
+                  (int32_t)previous_facing * previous_root_x_f32;
     /* ftCa_SpecialHiAir_IASA consumes and clears the action-script command
      * variable once. Direction may change on that exact gate frame only;
      * later air-control samples do not repeatedly turn Falcon. */
     if (displayed_frame == timing->air_control_begin_frame &&
-        (axis_q16_value > special->specialhi_input_var_q16 ||
-         axis_q16_value < -special->specialhi_input_var_q16))
+        (axis_f32_value > special->specialhi_input_var_f32 ||
+         axis_f32_value < -special->specialhi_input_var_f32))
     {
-        *facing = axis_q16_value < INT32_C(0) ? INT8_C(-1) : INT8_C(1);
+        *facing = axis_f32_value < INT32_C(0) ? INT8_C(-1) : INT8_C(1);
     }
-    *velocity_x_q16 =
-        (int32_t)*facing * root_x_q16 +
+    *velocity_x_f32 =
+        (int32_t)*facing * root_x_f32 +
         falcon_dive_air_control(
             fighter,
             common,
             special,
-            axis_q16_value,
-            internal_x_q16,
-            maximum_q16);
-    *velocity_y_q16 = root_y_q16;
+            axis_f32_value,
+            internal_x_f32,
+            maximum_f32);
+    *velocity_y_f32 = root_y_f32;
     return PF_STATUS_OK;
 }
 
@@ -2285,8 +2262,8 @@ static pf_status falcon_dive_throw_velocity(
     const pf_input_frame *input,
     uint16_t action_ticks,
     int8_t facing,
-    int32_t *velocity_x_q16,
-    int32_t *velocity_y_q16)
+    float *velocity_x_f32,
+    float *velocity_y_f32)
 {
     const falcon_common_special_attributes *common =
         falcon_reference_common_special_attributes();
@@ -2296,69 +2273,69 @@ static pf_status falcon_dive_throw_velocity(
         falcon_reference_up_special_timing();
     const uint16_t displayed_frame =
         (uint16_t)(action_ticks + UINT16_C(1));
-    int32_t root_x_q16;
-    int32_t root_y_q16;
-    int32_t previous_root_x_q16 = INT32_C(0);
-    int32_t previous_root_y_q16 = INT32_C(0);
-    int32_t internal_x_q16 = INT32_C(0);
-    int32_t internal_y_q16 = INT32_C(0);
-    int32_t maximum_q16;
+    float root_x_f32;
+    float root_y_f32;
+    float previous_root_x_f32 = INT32_C(0);
+    float previous_root_y_f32 = INT32_C(0);
+    float internal_x_f32 = INT32_C(0);
+    float internal_y_f32 = INT32_C(0);
+    float maximum_f32;
 
-    if (fighter == NULL || input == NULL || velocity_x_q16 == NULL ||
-        velocity_y_q16 == NULL || common == NULL || special == NULL ||
+    if (fighter == NULL || input == NULL || velocity_x_f32 == NULL ||
+        velocity_y_f32 == NULL || common == NULL || special == NULL ||
         timing == NULL ||
-        !falcon_reference_motion_x_q16(
+        !falcon_reference_motion_x_f32(
             (uint8_t)PF_M4_ACTION_FALCON_DIVE_THROW,
             displayed_frame,
-            &root_x_q16) ||
-        !falcon_reference_motion_y_q16(
+            &root_x_f32) ||
+        !falcon_reference_motion_y_f32(
             (uint8_t)PF_M4_ACTION_FALCON_DIVE_THROW,
             displayed_frame,
-            &root_y_q16) ||
+            &root_y_f32) ||
         (action_ticks != UINT16_C(0) &&
-         (!falcon_reference_motion_x_q16(
+         (!falcon_reference_motion_x_f32(
               (uint8_t)PF_M4_ACTION_FALCON_DIVE_THROW,
               action_ticks,
-              &previous_root_x_q16) ||
-          !falcon_reference_motion_y_q16(
+              &previous_root_x_f32) ||
+          !falcon_reference_motion_y_f32(
               (uint8_t)PF_M4_ACTION_FALCON_DIVE_THROW,
               action_ticks,
-              &previous_root_y_q16))))
+              &previous_root_y_f32))))
     {
         return PF_STATUS_DETERMINISTIC_FAULT;
     }
-    maximum_q16 = multiply_q16(
-        fighter->air_speed_q16,
-        special->specialhi_horz_vel_q16);
-    if (maximum_q16 <= INT32_C(0))
+    maximum_f32 = multiply_f32(
+        fighter->air_speed_f32,
+        special->specialhi_horz_vel_f32);
+    if (maximum_f32 <= INT32_C(0))
     {
         return PF_STATUS_DETERMINISTIC_FAULT;
     }
     if (displayed_frame >= timing->throw_gravity_begin_frame)
     {
-        internal_x_q16 =
-            *velocity_x_q16 - (int32_t)facing * previous_root_x_q16;
-        internal_y_q16 = *velocity_y_q16 - previous_root_y_q16;
-        internal_x_q16 = falcon_dive_air_control(
+        internal_x_f32 =
+            *velocity_x_f32 - (int32_t)facing * previous_root_x_f32;
+        internal_y_f32 = *velocity_y_f32 - previous_root_y_f32;
+        internal_x_f32 = falcon_dive_air_control(
             fighter,
             common,
             special,
-            axis_q16(input->main_stick_x),
-            internal_x_q16,
-            maximum_q16);
-        internal_y_q16 = approach(
-            internal_y_q16,
-            fighter->fall_speed_q16,
-            falcon_source_velocity_to_sim_q16(
-                special->specialhi_catch_grav_q16,
+            axis_f32(input->main_stick_x),
+            internal_x_f32,
+            maximum_f32);
+        internal_y_f32 = approach(
+            internal_y_f32,
+            fighter->fall_speed_f32,
+            falcon_source_velocity_to_sim_f32(
+                special->specialhi_catch_grav_f32,
                 INT32_C(11),
                 INT32_C(62)));
     }
-    *velocity_x_q16 = (int32_t)facing * root_x_q16 + internal_x_q16;
-    *velocity_y_q16 = root_y_q16 + internal_y_q16;
-    if (*velocity_y_q16 > fighter->fall_speed_q16)
+    *velocity_x_f32 = (int32_t)facing * root_x_f32 + internal_x_f32;
+    *velocity_y_f32 = root_y_f32 + internal_y_f32;
+    if (*velocity_y_f32 > fighter->fall_speed_f32)
     {
-        *velocity_y_q16 = fighter->fall_speed_q16;
+        *velocity_y_f32 = fighter->fall_speed_f32;
     }
     return PF_STATUS_OK;
 }
@@ -2380,29 +2357,29 @@ static pf_status falcon_kick_root_velocity(
     uint16_t action_ticks,
     int8_t facing,
     int include_vertical,
-    int32_t *velocity_x_q16,
-    int32_t *velocity_y_q16)
+    float *velocity_x_f32,
+    float *velocity_y_f32)
 {
     const uint16_t displayed_frame =
         (uint16_t)(action_ticks + UINT16_C(1));
-    int32_t root_x_q16;
-    int32_t root_y_q16 = INT32_C(0);
+    float root_x_f32;
+    float root_y_f32 = INT32_C(0);
 
-    if (velocity_x_q16 == NULL || velocity_y_q16 == NULL ||
-        !falcon_reference_motion_x_q16(
+    if (velocity_x_f32 == NULL || velocity_y_f32 == NULL ||
+        !falcon_reference_motion_x_f32(
             action_state,
             displayed_frame,
-            &root_x_q16) ||
+            &root_x_f32) ||
         (include_vertical != 0 &&
-         !falcon_reference_motion_y_q16(
+         !falcon_reference_motion_y_f32(
              action_state,
              displayed_frame,
-             &root_y_q16)))
+             &root_y_f32)))
     {
         return PF_STATUS_DETERMINISTIC_FAULT;
     }
-    *velocity_x_q16 = (int32_t)facing * root_x_q16;
-    *velocity_y_q16 = root_y_q16;
+    *velocity_x_f32 = (int32_t)facing * root_x_f32;
+    *velocity_y_f32 = root_y_f32;
     return PF_STATUS_OK;
 }
 
@@ -2410,43 +2387,43 @@ static int32_t falcon_kick_hit_velocity_scale(
     const falcon_special_attributes *attributes,
     uint8_t hit_count)
 {
-    int32_t scale_q16 = PF_Q16_ONE;
+    float scale_f32 = PF_F32_ONE;
 
     while (hit_count != UINT8_C(0))
     {
-        scale_q16 = multiply_q16(
-            scale_q16,
-            attributes->speciallw_on_hit_spd_modifier_q16);
+        scale_f32 = multiply_f32(
+            scale_f32,
+            attributes->speciallw_on_hit_spd_modifier_f32);
         --hit_count;
     }
-    return scale_q16;
+    return scale_f32;
 }
 
 static int32_t falcon_source_ground_friction(
     const falcon_common_attributes *common,
     const falcon_common_special_attributes *common_special,
-    int32_t velocity_x_q16)
+    float velocity_x_f32)
 {
-    const int32_t speed_q16 =
-        velocity_x_q16 < INT32_C(0)
-            ? -velocity_x_q16
-            : velocity_x_q16;
+    const float speed_f32 =
+        velocity_x_f32 < INT32_C(0)
+            ? -velocity_x_f32
+            : velocity_x_f32;
 
-    return speed_q16 > common->walk_maximum_velocity_q16
-               ? multiply_q16(
-                     common->friction_q16,
+    return speed_f32 > common->walk_maximum_velocity_f32
+               ? multiply_f32(
+                     common->friction_f32,
                      common_special
-                         ->fast_ground_friction_multiplier_q16)
-               : common->friction_q16;
+                         ->fast_ground_friction_multiplier_f32)
+               : common->friction_f32;
 }
 
 static int32_t stationary_ground_friction(
     const fighter_data *fighter,
-    int32_t velocity_x_q16)
+    float velocity_x_f32)
 {
-    const int32_t speed_q16 = velocity_x_q16 < INT32_C(0)
-                                  ? -velocity_x_q16
-                                  : velocity_x_q16;
+    const float speed_f32 = velocity_x_f32 < INT32_C(0)
+                                  ? -velocity_x_f32
+                                  : velocity_x_f32;
 
     if (fighter->reference_frame_data_enabled != UINT8_C(0))
     {
@@ -2457,38 +2434,38 @@ static int32_t stationary_ground_friction(
         {
             /* ft_80084F3C/ft_80084FA8 share this exact stationary-ground
              * primitive for Guard, GuardOn/Off/SetOff and Appeal. */
-            return speed_q16 > fighter->walk_speed_q16
-                       ? multiply_q16(
-                             fighter->traction_q16,
+            return speed_f32 > fighter->walk_speed_f32
+                       ? multiply_f32(
+                             fighter->traction_f32,
                              common_special
-                                 ->fast_ground_friction_multiplier_q16)
-                       : fighter->traction_q16;
+                                 ->fast_ground_friction_multiplier_f32)
+                       : fighter->traction_f32;
         }
     }
-    return speed_q16 > fighter->walk_speed_q16
-               ? fighter->turn_acceleration_q16
-               : fighter->traction_q16;
+    return speed_f32 > fighter->walk_speed_f32
+               ? fighter->turn_acceleration_f32
+               : fighter->traction_f32;
 }
 
 static int32_t apply_initial_dash_iasa_tail(
     const ssbm_ground_input_attributes *ground_input,
-    int32_t velocity_x_q16)
+    float velocity_x_f32)
 {
-    return multiply_q16(
-        velocity_x_q16,
-        (int32_t)PF_Q16_ONE -
-            ground_input->initial_dash_iasa_velocity_decay_q16);
+    return multiply_f32(
+        velocity_x_f32,
+        (int32_t)PF_F32_ONE -
+            ground_input->initial_dash_iasa_velocity_decay_f32);
 }
 
 static int32_t falcon_kick_parallel_velocity(
-    int32_t unscaled_velocity_q16,
-    int32_t applied_friction_q16,
-    int32_t hit_scale_q16)
+    float unscaled_velocity_f32,
+    float applied_friction_f32,
+    float hit_scale_f32)
 {
-    return multiply_q16(unscaled_velocity_q16, hit_scale_q16) -
-           multiply_q16(
-               applied_friction_q16,
-               PF_Q16_ONE - hit_scale_q16);
+    return multiply_f32(unscaled_velocity_f32, hit_scale_f32) -
+           multiply_f32(
+               applied_friction_f32,
+               PF_F32_ONE - hit_scale_f32);
 }
 
 static pf_status falcon_kick_ground_end_velocity(
@@ -2496,7 +2473,7 @@ static pf_status falcon_kick_ground_end_velocity(
     int8_t facing,
     uint8_t hit_count,
     int is_entry_frame,
-    int32_t *velocity_x_q16)
+    float *velocity_x_f32)
 {
     const struct reference_move *start_move =
         falcon_move_for_action(
@@ -2509,14 +2486,14 @@ static pf_status falcon_kick_ground_end_velocity(
         falcon_reference_special_attributes();
     const falcon_down_special_timing *timing =
         falcon_reference_down_special_timing();
-    int32_t root_velocity_q16;
-    int32_t ignored_velocity_y_q16;
-    int32_t unscaled_velocity_q16;
-    int32_t applied_friction_q16;
-    int32_t hit_scale_q16;
+    float root_velocity_f32;
+    float ignored_velocity_y_f32;
+    float unscaled_velocity_f32;
+    float applied_friction_f32;
+    float hit_scale_f32;
     uint16_t step;
 
-    if (velocity_x_q16 == NULL || start_move == NULL || common == NULL ||
+    if (velocity_x_f32 == NULL || start_move == NULL || common == NULL ||
         common_special == NULL || attributes == NULL || timing == NULL ||
         start_move->total_frames == UINT16_C(0) ||
         falcon_kick_root_velocity(
@@ -2524,16 +2501,16 @@ static pf_status falcon_kick_ground_end_velocity(
             (uint16_t)(start_move->total_frames - UINT16_C(1)),
             1,
             0,
-            &root_velocity_q16,
-            &ignored_velocity_y_q16) != PF_STATUS_OK)
+            &root_velocity_f32,
+            &ignored_velocity_y_f32) != PF_STATUS_OK)
     {
         return PF_STATUS_DETERMINISTIC_FAULT;
     }
 
-    unscaled_velocity_q16 = multiply_q16(
-        root_velocity_q16,
-        timing->ground_end_entry_velocity_scale_q16);
-    hit_scale_q16 = falcon_kick_hit_velocity_scale(
+    unscaled_velocity_f32 = multiply_f32(
+        root_velocity_f32,
+        timing->ground_end_entry_velocity_scale_f32);
+    hit_scale_f32 = falcon_kick_hit_velocity_scale(
         attributes,
         hit_count);
     /* Melee advances gr_vel and self_vel in parallel here. Reconstruct the
@@ -2541,63 +2518,63 @@ static pf_status falcon_kick_ground_end_velocity(
      * of serializing a duplicate runtime velocity. */
     if (is_entry_frame != 0)
     {
-        applied_friction_q16 = falcon_source_ground_friction(
+        applied_friction_f32 = falcon_source_ground_friction(
             common,
             common_special,
-            root_velocity_q16);
+            root_velocity_f32);
     }
     else
     {
-        applied_friction_q16 = INT32_C(0);
+        applied_friction_f32 = INT32_C(0);
         for (step = UINT16_C(0); step <= action_ticks; ++step)
         {
             const uint16_t displayed_frame =
                 (uint16_t)(step + UINT16_C(2));
-            const int32_t friction_q16 =
+            const float friction_f32 =
                 displayed_frame >= timing->ground_end_traction_begin_frame &&
                         displayed_frame <=
                             timing->ground_end_traction_end_frame
-                    ? multiply_q16(
-                          common->friction_q16,
-                          attributes->speciallw_ground_traction_q16)
+                    ? multiply_f32(
+                          common->friction_f32,
+                          attributes->speciallw_ground_traction_f32)
                     : falcon_source_ground_friction(
                           common,
                           common_special,
-                          unscaled_velocity_q16);
-            const int32_t next_velocity_q16 = approach(
-                unscaled_velocity_q16,
+                          unscaled_velocity_f32);
+            const float next_velocity_f32 = approach(
+                unscaled_velocity_f32,
                 INT32_C(0),
-                friction_q16);
+                friction_f32);
 
-            applied_friction_q16 =
-                unscaled_velocity_q16 - next_velocity_q16;
-            unscaled_velocity_q16 = next_velocity_q16;
+            applied_friction_f32 =
+                unscaled_velocity_f32 - next_velocity_f32;
+            unscaled_velocity_f32 = next_velocity_f32;
         }
     }
-    *velocity_x_q16 = (int32_t)facing *
+    *velocity_x_f32 = (int32_t)facing *
         falcon_kick_parallel_velocity(
-            unscaled_velocity_q16,
-            applied_friction_q16,
-            hit_scale_q16);
+            unscaled_velocity_f32,
+            applied_friction_f32,
+            hit_scale_f32);
     return PF_STATUS_OK;
 }
 
 static void falcon_source_air_physics(
     const falcon_common_attributes *common,
-    int32_t *velocity_x_q16,
-    int32_t *velocity_y_q16)
+    float *velocity_x_f32,
+    float *velocity_y_f32)
 {
-    *velocity_x_q16 = approach(
-        *velocity_x_q16,
+    *velocity_x_f32 = approach(
+        *velocity_x_f32,
         INT32_C(0),
-        common->air_friction_q16);
-    *velocity_y_q16 = approach(
-        *velocity_y_q16,
-        common->terminal_velocity_q16,
-        common->gravity_q16);
-    if (*velocity_y_q16 > common->terminal_velocity_q16)
+        common->air_friction_f32);
+    *velocity_y_f32 = approach(
+        *velocity_y_f32,
+        common->terminal_velocity_f32,
+        common->gravity_f32);
+    if (*velocity_y_f32 > common->terminal_velocity_f32)
     {
-        *velocity_y_q16 = common->terminal_velocity_q16;
+        *velocity_y_f32 = common->terminal_velocity_f32;
     }
 }
 
@@ -2613,7 +2590,7 @@ static int body_overlaps_horizontal_interval(
                (int64_t)interval_right;
 }
 
-int32_t platform_center_x_q16(
+float platform_center_x_f32(
     const stage_data *stage,
     uint64_t tick)
 {
@@ -2626,9 +2603,9 @@ int32_t platform_center_x_q16(
     if (phase <= half_period)
     {
         offset =
-            -(int64_t)stage->platform_motion_amplitude_q16 +
+            -(int64_t)stage->platform_motion_amplitude_f32 +
             (INT64_C(2) *
-             (int64_t)stage->platform_motion_amplitude_q16 *
+             (int64_t)stage->platform_motion_amplitude_f32 *
              (int64_t)phase) /
                 (int64_t)half_period;
     }
@@ -2636,77 +2613,77 @@ int32_t platform_center_x_q16(
     {
         const uint64_t descending_phase = phase - half_period;
         offset =
-            (int64_t)stage->platform_motion_amplitude_q16 -
+            (int64_t)stage->platform_motion_amplitude_f32 -
             (INT64_C(2) *
-             (int64_t)stage->platform_motion_amplitude_q16 *
+             (int64_t)stage->platform_motion_amplitude_f32 *
              (int64_t)descending_phase) /
                 (int64_t)half_period;
     }
     return (int32_t)(
-        (int64_t)stage->platform_center_x_q16 + offset);
+        (int64_t)stage->platform_center_x_f32 + offset);
 }
 
 static int find_drop_cancel_platform(
     const stage_data *stage,
     const fighter_data *fighter,
     uint64_t tick,
-    int32_t position_x_q16,
-    int32_t position_y_q16,
-    int32_t *out_surface_y_q16,
+    float position_x_f32,
+    float position_y_f32,
+    float *out_surface_y_f32,
     uint8_t *out_support)
 {
     const int32_t platform_center =
-        platform_center_x_q16(stage, tick);
+        platform_center_x_f32(stage, tick);
     const int32_t platform_left =
-        platform_center - stage->platform_half_width_q16;
+        platform_center - stage->platform_half_width_f32;
     const int32_t platform_right =
-        platform_center + stage->platform_half_width_q16;
+        platform_center + stage->platform_half_width_f32;
     const int32_t upper_left =
-        stage->upper_platform_center_x_q16 -
-        stage->upper_platform_half_width_q16;
+        stage->upper_platform_center_x_f32 -
+        stage->upper_platform_half_width_f32;
     const int32_t upper_right =
-        stage->upper_platform_center_x_q16 +
-        stage->upper_platform_half_width_q16;
+        stage->upper_platform_center_x_f32 +
+        stage->upper_platform_half_width_f32;
     const int64_t body_bottom =
-        (int64_t)position_y_q16 + fighter->half_height_q16;
+        (int64_t)position_y_f32 + fighter->half_height_f32;
     int64_t best_distance = INT64_MAX;
 
-    if (position_x_q16 >= platform_left &&
-        position_x_q16 <= platform_right)
+    if (position_x_f32 >= platform_left &&
+        position_x_f32 <= platform_right)
     {
         const int64_t distance =
-            body_bottom - (int64_t)stage->platform_y_q16;
+            body_bottom - (int64_t)stage->platform_y_f32;
 
         if (distance >= INT64_C(0) &&
-            distance <= fighter->drop_cancel_snap_distance_q16)
+            distance <= fighter->drop_cancel_snap_distance_f32)
         {
             best_distance = distance;
-            *out_surface_y_q16 = stage->platform_y_q16;
+            *out_surface_y_f32 = stage->platform_y_f32;
             *out_support = (uint8_t)PF_M4_SURFACE_PLATFORM;
         }
     }
-    if (position_x_q16 >= upper_left &&
-        position_x_q16 <= upper_right)
+    if (position_x_f32 >= upper_left &&
+        position_x_f32 <= upper_right)
     {
         const int64_t distance =
-            body_bottom - (int64_t)stage->upper_platform_y_q16;
+            body_bottom - (int64_t)stage->upper_platform_y_f32;
 
         if (distance >= INT64_C(0) &&
-            distance <= fighter->drop_cancel_snap_distance_q16 &&
+            distance <= fighter->drop_cancel_snap_distance_f32 &&
             distance < best_distance)
         {
             best_distance = distance;
-            *out_surface_y_q16 = stage->upper_platform_y_q16;
+            *out_surface_y_f32 = stage->upper_platform_y_f32;
             *out_support = (uint8_t)PF_M4_SURFACE_UPPER_PLATFORM;
         }
     }
     return best_distance != INT64_MAX;
 }
 
-static int32_t surface_y_q16(
+static float surface_y_f32(
     const struct content *content,
     uint8_t support,
-    int32_t position_x_q16)
+    float position_x_f32)
 {
     const ssbm_stage_collision_line *line =
         ssbm_reference_stage_line(
@@ -2715,28 +2692,28 @@ static int32_t surface_y_q16(
 
     if (line != NULL)
     {
-        return ssbm_stage_line_y_q16(line, position_x_q16);
+        return ssbm_stage_line_y_f32(line, position_x_f32);
     }
     if (support == (uint8_t)PF_M4_SURFACE_PLATFORM)
     {
-        return content->stage.platform_y_q16;
+        return content->stage.platform_y_f32;
     }
     if (support == (uint8_t)PF_M4_SURFACE_SOLID_TOP)
     {
-        return content->stage.solid_top_q16;
+        return content->stage.solid_top_f32;
     }
     if (support == (uint8_t)PF_M4_SURFACE_UPPER_PLATFORM)
     {
-        return content->stage.upper_platform_y_q16;
+        return content->stage.upper_platform_y_f32;
     }
-    return content->stage.floor_y_q16;
+    return content->stage.floor_y_f32;
 }
 
-static void surface_ground_projection_q16(
+static void surface_ground_projection_f32(
     const struct content *content,
     uint8_t support,
-    int32_t *out_x_q16,
-    int32_t *out_y_q16)
+    float *out_x_f32,
+    float *out_y_f32)
 {
     const ssbm_stage_collision_line *line =
         ssbm_reference_stage_line(
@@ -2745,31 +2722,31 @@ static void surface_ground_projection_q16(
 
     if (line != NULL)
     {
-        *out_x_q16 = line->ground_projection_x_q16;
-        *out_y_q16 = line->ground_projection_y_q16;
+        *out_x_f32 = line->ground_projection_x_f32;
+        *out_y_f32 = line->ground_projection_y_f32;
         return;
     }
-    *out_x_q16 = PF_Q16_ONE;
-    *out_y_q16 = INT32_C(0);
+    *out_x_f32 = PF_F32_ONE;
+    *out_y_f32 = INT32_C(0);
 }
 
-static void project_ground_scalar_q16(
+static void project_ground_scalar_f32(
     const struct content *content,
     uint8_t support,
-    int32_t scalar_q16,
-    int32_t *out_x_q16,
-    int32_t *out_y_q16)
+    float scalar_f32,
+    float *out_x_f32,
+    float *out_y_f32)
 {
-    int32_t projection_x_q16;
-    int32_t projection_y_q16;
+    float projection_x_f32;
+    float projection_y_f32;
 
-    surface_ground_projection_q16(
+    surface_ground_projection_f32(
         content,
         support,
-        &projection_x_q16,
-        &projection_y_q16);
-    *out_x_q16 = multiply_q16(scalar_q16, projection_x_q16);
-    *out_y_q16 = multiply_q16(scalar_q16, projection_y_q16);
+        &projection_x_f32,
+        &projection_y_f32);
+    *out_x_f32 = multiply_f32(scalar_f32, projection_x_f32);
+    *out_y_f32 = multiply_f32(scalar_f32, projection_y_f32);
 }
 
 static uint8_t stage_spawn_support(const stage_data *stage)
@@ -2800,35 +2777,35 @@ static uint16_t clamped_pose_index(
                : (uint16_t)(frame_count - UINT16_C(1));
 }
 
-static int reference_ecb_pose_q16(
+static float reference_ecb_pose_f32(
     const fighter_data *fighter,
     uint8_t action_state,
     uint16_t action_ticks,
     uint8_t grounded,
-    int32_t inherited_locked_bottom_y_q16,
+    float inherited_locked_bottom_y_f32,
     uint16_t source_submotion,
-    int32_t source_animation_frame_q16,
-    int32_t fall_animation_blend_q16,
+    float source_animation_frame_f32,
+    float fall_animation_blend_f32,
     uint8_t fall_animation_target_switched,
     uint8_t prone_orientation,
     uint8_t prone_roll_motion_orientation,
     int8_t tech_direction,
     int8_t facing,
-    int32_t total_velocity_x_q16,
-    int32_t total_velocity_y_q16,
-    int32_t ground_loop_progress_q16,
+    float total_velocity_x_f32,
+    float total_velocity_y_f32,
+    float ground_loop_progress_f32,
     const hsd_compact_pose *ground_loop_compact,
-    falcon_ecb_pose_q16 *out_pose)
+    falcon_ecb_pose_f32 *out_pose)
 {
     const falcon_collision_pose *pose =
         falcon_reference_collision_pose();
-    const falcon_ecb_pose_q16 *prone_pose;
-    const falcon_ecb_pose_q16 *guard_pose;
-    const falcon_ecb_pose_q16 *airborne_pose;
+    const falcon_ecb_pose_f32 *prone_pose;
+    const falcon_ecb_pose_f32 *guard_pose;
+    const falcon_ecb_pose_f32 *airborne_pose;
     uint16_t frame_index;
-    int32_t locked_bottom_y_q16 =
-        PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16;
-    int32_t retained_hsd_frame_q16;
+    float locked_bottom_y_f32 =
+        PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_F32;
+    float retained_hsd_frame_f32;
     int retained_hsd_pose;
 
     if (fighter->reference_frame_data_enabled == UINT8_C(0) || pose == NULL ||
@@ -2844,8 +2821,8 @@ static int reference_ecb_pose_q16(
 
         if (data == NULL ||
             !falcon_resolve_compact_hsd_pose(
-                source_submotion, source_animation_frame_q16,
-                ground_loop_progress_q16, ground_loop_compact, blended) ||
+                source_submotion, source_animation_frame_f32,
+                ground_loop_progress_f32, ground_loop_compact, blended) ||
             !falcon_reference_hsd_ground_ecb_pose_from_local_pose(
                 blended, out_pose))
         {
@@ -2857,50 +2834,50 @@ static int reference_ecb_pose_q16(
             action_state,
             source_submotion,
             action_ticks,
-            source_animation_frame_q16,
-            &retained_hsd_frame_q16);
+            source_animation_frame_f32,
+            &retained_hsd_frame_f32);
     if (retained_hsd_pose)
     {
-        source_animation_frame_q16 = retained_hsd_frame_q16;
+        source_animation_frame_f32 = retained_hsd_frame_f32;
     }
-    if (!falcon_direct_hsd_locked_bottom_q16(
+    if (!falcon_direct_hsd_locked_bottom_f32(
             action_state,
-            source_animation_frame_q16,
+            source_animation_frame_f32,
             grounded,
-            &locked_bottom_y_q16))
+            &locked_bottom_y_f32))
     {
         return 0;
     }
-    if (locked_bottom_y_q16 ==
-            PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16 &&
-        inherited_locked_bottom_y_q16 !=
-            PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16)
+    if (locked_bottom_y_f32 ==
+            PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_F32 &&
+        inherited_locked_bottom_y_f32 !=
+            PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_F32)
     {
-        locked_bottom_y_q16 = inherited_locked_bottom_y_q16;
+        locked_bottom_y_f32 = inherited_locked_bottom_y_f32;
     }
     if (source_submotion ==
             (uint16_t)PF_M4_FALCON_SUBMOTION_DAMAGE_FLY_ROLL &&
         falcon_reference_damage_hsd_ecb_pose(
             source_submotion,
-            source_animation_frame_q16,
+            source_animation_frame_f32,
             facing,
-            total_velocity_x_q16,
-            total_velocity_y_q16,
+            total_velocity_x_f32,
+            total_velocity_y_f32,
             grounded != UINT8_C(0),
-            locked_bottom_y_q16,
+            locked_bottom_y_f32,
             out_pose))
     {
         return 1;
     }
     if ((action_uses_fall_special_pose(action_state) ||
          (action_state == (uint8_t)PF_M4_ACTION_AIRBORNE &&
-          fall_animation_blend_q16 != INT32_C(0))) &&
+          fall_animation_blend_f32 != INT32_C(0))) &&
         falcon_reference_hsd_fall_ecb_pose(
             source_submotion,
-            source_animation_frame_q16,
-            fall_animation_blend_q16,
+            source_animation_frame_f32,
+            fall_animation_blend_f32,
             fall_animation_target_switched,
-            locked_bottom_y_q16,
+            locked_bottom_y_f32,
             out_pose))
     {
         return 1;
@@ -2941,9 +2918,9 @@ static int reference_ecb_pose_q16(
     {
         frame_index = clamped_pose_index(
             (uint16_t)(
-                source_animation_frame_q16 > INT32_C(0)
-                    ? source_animation_frame_q16 /
-                          (int32_t)PF_Q16_ONE
+                source_animation_frame_f32 > INT32_C(0)
+                    ? source_animation_frame_f32 /
+                          (int32_t)PF_F32_ONE
                     : INT32_C(0)),
             PF_M4_FALCON_SHIELD_BREAK_STUN_ECB_FRAME_COUNT);
         *out_pose = pose->shield_break_stun[frame_index];
@@ -2960,7 +2937,7 @@ static int reference_ecb_pose_q16(
             action_state,
             action_ticks,
             grounded,
-            locked_bottom_y_q16,
+            locked_bottom_y_f32,
             out_pose))
     {
         return 1;
@@ -2975,14 +2952,14 @@ static int reference_ecb_pose_q16(
             action_state == (uint8_t)PF_M4_ACTION_GROUND_IDLE &&
                     !falcon_wait_hsd_pose_is_direct(
                         source_submotion,
-                        source_animation_frame_q16)
+                        source_animation_frame_f32)
                 ? INT32_C(0)
-                : source_animation_frame_q16,
+                : source_animation_frame_f32,
             (action_uses_direct_hsd_pose(action_state) ||
              retained_hsd_pose)
                 ? grounded != UINT8_C(0)
                 : 1,
-            locked_bottom_y_q16,
+            locked_bottom_y_f32,
             out_pose))
     {
         return 1;
@@ -2996,8 +2973,8 @@ static int reference_ecb_pose_q16(
     if (airborne_pose != NULL)
     {
         *out_pose = *airborne_pose;
-        return falcon_reference_ecb_apply_bottom_lock_q16(
-            inherited_locked_bottom_y_q16,
+        return falcon_reference_ecb_apply_bottom_lock_f32(
+            inherited_locked_bottom_y_f32,
             out_pose);
     }
     prone_pose = falcon_reference_prone_ecb_pose(
@@ -3015,20 +2992,20 @@ static int reference_ecb_pose_q16(
     if (action_state == (uint8_t)PF_M4_ACTION_HITSTUN)
     {
         frame_index = damage_fly_ecb_frame_index(action_ticks);
-        out_pose->top_x_from_origin_q16 = INT32_C(0);
-        out_pose->top_y_from_origin_q16 =
-            pose->damage_fly_top_y_from_origin_q16[frame_index];
-        out_pose->bottom_x_from_origin_q16 = INT32_C(0);
-        out_pose->bottom_y_from_origin_q16 =
-            pose->damage_fly_bottom_y_from_origin_q16[frame_index];
-        out_pose->right_x_from_origin_q16 =
-            pose->damage_fly_side_x_from_origin_q16[frame_index];
-        out_pose->right_y_from_origin_q16 =
-            pose->damage_fly_side_y_from_origin_q16[frame_index];
-        out_pose->left_x_from_origin_q16 =
-            -pose->damage_fly_side_x_from_origin_q16[frame_index];
-        out_pose->left_y_from_origin_q16 =
-            pose->damage_fly_side_y_from_origin_q16[frame_index];
+        out_pose->top_x_from_origin_f32 = INT32_C(0);
+        out_pose->top_y_from_origin_f32 =
+            pose->damage_fly_top_y_from_origin_f32[frame_index];
+        out_pose->bottom_x_from_origin_f32 = INT32_C(0);
+        out_pose->bottom_y_from_origin_f32 =
+            pose->damage_fly_bottom_y_from_origin_f32[frame_index];
+        out_pose->right_x_from_origin_f32 =
+            pose->damage_fly_side_x_from_origin_f32[frame_index];
+        out_pose->right_y_from_origin_f32 =
+            pose->damage_fly_side_y_from_origin_f32[frame_index];
+        out_pose->left_x_from_origin_f32 =
+            -pose->damage_fly_side_x_from_origin_f32[frame_index];
+        out_pose->left_y_from_origin_f32 =
+            pose->damage_fly_side_y_from_origin_f32[frame_index];
         return 1;
     }
     if (action_state == (uint8_t)PF_M4_ACTION_CEILING_BOUNCE)
@@ -3050,125 +3027,125 @@ static int reference_ecb_pose_q16(
     return 0;
 }
 
-static void ecb_world_wall_side_q16(
-    const falcon_ecb_pose_q16 *pose,
-    int32_t body_center_from_source_root_q16,
+static void ecb_world_wall_side_f32(
+    const falcon_ecb_pose_f32 *pose,
+    float body_center_from_source_root_f32,
     int8_t facing,
     int moving_right,
-    int32_t *out_x_from_origin_q16,
-    int32_t *out_y_from_origin_q16)
+    float *out_x_from_origin_f32,
+    float *out_y_from_origin_f32)
 {
     if (moving_right != 0)
     {
         if (facing >= INT8_C(0))
         {
-            *out_x_from_origin_q16 = pose->right_x_from_origin_q16;
-            *out_y_from_origin_q16 =
-                pose->right_y_from_origin_q16 -
-                body_center_from_source_root_q16;
+            *out_x_from_origin_f32 = pose->right_x_from_origin_f32;
+            *out_y_from_origin_f32 =
+                pose->right_y_from_origin_f32 -
+                body_center_from_source_root_f32;
         }
         else
         {
-            *out_x_from_origin_q16 = -pose->left_x_from_origin_q16;
-            *out_y_from_origin_q16 =
-                pose->left_y_from_origin_q16 -
-                body_center_from_source_root_q16;
+            *out_x_from_origin_f32 = -pose->left_x_from_origin_f32;
+            *out_y_from_origin_f32 =
+                pose->left_y_from_origin_f32 -
+                body_center_from_source_root_f32;
         }
     }
     else if (facing >= INT8_C(0))
     {
-        *out_x_from_origin_q16 = pose->left_x_from_origin_q16;
-        *out_y_from_origin_q16 =
-            pose->left_y_from_origin_q16 -
-            body_center_from_source_root_q16;
+        *out_x_from_origin_f32 = pose->left_x_from_origin_f32;
+        *out_y_from_origin_f32 =
+            pose->left_y_from_origin_f32 -
+            body_center_from_source_root_f32;
     }
     else
     {
-        *out_x_from_origin_q16 = -pose->right_x_from_origin_q16;
-        *out_y_from_origin_q16 =
-            pose->right_y_from_origin_q16 -
-            body_center_from_source_root_q16;
+        *out_x_from_origin_f32 = -pose->right_x_from_origin_f32;
+        *out_y_from_origin_f32 =
+            pose->right_y_from_origin_f32 -
+            body_center_from_source_root_f32;
     }
 }
 
-static int32_t line_x_at_y_q16(
+static float line_x_at_y_f32(
     const ssbm_stage_collision_line *line,
-    int32_t y_q16)
+    float y_f32)
 {
     const int64_t dx =
-        (int64_t)line->end_x_q16 - line->start_x_q16;
+        (int64_t)line->end_x_f32 - line->start_x_f32;
     const int64_t dy =
-        (int64_t)line->end_y_q16 - line->start_y_q16;
+        (int64_t)line->end_y_f32 - line->start_y_f32;
 
     return dy == INT64_C(0)
-               ? line->start_x_q16
-               : line->start_x_q16 +
+               ? line->start_x_f32
+               : line->start_x_f32 +
                      (int32_t)(
-                         ((int64_t)y_q16 - line->start_y_q16) * dx /
+                         ((int64_t)y_f32 - line->start_y_f32) * dx /
                          dy);
 }
 
-static int32_t ecb_wall_boundary_x_at_y_q16(
-    int32_t top_y_q16,
-    int32_t side_x_q16,
-    int32_t side_y_q16,
-    int32_t bottom_y_q16,
-    int32_t y_q16)
+static float ecb_wall_boundary_x_at_y_f32(
+    float top_y_f32,
+    float side_x_f32,
+    float side_y_f32,
+    float bottom_y_f32,
+    float y_f32)
 {
-    if (y_q16 <= side_y_q16)
+    if (y_f32 <= side_y_f32)
     {
         const int64_t height =
-            (int64_t)side_y_q16 - top_y_q16;
+            (int64_t)side_y_f32 - top_y_f32;
         return height == INT64_C(0)
-                   ? side_x_q16
+                   ? side_x_f32
                    : (int32_t)(
-                         (int64_t)side_x_q16 *
-                         ((int64_t)y_q16 - top_y_q16) /
+                         (int64_t)side_x_f32 *
+                         ((int64_t)y_f32 - top_y_f32) /
                          height);
     }
     {
         const int64_t height =
-            (int64_t)bottom_y_q16 - side_y_q16;
+            (int64_t)bottom_y_f32 - side_y_f32;
         return height == INT64_C(0)
-                   ? side_x_q16
-                   : side_x_q16 -
+                   ? side_x_f32
+                   : side_x_f32 -
                          (int32_t)(
-                             (int64_t)side_x_q16 *
-                             ((int64_t)y_q16 - side_y_q16) /
+                             (int64_t)side_x_f32 *
+                             ((int64_t)y_f32 - side_y_f32) /
                              height);
     }
 }
 
-static int reference_resolve_wall_ecb_q16(
+static float reference_resolve_wall_ecb_f32(
     uint16_t profile_id,
-    int32_t previous_position_x_q16,
-    int32_t previous_position_y_q16,
-    const falcon_ecb_pose_q16 *previous_pose,
-    int32_t position_y_q16,
-    const falcon_ecb_pose_q16 *pose,
-    int32_t body_center_from_source_root_q16,
+    float previous_position_x_f32,
+    float previous_position_y_f32,
+    const falcon_ecb_pose_f32 *previous_pose,
+    float position_y_f32,
+    const falcon_ecb_pose_f32 *pose,
+    float body_center_from_source_root_f32,
     int8_t facing,
     int moving_right,
-    int32_t *position_x_q16,
+    float *position_x_f32,
     uint8_t *out_support,
     int8_t *out_away_direction)
 {
     const ssbm_stage_collision_profile *profile =
         ssbm_reference_stage_collision(profile_id);
-    int32_t previous_side_x_q16;
-    int32_t previous_side_y_from_origin_q16;
-    int32_t side_x_q16;
-    int32_t side_y_from_origin_q16;
-    int32_t previous_top_y_q16;
-    int32_t previous_bottom_y_q16;
-    int32_t top_y_q16;
-    int32_t side_y_q16;
-    int32_t bottom_y_q16;
-    int32_t swept_left_q16;
-    int32_t swept_right_q16;
-    int32_t swept_top_q16;
-    int32_t swept_bottom_q16;
-    int32_t nearest_constraint_q16 =
+    float previous_side_x_f32;
+    float previous_side_y_from_origin_f32;
+    float side_x_f32;
+    float side_y_from_origin_f32;
+    float previous_top_y_f32;
+    float previous_bottom_y_f32;
+    float top_y_f32;
+    float side_y_f32;
+    float bottom_y_f32;
+    float swept_left_f32;
+    float swept_right_f32;
+    float swept_top_f32;
+    float swept_bottom_f32;
+    float nearest_constraint_f32 =
         moving_right != 0 ? INT32_MAX : INT32_MIN;
     uint8_t nearest_support = UINT8_C(0);
     uint16_t range_start;
@@ -3176,77 +3153,77 @@ static int reference_resolve_wall_ecb_q16(
     uint16_t offset;
 
     if (profile == NULL || previous_pose == NULL || pose == NULL ||
-        position_x_q16 == NULL || out_support == NULL ||
+        position_x_f32 == NULL || out_support == NULL ||
         out_away_direction == NULL)
     {
         return 0;
     }
-    ecb_world_wall_side_q16(
+    ecb_world_wall_side_f32(
         previous_pose,
-        body_center_from_source_root_q16,
+        body_center_from_source_root_f32,
         facing,
         moving_right,
-        &previous_side_x_q16,
-        &previous_side_y_from_origin_q16);
-    ecb_world_wall_side_q16(
+        &previous_side_x_f32,
+        &previous_side_y_from_origin_f32);
+    ecb_world_wall_side_f32(
         pose,
-        body_center_from_source_root_q16,
+        body_center_from_source_root_f32,
         facing,
         moving_right,
-        &side_x_q16,
-        &side_y_from_origin_q16);
-    previous_top_y_q16 =
-        previous_position_y_q16 -
-        (previous_pose->top_y_from_origin_q16 -
-         body_center_from_source_root_q16);
-    previous_bottom_y_q16 =
-        previous_position_y_q16 +
-        body_center_from_source_root_q16 -
-        previous_pose->bottom_y_from_origin_q16;
-    top_y_q16 =
-        position_y_q16 -
-        (pose->top_y_from_origin_q16 -
-         body_center_from_source_root_q16);
-    side_y_q16 = position_y_q16 - side_y_from_origin_q16;
-    bottom_y_q16 =
-        position_y_q16 + body_center_from_source_root_q16 -
-        pose->bottom_y_from_origin_q16;
-    swept_left_q16 = previous_position_x_q16;
-    swept_right_q16 = previous_position_x_q16;
-    if (previous_position_x_q16 + previous_side_x_q16 < swept_left_q16)
+        &side_x_f32,
+        &side_y_from_origin_f32);
+    previous_top_y_f32 =
+        previous_position_y_f32 -
+        (previous_pose->top_y_from_origin_f32 -
+         body_center_from_source_root_f32);
+    previous_bottom_y_f32 =
+        previous_position_y_f32 +
+        body_center_from_source_root_f32 -
+        previous_pose->bottom_y_from_origin_f32;
+    top_y_f32 =
+        position_y_f32 -
+        (pose->top_y_from_origin_f32 -
+         body_center_from_source_root_f32);
+    side_y_f32 = position_y_f32 - side_y_from_origin_f32;
+    bottom_y_f32 =
+        position_y_f32 + body_center_from_source_root_f32 -
+        pose->bottom_y_from_origin_f32;
+    swept_left_f32 = previous_position_x_f32;
+    swept_right_f32 = previous_position_x_f32;
+    if (previous_position_x_f32 + previous_side_x_f32 < swept_left_f32)
     {
-        swept_left_q16 =
-            previous_position_x_q16 + previous_side_x_q16;
+        swept_left_f32 =
+            previous_position_x_f32 + previous_side_x_f32;
     }
-    if (previous_position_x_q16 + previous_side_x_q16 > swept_right_q16)
+    if (previous_position_x_f32 + previous_side_x_f32 > swept_right_f32)
     {
-        swept_right_q16 =
-            previous_position_x_q16 + previous_side_x_q16;
+        swept_right_f32 =
+            previous_position_x_f32 + previous_side_x_f32;
     }
-    if (*position_x_q16 < swept_left_q16)
+    if (*position_x_f32 < swept_left_f32)
     {
-        swept_left_q16 = *position_x_q16;
+        swept_left_f32 = *position_x_f32;
     }
-    if (*position_x_q16 > swept_right_q16)
+    if (*position_x_f32 > swept_right_f32)
     {
-        swept_right_q16 = *position_x_q16;
+        swept_right_f32 = *position_x_f32;
     }
-    if (*position_x_q16 + side_x_q16 < swept_left_q16)
+    if (*position_x_f32 + side_x_f32 < swept_left_f32)
     {
-        swept_left_q16 = *position_x_q16 + side_x_q16;
+        swept_left_f32 = *position_x_f32 + side_x_f32;
     }
-    if (*position_x_q16 + side_x_q16 > swept_right_q16)
+    if (*position_x_f32 + side_x_f32 > swept_right_f32)
     {
-        swept_right_q16 = *position_x_q16 + side_x_q16;
+        swept_right_f32 = *position_x_f32 + side_x_f32;
     }
-    swept_top_q16 =
-        previous_top_y_q16 < top_y_q16
-            ? previous_top_y_q16
-            : top_y_q16;
-    swept_bottom_q16 =
-        previous_bottom_y_q16 > bottom_y_q16
-            ? previous_bottom_y_q16
-            : bottom_y_q16;
+    swept_top_f32 =
+        previous_top_y_f32 < top_y_f32
+            ? previous_top_y_f32
+            : top_y_f32;
+    swept_bottom_f32 =
+        previous_bottom_y_f32 > bottom_y_f32
+            ? previous_bottom_y_f32
+            : bottom_y_f32;
     range_start =
         moving_right != 0
             ? profile->left_wall_start
@@ -3264,12 +3241,12 @@ static int reference_resolve_wall_ecb_q16(
             moving_right != 0
                 ? (uint8_t)PF_M4_SSBM_STAGE_SURFACE_LEFT_WALL
                 : (uint8_t)PF_M4_SSBM_STAGE_SURFACE_RIGHT_WALL;
-        int32_t line_left_q16;
-        int32_t line_right_q16;
-        int32_t line_top_q16;
-        int32_t line_bottom_q16;
-        int32_t candidate_y_q16[5];
-        int32_t line_constraint_q16 =
+        float line_left_f32;
+        float line_right_f32;
+        float line_top_f32;
+        float line_bottom_f32;
+        float candidate_y_f32[5];
+        float line_constraint_f32 =
             moving_right != 0 ? INT32_MAX : INT32_MIN;
         uint8_t candidate_index;
         int has_constraint = 0;
@@ -3286,78 +3263,78 @@ static int reference_resolve_wall_ecb_q16(
         {
             continue;
         }
-        line_left_q16 =
-            line->start_x_q16 < line->end_x_q16
-                ? line->start_x_q16
-                : line->end_x_q16;
-        line_right_q16 =
-            line->start_x_q16 > line->end_x_q16
-                ? line->start_x_q16
-                : line->end_x_q16;
-        line_top_q16 =
-            line->start_y_q16 < line->end_y_q16
-                ? line->start_y_q16
-                : line->end_y_q16;
-        line_bottom_q16 =
-            line->start_y_q16 > line->end_y_q16
-                ? line->start_y_q16
-                : line->end_y_q16;
-        if (line_right_q16 < swept_left_q16 ||
-            line_left_q16 > swept_right_q16 ||
-            line_bottom_q16 < swept_top_q16 ||
-            line_top_q16 > swept_bottom_q16)
+        line_left_f32 =
+            line->start_x_f32 < line->end_x_f32
+                ? line->start_x_f32
+                : line->end_x_f32;
+        line_right_f32 =
+            line->start_x_f32 > line->end_x_f32
+                ? line->start_x_f32
+                : line->end_x_f32;
+        line_top_f32 =
+            line->start_y_f32 < line->end_y_f32
+                ? line->start_y_f32
+                : line->end_y_f32;
+        line_bottom_f32 =
+            line->start_y_f32 > line->end_y_f32
+                ? line->start_y_f32
+                : line->end_y_f32;
+        if (line_right_f32 < swept_left_f32 ||
+            line_left_f32 > swept_right_f32 ||
+            line_bottom_f32 < swept_top_f32 ||
+            line_top_f32 > swept_bottom_f32)
         {
             continue;
         }
-        candidate_y_q16[0] = top_y_q16;
-        candidate_y_q16[1] = side_y_q16;
-        candidate_y_q16[2] = bottom_y_q16;
-        candidate_y_q16[3] = line->start_y_q16;
-        candidate_y_q16[4] = line->end_y_q16;
+        candidate_y_f32[0] = top_y_f32;
+        candidate_y_f32[1] = side_y_f32;
+        candidate_y_f32[2] = bottom_y_f32;
+        candidate_y_f32[3] = line->start_y_f32;
+        candidate_y_f32[4] = line->end_y_f32;
         for (candidate_index = UINT8_C(0);
              candidate_index < UINT8_C(5);
              ++candidate_index)
         {
-            const int32_t y_q16 = candidate_y_q16[candidate_index];
-            int32_t constraint_q16;
+            const float y_f32 = candidate_y_f32[candidate_index];
+            float constraint_f32;
 
-            if (y_q16 < line_top_q16 ||
-                y_q16 > line_bottom_q16 ||
-                y_q16 < top_y_q16 ||
-                y_q16 > bottom_y_q16)
+            if (y_f32 < line_top_f32 ||
+                y_f32 > line_bottom_f32 ||
+                y_f32 < top_y_f32 ||
+                y_f32 > bottom_y_f32)
             {
                 continue;
             }
-            constraint_q16 =
-                line_x_at_y_q16(line, y_q16) -
-                ecb_wall_boundary_x_at_y_q16(
-                    top_y_q16,
-                    side_x_q16,
-                    side_y_q16,
-                    bottom_y_q16,
-                    y_q16);
+            constraint_f32 =
+                line_x_at_y_f32(line, y_f32) -
+                ecb_wall_boundary_x_at_y_f32(
+                    top_y_f32,
+                    side_x_f32,
+                    side_y_f32,
+                    bottom_y_f32,
+                    y_f32);
             if (!has_constraint ||
                 (moving_right != 0 &&
-                 constraint_q16 < line_constraint_q16) ||
+                 constraint_f32 < line_constraint_f32) ||
                 (moving_right == 0 &&
-                 constraint_q16 > line_constraint_q16))
+                 constraint_f32 > line_constraint_f32))
             {
-                line_constraint_q16 = constraint_q16;
+                line_constraint_f32 = constraint_f32;
                 has_constraint = 1;
             }
         }
         if (has_constraint &&
             ((moving_right != 0 &&
-              *position_x_q16 > line_constraint_q16) ||
+              *position_x_f32 > line_constraint_f32) ||
              (moving_right == 0 &&
-              *position_x_q16 < line_constraint_q16)) &&
+              *position_x_f32 < line_constraint_f32)) &&
             (nearest_support == UINT8_C(0) ||
              (moving_right != 0 &&
-              line_constraint_q16 < nearest_constraint_q16) ||
+              line_constraint_f32 < nearest_constraint_f32) ||
              (moving_right == 0 &&
-              line_constraint_q16 > nearest_constraint_q16)))
+              line_constraint_f32 > nearest_constraint_f32)))
         {
-            nearest_constraint_q16 = line_constraint_q16;
+            nearest_constraint_f32 = line_constraint_f32;
             nearest_support = (uint8_t)(line_index + UINT16_C(1));
         }
     }
@@ -3365,44 +3342,44 @@ static int reference_resolve_wall_ecb_q16(
     {
         return 0;
     }
-    *position_x_q16 = nearest_constraint_q16;
+    *position_x_f32 = nearest_constraint_f32;
     *out_support = nearest_support;
     *out_away_direction =
         moving_right != 0 ? INT8_C(-1) : INT8_C(1);
     return 1;
 }
 
-static int32_t floor_contact_bottom_extent_q16(
+static float floor_contact_bottom_extent_f32(
     const fighter_data *fighter,
     uint8_t action_state,
     uint16_t action_ticks,
     uint8_t grounded,
-    int32_t inherited_locked_bottom_y_q16,
+    float inherited_locked_bottom_y_f32,
     uint16_t source_submotion,
-    int32_t source_animation_frame_q16,
-    int32_t fall_animation_blend_q16,
+    float source_animation_frame_f32,
+    float fall_animation_blend_f32,
     uint8_t fall_animation_target_switched,
     uint8_t prone_orientation,
     uint8_t prone_roll_motion_orientation,
     int8_t tech_direction,
     int8_t facing,
-    int32_t total_velocity_x_q16,
-    int32_t total_velocity_y_q16,
+    float total_velocity_x_f32,
+    float total_velocity_y_f32,
     int *out_exact_reference_pose)
 {
     const falcon_collision_pose *pose =
         falcon_reference_collision_pose();
-    int32_t bottom_y_from_origin_q16 = INT32_C(0);
+    float bottom_y_from_origin_f32 = INT32_C(0);
     int has_reference_pose = 0;
     int exact_reference_pose = 0;
-    falcon_ecb_pose_q16 action_pose;
-    const falcon_ecb_pose_q16 *airborne_pose = NULL;
+    falcon_ecb_pose_f32 action_pose;
+    const falcon_ecb_pose_f32 *airborne_pose = NULL;
 
     *out_exact_reference_pose = 0;
 
     if (fighter->reference_frame_data_enabled == UINT8_C(0) || pose == NULL)
     {
-        return fighter->half_height_q16;
+        return fighter->half_height_f32;
     }
     if (action_state == (uint8_t)PF_M4_ACTION_AIRBORNE)
     {
@@ -3410,33 +3387,33 @@ static int32_t floor_contact_bottom_extent_q16(
             source_submotion,
             action_ticks);
     }
-    if (reference_ecb_pose_q16(
+    if (reference_ecb_pose_f32(
             fighter,
             action_state,
             action_ticks,
             grounded,
-            inherited_locked_bottom_y_q16,
+            inherited_locked_bottom_y_f32,
             source_submotion,
-            source_animation_frame_q16,
-            fall_animation_blend_q16,
+            source_animation_frame_f32,
+            fall_animation_blend_f32,
             fall_animation_target_switched,
             prone_orientation,
             prone_roll_motion_orientation,
             tech_direction,
             facing,
-            total_velocity_x_q16,
-            total_velocity_y_q16,
+            total_velocity_x_f32,
+            total_velocity_y_f32,
             INT32_C(0),
             NULL,
             &action_pose) != 0)
     {
-        bottom_y_from_origin_q16 = action_pose.bottom_y_from_origin_q16;
+        bottom_y_from_origin_f32 = action_pose.bottom_y_from_origin_f32;
         has_reference_pose = 1;
         exact_reference_pose = 1;
     }
     else if (airborne_pose != NULL)
     {
-        bottom_y_from_origin_q16 = airborne_pose->bottom_y_from_origin_q16;
+        bottom_y_from_origin_f32 = airborne_pose->bottom_y_from_origin_f32;
         has_reference_pose = 1;
         exact_reference_pose = 1;
     }
@@ -3451,71 +3428,71 @@ static int32_t floor_contact_bottom_extent_q16(
                       PF_M4_FALCON_PLATFORM_DROP_ECB_FRAME_COUNT -
                       UINT16_C(1));
 
-        bottom_y_from_origin_q16 =
-            pose->platform_drop_bottom_y_from_origin_q16[frame_index];
+        bottom_y_from_origin_f32 =
+            pose->platform_drop_bottom_y_from_origin_f32[frame_index];
         has_reference_pose = 1;
         exact_reference_pose = 1;
     }
     else if (action_state == (uint8_t)PF_M4_ACTION_AIRBORNE ||
              action_state == (uint8_t)PF_M4_ACTION_FALCON_DIVE_THROW)
     {
-        bottom_y_from_origin_q16 = pose->falling_bottom_y_from_origin_q16;
+        bottom_y_from_origin_f32 = pose->falling_bottom_y_from_origin_f32;
         has_reference_pose = 1;
     }
     if (has_reference_pose != 0 &&
-        bottom_y_from_origin_q16 >= INT32_C(0))
+        bottom_y_from_origin_f32 >= INT32_C(0))
     {
         *out_exact_reference_pose = exact_reference_pose;
-        return fighter->half_height_q16 - bottom_y_from_origin_q16;
+        return fighter->half_height_f32 - bottom_y_from_origin_f32;
     }
-    return fighter->half_height_q16;
+    return fighter->half_height_f32;
 }
 
-static int32_t reference_ecb_lock_bottom_from_world_q16(
+static float reference_ecb_lock_bottom_from_world_f32(
     const fighter_data *fighter,
     const pf_world_state *world,
     uint32_t player_index,
-    int32_t previous_locked_bottom_y_q16)
+    float previous_locked_bottom_y_f32)
 {
     int previous_exact_pose = 0;
 
-    if (previous_locked_bottom_y_q16 !=
-        PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16)
+    if (previous_locked_bottom_y_f32 !=
+        PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_F32)
     {
-        return previous_locked_bottom_y_q16;
+        return previous_locked_bottom_y_f32;
     }
 
     /* ftCommon_8007D5D4 preserves CollData.desired_ecb.bottom from the
      * preceding map update. Canonical positions use centre space, so convert
      * the prior sweep extent back to the source root-space ordinate. */
-    const int32_t previous_floor_contact_bottom_extent_q16 =
-        floor_contact_bottom_extent_q16(
+    const float previous_floor_contact_bottom_extent_f32 =
+        floor_contact_bottom_extent_f32(
             fighter,
             effective_action_state(
                 world->action_state[player_index],
                 world->hitlag_resume_action[player_index]),
             world->action_ticks[player_index],
             world->grounded[player_index],
-            PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16,
+            PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_F32,
             world->source_submotion[player_index],
-            world->source_animation_frame_q16[player_index],
-            world->fall_animation_blend_q16[player_index],
+            world->source_animation_frame_f32[player_index],
+            world->fall_animation_blend_f32[player_index],
             world->fall_animation_target_switched[player_index],
             world->prone_orientation[player_index],
             world->prone_roll_motion_orientation[player_index],
             world->tech_direction[player_index],
             world->facing[player_index],
-            total_velocity_q16(
-                world->velocity_x_q16[player_index],
-                world->knockback_velocity_x_q16[player_index]),
-            total_velocity_q16(
-                world->velocity_y_q16[player_index],
-                world->knockback_velocity_y_q16[player_index]),
+            total_velocity_f32(
+                world->velocity_x_f32[player_index],
+                world->knockback_velocity_x_f32[player_index]),
+            total_velocity_f32(
+                world->velocity_y_f32[player_index],
+                world->knockback_velocity_y_f32[player_index]),
             &previous_exact_pose);
 
     (void)previous_exact_pose;
-    return fighter->half_height_q16 -
-           previous_floor_contact_bottom_extent_q16;
+    return fighter->half_height_f32 -
+           previous_floor_contact_bottom_extent_f32;
 }
 
 static uint8_t down_bound_floor_contact(
@@ -3561,7 +3538,7 @@ static int surface_is_pass_through(
            support == (uint8_t)PF_M4_SURFACE_UPPER_PLATFORM;
 }
 
-static void surface_bounds_q16(
+static void surface_bounds_f32(
     const struct content *content,
     uint8_t support,
     uint64_t tick,
@@ -3575,46 +3552,46 @@ static void surface_bounds_q16(
 
     if (line != NULL)
     {
-        *out_left = line->start_x_q16 < line->end_x_q16
-                        ? line->start_x_q16
-                        : line->end_x_q16;
-        *out_right = line->start_x_q16 > line->end_x_q16
-                         ? line->start_x_q16
-                         : line->end_x_q16;
+        *out_left = line->start_x_f32 < line->end_x_f32
+                        ? line->start_x_f32
+                        : line->end_x_f32;
+        *out_right = line->start_x_f32 > line->end_x_f32
+                         ? line->start_x_f32
+                         : line->end_x_f32;
         return;
     }
     if (support == (uint8_t)PF_M4_SURFACE_PLATFORM)
     {
         const int32_t center =
-            platform_center_x_q16(&content->stage, tick);
-        *out_left = center - content->stage.platform_half_width_q16;
-        *out_right = center + content->stage.platform_half_width_q16;
+            platform_center_x_f32(&content->stage, tick);
+        *out_left = center - content->stage.platform_half_width_f32;
+        *out_right = center + content->stage.platform_half_width_f32;
     }
     else if (support == (uint8_t)PF_M4_SURFACE_SOLID_TOP)
     {
-        *out_left = content->stage.solid_left_q16;
-        *out_right = content->stage.solid_right_q16;
+        *out_left = content->stage.solid_left_f32;
+        *out_right = content->stage.solid_right_f32;
     }
     else if (support == (uint8_t)PF_M4_SURFACE_UPPER_PLATFORM)
     {
         *out_left =
-            content->stage.upper_platform_center_x_q16 -
-            content->stage.upper_platform_half_width_q16;
+            content->stage.upper_platform_center_x_f32 -
+            content->stage.upper_platform_half_width_f32;
         *out_right =
-            content->stage.upper_platform_center_x_q16 +
-            content->stage.upper_platform_half_width_q16;
+            content->stage.upper_platform_center_x_f32 +
+            content->stage.upper_platform_half_width_f32;
     }
     else
     {
-        *out_left = content->stage.floor_left_q16;
-        *out_right = content->stage.floor_right_q16;
+        *out_left = content->stage.floor_left_f32;
+        *out_right = content->stage.floor_right_f32;
     }
 }
 
 static int reference_connected_floor_support(
     uint16_t profile_id,
     uint8_t initial_support,
-    int32_t position_x_q16,
+    float position_x_f32,
     uint8_t *out_support)
 {
     const ssbm_stage_collision_profile *profile =
@@ -3634,17 +3611,17 @@ static int reference_connected_floor_support(
         const ssbm_stage_collision_line *line =
             &profile->lines[line_index];
         const int32_t left =
-            line->start_x_q16 < line->end_x_q16
-                ? line->start_x_q16
-                : line->end_x_q16;
+            line->start_x_f32 < line->end_x_f32
+                ? line->start_x_f32
+                : line->end_x_f32;
         const int32_t right =
-            line->start_x_q16 > line->end_x_q16
-                ? line->start_x_q16
-                : line->end_x_q16;
+            line->start_x_f32 > line->end_x_f32
+                ? line->start_x_f32
+                : line->end_x_f32;
         const int crossed_start =
-            position_x_q16 < left
-                ? line->start_x_q16 <= line->end_x_q16
-                : line->start_x_q16 >= line->end_x_q16;
+            position_x_f32 < left
+                ? line->start_x_f32 <= line->end_x_f32
+                : line->start_x_f32 >= line->end_x_f32;
         const int16_t next_line =
             crossed_start != 0
                 ? line->previous_line
@@ -3656,7 +3633,7 @@ static int reference_connected_floor_support(
         {
             return 0;
         }
-        if (position_x_q16 >= left && position_x_q16 <= right)
+        if (position_x_f32 >= left && position_x_f32 <= right)
         {
             *out_support = (uint8_t)(line_index + UINT16_C(1));
             return 1;
@@ -3680,26 +3657,26 @@ typedef enum pass_through_floor_sweep_policy
 } pass_through_floor_sweep_policy;
 
 static int floor_sweep_crosses_surface(
-    int32_t previous_floor_contact_q16,
-    int32_t new_floor_contact_q16,
-    int32_t surface_y_q16_value,
+    float previous_floor_contact_f32,
+    float new_floor_contact_f32,
+    int32_t surface_y_f32_value,
     int is_pass_through,
     uint8_t fast_fall,
     pass_through_floor_sweep_policy pass_through_policy)
 {
     const int direct_crossing =
-        previous_floor_contact_q16 <= surface_y_q16_value &&
-        new_floor_contact_q16 >= surface_y_q16_value;
+        previous_floor_contact_f32 <= surface_y_f32_value &&
+        new_floor_contact_f32 >= surface_y_f32_value;
 
     if (is_pass_through != 0 && fast_fall == UINT8_C(0) &&
         pass_through_policy != PF_M4_PASS_THROUGH_FLOOR_SWEEP_DIRECT)
     {
         const int64_t previous_overshoot =
-            (int64_t)previous_floor_contact_q16 -
-            (int64_t)surface_y_q16_value;
+            (int64_t)previous_floor_contact_f32 -
+            (int64_t)surface_y_f32_value;
         const int64_t current_displacement =
-            (int64_t)new_floor_contact_q16 -
-            (int64_t)previous_floor_contact_q16;
+            (int64_t)new_floor_contact_f32 -
+            (int64_t)previous_floor_contact_f32;
 
         const int immediately_previous_crossing =
             previous_overshoot > INT64_C(0) &&
@@ -3722,23 +3699,23 @@ static int floor_sweep_crosses_surface(
 
 static int reference_stage_find_floor_landing(
     const struct content *content,
-    int32_t position_x_q16,
-    int32_t previous_floor_contact_q16,
-    int32_t new_floor_contact_q16,
+    float position_x_f32,
+    float previous_floor_contact_f32,
+    float new_floor_contact_f32,
     uint8_t fast_fall,
     pass_through_floor_sweep_policy pass_through_policy,
     int pass_through_allowed,
     uint8_t platform_drop_ticks,
-    int32_t *out_surface_y_q16,
+    float *out_surface_y_f32,
     uint8_t *out_support)
 {
     const ssbm_stage_collision_profile *profile =
         ssbm_reference_stage_collision(
             content->stage.reference_collision_profile);
-    int32_t best_surface_y_q16 = INT32_MAX;
+    float best_surface_y_f32 = INT32_MAX;
     uint16_t floor_offset;
 
-    if (profile == NULL || out_surface_y_q16 == NULL ||
+    if (profile == NULL || out_surface_y_f32 == NULL ||
         out_support == NULL)
     {
         return 0;
@@ -3753,41 +3730,41 @@ static int reference_stage_find_floor_landing(
             &profile->lines[line_index];
         const uint8_t support = (uint8_t)(line_index + UINT16_C(1));
         const int32_t left =
-            line->start_x_q16 < line->end_x_q16
-                ? line->start_x_q16
-                : line->end_x_q16;
+            line->start_x_f32 < line->end_x_f32
+                ? line->start_x_f32
+                : line->end_x_f32;
         const int32_t right =
-            line->start_x_q16 > line->end_x_q16
-                ? line->start_x_q16
-                : line->end_x_q16;
+            line->start_x_f32 > line->end_x_f32
+                ? line->start_x_f32
+                : line->end_x_f32;
         const int is_pass_through =
             surface_is_pass_through(content, support);
-        int32_t surface_y_q16_value;
+        int32_t surface_y_f32_value;
         int crosses_surface;
 
         if ((line->runtime_flags & UINT32_C(0x00010000)) == UINT32_C(0) ||
             (line->runtime_flags & UINT32_C(0x00040000)) != UINT32_C(0) ||
             line->kind != (uint8_t)PF_M4_SSBM_STAGE_SURFACE_FLOOR ||
-            position_x_q16 < left || position_x_q16 > right ||
+            position_x_f32 < left || position_x_f32 > right ||
             (is_pass_through != 0 &&
              (pass_through_allowed == 0 ||
               platform_drop_ticks != UINT8_C(0))))
         {
             continue;
         }
-        surface_y_q16_value =
-            surface_y_q16(content, support, position_x_q16);
+        surface_y_f32_value =
+            surface_y_f32(content, support, position_x_f32);
         crosses_surface = floor_sweep_crosses_surface(
-            previous_floor_contact_q16,
-            new_floor_contact_q16,
-            surface_y_q16_value,
+            previous_floor_contact_f32,
+            new_floor_contact_f32,
+            surface_y_f32_value,
             is_pass_through,
             fast_fall,
             pass_through_policy);
         if (crosses_surface != 0 &&
-            surface_y_q16_value < best_surface_y_q16)
+            surface_y_f32_value < best_surface_y_f32)
         {
-            best_surface_y_q16 = surface_y_q16_value;
+            best_surface_y_f32 = surface_y_f32_value;
             *out_support = support;
         }
     }
@@ -3795,68 +3772,68 @@ static int reference_stage_find_floor_landing(
     {
         return 0;
     }
-    *out_surface_y_q16 = best_surface_y_q16;
+    *out_surface_y_f32 = best_surface_y_f32;
     return 1;
 }
 
 static int body_sweep_hits_solid(
     const struct content *content,
-    int32_t previous_position_x_q16,
-    int32_t previous_position_y_q16,
-    int32_t current_position_x_q16,
-    int32_t current_position_y_q16)
+    float previous_position_x_f32,
+    float previous_position_y_f32,
+    float current_position_x_f32,
+    float current_position_y_f32)
 {
     const fighter_data *fighter = &content->fighter;
     const stage_data *stage = &content->stage;
     const int64_t left =
-        (int64_t)current_position_x_q16 - fighter->half_width_q16;
+        (int64_t)current_position_x_f32 - fighter->half_width_f32;
     const int64_t right =
-        (int64_t)current_position_x_q16 + fighter->half_width_q16;
+        (int64_t)current_position_x_f32 + fighter->half_width_f32;
     const int64_t top =
-        (int64_t)current_position_y_q16 - fighter->half_height_q16;
+        (int64_t)current_position_y_f32 - fighter->half_height_f32;
     const int64_t bottom =
-        (int64_t)current_position_y_q16 + fighter->half_height_q16;
+        (int64_t)current_position_y_f32 + fighter->half_height_f32;
 
     if (stage->reference_collision_profile !=
         (uint16_t)PF_M4_REFERENCE_STAGE_AUTHORED)
     {
         const int64_t previous_top =
-            (int64_t)previous_position_y_q16 - fighter->half_height_q16;
+            (int64_t)previous_position_y_f32 - fighter->half_height_f32;
         const int64_t previous_bottom =
-            (int64_t)previous_position_y_q16 + fighter->half_height_q16;
+            (int64_t)previous_position_y_f32 + fighter->half_height_f32;
         const int64_t swept_top = previous_top < top ? previous_top : top;
         const int64_t swept_bottom =
             previous_bottom > bottom ? previous_bottom : bottom;
-        int32_t contact_position_x_q16;
-        int32_t contact_y_q16;
+        float contact_position_x_f32;
+        float contact_y_f32;
         uint8_t contact_support;
         int8_t away_direction;
 
         if (ssbm_reference_stage_find_wall_contact(
                 stage->reference_collision_profile,
-                previous_position_x_q16,
-                current_position_x_q16,
+                previous_position_x_f32,
+                current_position_x_f32,
                 swept_top,
                 swept_bottom,
-                fighter->half_width_q16,
-                &contact_position_x_q16,
+                fighter->half_width_f32,
+                &contact_position_x_f32,
                 &contact_support,
                 &away_direction))
         {
             return 1;
         }
-        if (current_position_y_q16 < previous_position_y_q16 &&
+        if (current_position_y_f32 < previous_position_y_f32 &&
             ssbm_reference_stage_find_ceiling_contact(
                 stage->reference_collision_profile,
-                current_position_x_q16,
+                current_position_x_f32,
                 previous_top,
                 top,
-                &contact_y_q16,
+                &contact_y_f32,
                 &contact_support))
         {
             return 1;
         }
-        if (current_position_y_q16 > previous_position_y_q16)
+        if (current_position_y_f32 > previous_position_y_f32)
         {
             contact_support = (uint8_t)PF_M4_SURFACE_NONE;
             if (previous_bottom < INT32_MIN || previous_bottom > INT32_MAX ||
@@ -3866,14 +3843,14 @@ static int body_sweep_hits_solid(
             }
             if (reference_stage_find_floor_landing(
                     content,
-                    current_position_x_q16,
+                    current_position_x_f32,
                     (int32_t)previous_bottom,
                     (int32_t)bottom,
                     UINT8_C(0),
                     PF_M4_PASS_THROUGH_FLOOR_SWEEP_DIRECT,
                     1,
                     UINT8_C(0),
-                    &contact_y_q16,
+                    &contact_y_f32,
                     &contact_support))
             {
                 return 1;
@@ -3882,61 +3859,61 @@ static int body_sweep_hits_solid(
         return 0;
     }
 
-    return right > (int64_t)stage->solid_left_q16 &&
-           left < (int64_t)stage->solid_right_q16 &&
-           bottom > (int64_t)stage->solid_top_q16 &&
-           top < (int64_t)stage->solid_bottom_q16;
+    return right > (int64_t)stage->solid_left_f32 &&
+           left < (int64_t)stage->solid_right_f32 &&
+           bottom > (int64_t)stage->solid_top_f32 &&
+           top < (int64_t)stage->solid_bottom_f32;
 }
 
 static int8_t wall_contact_away_direction(
     const struct content *content,
-    int32_t position_x_q16,
-    int32_t position_y_q16)
+    float position_x_f32,
+    float position_y_f32)
 {
     const fighter_data *fighter = &content->fighter;
     const stage_data *stage = &content->stage;
     const int64_t body_top =
-        (int64_t)position_y_q16 - fighter->half_height_q16;
+        (int64_t)position_y_f32 - fighter->half_height_f32;
     const int64_t body_bottom =
-        (int64_t)position_y_q16 + fighter->half_height_q16;
+        (int64_t)position_y_f32 + fighter->half_height_f32;
     const int vertical_overlap =
-        body_bottom > (int64_t)stage->solid_top_q16 &&
-        body_top < (int64_t)stage->solid_bottom_q16;
+        body_bottom > (int64_t)stage->solid_top_f32 &&
+        body_top < (int64_t)stage->solid_bottom_f32;
 
     if (stage->reference_collision_profile !=
         (uint16_t)PF_M4_REFERENCE_STAGE_AUTHORED)
     {
-        int32_t contact_position_x_q16;
+        float contact_position_x_f32;
         uint8_t contact_support;
         int8_t away_direction;
 
-        if (position_x_q16 > INT32_MIN &&
+        if (position_x_f32 > INT32_MIN &&
             ssbm_reference_stage_find_wall_contact(
                 stage->reference_collision_profile,
-                position_x_q16 - INT32_C(1),
-                position_x_q16,
+                position_x_f32 - INT32_C(1),
+                position_x_f32,
                 body_top,
                 body_bottom,
-                fighter->half_width_q16,
-                &contact_position_x_q16,
+                fighter->half_width_f32,
+                &contact_position_x_f32,
                 &contact_support,
                 &away_direction) &&
-            contact_position_x_q16 == position_x_q16)
+            contact_position_x_f32 == position_x_f32)
         {
             return away_direction;
         }
-        if (position_x_q16 < INT32_MAX &&
+        if (position_x_f32 < INT32_MAX &&
             ssbm_reference_stage_find_wall_contact(
                 stage->reference_collision_profile,
-                position_x_q16 + INT32_C(1),
-                position_x_q16,
+                position_x_f32 + INT32_C(1),
+                position_x_f32,
                 body_top,
                 body_bottom,
-                fighter->half_width_q16,
-                &contact_position_x_q16,
+                fighter->half_width_f32,
+                &contact_position_x_f32,
                 &contact_support,
                 &away_direction) &&
-            contact_position_x_q16 == position_x_q16)
+            contact_position_x_f32 == position_x_f32)
         {
             return away_direction;
         }
@@ -3947,13 +3924,13 @@ static int8_t wall_contact_away_direction(
     {
         return INT8_C(0);
     }
-    if ((int64_t)position_x_q16 + fighter->half_width_q16 ==
-        (int64_t)stage->solid_left_q16)
+    if ((int64_t)position_x_f32 + fighter->half_width_f32 ==
+        (int64_t)stage->solid_left_f32)
     {
         return INT8_C(-1);
     }
-    if ((int64_t)position_x_q16 - fighter->half_width_q16 ==
-        (int64_t)stage->solid_right_q16)
+    if ((int64_t)position_x_f32 - fighter->half_width_f32 ==
+        (int64_t)stage->solid_right_f32)
     {
         return INT8_C(1);
     }
@@ -3967,15 +3944,15 @@ static pf_status apply_hitlag_shift(
     uint32_t player_index,
     int16_t stick_x,
     int16_t stick_y,
-    int32_t maximum_distance_x_q16,
-    int32_t maximum_distance_y_q16,
+    float maximum_distance_x_f32,
+    float maximum_distance_y_f32,
     int preserve_ground_support,
     int defer_solid_resolution)
 {
     const fighter_data *fighter = &content->fighter;
     const stage_data *stage = &content->stage;
-    const int32_t old_x = scratch->position_x_q16[player_index];
-    const int32_t old_y = scratch->position_y_q16[player_index];
+    const int32_t old_x = scratch->position_x_f32[player_index];
+    const int32_t old_y = scratch->position_y_f32[player_index];
     int32_t next_x;
     int32_t next_y;
     int64_t shifted_x;
@@ -3983,14 +3960,14 @@ static pf_status apply_hitlag_shift(
 
     shifted_x =
         (int64_t)old_x +
-        (int64_t)ssbm_analog_displacement_q16(
+        (int64_t)ssbm_analog_displacement_f32(
             stick_x,
-            maximum_distance_x_q16);
+            maximum_distance_x_f32);
     shifted_y =
         (int64_t)old_y +
-        (int64_t)ssbm_analog_displacement_q16(
+        (int64_t)ssbm_analog_displacement_f32(
             stick_y,
-            maximum_distance_y_q16);
+            maximum_distance_y_f32);
     if (!checked_i32(shifted_x, &next_x) ||
         !checked_i32(shifted_y, &next_y))
     {
@@ -4033,9 +4010,9 @@ static pf_status apply_hitlag_shift(
     {
         const uint8_t support = scratch->support[player_index];
         const int32_t surface_y =
-            surface_y_q16(content, support, next_x);
+            surface_y_f32(content, support, next_x);
         const int32_t standing_y =
-            surface_y - fighter->half_height_q16;
+            surface_y - fighter->half_height_f32;
         int32_t surface_left;
         int32_t surface_right;
 
@@ -4043,7 +4020,7 @@ static pf_status apply_hitlag_shift(
         {
             next_y = standing_y;
         }
-        surface_bounds_q16(
+        surface_bounds_f32(
             content,
             support,
             world->tick,
@@ -4073,25 +4050,25 @@ static pf_status apply_hitlag_shift(
     else if (defer_solid_resolution == 0 && next_y > old_y)
     {
         const int32_t old_bottom =
-            old_y + fighter->half_height_q16;
+            old_y + fighter->half_height_f32;
         const int32_t next_bottom =
-            next_y + fighter->half_height_q16;
+            next_y + fighter->half_height_f32;
         const int32_t platform_center =
-            platform_center_x_q16(stage, world->tick);
+            platform_center_x_f32(stage, world->tick);
         const int32_t platform_left =
-            platform_center - stage->platform_half_width_q16;
+            platform_center - stage->platform_half_width_f32;
         const int32_t platform_right =
-            platform_center + stage->platform_half_width_q16;
+            platform_center + stage->platform_half_width_f32;
         const int crosses_platform =
             next_x >= platform_left &&
             next_x <= platform_right &&
-            old_bottom <= stage->platform_y_q16 &&
-            next_bottom >= stage->platform_y_q16;
+            old_bottom <= stage->platform_y_f32 &&
+            next_bottom >= stage->platform_y_f32;
         const int crosses_floor =
-            next_x >= stage->floor_left_q16 &&
-            next_x <= stage->floor_right_q16 &&
-            old_bottom <= stage->floor_y_q16 &&
-            next_bottom >= stage->floor_y_q16;
+            next_x >= stage->floor_left_f32 &&
+            next_x <= stage->floor_right_f32 &&
+            old_bottom <= stage->floor_y_f32 &&
+            next_bottom >= stage->floor_y_f32;
 
         if (crosses_platform || crosses_floor)
         {
@@ -4099,8 +4076,8 @@ static pf_status apply_hitlag_shift(
         }
     }
 
-    scratch->position_x_q16[player_index] = next_x;
-    scratch->position_y_q16[player_index] = next_y;
+    scratch->position_x_f32[player_index] = next_x;
+    scratch->position_y_f32[player_index] = next_y;
     return PF_STATUS_OK;
 }
 
@@ -4552,7 +4529,7 @@ static reference_timing ground_attack_timing(
     return timing;
 }
 
-static uint32_t ground_attack_damage_q16(
+static float ground_attack_damage_f32(
     const fighter_data *fighter,
     uint8_t action_state)
 {
@@ -4577,18 +4554,18 @@ static uint32_t ground_attack_damage_q16(
     }
     if (attack != NULL)
     {
-        return attack->damage_q16;
+        return attack->damage_f32;
     }
     switch ((enum action_state)action_state)
     {
         case PF_M4_ACTION_DASH_ATTACK:
-            return fighter->dash_attack_damage_q16;
+            return fighter->dash_attack_damage_f32;
         case PF_M4_ACTION_JAB_FINAL:
-            return fighter->jab_final_damage_q16;
+            return fighter->jab_final_damage_f32;
         case PF_M4_ACTION_STRONG_ATTACK:
-            return fighter->strong_damage_q16;
+            return fighter->strong_damage_f32;
         case PF_M4_ACTION_GROUND_ATTACK:
-            return fighter->jab_damage_q16;
+            return fighter->jab_damage_f32;
         default:
             return UINT32_C(0);
     }
@@ -4616,7 +4593,7 @@ static const struct reference_move *falcon_ground_reference_attack(
     return falcon_reference_attack(
         action_state,
         authored,
-        ground_attack_damage_q16(fighter, action_state));
+        ground_attack_damage_f32(fighter, action_state));
 }
 
 static int falcon_ground_reference_matches(
@@ -4689,8 +4666,8 @@ static int reference_calls_direct_escape_n(
 static int8_t source_forward_angle_band(
     int16_t stick_x,
     int16_t stick_y,
-    int32_t outer_angle_tan_q16,
-    int32_t inner_angle_tan_q16)
+    float outer_angle_tan_f32,
+    float inner_angle_tan_f32)
 {
     const int32_t source_y = -(int32_t)stick_y;
     const uint16_t horizontal_magnitude = axis_magnitude(stick_x);
@@ -4699,12 +4676,12 @@ static int8_t source_forward_angle_band(
         INT64_C(65536);
 
     if (angle_numerator >
-        (int64_t)horizontal_magnitude * outer_angle_tan_q16)
+        (int64_t)horizontal_magnitude * outer_angle_tan_f32)
     {
         return source_y > INT32_C(0) ? INT8_C(2) : INT8_C(-2);
     }
     if (angle_numerator >
-        (int64_t)horizontal_magnitude * inner_angle_tan_q16)
+        (int64_t)horizontal_magnitude * inner_angle_tan_f32)
     {
         return source_y > INT32_C(0) ? INT8_C(1) : INT8_C(-1);
     }
@@ -4728,7 +4705,7 @@ static uint8_t select_ground_light_attack_action(
             INT64_C(65536);
         const int64_t direction_boundary =
             (int64_t)horizontal_magnitude *
-            source_ground_input->tilt_direction_angle_tan_q16;
+            source_ground_input->tilt_direction_angle_tan_f32;
 
         /* Wait_IASA checks S3 before Hi3/Lw3 before Attack11. Match those
          * independent source predicates rather than choosing the dominant
@@ -4743,8 +4720,8 @@ static uint8_t select_ground_light_attack_action(
             const int8_t angle_band = source_forward_angle_band(
                 stick_x,
                 stick_y,
-                source_ground_input->forward_tilt_outer_angle_tan_q16,
-                source_ground_input->forward_tilt_inner_angle_tan_q16);
+                source_ground_input->forward_tilt_outer_angle_tan_f32,
+                source_ground_input->forward_tilt_inner_angle_tan_f32);
 
             if (angle_band == INT8_C(2))
             {
@@ -4836,8 +4813,8 @@ static uint8_t select_ground_strong_attack_action(
             const int8_t angle_band = source_forward_angle_band(
                 stick_x,
                 stick_y,
-                source_ground_input->forward_smash_outer_angle_tan_q16,
-                source_ground_input->forward_smash_inner_angle_tan_q16);
+                source_ground_input->forward_smash_outer_angle_tan_f32,
+                source_ground_input->forward_smash_inner_angle_tan_f32);
 
             /* Falcon has no AttackS4HiS/LwS subactions. The decomp tests
              * those pointers before selecting the inner-angle variants, so
@@ -4976,8 +4953,8 @@ static int falcon_aerial_reference_matches(
     const reference_hit_effect *effect;
     const attack_data *attack =
         directional_aerial_data(fighter, action_state);
-    const uint32_t damage_q16 =
-        attack != NULL ? attack->damage_q16 : fighter->aerial_damage_q16;
+    const float damage_f32 =
+        attack != NULL ? attack->damage_f32 : fighter->aerial_damage_f32;
 
     if (!falcon_reference_move_for_action(
             action_state,
@@ -4991,7 +4968,7 @@ static int falcon_aerial_reference_matches(
            move->landing_lag != UINT16_C(0) &&
            light_aerial_ticks(fighter, action_state) ==
                (uint32_t)move->total_frames &&
-           damage_q16 ==
+           damage_f32 ==
                (uint32_t)effect->damage * UINT32_C(65536) &&
            aerial_landing_lag_for_action(
                fighter,
@@ -5039,10 +5016,10 @@ static uint8_t select_light_aerial_action(
             const int32_t source_y = -(int32_t)stick_y;
             const int64_t direction_height =
                 (int64_t)(source_y < INT32_C(0) ? -source_y : source_y) *
-                (int64_t)PF_Q16_ONE;
+                (int64_t)PF_F32_ONE;
             const int64_t direction_width =
                 (int64_t)horizontal_magnitude *
-                (int64_t)ground_input->aerial_direction_angle_tan_q16;
+                (int64_t)ground_input->aerial_direction_angle_tan_f32;
 
             if (horizontal_magnitude <
                     ground_input->aerial_neutral_x_threshold &&
@@ -5508,13 +5485,13 @@ static int8_t ledge_inward_direction(uint8_t ledge)
                : INT8_C(-1);
 }
 
-static int32_t ledge_x_q16(
+static float ledge_x_f32(
     const stage_data *stage,
     uint8_t ledge)
 {
     return ledge == (uint8_t)PF_M4_LEDGE_LEFT
-               ? stage->floor_left_q16
-               : stage->floor_right_q16;
+               ? stage->floor_left_f32
+               : stage->floor_right_f32;
 }
 
 static uint16_t ledge_transition_ticks(
@@ -5540,20 +5517,20 @@ static void ledge_hang_position(
         if (roots != NULL)
         {
             *out_x =
-                ledge_x_q16(stage, ledge) +
-                (int32_t)inward * roots->wait_frame_one_x_q16;
+                ledge_x_f32(stage, ledge) +
+                (int32_t)inward * roots->wait_frame_one_x_f32;
             *out_y =
-                stage->floor_y_q16 + roots->wait_frame_one_y_q16 -
-                fighter->half_height_q16;
+                stage->floor_y_f32 + roots->wait_frame_one_y_f32 -
+                fighter->half_height_f32;
             return;
         }
     }
 
     *out_x =
-        ledge_x_q16(stage, ledge) -
-        (int32_t)inward * fighter->half_width_q16;
+        ledge_x_f32(stage, ledge) -
+        (int32_t)inward * fighter->half_width_f32;
     *out_y =
-        stage->floor_y_q16 + fighter->half_height_q16 / INT32_C(2);
+        stage->floor_y_f32 + fighter->half_height_f32 / INT32_C(2);
 }
 
 static int reference_ledge_direction_option(
@@ -5567,10 +5544,10 @@ static int reference_ledge_direction_option(
     const int32_t source_y = -(int32_t)stick_y;
     const int64_t angle_left =
         (int64_t)(source_y < INT32_C(0) ? -source_y : source_y) *
-        (int64_t)PF_Q16_ONE;
+        (int64_t)PF_F32_ONE;
     const int64_t angle_right =
         (int64_t)magnitude_x *
-        (int64_t)attributes->direction_angle_tan_q16;
+        (int64_t)attributes->direction_angle_tan_f32;
     const int above_upper =
         source_y > INT32_C(0) && angle_left > angle_right;
     const int at_or_below_lower =
@@ -5629,23 +5606,23 @@ static int enter_reference_ledge_option(
     uint16_t *action_ticks,
     uint16_t *source_submotion)
 {
-    int32_t anchor_x_q16;
-    int32_t anchor_y_q16;
+    float anchor_x_f32;
+    float anchor_y_f32;
     const uint16_t submotion =
         reference_ledge_option_submotion(next_action, quick);
 
-    if (!falcon_reference_ledge_option_anchor_q16(
+    if (!falcon_reference_ledge_option_anchor_f32(
             submotion,
-            &anchor_x_q16,
-            &anchor_y_q16))
+            &anchor_x_f32,
+            &anchor_y_f32))
     {
         return 0;
     }
     *position_x =
-        ledge_x_q16(stage, ledge) +
-        (int32_t)ledge_inward_direction(ledge) * anchor_x_q16;
+        ledge_x_f32(stage, ledge) +
+        (int32_t)ledge_inward_direction(ledge) * anchor_x_f32;
     *position_y =
-        stage->floor_y_q16 + anchor_y_q16 - fighter->half_height_q16;
+        stage->floor_y_f32 + anchor_y_f32 - fighter->half_height_f32;
     *action_state = next_action;
     *action_ticks = UINT16_C(0);
     *source_submotion = submotion;
@@ -5669,12 +5646,12 @@ static int ledge_catch_position(
         return 0;
     }
     *out_x =
-        ledge_x_q16(stage, ledge) +
+        ledge_x_f32(stage, ledge) +
         (int32_t)ledge_inward_direction(ledge) *
-            roots->catch_frame_one_x_q16;
+            roots->catch_frame_one_x_f32;
     *out_y =
-        stage->floor_y_q16 + roots->catch_frame_one_y_q16 -
-        fighter->half_height_q16;
+        stage->floor_y_f32 + roots->catch_frame_one_y_f32 -
+        fighter->half_height_f32;
     return 1;
 }
 
@@ -5785,13 +5762,13 @@ static int try_grab_ledge(
     const fighter_data *fighter = &content->fighter;
     const stage_data *stage = &content->stage;
     int64_t horizontal_reach =
-        (int64_t)fighter->half_width_q16 +
-        (int64_t)fighter->air_speed_q16;
+        (int64_t)fighter->half_width_f32 +
+        (int64_t)fighter->air_speed_f32;
     int32_t catch_top =
-        stage->floor_y_q16 - fighter->half_height_q16;
+        stage->floor_y_f32 - fighter->half_height_f32;
     int32_t catch_bottom =
-        stage->floor_y_q16 + fighter->half_height_q16;
-    int32_t melee_bottom_extent_q16 = INT32_C(0);
+        stage->floor_y_f32 + fighter->half_height_f32;
+    float melee_bottom_extent_f32 = INT32_C(0);
     int32_t left_probe_position_x = *position_x;
     int32_t right_probe_position_x = *position_x;
     int use_melee_ledge_probe = 0;
@@ -5805,16 +5782,16 @@ static int try_grab_ledge(
         if (ledge_attributes != NULL)
         {
             horizontal_reach =
-                (int64_t)ledge_attributes->snap_x_q16 +
-                (int64_t)fighter->half_width_q16;
+                (int64_t)ledge_attributes->snap_x_f32 +
+                (int64_t)fighter->half_width_f32;
             catch_top =
-                stage->floor_y_q16 + ledge_attributes->snap_y_q16 -
-                ledge_attributes->snap_height_q16 / INT32_C(2) -
-                fighter->half_height_q16;
+                stage->floor_y_f32 + ledge_attributes->snap_y_f32 -
+                ledge_attributes->snap_height_f32 / INT32_C(2) -
+                fighter->half_height_f32;
             catch_bottom =
-                stage->floor_y_q16 + ledge_attributes->snap_y_q16 +
-                ledge_attributes->snap_height_q16 / INT32_C(2) -
-                fighter->half_height_q16;
+                stage->floor_y_f32 + ledge_attributes->snap_y_f32 +
+                ledge_attributes->snap_height_f32 / INT32_C(2) -
+                fighter->half_height_f32;
             left_probe_position_x =
                 previous_position_x > *position_x
                     ? previous_position_x
@@ -5831,34 +5808,34 @@ static int try_grab_ledge(
                     (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_AIR)
             {
                 uint16_t dive_submotion = UINT16_C(0);
-                int32_t source_frame_q16 = INT32_C(0);
-                int32_t locked_bottom_y_q16 =
-                    PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16;
-                falcon_ecb_pose_q16 dive_pose;
+                float source_frame_f32 = INT32_C(0);
+                float locked_bottom_y_f32 =
+                    PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_F32;
+                falcon_ecb_pose_f32 dive_pose;
 
                 if (falcon_reference_direct_hsd_pose(
                         action_state_before_catch,
                         action_ticks_before_catch,
                         UINT8_C(0),
                         &dive_submotion,
-                        &source_frame_q16) &&
-                    falcon_direct_hsd_locked_bottom_q16(
+                        &source_frame_f32) &&
+                    falcon_direct_hsd_locked_bottom_f32(
                         action_state_before_catch,
-                        source_frame_q16,
+                        source_frame_f32,
                         UINT8_C(0),
-                        &locked_bottom_y_q16) &&
+                        &locked_bottom_y_f32) &&
                     falcon_reference_hsd_ecb_pose(
                         dive_submotion,
-                        source_frame_q16,
+                        source_frame_f32,
                         0,
-                        locked_bottom_y_q16,
+                        locked_bottom_y_f32,
                         &dive_pose))
                 {
                     horizontal_reach =
-                        (int64_t)ledge_attributes->snap_x_q16 +
-                        (int64_t)dive_pose.right_x_from_origin_q16;
-                    melee_bottom_extent_q16 =
-                        dive_pose.bottom_y_from_origin_q16;
+                        (int64_t)ledge_attributes->snap_x_f32 +
+                        (int64_t)dive_pose.right_x_from_origin_f32;
+                    melee_bottom_extent_f32 =
+                        dive_pose.bottom_y_from_origin_f32;
                 }
             }
         }
@@ -5876,29 +5853,29 @@ static int try_grab_ledge(
          (int64_t)*position_y - (int64_t)*velocity_y >
              (int64_t)catch_bottom) ||
         (use_melee_ledge_probe != 0 &&
-         (int64_t)*position_y + (int64_t)fighter->half_height_q16 -
-                 (int64_t)melee_bottom_extent_q16 <=
-             (int64_t)stage->floor_y_q16))
+         (int64_t)*position_y + (int64_t)fighter->half_height_f32 -
+                 (int64_t)melee_bottom_extent_f32 <=
+             (int64_t)stage->floor_y_f32))
     {
         return 0;
     }
 
-    if (*position_x < stage->floor_left_q16 &&
+    if (*position_x < stage->floor_left_f32 &&
         (ledge_probe_direction_value == (int8_t)PF_M4_LEDGE_PROBE_BOTH ||
          ledge_probe_direction_value == (int8_t)PF_M4_LEDGE_PROBE_LEFT) &&
-        (int64_t)stage->floor_left_q16 -
+        (int64_t)stage->floor_left_f32 -
                 (int64_t)left_probe_position_x <=
             horizontal_reach)
     {
         ledge = (uint8_t)PF_M4_LEDGE_LEFT;
     }
-    else if (*position_x > stage->floor_right_q16 &&
+    else if (*position_x > stage->floor_right_f32 &&
              (ledge_probe_direction_value ==
                   (int8_t)PF_M4_LEDGE_PROBE_BOTH ||
               ledge_probe_direction_value ==
                   (int8_t)PF_M4_LEDGE_PROBE_RIGHT) &&
              (int64_t)right_probe_position_x -
-                     (int64_t)stage->floor_right_q16 <=
+                     (int64_t)stage->floor_right_f32 <=
                  horizontal_reach)
     {
         ledge = (uint8_t)PF_M4_LEDGE_RIGHT;
@@ -5999,9 +5976,9 @@ void reset_player(
                 sim->world.action_ticks[other_index] = UINT16_C(0);
                 sim->world.source_submotion[other_index] =
                     (uint16_t)PF_M4_FALCON_SUBMOTION_CATCH_CUT;
-                sim->world.source_animation_frame_q16[other_index] =
+                sim->world.source_animation_frame_f32[other_index] =
                     INT32_C(0);
-                sim->world.source_animation_rate_q16[other_index] =
+                sim->world.source_animation_rate_f32[other_index] =
                     INT32_C(0);
             }
         }
@@ -6018,34 +5995,34 @@ void reset_player(
                 sim->world.action_ticks[other_index] = UINT16_C(0);
                 sim->world.source_submotion[other_index] =
                     (uint16_t)PF_M4_FALCON_SUBMOTION_CAPTURE_CUT;
-                sim->world.source_animation_frame_q16[other_index] =
+                sim->world.source_animation_frame_f32[other_index] =
                     INT32_C(0);
-                sim->world.source_animation_rate_q16[other_index] =
+                sim->world.source_animation_rate_f32[other_index] =
                     INT32_C(0);
             }
         }
     }
 
     sim->world.previous_buttons[player_index] = UINT64_C(0);
-    sim->world.position_x_q16[player_index] =
+    sim->world.position_x_f32[player_index] =
         reference_spawn != NULL
-            ? reference_spawn->position_x_q16
-            : centered_slot * stage->spawn_spacing_q16 +
+            ? reference_spawn->position_x_f32
+            : centered_slot * stage->spawn_spacing_f32 +
                   (stage->reference_collision_profile !=
                            (uint16_t)PF_M4_REFERENCE_STAGE_AUTHORED
-                       ? stage->reference_spawn_x_q16
+                       ? stage->reference_spawn_x_f32
                        : INT32_C(0));
-    sim->world.position_y_q16[player_index] =
-        surface_y_q16(
+    sim->world.position_y_f32[player_index] =
+        surface_y_f32(
             &sim->content,
             spawn_support,
-            sim->world.position_x_q16[player_index]) -
-        fighter->half_height_q16;
-    sim->world.velocity_x_q16[player_index] = INT32_C(0);
-    sim->world.velocity_y_q16[player_index] = INT32_C(0);
+            sim->world.position_x_f32[player_index]) -
+        fighter->half_height_f32;
+    sim->world.velocity_x_f32[player_index] = INT32_C(0);
+    sim->world.velocity_y_f32[player_index] = INT32_C(0);
     sim->world.match_kos[player_index] = UINT16_C(0);
     sim->world.match_falls[player_index] = UINT16_C(0);
-    sim->world.shield_recoil_x_q16[player_index] = INT32_C(0);
+    sim->world.shield_recoil_x_f32[player_index] = INT32_C(0);
     sim->world.shield_recoil_mask =
         (uint8_t)(
             sim->world.shield_recoil_mask &
@@ -6053,12 +6030,12 @@ void reset_player(
     sim->world.action_ticks[player_index] = UINT16_C(0);
     sim->world.source_submotion[player_index] =
         (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT;
-    sim->world.source_animation_frame_q16[player_index] = INT32_C(0);
-    sim->world.source_animation_rate_q16[player_index] = INT32_C(0);
-    sim->world.fall_animation_blend_q16[player_index] = INT32_C(0);
+    sim->world.source_animation_frame_f32[player_index] = INT32_C(0);
+    sim->world.source_animation_rate_f32[player_index] = INT32_C(0);
+    sim->world.fall_animation_blend_f32[player_index] = INT32_C(0);
     sim->world.fall_animation_target_switched[player_index] = UINT8_C(0);
     sim->world.ecb_bottom_lock_ticks[player_index] = UINT8_C(0);
-    sim->world.ecb_locked_bottom_y_q16[player_index] = INT32_C(0);
+    sim->world.ecb_locked_bottom_y_f32[player_index] = INT32_C(0);
     sim->world.respawn_count[player_index] = respawn_count;
     sim->world.respawn_ticks[player_index] = UINT16_C(0);
     sim->world.respawn_invulnerability_ticks[player_index] =
@@ -6112,21 +6089,21 @@ void reset_player(
     sim->world.ucf_pad_buffer_count[player_index] = UINT8_C(0);
     sim->world.horizontal_input_age[player_index] = UINT8_C(254);
     sim->world.horizontal_input_direction[player_index] = INT8_C(0);
-    sim->world.damage_q16[player_index] = UINT32_C(0);
-    sim->world.knockback_velocity_x_q16[player_index] = INT32_C(0);
-    sim->world.knockback_velocity_y_q16[player_index] = INT32_C(0);
-    sim->world.ground_knockback_velocity_q16[player_index] = INT32_C(0);
+    sim->world.damage_f32[player_index] = UINT32_C(0);
+    sim->world.knockback_velocity_x_f32[player_index] = INT32_C(0);
+    sim->world.knockback_velocity_y_f32[player_index] = INT32_C(0);
+    sim->world.ground_knockback_velocity_f32[player_index] = INT32_C(0);
     sim->world.last_hit_sequence[player_index] = UINT32_C(0);
     sim->world.last_hit_tick[player_index] = UINT64_C(0);
-    sim->world.last_hit_damage_q16[player_index] = UINT32_C(0);
+    sim->world.last_hit_damage_f32[player_index] = UINT32_C(0);
     sim->world.damage_time_since_hit_ticks[player_index] = UINT8_C(0);
     sim->world.hitlag_ticks[player_index] = UINT16_C(0);
     sim->world.hitstun_ticks[player_index] = UINT16_C(0);
     sim->world.tech_window_ticks[player_index] = UINT16_C(0);
     sim->world.tech_lockout_ticks[player_index] = UINT16_C(0);
     sim->world.shield_stun_ticks[player_index] = UINT16_C(0);
-    sim->world.shield_health_q16[player_index] =
-        fighter->shield_health_q16;
+    sim->world.shield_health_f32[player_index] =
+        fighter->shield_health_f32;
     sim->world.hitlag_resume_action[player_index] = UINT8_C(0);
     sim->world.attack_hit_mask[player_index] = UINT8_C(0);
     sim->world.attack_stale_registered[player_index] = UINT8_C(0);
@@ -6161,7 +6138,7 @@ void reset_player(
 
 static void land(
     const fighter_data *fighter,
-    int32_t surface_y_q16_value,
+    int32_t surface_y_f32_value,
     uint8_t surface,
     int32_t *position_y,
     int32_t *velocity_y,
@@ -6175,7 +6152,7 @@ static void land(
     int8_t *dash_direction)
 {
     (void)velocity_y;
-    *position_y = surface_y_q16_value - fighter->half_height_q16;
+    *position_y = surface_y_f32_value - fighter->half_height_f32;
     *action_ticks = UINT16_C(0);
     *grounded = UINT8_C(1);
     *action_state = (uint8_t)PF_M4_ACTION_LANDING;
@@ -6202,7 +6179,7 @@ static void enter_shield_break_launch(
     int8_t *dash_direction)
 {
     *velocity_x = INT32_C(0);
-    *velocity_y = -fighter->shield_break_launch_speed_q16;
+    *velocity_y = -fighter->shield_break_launch_speed_f32;
     *action_ticks = UINT16_C(0);
     *source_submotion =
         (uint16_t)PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_FLY;
@@ -6234,32 +6211,32 @@ static void initialize_ground_knockback_from_air(
     const ssbm_damage_response_attributes *common =
         ssbm_common_reference_damage_response();
     int32_t scalar =
-        scratch->knockback_velocity_x_q16[player_index];
+        scratch->knockback_velocity_x_f32[player_index];
 
     if (common == NULL)
     {
         scalar = INT32_C(0);
     }
-    else if (scalar > common->ground_knockback_max_speed_q16)
+    else if (scalar > common->ground_knockback_max_speed_f32)
     {
-        scalar = common->ground_knockback_max_speed_q16;
+        scalar = common->ground_knockback_max_speed_f32;
     }
-    else if (scalar < -common->ground_knockback_max_speed_q16)
+    else if (scalar < -common->ground_knockback_max_speed_f32)
     {
-        scalar = -common->ground_knockback_max_speed_q16;
+        scalar = -common->ground_knockback_max_speed_f32;
     }
-    scratch->ground_knockback_velocity_q16[player_index] = scalar;
-    project_ground_scalar_q16(
+    scratch->ground_knockback_velocity_f32[player_index] = scalar;
+    project_ground_scalar_f32(
         content,
         surface,
         scalar,
-        &scratch->knockback_velocity_x_q16[player_index],
-        &scratch->knockback_velocity_y_q16[player_index]);
+        &scratch->knockback_velocity_x_f32[player_index],
+        &scratch->knockback_velocity_y_f32[player_index]);
 }
 
 static void land_from_air(
     const struct content *content,
-    int32_t surface_y_q16_value,
+    int32_t surface_y_f32_value,
     uint8_t surface,
     int16_t horizontal_input,
     int8_t facing,
@@ -6286,16 +6263,16 @@ static void land_from_air(
         axis_direction(
             horizontal_input,
             fighter->tech_roll_axis_threshold);
-    const int32_t incoming_velocity_x = total_velocity_q16(
+    const int32_t incoming_velocity_x = total_velocity_f32(
         *velocity_x,
-        scratch->knockback_velocity_x_q16[player_index]);
+        scratch->knockback_velocity_x_f32[player_index]);
 
     scratch->prone_orientation[player_index] =
         (uint8_t)PF_M4_PRONE_NONE;
 
     if (*action_state == (uint8_t)PF_M4_ACTION_SHIELD_BREAK)
     {
-        *position_y = surface_y_q16_value - fighter->half_height_q16;
+        *position_y = surface_y_f32_value - fighter->half_height_f32;
         *velocity_x = INT32_C(0);
         /* ftCommon_8007D7FC transfers the horizontal component to gr_vel but
          * leaves self_vel.y observable on ShieldBreakDown frame 1. The first
@@ -6320,7 +6297,7 @@ static void land_from_air(
 
     if (*action_state == (uint8_t)PF_M4_ACTION_RESET_BOUND)
     {
-        *position_y = surface_y_q16_value - fighter->half_height_q16;
+        *position_y = surface_y_f32_value - fighter->half_height_f32;
         *velocity_x = INT32_C(0);
         *velocity_y = INT32_C(0);
         *grounded = UINT8_C(1);
@@ -6339,7 +6316,7 @@ static void land_from_air(
         *action_state ==
             (uint8_t)PF_M4_ACTION_FALCON_KICK_END_AIR_FROM_GROUND)
     {
-        *position_y = surface_y_q16_value - fighter->half_height_q16;
+        *position_y = surface_y_f32_value - fighter->half_height_f32;
         *velocity_y = INT32_C(0);
         *grounded = UINT8_C(1);
         *support = surface;
@@ -6357,7 +6334,7 @@ static void land_from_air(
         *action_state ==
             (uint8_t)PF_M4_ACTION_FALCON_KICK_END_AIR)
     {
-        *position_y = surface_y_q16_value - fighter->half_height_q16;
+        *position_y = surface_y_f32_value - fighter->half_height_f32;
         *action_ticks = UINT16_C(0);
         *grounded = UINT8_C(1);
         *action_state =
@@ -6376,7 +6353,7 @@ static void land_from_air(
     if (*action_state ==
         (uint8_t)PF_M4_ACTION_FALCON_KICK_WALL_REBOUND)
     {
-        *position_y = surface_y_q16_value - fighter->half_height_q16;
+        *position_y = surface_y_f32_value - fighter->half_height_f32;
         *velocity_x = INT32_C(0);
         *velocity_y = INT32_C(0);
         *action_ticks = UINT16_C(0);
@@ -6407,7 +6384,7 @@ static void land_from_air(
             *action_state ==
                 (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_FALL_HIT;
 
-        *position_y = surface_y_q16_value - fighter->half_height_q16;
+        *position_y = surface_y_f32_value - fighter->half_height_f32;
         *action_ticks = UINT16_C(0);
         *grounded = UINT8_C(1);
         *action_state =
@@ -6441,7 +6418,7 @@ static void land_from_air(
             *action_state ==
             (uint8_t)PF_M4_ACTION_FALCON_DIVE_FALL;
 
-        *position_y = surface_y_q16_value - fighter->half_height_q16;
+        *position_y = surface_y_f32_value - fighter->half_height_f32;
         if (preserve_fall_special_velocity == 0)
         {
             *velocity_y = INT32_C(0);
@@ -6468,7 +6445,7 @@ static void land_from_air(
          * animation. Both source friction multipliers (x64/x36C) are 1.0
          * in NTSC 1.02, so the ordinary grounded release branch can resume
          * with the same clock and horizontal velocity. */
-        *position_y = surface_y_q16_value - fighter->half_height_q16;
+        *position_y = surface_y_f32_value - fighter->half_height_f32;
         *velocity_y = INT32_C(0);
         *grounded = UINT8_C(1);
         *support = surface;
@@ -6483,7 +6460,7 @@ static void land_from_air(
         *action_state == (uint8_t)PF_M4_ACTION_FALL_SPECIAL ||
         *action_state == (uint8_t)PF_M4_ACTION_VECTOR_ASCENT)
     {
-        *position_y = surface_y_q16_value - fighter->half_height_q16;
+        *position_y = surface_y_f32_value - fighter->half_height_f32;
         *action_ticks = UINT16_C(0);
         *grounded = UINT8_C(1);
         *action_state = (uint8_t)PF_M4_ACTION_SPECIAL_LANDING;
@@ -6515,7 +6492,7 @@ static void land_from_air(
 
         land(
             fighter,
-            surface_y_q16_value,
+            surface_y_f32_value,
             surface,
             position_y,
             velocity_y,
@@ -6559,7 +6536,7 @@ static void land_from_air(
     {
         land(
             fighter,
-            surface_y_q16_value,
+            surface_y_f32_value,
             surface,
             position_y,
             velocity_y,
@@ -6583,9 +6560,9 @@ static void land_from_air(
             *action_state == (uint8_t)PF_M4_ACTION_HITSTUN)
         {
             damage_floor_response =
-                ssbm_select_damage_floor_response_q16(
-                    scratch->knockback_velocity_x_q16[player_index],
-                    scratch->knockback_velocity_y_q16[player_index],
+                ssbm_select_damage_floor_response_f32(
+                    scratch->knockback_velocity_x_f32[player_index],
+                    scratch->knockback_velocity_y_f32[player_index],
                     UINT8_C(0));
         }
         if (damage_floor_response ==
@@ -6594,7 +6571,7 @@ static void land_from_air(
             /* ftCommon_8007D7FC changes only the kinetic state. Damage_Coll
              * retains the current damage motion, clock, hitstun timer, self
              * velocity, and full x8c vector below common-data x1E4. */
-            *position_y = surface_y_q16_value - fighter->half_height_q16;
+            *position_y = surface_y_f32_value - fighter->half_height_f32;
             *grounded = UINT8_C(1);
             *support = surface;
             *air_jumps_remaining = fighter->air_jump_count;
@@ -6617,7 +6594,7 @@ static void land_from_air(
             scratch->hitstun_ticks[player_index] = UINT16_C(0);
             land(
                 fighter,
-                surface_y_q16_value,
+                surface_y_f32_value,
                 surface,
                 position_y,
                 velocity_y,
@@ -6634,7 +6611,7 @@ static void land_from_air(
         }
     }
 
-    *position_y = surface_y_q16_value - fighter->half_height_q16;
+    *position_y = surface_y_f32_value - fighter->half_height_f32;
     *action_ticks = UINT16_C(0);
     *grounded = UINT8_C(1);
     *support = surface;
@@ -6643,7 +6620,7 @@ static void land_from_air(
     *fast_fall = UINT8_C(0);
     *dash_direction = INT8_C(0);
     scratch->tumble[player_index] = UINT8_C(0);
-    scratch->ground_knockback_velocity_q16[player_index] = INT32_C(0);
+    scratch->ground_knockback_velocity_f32[player_index] = INT32_C(0);
 
     if (force_down_bound == 0 &&
         scratch->tech_window_ticks[player_index] > UINT16_C(0))
@@ -6764,8 +6741,8 @@ static pf_status enter_wall_impact(
     const fighter_data *fighter,
     int wall_tech_jump,
     int8_t away_direction,
-    int32_t source_normal_x_q16,
-    int32_t source_normal_y_q16,
+    float source_normal_x_f32,
+    float source_normal_y_f32,
     pf_sim_scratch *scratch,
     uint32_t player_index,
     int32_t *velocity_x,
@@ -6775,12 +6752,12 @@ static pf_status enter_wall_impact(
     uint8_t *fast_fall,
     int8_t *facing)
 {
-    const int32_t total_velocity_x = total_velocity_q16(
+    const int32_t total_velocity_x = total_velocity_f32(
         *velocity_x,
-        scratch->knockback_velocity_x_q16[player_index]);
-    const int32_t total_velocity_y = total_velocity_q16(
+        scratch->knockback_velocity_x_f32[player_index]);
+    const int32_t total_velocity_y = total_velocity_f32(
         *velocity_y,
-        scratch->knockback_velocity_y_q16[player_index]);
+        scratch->knockback_velocity_y_f32[player_index]);
     *action_ticks = UINT16_C(0);
     *fast_fall = UINT8_C(0);
     *facing = away_direction;
@@ -6788,9 +6765,9 @@ static pf_status enter_wall_impact(
     {
         *velocity_x = INT32_C(0);
         *velocity_y = INT32_C(0);
-        scratch->knockback_velocity_x_q16[player_index] = INT32_C(0);
-        scratch->knockback_velocity_y_q16[player_index] = INT32_C(0);
-        scratch->ground_knockback_velocity_q16[player_index] = INT32_C(0);
+        scratch->knockback_velocity_x_f32[player_index] = INT32_C(0);
+        scratch->knockback_velocity_y_f32[player_index] = INT32_C(0);
+        scratch->ground_knockback_velocity_f32[player_index] = INT32_C(0);
         *action_state =
             wall_tech_jump != 0
                 ? (uint8_t)PF_M4_ACTION_WALL_TECH_JUMP
@@ -6804,10 +6781,10 @@ static pf_status enter_wall_impact(
     {
         int32_t reflected_velocity_x = total_velocity_x;
         int32_t reflected_velocity_y = total_velocity_y;
-        const pf_status status = ssbm_mirror_velocity_q16(
-            source_normal_x_q16,
-            source_normal_y_q16,
-            fighter->surface_bounce_multiplier_q16,
+        const pf_status status = ssbm_mirror_velocity_f32(
+            source_normal_x_f32,
+            source_normal_y_f32,
+            fighter->surface_bounce_multiplier_f32,
             &reflected_velocity_x,
             &reflected_velocity_y);
 
@@ -6817,9 +6794,9 @@ static pf_status enter_wall_impact(
         }
         *velocity_x = INT32_C(0);
         *velocity_y = INT32_C(0);
-        scratch->knockback_velocity_x_q16[player_index] =
+        scratch->knockback_velocity_x_f32[player_index] =
             reflected_velocity_x;
-        scratch->knockback_velocity_y_q16[player_index] =
+        scratch->knockback_velocity_y_f32[player_index] =
             reflected_velocity_y;
         *action_state = (uint8_t)PF_M4_ACTION_WALL_BOUNCE;
         scratch->tech_direction[player_index] = INT8_C(0);
@@ -6829,8 +6806,8 @@ static pf_status enter_wall_impact(
 
 static pf_status enter_ceiling_impact(
     const fighter_data *fighter,
-    int32_t source_normal_x_q16,
-    int32_t source_normal_y_q16,
+    float source_normal_x_f32,
+    float source_normal_y_f32,
     pf_sim_scratch *scratch,
     uint32_t player_index,
     int32_t *velocity_x,
@@ -6845,9 +6822,9 @@ static pf_status enter_ceiling_impact(
     {
         *velocity_x = INT32_C(0);
         *velocity_y = INT32_C(0);
-        scratch->knockback_velocity_x_q16[player_index] = INT32_C(0);
-        scratch->knockback_velocity_y_q16[player_index] = INT32_C(0);
-        scratch->ground_knockback_velocity_q16[player_index] = INT32_C(0);
+        scratch->knockback_velocity_x_f32[player_index] = INT32_C(0);
+        scratch->knockback_velocity_y_f32[player_index] = INT32_C(0);
+        scratch->ground_knockback_velocity_f32[player_index] = INT32_C(0);
         *action_state = (uint8_t)PF_M4_ACTION_CEILING_TECH;
         scratch->tumble[player_index] = UINT8_C(0);
         scratch->tech_window_ticks[player_index] = UINT16_C(0);
@@ -6855,16 +6832,16 @@ static pf_status enter_ceiling_impact(
     }
     else
     {
-        int32_t total_velocity_x = total_velocity_q16(
+        int32_t total_velocity_x = total_velocity_f32(
             *velocity_x,
-            scratch->knockback_velocity_x_q16[player_index]);
-        int32_t total_velocity_y = total_velocity_q16(
+            scratch->knockback_velocity_x_f32[player_index]);
+        int32_t total_velocity_y = total_velocity_f32(
             *velocity_y,
-            scratch->knockback_velocity_y_q16[player_index]);
-        const pf_status status = ssbm_mirror_velocity_q16(
-            source_normal_x_q16,
-            source_normal_y_q16,
-            fighter->surface_bounce_multiplier_q16,
+            scratch->knockback_velocity_y_f32[player_index]);
+        const pf_status status = ssbm_mirror_velocity_f32(
+            source_normal_x_f32,
+            source_normal_y_f32,
+            fighter->surface_bounce_multiplier_f32,
             &total_velocity_x,
             &total_velocity_y);
 
@@ -6875,9 +6852,9 @@ static pf_status enter_ceiling_impact(
 
         *velocity_x = INT32_C(0);
         *velocity_y = INT32_C(0);
-        scratch->knockback_velocity_x_q16[player_index] =
+        scratch->knockback_velocity_x_f32[player_index] =
             total_velocity_x;
-        scratch->knockback_velocity_y_q16[player_index] =
+        scratch->knockback_velocity_y_f32[player_index] =
             total_velocity_y;
         *action_state = (uint8_t)PF_M4_ACTION_CEILING_BOUNCE;
         scratch->tech_direction[player_index] = INT8_C(0);
@@ -6895,8 +6872,8 @@ static void write_scratch(
     int32_t velocity_y,
     uint16_t action_ticks,
     uint16_t source_submotion,
-    int32_t source_animation_frame_q16,
-    int32_t source_animation_rate_q16,
+    float source_animation_frame_f32,
+    float source_animation_rate_f32,
     uint16_t respawn_count,
     uint8_t grounded,
     uint8_t action_state,
@@ -6922,16 +6899,16 @@ static void write_scratch(
         input->secondary_stick_y;
     scratch->previous_main_stick_x[player_index] = input->main_stick_x;
     scratch->previous_main_stick_y[player_index] = input->main_stick_y;
-    scratch->position_x_q16[player_index] = position_x;
-    scratch->position_y_q16[player_index] = position_y;
-    scratch->velocity_x_q16[player_index] = velocity_x;
-    scratch->velocity_y_q16[player_index] = velocity_y;
+    scratch->position_x_f32[player_index] = position_x;
+    scratch->position_y_f32[player_index] = position_y;
+    scratch->velocity_x_f32[player_index] = velocity_x;
+    scratch->velocity_y_f32[player_index] = velocity_y;
     scratch->action_ticks[player_index] = action_ticks;
     scratch->source_submotion[player_index] = source_submotion;
-    scratch->source_animation_frame_q16[player_index] =
-        source_animation_frame_q16;
-    scratch->source_animation_rate_q16[player_index] =
-        source_animation_rate_q16;
+    scratch->source_animation_frame_f32[player_index] =
+        source_animation_frame_f32;
+    scratch->source_animation_rate_f32[player_index] =
+        source_animation_rate_f32;
     scratch->respawn_count[player_index] = respawn_count;
     scratch->grounded[player_index] = grounded;
     scratch->action_state[player_index] = action_state;
@@ -7001,20 +6978,20 @@ static void copy_combat_scratch(
         world->grab_target_slot[player_index];
     scratch->grab_owner_slot[player_index] =
         world->grab_owner_slot[player_index];
-    scratch->damage_q16[player_index] =
-        world->damage_q16[player_index];
-    scratch->knockback_velocity_x_q16[player_index] =
-        world->knockback_velocity_x_q16[player_index];
-    scratch->knockback_velocity_y_q16[player_index] =
-        world->knockback_velocity_y_q16[player_index];
-    scratch->ground_knockback_velocity_q16[player_index] =
-        world->ground_knockback_velocity_q16[player_index];
+    scratch->damage_f32[player_index] =
+        world->damage_f32[player_index];
+    scratch->knockback_velocity_x_f32[player_index] =
+        world->knockback_velocity_x_f32[player_index];
+    scratch->knockback_velocity_y_f32[player_index] =
+        world->knockback_velocity_y_f32[player_index];
+    scratch->ground_knockback_velocity_f32[player_index] =
+        world->ground_knockback_velocity_f32[player_index];
     scratch->last_hit_sequence[player_index] =
         world->last_hit_sequence[player_index];
     scratch->last_hit_tick[player_index] =
         world->last_hit_tick[player_index];
-    scratch->last_hit_damage_q16[player_index] =
-        world->last_hit_damage_q16[player_index];
+    scratch->last_hit_damage_f32[player_index] =
+        world->last_hit_damage_f32[player_index];
     scratch->damage_time_since_hit_ticks[player_index] =
         world->damage_time_since_hit_ticks[player_index];
     scratch->hitlag_ticks[player_index] =
@@ -7027,8 +7004,8 @@ static void copy_combat_scratch(
         world->tech_lockout_ticks[player_index];
     scratch->shield_stun_ticks[player_index] =
         world->shield_stun_ticks[player_index];
-    scratch->shield_health_q16[player_index] =
-        world->shield_health_q16[player_index];
+    scratch->shield_health_f32[player_index] =
+        world->shield_health_f32[player_index];
     scratch->hitlag_resume_action[player_index] =
         world->hitlag_resume_action[player_index];
     scratch->attack_hit_mask[player_index] =
@@ -7086,10 +7063,10 @@ static int32_t revival_platform_y(
     const uint16_t elapsed =
         action_ticks < descent_ticks ? action_ticks : descent_ticks;
     const int64_t distance =
-        (int64_t)stage->revival_platform_end_y_q16 -
-        (int64_t)stage->revival_platform_start_y_q16;
+        (int64_t)stage->revival_platform_end_y_f32 -
+        (int64_t)stage->revival_platform_start_y_f32;
 
-    return stage->revival_platform_start_y_q16 +
+    return stage->revival_platform_start_y_f32 +
            (int32_t)(
                distance * (int64_t)elapsed /
                (int64_t)descent_ticks);
@@ -7100,11 +7077,11 @@ static int32_t revival_platform_x(
     const pf_world_state *world,
     uint32_t player_index)
 {
-    return ssbm_revival_platform_x_q16(
+    return ssbm_revival_platform_x_f32(
         stage->reference_collision_profile,
         world->player_count,
         (uint8_t)player_index,
-        stage->spawn_spacing_q16);
+        stage->spawn_spacing_f32);
 }
 
 static void prepare_spawn(
@@ -7138,7 +7115,7 @@ static void prepare_spawn(
     /* Rebirth physics advances once on the entry update while its displayed
      * action counter is still zero. */
     *position_y = revival_platform_y(stage, UINT16_C(1)) -
-                  fighter->half_height_q16;
+                  fighter->half_height_f32;
     *velocity_x = INT32_C(0);
     *velocity_y = INT32_C(0);
     *action_ticks = UINT16_C(0);
@@ -7160,26 +7137,26 @@ static void prepare_spawn(
     *dash_direction = INT8_C(0);
     *previous_strong_direction = INT8_C(0);
     *directional_input_flags = UINT8_C(0);
-    scratch->damage_q16[player_index] = UINT32_C(0);
-    scratch->knockback_velocity_x_q16[player_index] = INT32_C(0);
-    scratch->knockback_velocity_y_q16[player_index] = INT32_C(0);
-    scratch->ground_knockback_velocity_q16[player_index] = INT32_C(0);
+    scratch->damage_f32[player_index] = UINT32_C(0);
+    scratch->knockback_velocity_x_f32[player_index] = INT32_C(0);
+    scratch->knockback_velocity_y_f32[player_index] = INT32_C(0);
+    scratch->ground_knockback_velocity_f32[player_index] = INT32_C(0);
     scratch->last_hit_sequence[player_index] = UINT32_C(0);
     scratch->last_hit_tick[player_index] = UINT64_C(0);
-    scratch->last_hit_damage_q16[player_index] = UINT32_C(0);
+    scratch->last_hit_damage_f32[player_index] = UINT32_C(0);
     scratch->damage_time_since_hit_ticks[player_index] = UINT8_C(0);
     scratch->hitlag_ticks[player_index] = UINT16_C(0);
     scratch->hitstun_ticks[player_index] = UINT16_C(0);
     scratch->tech_window_ticks[player_index] = UINT16_C(0);
     scratch->tech_lockout_ticks[player_index] = UINT16_C(0);
     scratch->shield_stun_ticks[player_index] = UINT16_C(0);
-    scratch->shield_recoil_x_q16[player_index] = INT32_C(0);
+    scratch->shield_recoil_x_f32[player_index] = INT32_C(0);
     scratch->shield_recoil_mask =
         (uint8_t)(
             scratch->shield_recoil_mask &
             (uint8_t)~(UINT8_C(1) << player_index));
-    scratch->shield_health_q16[player_index] =
-        fighter->shield_health_q16;
+    scratch->shield_health_f32[player_index] =
+        fighter->shield_health_f32;
     scratch->hitlag_resume_action[player_index] = UINT8_C(0);
     scratch->attack_hit_mask[player_index] = UINT8_C(0);
     scratch->attack_stale_registered[player_index] = UINT8_C(0);
@@ -7227,8 +7204,8 @@ static void enter_wall_jump(
     int8_t *facing)
 {
     *velocity_x =
-        (int32_t)away_direction * fighter->wall_jump_speed_x_q16;
-    *velocity_y = -fighter->wall_jump_speed_y_q16;
+        (int32_t)away_direction * fighter->wall_jump_speed_x_f32;
+    *velocity_y = -fighter->wall_jump_speed_y_f32;
     *action_ticks = UINT16_C(0);
     *action_state = (uint8_t)PF_M4_ACTION_WALL_JUMP;
     *fast_fall = UINT8_C(0);
@@ -7248,9 +7225,9 @@ static void enter_double_jump(
     uint16_t *source_submotion,
     int8_t facing)
 {
-    *velocity_x = scale_axis_q16(
+    *velocity_x = scale_axis_f32(
         input->main_stick_x,
-        fighter->double_jump_horizontal_speed_q16);
+        fighter->double_jump_horizontal_speed_f32);
     /* Melee enters JumpAerial during IASA, then executes its ordinary aerial
      * physics callback on that same fighter update. Apply air control to the
      * newly assigned jump velocity here; applying it before entry is lost when
@@ -7259,8 +7236,8 @@ static void enter_double_jump(
         fighter,
         *velocity_x,
         input->main_stick_x,
-        fighter->air_speed_q16);
-    *velocity_y = -fighter->double_jump_speed_q16;
+        fighter->air_speed_f32);
+    *velocity_y = -fighter->double_jump_speed_f32;
     --*air_jumps_remaining;
     *fast_fall = UINT8_C(0);
     if (fighter->reference_frame_data_enabled != UINT8_C(0))
@@ -7293,24 +7270,24 @@ static void enter_ground_jump(
     uint8_t *fast_fall,
     uint8_t *tilt_y_age)
 {
-    const int32_t carried_velocity_x = multiply_q16(
+    const int32_t carried_velocity_x = multiply_f32(
         *velocity_x,
-        fighter->jump_horizontal_momentum_multiplier_q16);
-    const int32_t input_velocity_x = scale_axis_q16(
+        fighter->jump_horizontal_momentum_multiplier_f32);
+    const int32_t input_velocity_x = scale_axis_f32(
         entry_main_stick_x,
-        fighter->jump_horizontal_input_speed_q16);
+        fighter->jump_horizontal_input_speed_f32);
     const int64_t requested_velocity_x =
         (int64_t)carried_velocity_x + (int64_t)input_velocity_x;
 
     if (requested_velocity_x <
-        -(int64_t)fighter->jump_horizontal_max_speed_q16)
+        -(int64_t)fighter->jump_horizontal_max_speed_f32)
     {
-        *velocity_x = -fighter->jump_horizontal_max_speed_q16;
+        *velocity_x = -fighter->jump_horizontal_max_speed_f32;
     }
     else if (requested_velocity_x >
-             (int64_t)fighter->jump_horizontal_max_speed_q16)
+             (int64_t)fighter->jump_horizontal_max_speed_f32)
     {
-        *velocity_x = fighter->jump_horizontal_max_speed_q16;
+        *velocity_x = fighter->jump_horizontal_max_speed_f32;
     }
     else
     {
@@ -7318,8 +7295,8 @@ static void enter_ground_jump(
     }
     *velocity_y =
         -(short_hop_latched == UINT8_C(1)
-              ? fighter->short_hop_speed_q16
-              : fighter->full_hop_speed_q16);
+              ? fighter->short_hop_speed_f32
+              : fighter->full_hop_speed_f32);
     *grounded = UINT8_C(0);
     *support = (uint8_t)PF_M4_SURFACE_NONE;
     *action_state = (uint8_t)PF_M4_ACTION_AIRBORNE;
@@ -7361,9 +7338,9 @@ static void enter_platform_pass(
     *platform_drop_ticks = (uint8_t)fighter->platform_drop_ticks;
     if (fighter->reference_frame_data_enabled == UINT8_C(0))
     {
-        *position_y += fighter->platform_drop_nudge_q16;
+        *position_y += fighter->platform_drop_nudge_f32;
     }
-    *velocity_y = fighter->platform_drop_speed_y_q16;
+    *velocity_y = fighter->platform_drop_speed_y_f32;
     *fast_fall = UINT8_C(0);
 }
 
@@ -7391,8 +7368,8 @@ typedef struct reference_callback_owner
     uint8_t action_state;
     uint16_t action_ticks;
     uint16_t source_submotion;
-    int32_t source_animation_frame_q16;
-    int32_t source_animation_rate_q16;
+    float source_animation_frame_f32;
+    float source_animation_rate_f32;
     uint8_t entered_this_tick;
 } reference_callback_owner;
 
@@ -7403,8 +7380,8 @@ reference_project_callback_owner(
     uint8_t action_state,
     uint16_t action_ticks,
     uint16_t source_submotion,
-    int32_t source_animation_frame_q16,
-    int32_t source_animation_rate_q16,
+    float source_animation_frame_f32,
+    float source_animation_rate_f32,
     uint16_t hitlag_ticks,
     uint16_t hitstun_ticks_value,
     uint16_t shield_stun_ticks,
@@ -7416,8 +7393,8 @@ reference_project_callback_owner(
         action_state,
         action_ticks,
         source_submotion,
-        source_animation_frame_q16,
-        source_animation_rate_q16,
+        source_animation_frame_f32,
+        source_animation_rate_f32,
         UINT8_C(0),
     };
     falcon_move_index move_index;
@@ -7484,8 +7461,8 @@ reference_project_callback_owner(
         owner.action_ticks = UINT16_C(0);
         owner.source_submotion =
             (uint16_t)PF_M4_FALCON_SUBMOTION_CATCH_WAIT;
-        owner.source_animation_frame_q16 = INT32_C(0);
-        owner.source_animation_rate_q16 = PF_Q16_ONE;
+        owner.source_animation_frame_f32 = INT32_C(0);
+        owner.source_animation_rate_f32 = PF_F32_ONE;
         owner.entered_this_tick = UINT8_C(1);
     }
     else if (action_is_throw(action_state))
@@ -7493,23 +7470,23 @@ reference_project_callback_owner(
         const falcon_submotion_data *throw_motion;
         uint16_t holder_submotion;
         uint16_t victim_submotion;
-        int32_t expected_rate_q16;
+        float expected_rate_f32;
 
         if (falcon_reference_throw_motions(
                 action_state,
                 &holder_submotion,
                 &victim_submotion,
-                &expected_rate_q16) &&
+                &expected_rate_f32) &&
             source_submotion == holder_submotion &&
-            source_animation_rate_q16 == expected_rate_q16 &&
-            source_animation_rate_q16 > INT32_C(0) &&
+            source_animation_rate_f32 == expected_rate_f32 &&
+            source_animation_rate_f32 > INT32_C(0) &&
             (throw_motion =
                  falcon_reference_submotion(source_submotion)) != NULL &&
             throw_motion->animation_frame_count != UINT16_C(0) &&
-            (int64_t)source_animation_frame_q16 +
-                    (int64_t)source_animation_rate_q16 >=
+            (int64_t)source_animation_frame_f32 +
+                    (int64_t)source_animation_rate_f32 >=
                 (int64_t)throw_motion->animation_frame_count *
-                    (int64_t)PF_Q16_ONE)
+                    (int64_t)PF_F32_ONE)
         {
             /* Throw_Anim advances the weight-scaled fractional animation
              * clock before testing ftAnim_IsFramesRemaining. On the update
@@ -7744,14 +7721,14 @@ static int axis_is_in_prone_horizontal_wedge(
     int16_t axis_x,
     int16_t axis_y,
     uint16_t threshold,
-    int32_t angle_tan_q16)
+    float angle_tan_f32)
 {
     const uint32_t magnitude_x = axis_magnitude(axis_x);
     const uint32_t magnitude_y = axis_magnitude(axis_y);
 
     return magnitude_x >= threshold &&
            (uint64_t)magnitude_y * UINT64_C(65536) <
-               (uint64_t)magnitude_x * (uint32_t)angle_tan_q16;
+               (uint64_t)magnitude_x * (uint32_t)angle_tan_f32;
 }
 
 static prone_option select_prone_option(
@@ -7790,7 +7767,7 @@ static prone_option select_prone_option(
             input->secondary_stick_x,
             input->secondary_stick_y,
             fighter->down_horizontal_axis_threshold,
-            fighter->down_horizontal_angle_tan_q16);
+            fighter->down_horizontal_angle_tan_f32);
     const int c_roll_pressed =
         (previous_c_roll_direction == INT8_C(0) && current_c_roll != 0) ||
         (previous_c_roll_direction != INT8_C(0) && current_c_roll == 0);
@@ -7799,7 +7776,7 @@ static prone_option select_prone_option(
             input->main_stick_x,
             input->main_stick_y,
             fighter->down_horizontal_axis_threshold,
-            fighter->down_horizontal_angle_tan_q16);
+            fighter->down_horizontal_angle_tan_f32);
     const uint32_t main_up_magnitude =
         input->main_stick_y < INT16_C(0)
             ? (uint32_t)(-(int32_t)input->main_stick_y)
@@ -7808,7 +7785,7 @@ static prone_option select_prone_option(
         main_up_magnitude >= fighter->down_up_axis_threshold &&
         (uint64_t)main_up_magnitude * UINT64_C(65536) >=
             (uint64_t)axis_magnitude(input->main_stick_x) *
-                (uint32_t)fighter->down_horizontal_angle_tan_q16;
+                (uint32_t)fighter->down_horizontal_angle_tan_f32;
 
     *out_roll_direction = INT8_C(0);
     if (prone_attack_input_age <
@@ -7876,19 +7853,19 @@ static pf_status enter_prone_option(
                 motion_orientation,
                 roll_direction,
                 facing);
-        int32_t translation_x_q16;
+        float translation_x_f32;
 
         if (submotion_index == UINT16_MAX ||
-            !falcon_reference_translation_q16(
+            !falcon_reference_translation_f32(
                 submotion_index,
                 UINT16_C(1),
-                &translation_x_q16,
+                &translation_x_f32,
                 NULL))
         {
             return PF_STATUS_DETERMINISTIC_FAULT;
         }
         *action_state = (uint8_t)PF_M4_ACTION_GETUP_ROLL;
-        *velocity_x = (int32_t)facing * translation_x_q16;
+        *velocity_x = (int32_t)facing * translation_x_f32;
         scratch->tech_direction[player_index] = roll_direction;
         scratch->prone_roll_motion_orientation[player_index] =
             motion_orientation;
@@ -7909,7 +7886,7 @@ pf_status step_player(
     const pf_input_frame *input,
     const pf_input_frame *raw_input,
     uint32_t player_index,
-    int32_t player_nudge_x_q16_value,
+    int32_t player_nudge_x_f32_value,
     uint64_t *rng_state)
 {
     const fighter_data *fighter = &content->fighter;
@@ -7929,8 +7906,8 @@ pf_status step_player(
             world->action_state[player_index],
             world->action_ticks[player_index],
             world->source_submotion[player_index],
-            world->source_animation_frame_q16[player_index],
-            world->source_animation_rate_q16[player_index],
+            world->source_animation_frame_f32[player_index],
+            world->source_animation_rate_f32[player_index],
             world->hitlag_ticks[player_index],
             world->hitstun_ticks[player_index],
             world->shield_stun_ticks[player_index],
@@ -7944,16 +7921,16 @@ pf_status step_player(
         world->hitlag_resume_action[player_index];
     const uint16_t previous_source_submotion =
         world->source_submotion[player_index];
-    const int32_t previous_source_animation_frame_q16 =
-        world->source_animation_frame_q16[player_index];
-    const int32_t previous_source_animation_rate_q16 =
-        world->source_animation_rate_q16[player_index];
-    const int32_t previous_fall_animation_blend_q16 =
-        world->fall_animation_blend_q16[player_index];
+    const float previous_source_animation_frame_f32 =
+        world->source_animation_frame_f32[player_index];
+    const float previous_source_animation_rate_f32 =
+        world->source_animation_rate_f32[player_index];
+    const float previous_fall_animation_blend_f32 =
+        world->fall_animation_blend_f32[player_index];
     const uint8_t previous_fall_animation_target_switched =
         world->fall_animation_target_switched[player_index];
-    const int32_t previous_ground_velocity_q16 =
-        world->velocity_x_q16[player_index];
+    const float previous_ground_velocity_f32 =
+        world->velocity_x_f32[player_index];
     const int8_t previous_facing = world->facing[player_index];
 
     if (rng_state == NULL)
@@ -8458,39 +8435,39 @@ pf_status step_player(
                 (uint16_t)(light_attack_pressed != 0 ||
                            light_attack_released != 0) >=
             source_character->rapid_jab_input_count;
-    int32_t position_x = world->position_x_q16[player_index];
-    int32_t position_y = world->position_y_q16[player_index];
-    int32_t velocity_x = world->velocity_x_q16[player_index];
-    int32_t velocity_y = world->velocity_y_q16[player_index];
+    int32_t position_x = world->position_x_f32[player_index];
+    int32_t position_y = world->position_y_f32[player_index];
+    int32_t velocity_x = world->velocity_x_f32[player_index];
+    int32_t velocity_y = world->velocity_y_f32[player_index];
     uint16_t action_ticks = callback_owner.action_ticks;
     uint16_t source_submotion =
         callback_owner.source_submotion;
-    int32_t source_animation_frame_q16 =
-        callback_owner.source_animation_frame_q16;
-    int32_t fall_animation_blend_q16 =
-        world->fall_animation_blend_q16[player_index];
+    float source_animation_frame_f32 =
+        callback_owner.source_animation_frame_f32;
+    float fall_animation_blend_f32 =
+        world->fall_animation_blend_f32[player_index];
     uint8_t fall_animation_target_switched =
         world->fall_animation_target_switched[player_index];
-    int32_t source_animation_rate_q16 =
-        callback_owner.source_animation_rate_q16;
+    float source_animation_rate_f32 =
+        callback_owner.source_animation_rate_f32;
     uint8_t ecb_bottom_lock_ticks =
         world->ecb_bottom_lock_ticks[player_index];
-    int32_t ecb_locked_bottom_y_q16 =
-        world->ecb_locked_bottom_y_q16[player_index];
-    const int32_t previous_locked_bottom_y_q16 =
+    float ecb_locked_bottom_y_f32 =
+        world->ecb_locked_bottom_y_f32[player_index];
+    const float previous_locked_bottom_y_f32 =
         ecb_bottom_lock_ticks != UINT8_C(0)
-            ? ecb_locked_bottom_y_q16
-            : PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16;
-    int32_t inherited_locked_bottom_y_q16 =
+            ? ecb_locked_bottom_y_f32
+            : PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_F32;
+    float inherited_locked_bottom_y_f32 =
         ecb_bottom_lock_ticks > UINT8_C(1)
-            ? ecb_locked_bottom_y_q16
-            : PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16;
+            ? ecb_locked_bottom_y_f32
+            : PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_F32;
     int ecb_lock_entered_during_map = 0;
 
     scratch->ecb_bottom_lock_ticks[player_index] =
         ecb_bottom_lock_ticks;
-    scratch->ecb_locked_bottom_y_q16[player_index] =
-        ecb_locked_bottom_y_q16;
+    scratch->ecb_locked_bottom_y_f32[player_index] =
+        ecb_locked_bottom_y_f32;
     uint16_t respawn_count = world->respawn_count[player_index];
     uint8_t grounded = world->grounded[player_index];
     uint8_t action_state = callback_owner.action_state;
@@ -8541,7 +8518,7 @@ pf_status step_player(
                  input->secondary_stick_x,
                  input->secondary_stick_y,
                  fighter->down_horizontal_axis_threshold,
-                 fighter->down_horizontal_angle_tan_q16)
+                 fighter->down_horizontal_angle_tan_f32)
                  ? (input->secondary_stick_x < INT16_C(0)
                         ? PF_M4_DIRECTIONAL_INPUT_C_LEFT
                         : PF_M4_DIRECTIONAL_INPUT_C_RIGHT)
@@ -8578,14 +8555,14 @@ pf_status step_player(
     int damage_released_jump_requested = 0;
     int guard_dash_grab_window_entered_this_tick = 0;
     int exact_wall_response_this_tick = 0;
-    int32_t exact_wall_contact_position_y_q16 = INT32_C(0);
+    float exact_wall_contact_position_y_f32 = INT32_C(0);
     int32_t initial_dash_entry_motion_velocity_x = velocity_x;
-    int32_t animation_motion_x_q16 = INT32_C(0);
-    int32_t animation_motion_y_q16 = INT32_C(0);
-    int32_t integrated_self_x_q16;
-    int32_t integrated_self_y_q16;
-    int32_t integrated_animation_x_q16;
-    int32_t integrated_animation_y_q16;
+    float animation_motion_x_f32 = INT32_C(0);
+    float animation_motion_y_f32 = INT32_C(0);
+    float integrated_self_x_f32;
+    float integrated_self_y_f32;
+    float integrated_animation_x_f32;
+    float integrated_animation_y_f32;
     int hitstun_locked;
     int32_t previous_position_x;
     int64_t next_position;
@@ -8602,7 +8579,7 @@ pf_status step_player(
         (world->dash_direction[player_index] == INT8_C(-2) ||
          world->dash_direction[player_index] == INT8_C(2)))
     {
-        animation_motion_x_q16 =
+        animation_motion_x_f32 =
             (world->dash_direction[player_index] < INT8_C(0)
                  ? INT32_C(-1)
                  : INT32_C(1)) *
@@ -8776,8 +8753,8 @@ pf_status step_player(
                     UINT16_C(0);
                 if (world->sudden_death != UINT8_C(0))
                 {
-                    scratch->damage_q16[player_index] =
-                        UINT32_C(300) * (uint32_t)PF_Q16_ONE;
+                    scratch->damage_f32[player_index] =
+                        UINT32_C(300) * (uint32_t)PF_F32_ONE;
                 }
                 status = pf_sim_push_event(
                     scratch,
@@ -8785,7 +8762,7 @@ pf_status step_player(
                     PF_SIM_EVENT_RESPAWN,
                     PF_SIM_EVENT_NO_PLAYER,
                     (uint8_t)player_index,
-                    scratch->damage_q16[player_index],
+                    scratch->damage_f32[player_index],
                     velocity_x,
                     velocity_y,
                     world->sudden_death != UINT8_C(0)
@@ -8890,8 +8867,8 @@ pf_status step_player(
                 (uint16_t)PF_M4_FALCON_SUBMOTION_FALL;
             grounded = UINT8_C(0);
             support = (uint8_t)PF_M4_SURFACE_NONE;
-            position_y = stage->revival_platform_end_y_q16 -
-                         fighter->half_height_q16;
+            position_y = stage->revival_platform_end_y_f32 -
+                         fighter->half_height_f32;
             scratch->respawn_invulnerability_ticks[player_index] =
                 world->respawn_invulnerability_config_ticks;
             revival_drop_this_tick = 1;
@@ -8919,7 +8896,7 @@ pf_status step_player(
                 revival_platform_y(
                     stage,
                     (uint16_t)(action_ticks + UINT16_C(1))) -
-                fighter->half_height_q16;
+                fighter->half_height_f32;
         }
 
         if (input_drop == 0 && automatic_drop == 0)
@@ -9037,22 +9014,22 @@ pf_status step_player(
         const ssbm_stage_spawn_point *spawn;
         uint32_t elapsed_ticks;
         int64_t rise_numerator;
-        int32_t rise_q16;
+        float rise_f32;
 
         if (match_entry == NULL || source_character == NULL ||
             profile == NULL || profile->spawn_point_count < UINT8_C(4) ||
             match_entry->ascent_ticks == UINT16_C(0) ||
             match_entry->descent_ticks == UINT16_C(0) ||
-            source_character->match_entry_rise_q16 <= INT32_C(0))
+            source_character->match_entry_rise_f32 <= INT32_C(0))
         {
             return PF_STATUS_DETERMINISTIC_FAULT;
         }
         spawn = &profile->spawn_points[player_index + UINT32_C(2)];
-        position_x = spawn->position_x_q16;
+        position_x = spawn->position_x_f32;
         /* StageInfo spawn points are Fighter root coordinates. Canonical
          * simulation position is the authored body center, so use the same
          * root-to-center conversion as ordinary reference-stage spawning. */
-        position_y = spawn->position_y_q16 - fighter->half_height_q16;
+        position_y = spawn->position_y_f32 - fighter->half_height_f32;
         velocity_x = INT32_C(0);
         velocity_y = INT32_C(0);
         grounded = UINT8_C(0);
@@ -9077,8 +9054,8 @@ pf_status step_player(
                 action_ticks = UINT16_C(1);
                 source_submotion =
                     (uint16_t)PF_M4_FALCON_SUBMOTION_ENTRY_START;
-                source_animation_frame_q16 = INT32_C(0);
-                source_animation_rate_q16 = PF_Q16_ONE;
+                source_animation_frame_f32 = INT32_C(0);
+                source_animation_rate_f32 = PF_F32_ONE;
             }
         }
         else if (action_state ==
@@ -9096,8 +9073,8 @@ pf_status step_player(
                 action_ticks = UINT16_C(0);
                 source_submotion =
                     (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT;
-                source_animation_frame_q16 = INT32_C(0);
-                source_animation_rate_q16 = INT32_C(0);
+                source_animation_frame_f32 = INT32_C(0);
+                source_animation_rate_f32 = INT32_C(0);
             }
         }
         else
@@ -9110,14 +9087,14 @@ pf_status step_player(
         {
             elapsed_ticks = (uint32_t)action_ticks;
             rise_numerator =
-                (int64_t)source_character->match_entry_rise_q16 *
+                (int64_t)source_character->match_entry_rise_f32 *
                     (int64_t)elapsed_ticks +
                 (int64_t)match_entry->ascent_ticks / INT64_C(2);
-            rise_q16 = (int32_t)(
+            rise_f32 = (int32_t)(
                 rise_numerator / (int64_t)match_entry->ascent_ticks);
-            position_y -= rise_q16;
-            source_animation_frame_q16 =
-                (int32_t)(action_ticks - UINT16_C(1)) * PF_Q16_ONE;
+            position_y -= rise_f32;
+            source_animation_frame_f32 =
+                (int32_t)(action_ticks - UINT16_C(1)) * PF_F32_ONE;
         }
         else if (action_state ==
                  (uint8_t)PF_M4_ACTION_MATCH_ENTRY_END)
@@ -9126,12 +9103,12 @@ pf_status step_player(
                 (uint32_t)match_entry->descent_ticks -
                 (uint32_t)action_ticks;
             rise_numerator =
-                (int64_t)source_character->match_entry_rise_q16 *
+                (int64_t)source_character->match_entry_rise_f32 *
                     (int64_t)elapsed_ticks +
                 (int64_t)match_entry->descent_ticks / INT64_C(2);
-            rise_q16 = (int32_t)(
+            rise_f32 = (int32_t)(
                 rise_numerator / (int64_t)match_entry->descent_ticks);
-            position_y -= rise_q16;
+            position_y -= rise_f32;
         }
 
         write_scratch(
@@ -9144,8 +9121,8 @@ pf_status step_player(
             velocity_y,
             action_ticks,
             source_submotion,
-            source_animation_frame_q16,
-            source_animation_rate_q16,
+            source_animation_frame_f32,
+            source_animation_rate_f32,
             respawn_count,
             grounded,
             action_state,
@@ -9181,8 +9158,8 @@ pf_status step_player(
                 scratch->hitlag_resume_action[player_index],
                 platform_drop_ticks);
 
-        scratch->position_x_q16[player_index] = position_x;
-        scratch->position_y_q16[player_index] = position_y;
+        scratch->position_x_f32[player_index] = position_x;
+        scratch->position_y_f32[player_index] = position_y;
         scratch->grounded[player_index] = grounded;
         scratch->support[player_index] = support;
         if (platform_drop_ticks > UINT8_C(0))
@@ -9193,7 +9170,7 @@ pf_status step_player(
             platform_drop_ticks == UINT8_C(0) &&
             scratch->hitlag_ticks[player_index] == UINT16_C(1))
         {
-            int32_t drop_cancel_surface_y_q16 = INT32_C(0);
+            float drop_cancel_surface_y_f32 = INT32_C(0);
             uint8_t drop_cancel_support =
                 (uint8_t)PF_M4_SURFACE_NONE;
 
@@ -9203,7 +9180,7 @@ pf_status step_player(
                     world->tick + UINT64_C(1),
                     position_x,
                     position_y,
-                    &drop_cancel_surface_y_q16,
+                    &drop_cancel_surface_y_f32,
                     &drop_cancel_support))
             {
                 uint8_t landing_action =
@@ -9211,7 +9188,7 @@ pf_status step_player(
 
                 land_from_air(
                     content,
-                    drop_cancel_surface_y_q16,
+                    drop_cancel_surface_y_f32,
                     drop_cancel_support,
                     input->main_stick_x,
                     facing,
@@ -9231,7 +9208,7 @@ pf_status step_player(
                     &dash_direction);
                 scratch->hitlag_resume_action[player_index] =
                     landing_action;
-                scratch->position_y_q16[player_index] = position_y;
+                scratch->position_y_f32[player_index] = position_y;
                 scratch->grounded[player_index] = grounded;
                 scratch->support[player_index] = support;
             }
@@ -9318,13 +9295,13 @@ pf_status step_player(
                         ? INT16_C(0)
                         : input->main_stick_y,
                     shield_sdi != 0
-                        ? multiply_q16(
-                              fighter->sdi_distance_x_q16,
-                              fighter->shield_sdi_scale_q16)
-                        : fighter->sdi_distance_x_q16,
+                        ? multiply_f32(
+                              fighter->sdi_distance_x_f32,
+                              fighter->shield_sdi_scale_f32)
+                        : fighter->sdi_distance_x_f32,
                     shield_sdi != 0
                         ? INT32_C(0)
-                        : fighter->sdi_distance_y_q16,
+                        : fighter->sdi_distance_y_f32,
                     shield_sdi,
                     0);
                 if (status != PF_STATUS_OK)
@@ -9388,8 +9365,8 @@ pf_status step_player(
                         c_stick_asdi != 0
                             ? world->previous_secondary_stick_y[player_index]
                             : world->previous_main_stick_y[player_index],
-                        fighter->asdi_distance_x_q16,
-                        fighter->asdi_distance_y_q16,
+                        fighter->asdi_distance_x_f32,
+                        fighter->asdi_distance_y_f32,
                         0,
                         1);
                     if (status != PF_STATUS_OK)
@@ -9397,14 +9374,14 @@ pf_status step_player(
                         return status;
                     }
                 }
-                status = ssbm_apply_di_q16(
+                status = ssbm_apply_di_f32(
                     fighter->di_max_angle_radians_q30,
                     world->previous_main_stick_x[player_index],
                     world->previous_main_stick_y[player_index],
                     &scratch
-                         ->knockback_velocity_x_q16[player_index],
+                         ->knockback_velocity_x_f32[player_index],
                     &scratch
-                         ->knockback_velocity_y_q16[player_index]);
+                         ->knockback_velocity_y_f32[player_index]);
                 if (status != PF_STATUS_OK)
                 {
                     return status;
@@ -9415,12 +9392,12 @@ pf_status step_player(
                 velocity_x = INT32_C(0);
                 velocity_y = INT32_C(0);
                 if (scratch->grounded[player_index] != UINT8_C(0) &&
-                    scratch->ground_knockback_velocity_q16[player_index] !=
+                    scratch->ground_knockback_velocity_f32[player_index] !=
                         INT32_C(0))
                 {
-                    scratch->knockback_velocity_x_q16[player_index] =
-                        scratch->ground_knockback_velocity_q16[player_index];
-                    scratch->knockback_velocity_y_q16[player_index] =
+                    scratch->knockback_velocity_x_f32[player_index] =
+                        scratch->ground_knockback_velocity_f32[player_index];
+                    scratch->knockback_velocity_y_f32[player_index] =
                         INT32_C(0);
                 }
                 else
@@ -9430,7 +9407,7 @@ pf_status step_player(
                     scratch->grounded[player_index] = UINT8_C(0);
                     scratch->support[player_index] =
                         (uint8_t)PF_M4_SURFACE_NONE;
-                    scratch->ground_knockback_velocity_q16[player_index] =
+                    scratch->ground_knockback_velocity_f32[player_index] =
                         INT32_C(0);
                 }
                 fast_fall = UINT8_C(0);
@@ -9450,9 +9427,9 @@ pf_status step_player(
                         player_index,
                         input->main_stick_x,
                         INT16_C(0),
-                        multiply_q16(
-                            fighter->asdi_distance_x_q16,
-                            fighter->shield_sdi_scale_q16),
+                        multiply_f32(
+                            fighter->asdi_distance_x_f32,
+                            fighter->shield_sdi_scale_f32),
                         INT32_C(0),
                         1,
                         0);
@@ -9490,8 +9467,8 @@ pf_status step_player(
             scratch->sdi_direction_x[player_index] = INT8_C(0);
             scratch->sdi_direction_y[player_index] = INT8_C(0);
         }
-        position_x = scratch->position_x_q16[player_index];
-        position_y = scratch->position_y_q16[player_index];
+        position_x = scratch->position_x_f32[player_index];
+        position_y = scratch->position_y_f32[player_index];
         grounded = scratch->grounded[player_index];
         support = scratch->support[player_index];
         if (!action_retains_shield_strength(
@@ -9519,8 +9496,8 @@ pf_status step_player(
                 velocity_y,
                 action_ticks,
                 source_submotion,
-                source_animation_frame_q16,
-                source_animation_rate_q16,
+                source_animation_frame_f32,
+                source_animation_rate_f32,
                 respawn_count,
                 grounded,
                 action_state,
@@ -9563,7 +9540,7 @@ pf_status step_player(
             (uint32_t)action_ticks + UINT32_C(1) >=
                 damage_response->meteor_cancel_lockout_ticks;
         const int falling_from_meteor =
-            scratch->knockback_velocity_y_q16[player_index] > INT32_C(0);
+            scratch->knockback_velocity_y_f32[player_index] > INT32_C(0);
         const int up_special_cancel =
             lockout_elapsed != 0 && falling_from_meteor != 0 &&
             special_pressed != 0 && up_special_repress_allowed != 0 &&
@@ -9576,11 +9553,11 @@ pf_status step_player(
 
             if (up_special_cancel != 0 || double_jump_cancel != 0)
             {
-            scratch->knockback_velocity_x_q16[player_index] =
+            scratch->knockback_velocity_x_f32[player_index] =
                 INT32_C(0);
-            scratch->knockback_velocity_y_q16[player_index] =
+            scratch->knockback_velocity_y_f32[player_index] =
                 INT32_C(0);
-            scratch->ground_knockback_velocity_q16[player_index] =
+            scratch->ground_knockback_velocity_f32[player_index] =
                 INT32_C(0);
             scratch->hitstun_ticks[player_index] = UINT16_C(0);
             scratch->tumble[player_index] = UINT8_C(0);
@@ -9734,9 +9711,9 @@ pf_status step_player(
                 falcon_reference_common_attributes();
             const int quick =
                 ledge_response != NULL &&
-                scratch->damage_q16[player_index] <
+                scratch->damage_f32[player_index] <
                     (uint32_t)ledge_response->damage_threshold_percent *
-                        (uint32_t)PF_Q16_ONE;
+                        (uint32_t)PF_F32_ONE;
             const int ledge_jump_phase_two =
                 action_state == (uint8_t)PF_M4_ACTION_LEDGE_JUMP &&
                 (source_submotion ==
@@ -9762,8 +9739,8 @@ pf_status step_player(
                 const falcon_submotion_data *catch_motion =
                     falcon_reference_submotion(
                         (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_CATCH);
-                int32_t translation_x_q16;
-                int32_t translation_y_q16;
+                float translation_x_f32;
+                float translation_y_f32;
 
                 source_submotion =
                     (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_CATCH;
@@ -9793,19 +9770,19 @@ pf_status step_player(
                         &position_x,
                         &position_y);
                 }
-                else if (!falcon_reference_translation_q16(
+                else if (!falcon_reference_translation_f32(
                              (uint16_t)
                                  PF_M4_FALCON_SUBMOTION_LEDGE_CATCH,
                              (uint16_t)(action_ticks + UINT16_C(2)),
-                             &translation_x_q16,
-                             &translation_y_q16))
+                             &translation_x_f32,
+                             &translation_y_f32))
                 {
                     return PF_STATUS_DETERMINISTIC_FAULT;
                 }
                 else
                 {
-                    position_x += (int32_t)facing * translation_x_q16;
-                    position_y += translation_y_q16;
+                    position_x += (int32_t)facing * translation_x_f32;
+                    position_y += translation_y_f32;
                     ++action_ticks;
                 }
                 ledge_motion_handled = 1;
@@ -9961,19 +9938,19 @@ pf_status step_player(
                         action_ticks + UINT16_C(2));
                 const int was_grounded =
                     world->grounded[player_index] != UINT8_C(0);
-                const int32_t previous_option_y_q16 = position_y;
-                int32_t translation_x_q16;
-                int32_t translation_y_q16;
-                int32_t jump_x_from_wait_q16 = INT32_C(0);
-                int32_t jump_y_from_wait_q16 = INT32_C(0);
+                const float previous_option_y_f32 = position_y;
+                float translation_x_f32;
+                float translation_y_f32;
+                float jump_x_from_wait_f32 = INT32_C(0);
+                float jump_y_from_wait_f32 = INT32_C(0);
                 const int uses_hyrule_jump_path =
                     stage->reference_collision_profile ==
                         (uint16_t)PF_M4_REFERENCE_STAGE_HYRULE_TEMPLE &&
-                    falcon_reference_hyrule_ledge_jump_position_q16(
+                    falcon_reference_hyrule_ledge_jump_position_f32(
                         source_submotion,
                         translation_frame,
-                        &jump_x_from_wait_q16,
-                        &jump_y_from_wait_q16);
+                        &jump_x_from_wait_f32,
+                        &jump_y_from_wait_f32);
 
                 if (motion == NULL ||
                     motion->gameplay_frame_count == UINT16_C(0))
@@ -9999,17 +9976,17 @@ pf_status step_player(
                         support = (uint8_t)PF_M4_SURFACE_NONE;
                         velocity_x =
                             (int32_t)inward *
-                            common->ledge_jump_horizontal_velocity_q16;
+                            common->ledge_jump_horizontal_velocity_f32;
                         velocity_y =
-                            -common->ledge_jump_vertical_velocity_q16;
+                            -common->ledge_jump_vertical_velocity_f32;
                         if (stage->reference_collision_profile ==
                                 (uint16_t)
                                     PF_M4_REFERENCE_STAGE_HYRULE_TEMPLE &&
-                            falcon_reference_hyrule_ledge_jump_position_q16(
+                            falcon_reference_hyrule_ledge_jump_position_f32(
                                 source_submotion,
                                 UINT16_C(1),
-                                &jump_x_from_wait_q16,
-                                &jump_y_from_wait_q16))
+                                &jump_x_from_wait_f32,
+                                &jump_y_from_wait_f32))
                         {
                             ledge_hang_position(
                                 fighter,
@@ -10019,8 +9996,8 @@ pf_status step_player(
                                 &hang_y);
                             position_x =
                                 hang_x -
-                                (int32_t)inward * jump_x_from_wait_q16;
-                            position_y = hang_y + jump_y_from_wait_q16;
+                                (int32_t)inward * jump_x_from_wait_f32;
+                            position_y = hang_y + jump_y_from_wait_f32;
                         }
                         else
                         {
@@ -10053,36 +10030,36 @@ pf_status step_player(
                             &hang_x,
                             &hang_y);
                         position_x =
-                            hang_x - (int32_t)inward * jump_x_from_wait_q16;
-                        position_y = hang_y + jump_y_from_wait_q16;
+                            hang_x - (int32_t)inward * jump_x_from_wait_f32;
+                        position_y = hang_y + jump_y_from_wait_f32;
                     }
                     else
                     {
                         if (translation_frame > motion->translation_count)
                         {
-                            translation_x_q16 = INT32_C(0);
-                            translation_y_q16 = INT32_C(0);
+                            translation_x_f32 = INT32_C(0);
+                            translation_y_f32 = INT32_C(0);
                         }
-                        else if (!falcon_reference_translation_q16(
+                        else if (!falcon_reference_translation_f32(
                                      source_submotion,
                                      translation_frame,
-                                     &translation_x_q16,
-                                     &translation_y_q16))
+                                     &translation_x_f32,
+                                     &translation_y_f32))
                         {
                             return PF_STATUS_DETERMINISTIC_FAULT;
                         }
-                        position_x += (int32_t)inward * translation_x_q16;
+                        position_x += (int32_t)inward * translation_x_f32;
                         if (grounded == UINT8_C(0))
                         {
-                            position_y += translation_y_q16;
+                            position_y += translation_y_f32;
                             if (will_ground != 0)
                             {
                                 position_x +=
-                                    (int32_t)inward * translation_x_q16;
+                                    (int32_t)inward * translation_x_f32;
                                 support =
                                     ssbm_reference_stage_ledge_support(
                                         stage->reference_collision_profile,
-                                        ledge_x_q16(stage, ledge));
+                                        ledge_x_f32(stage, ledge));
                                 if (support ==
                                     (uint8_t)PF_M4_SURFACE_NONE)
                                 {
@@ -10094,22 +10071,22 @@ pf_status step_player(
                         if (grounded != UINT8_C(0))
                         {
                             position_y =
-                                surface_y_q16(
+                                surface_y_f32(
                                     content,
                                     support,
                                     position_x) -
-                                fighter->half_height_q16;
+                                fighter->half_height_f32;
                             if (was_grounded != 0)
                             {
                                 velocity_x =
-                                    (int32_t)inward * translation_x_q16;
+                                    (int32_t)inward * translation_x_f32;
                                 velocity_y =
-                                    position_y - previous_option_y_q16;
+                                    position_y - previous_option_y_f32;
                             }
                             else
                             {
                                 velocity_x =
-                                    (int32_t)inward * translation_x_q16;
+                                    (int32_t)inward * translation_x_f32;
                                 velocity_y = INT32_C(0);
                             }
                         }
@@ -10145,8 +10122,8 @@ pf_status step_player(
             const falcon_submotion_data *catch_motion =
                 falcon_reference_submotion(
                     (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_CATCH);
-            int32_t translation_x_q16;
-            int32_t translation_y_q16;
+            float translation_x_f32;
+            float translation_y_f32;
 
             if (catch_motion == NULL ||
                 catch_motion->gameplay_frame_count == UINT16_C(0))
@@ -10165,18 +10142,18 @@ pf_status step_player(
                     &position_x,
                     &position_y);
             }
-            else if (!falcon_reference_translation_q16(
+            else if (!falcon_reference_translation_f32(
                          (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_CATCH,
                          (uint16_t)(action_ticks + UINT16_C(2)),
-                         &translation_x_q16,
-                         &translation_y_q16))
+                         &translation_x_f32,
+                         &translation_y_f32))
             {
                 return PF_STATUS_DETERMINISTIC_FAULT;
             }
             else
             {
-                position_x += (int32_t)facing * translation_x_q16;
-                position_y += translation_y_q16;
+                position_x += (int32_t)facing * translation_x_f32;
+                position_y += translation_y_f32;
                 ++action_ticks;
             }
             ledge_motion_handled = 1;
@@ -10215,8 +10192,8 @@ pf_status step_player(
             else if (action_ticks >= catch_ticks && jump_pressed)
             {
                 velocity_x =
-                    (int32_t)inward * fighter->ledge_jump_speed_x_q16;
-                velocity_y = -fighter->ledge_jump_speed_y_q16;
+                    (int32_t)inward * fighter->ledge_jump_speed_x_f32;
+                velocity_y = -fighter->ledge_jump_speed_y_f32;
                 action_ticks = UINT16_C(0);
                 action_state = (uint8_t)PF_M4_ACTION_AIRBORNE;
                 launched_this_tick = 1;
@@ -10229,10 +10206,10 @@ pf_status step_player(
                 velocity_x =
                     horizontal_direction == outward
                         ? (int32_t)outward *
-                              fighter->air_speed_q16
+                              fighter->air_speed_f32
                         : (int32_t)outward *
-                              fighter->platform_drop_nudge_q16;
-                velocity_y = fighter->gravity_q16;
+                              fighter->platform_drop_nudge_f32;
+                velocity_y = fighter->gravity_f32;
                 action_ticks = UINT16_C(0);
                 action_state = (uint8_t)PF_M4_ACTION_AIRBORNE;
                 released_ledge_this_tick = 1;
@@ -10260,12 +10237,12 @@ pf_status step_player(
             const uint16_t climb_ticks =
                 ledge_transition_ticks(fighter);
             const int32_t target_x =
-                ledge_x_q16(stage, ledge) +
+                ledge_x_f32(stage, ledge) +
                 (int32_t)inward *
-                    (fighter->half_width_q16 +
-                     fighter->platform_drop_nudge_q16);
+                    (fighter->half_width_f32 +
+                     fighter->platform_drop_nudge_f32);
             const int32_t target_y =
-                stage->floor_y_q16 - fighter->half_height_q16;
+                stage->floor_y_f32 - fighter->half_height_f32;
 
             ++action_ticks;
             if (action_ticks >= climb_ticks)
@@ -10273,7 +10250,7 @@ pf_status step_player(
                 position_x = target_x;
                 land(
                     fighter,
-                    stage->floor_y_q16,
+                    stage->floor_y_f32,
                     (uint8_t)PF_M4_SURFACE_FLOOR,
                     &position_y,
                     &velocity_y,
@@ -10306,10 +10283,10 @@ pf_status step_player(
         else if (action_state == (uint8_t)PF_M4_ACTION_LEDGE_ROLL)
         {
             const int32_t target_x =
-                ledge_x_q16(stage, ledge) +
-                (int32_t)inward * fighter->ledge_roll_distance_q16;
+                ledge_x_f32(stage, ledge) +
+                (int32_t)inward * fighter->ledge_roll_distance_f32;
             const int32_t target_y =
-                stage->floor_y_q16 - fighter->half_height_q16;
+                stage->floor_y_f32 - fighter->half_height_f32;
             const uint16_t movement_ticks =
                 fighter->ledge_roll_movement_ticks;
 
@@ -10319,7 +10296,7 @@ pf_status step_player(
                 position_x = target_x;
                 land(
                     fighter,
-                    stage->floor_y_q16,
+                    stage->floor_y_f32,
                     (uint8_t)PF_M4_SURFACE_FLOOR,
                     &position_y,
                     &velocity_y,
@@ -10362,12 +10339,12 @@ pf_status step_player(
                 (uint32_t)attack->active_ticks +
                 (uint32_t)attack->recovery_ticks;
             const int32_t target_x =
-                ledge_x_q16(stage, ledge) +
+                ledge_x_f32(stage, ledge) +
                 (int32_t)inward *
-                    (fighter->half_width_q16 +
-                     fighter->platform_drop_nudge_q16);
+                    (fighter->half_width_f32 +
+                     fighter->platform_drop_nudge_f32);
             const int32_t target_y =
-                stage->floor_y_q16 - fighter->half_height_q16;
+                stage->floor_y_f32 - fighter->half_height_f32;
 
             ++action_ticks;
             if ((uint32_t)action_ticks >= total_ticks)
@@ -10375,7 +10352,7 @@ pf_status step_player(
                 position_x = target_x;
                 land(
                     fighter,
-                    stage->floor_y_q16,
+                    stage->floor_y_f32,
                     (uint8_t)PF_M4_SURFACE_FLOOR,
                     &position_y,
                     &velocity_y,
@@ -10422,9 +10399,9 @@ pf_status step_player(
         support == (uint8_t)PF_M4_SURFACE_PLATFORM)
     {
         const int32_t previous_platform_x =
-            platform_center_x_q16(stage, world->tick);
+            platform_center_x_f32(stage, world->tick);
         const int32_t next_platform_x =
-            platform_center_x_q16(
+            platform_center_x_f32(
                 stage,
                 world->tick + UINT64_C(1));
         next_position =
@@ -10554,17 +10531,17 @@ pf_status step_player(
         const int raw_down_special_requested =
             input->main_stick_y >=
             (int16_t)special_vertical_axis_threshold;
-        const int32_t special_stick_x_q16 =
-            axis_q16(input->main_stick_x);
+        const float special_stick_x_f32 =
+            axis_f32(input->main_stick_x);
         const int raw_side_special_requested =
             fighter->reference_frame_data_enabled != UINT8_C(0) &&
             common_special_attributes != NULL &&
-            (special_stick_x_q16 >=
+            (special_stick_x_f32 >=
                  common_special_attributes
-                     ->side_special_stick_threshold_q16 ||
-             special_stick_x_q16 <=
+                     ->side_special_stick_threshold_f32 ||
+             special_stick_x_f32 <=
                  -common_special_attributes
-                      ->side_special_stick_threshold_q16);
+                      ->side_special_stick_threshold_f32);
         const int reference_side_special_enabled =
             fighter->reference_frame_data_enabled == UINT8_C(0) ||
             (reference_special_capabilities &
@@ -10666,10 +10643,10 @@ pf_status step_player(
                 }
                 else
                 {
-                    velocity_x = scale_axis_q16(
+                    velocity_x = scale_axis_f32(
                         input->main_stick_x,
-                        content->recovery.horizontal_speed_q16);
-                    velocity_y = -content->recovery.vertical_speed_q16;
+                        content->recovery.horizontal_speed_f32);
+                    velocity_y = -content->recovery.vertical_speed_f32;
                     action_state =
                         (uint8_t)PF_M4_ACTION_VECTOR_ASCENT;
                     grounded = UINT8_C(0);
@@ -10689,9 +10666,9 @@ pf_status step_player(
         {
             if (falcon_side_special_requested != 0)
             {
-                if (special_stick_x_q16 * (int32_t)facing <
+                if (special_stick_x_f32 * (int32_t)facing <
                     -common_special_attributes
-                         ->side_special_turn_threshold_q16)
+                         ->side_special_turn_threshold_f32)
                 {
                     facing = (int8_t)-facing;
                 }
@@ -11068,18 +11045,18 @@ pf_status step_player(
         grounded != UINT8_C(0) &&
         (spot_dodge_pressed != 0 || roll_pressed != 0) &&
         (was_shielding == 0 ||
-         scratch->shield_health_q16[player_index] >
-             shield_hold_depletion_q16(
+         scratch->shield_health_f32[player_index] >
+             shield_hold_depletion_f32(
                  fighter,
                  scratch->shield_strength[player_index])) &&
         action_state == (uint8_t)PF_M4_ACTION_SHIELD)
     {
         if (was_shielding)
         {
-            scratch->shield_health_q16[player_index] =
+            scratch->shield_health_f32[player_index] =
                 shield_health_subtract(
-                    scratch->shield_health_q16[player_index],
-                    shield_hold_depletion_q16(
+                    scratch->shield_health_f32[player_index],
+                    shield_hold_depletion_f32(
                         fighter,
                         scratch->shield_strength[player_index]));
         }
@@ -11266,7 +11243,7 @@ pf_status step_player(
             reference_initial_dash_dash_attack != 0)
         {
             velocity_x =
-                (int32_t)facing * fighter->dash_attack_speed_q16;
+                (int32_t)facing * fighter->dash_attack_speed_f32;
         }
         if ((ground_strong_attack_pressed != 0
                  ? strong_attack_horizontal_direction
@@ -11349,32 +11326,32 @@ pf_status step_player(
         grounded != UINT8_C(0) &&
         action_state == (uint8_t)PF_M4_ACTION_SHIELD)
     {
-        const uint32_t shield_hold_depletion_q16_value =
-            shield_hold_depletion_q16(
+        const uint32_t shield_hold_depletion_f32_value =
+            shield_hold_depletion_f32(
                 fighter,
                 scratch->shield_strength[player_index]);
         const uint32_t shield_health_before_depletion =
-            scratch->shield_health_q16[player_index];
+            scratch->shield_health_f32[player_index];
         const uint32_t depleted_shield_health =
-            shield_hold_depletion_q16_value >=
+            shield_hold_depletion_f32_value >=
                     shield_health_before_depletion
                 ? shield_health_before_depletion
-                : shield_hold_depletion_q16_value;
+                : shield_hold_depletion_f32_value;
         const int shield_broken_by_depletion =
             was_shielding &&
-            shield_hold_depletion_q16_value >
+            shield_hold_depletion_f32_value >
                 shield_health_before_depletion;
 
         velocity_x = approach(
             velocity_x,
             INT32_C(0),
-            fighter->traction_q16);
+            fighter->traction_f32);
         if (was_shielding)
         {
-            scratch->shield_health_q16[player_index] =
+            scratch->shield_health_f32[player_index] =
                 shield_health_subtract(
-                    scratch->shield_health_q16[player_index],
-                    shield_hold_depletion_q16_value);
+                    scratch->shield_health_f32[player_index],
+                    shield_hold_depletion_f32_value);
         }
         if (shield_broken_by_depletion != 0)
         {
@@ -11581,7 +11558,7 @@ pf_status step_player(
         velocity_x = approach(
             velocity_x,
             INT32_C(0),
-            fighter->traction_q16);
+            fighter->traction_f32);
         ++action_ticks;
         if (action_ticks >= fighter->shield_break_down_ticks)
         {
@@ -11606,7 +11583,7 @@ pf_status step_player(
         velocity_x = approach(
             velocity_x,
             INT32_C(0),
-            fighter->traction_q16);
+            fighter->traction_f32);
         ++action_ticks;
         if (action_ticks >= fighter->shield_break_stand_ticks)
         {
@@ -11616,11 +11593,11 @@ pf_status step_player(
                 (uint16_t)PF_M4_FALCON_SUBMOTION_FURAFURA;
             action_ticks = shield_break_stun_ticks(
                 fighter,
-                scratch->damage_q16[player_index]);
+                scratch->damage_f32[player_index]);
             scratch->mash_stick_x_direction[player_index] = INT8_C(0);
             scratch->mash_stick_y_direction[player_index] = INT8_C(0);
-            scratch->shield_health_q16[player_index] =
-                fighter->shield_reset_health_q16;
+            scratch->shield_health_f32[player_index] =
+                fighter->shield_reset_health_f32;
         }
     }
     else if (!ledge_motion_handled &&
@@ -11641,9 +11618,9 @@ pf_status step_player(
         velocity_x = approach(
             velocity_x,
             INT32_C(0),
-            fighter->traction_q16);
-        scratch->shield_health_q16[player_index] =
-            fighter->shield_reset_health_q16;
+            fighter->traction_f32);
+        scratch->shield_health_f32[player_index] =
+            fighter->shield_reset_health_f32;
         elapsed_ticks +=
             mash_pulses *
             (uint32_t)
@@ -11652,8 +11629,8 @@ pf_status step_player(
         {
             action_state = (uint8_t)PF_M4_ACTION_GROUND_IDLE;
             action_ticks = UINT16_C(0);
-            scratch->shield_health_q16[player_index] =
-                fighter->shield_reset_health_q16;
+            scratch->shield_health_f32[player_index] =
+                fighter->shield_reset_health_f32;
         }
         else
         {
@@ -11691,9 +11668,9 @@ pf_status step_player(
             {
                 position_x +=
                     (int32_t)facing *
-                    timing->grounded_throw_reposition_x_q16;
+                    timing->grounded_throw_reposition_x_f32;
                 position_y +=
-                    timing->grounded_throw_reposition_y_q16;
+                    timing->grounded_throw_reposition_y_f32;
             }
             action_state =
                 (uint8_t)PF_M4_ACTION_FALCON_DIVE_THROW;
@@ -11718,12 +11695,12 @@ pf_status step_player(
             action_ticks == UINT16_C(0))
         {
             velocity_x =
-                -(int32_t)facing * fighter->grab_release_speed_x_q16;
+                -(int32_t)facing * fighter->grab_release_speed_x_f32;
         }
         velocity_x = approach(
             velocity_x,
             INT32_C(0),
-            fighter->traction_q16);
+            fighter->traction_f32);
         velocity_y = INT32_C(0);
         if (action_state == (uint8_t)PF_M4_ACTION_GRAB ||
             action_state == (uint8_t)PF_M4_ACTION_DASH_GRAB)
@@ -11768,9 +11745,9 @@ pf_status step_player(
                  * total_frames value is its highest zero-based counter, so
                  * canonical one-based ticks 1..N+1 own source frames 0..N. */
                 source_submotion = reference_move->subaction_index;
-                source_animation_frame_q16 =
-                    (int32_t)(action_ticks - UINT16_C(1)) * PF_Q16_ONE;
-                source_animation_rate_q16 = PF_Q16_ONE;
+                source_animation_frame_f32 =
+                    (int32_t)(action_ticks - UINT16_C(1)) * PF_F32_ONE;
+                source_animation_rate_f32 = PF_F32_ONE;
             }
             if (reference_move != NULL
                     ? (uint32_t)action_ticks >
@@ -11789,41 +11766,41 @@ pf_status step_player(
                 if (source_submotion ==
                     (uint16_t)PF_M4_FALCON_SUBMOTION_CATCH)
                 {
-                    const int32_t catch_wait_frame_q16 =
+                    const float catch_wait_frame_f32 =
                         (int32_t)(fighter->grab_startup_ticks +
                                   fighter->grab_active_ticks +
                                   UINT16_C(1)) *
-                        PF_Q16_ONE;
-                    const int64_t next_frame_q16 =
-                        (int64_t)source_animation_frame_q16 +
-                        (int64_t)PF_Q16_ONE;
+                        PF_F32_ONE;
+                    const float next_frame_f32 =
+                        (int64_t)source_animation_frame_f32 +
+                        (int64_t)PF_F32_ONE;
 
-                    if (next_frame_q16 >=
-                        (int64_t)catch_wait_frame_q16)
+                    if (next_frame_f32 >=
+                        (int64_t)catch_wait_frame_f32)
                     {
                         source_submotion = (uint16_t)
                             PF_M4_FALCON_SUBMOTION_CATCH_WAIT;
-                        source_animation_frame_q16 = INT32_C(0);
+                        source_animation_frame_f32 = INT32_C(0);
                     }
                     else
                     {
-                        source_animation_frame_q16 =
-                            (int32_t)next_frame_q16;
+                        source_animation_frame_f32 =
+                            (int32_t)next_frame_f32;
                     }
-                    source_animation_rate_q16 = PF_Q16_ONE;
+                    source_animation_rate_f32 = PF_F32_ONE;
                 }
                 else if (source_submotion ==
                          (uint16_t)PF_M4_FALCON_SUBMOTION_CATCH_WAIT)
                 {
-                    if (!falcon_advance_loop_animation_q16(
+                    if (!falcon_advance_loop_animation_f32(
                             source_submotion,
-                            source_animation_frame_q16,
-                            PF_Q16_ONE,
-                            &source_animation_frame_q16))
+                            source_animation_frame_f32,
+                            PF_F32_ONE,
+                            &source_animation_frame_f32))
                     {
                         return PF_STATUS_DETERMINISTIC_FAULT;
                     }
-                    source_animation_rate_q16 = PF_Q16_ONE;
+                    source_animation_rate_f32 = PF_F32_ONE;
                 }
                 else
                 {
@@ -11860,7 +11837,7 @@ pf_status step_player(
                             grab_action,
                             &source_submotion,
                             &victim_submotion,
-                            &source_animation_rate_q16))
+                            &source_animation_rate_f32))
                     {
                         return PF_STATUS_DETERMINISTIC_FAULT;
                     }
@@ -11869,8 +11846,8 @@ pf_status step_player(
                      * animation callback in the same update. The first
                      * observable throw row therefore already owns one shared
                      * weight-scaled animation step. */
-                    source_animation_frame_q16 =
-                        source_animation_rate_q16;
+                    source_animation_frame_f32 =
+                        source_animation_rate_f32;
                 }
                 scratch->attack_hit_mask[player_index] = UINT8_C(0);
                 scratch->attack_stale_registered[player_index] =
@@ -11918,31 +11895,31 @@ pf_status step_player(
                 if (source_submotion == (uint16_t)
                         PF_M4_FALCON_SUBMOTION_CAPTURE_WAIT_LOW)
                 {
-                    if (!falcon_advance_loop_animation_q16(
+                    if (!falcon_advance_loop_animation_f32(
                             source_submotion,
-                            source_animation_frame_q16,
-                            PF_Q16_ONE,
-                            &source_animation_frame_q16))
+                            source_animation_frame_f32,
+                            PF_F32_ONE,
+                            &source_animation_frame_f32))
                     {
                         return PF_STATUS_DETERMINISTIC_FAULT;
                     }
                 }
                 else
                 {
-                    const int64_t terminal_frame_q16 =
+                    const float terminal_frame_f32 =
                         (int64_t)(capture_motion->animation_frame_count -
                                   UINT16_C(1)) *
-                        (int64_t)PF_Q16_ONE;
-                    const int64_t next_frame_q16 =
-                        (int64_t)source_animation_frame_q16 +
-                        (int64_t)PF_Q16_ONE;
+                        (int64_t)PF_F32_ONE;
+                    const float next_frame_f32 =
+                        (int64_t)source_animation_frame_f32 +
+                        (int64_t)PF_F32_ONE;
 
-                    source_animation_frame_q16 =
-                        (int32_t)(next_frame_q16 < terminal_frame_q16
-                                      ? next_frame_q16
-                                      : terminal_frame_q16);
+                    source_animation_frame_f32 =
+                        (int32_t)(next_frame_f32 < terminal_frame_f32
+                                      ? next_frame_f32
+                                      : terminal_frame_f32);
                 }
-                source_animation_rate_q16 = PF_Q16_ONE;
+                source_animation_rate_f32 = PF_F32_ONE;
             }
 
             if (owner_slot != UINT8_C(0))
@@ -12067,17 +12044,17 @@ pf_status step_player(
                 const falcon_submotion_data *throw_motion;
                 uint16_t expected_holder_submotion;
                 uint16_t victim_submotion;
-                int32_t expected_rate_q16;
-                int64_t terminal_frame_q16;
-                int64_t next_frame_q16;
+                float expected_rate_f32;
+                float terminal_frame_f32;
+                float next_frame_f32;
 
                 if (!falcon_reference_throw_motions(
                         action_state,
                         &expected_holder_submotion,
                         &victim_submotion,
-                        &expected_rate_q16) ||
+                        &expected_rate_f32) ||
                     source_submotion != expected_holder_submotion ||
-                    source_animation_rate_q16 != expected_rate_q16)
+                    source_animation_rate_f32 != expected_rate_f32)
                 {
                     return PF_STATUS_DETERMINISTIC_FAULT;
                 }
@@ -12089,18 +12066,18 @@ pf_status step_player(
                 {
                     return PF_STATUS_DETERMINISTIC_FAULT;
                 }
-                terminal_frame_q16 =
+                terminal_frame_f32 =
                     (int64_t)throw_motion->animation_frame_count *
-                    (int64_t)PF_Q16_ONE;
-                next_frame_q16 =
-                    (int64_t)source_animation_frame_q16 +
-                    (int64_t)source_animation_rate_q16;
-                if (next_frame_q16 >= terminal_frame_q16 ||
-                    next_frame_q16 > (int64_t)INT32_MAX)
+                    (int64_t)PF_F32_ONE;
+                next_frame_f32 =
+                    (int64_t)source_animation_frame_f32 +
+                    (int64_t)source_animation_rate_f32;
+                if (next_frame_f32 >= terminal_frame_f32 ||
+                    next_frame_f32 > (int64_t)INT32_MAX)
                 {
                     return PF_STATUS_DETERMINISTIC_FAULT;
                 }
-                source_animation_frame_q16 = (int32_t)next_frame_q16;
+                source_animation_frame_f32 = (int32_t)next_frame_f32;
             }
             ++action_ticks;
             if (fighter->reference_frame_data_enabled == UINT8_C(0) &&
@@ -12120,7 +12097,7 @@ pf_status step_player(
         velocity_x = approach(
             velocity_x,
             INT32_C(0),
-            fighter->traction_q16);
+            fighter->traction_f32);
         if (scratch->charge_ticks[player_index] <
             content->charge.max_charge_ticks)
         {
@@ -12139,7 +12116,7 @@ pf_status step_player(
         velocity_x = approach(
             velocity_x,
             INT32_C(0),
-            fighter->traction_q16);
+            fighter->traction_f32);
         ++action_ticks;
         if (action_ticks >= content->charge.store_animation_ticks)
         {
@@ -12160,7 +12137,7 @@ pf_status step_player(
         velocity_x = approach(
             velocity_x,
             INT32_C(0),
-            fighter->traction_q16);
+            fighter->traction_f32);
         ++action_ticks;
         if ((uint32_t)action_ticks >= release_ticks)
         {
@@ -12187,7 +12164,7 @@ pf_status step_player(
         velocity_x = approach(
             velocity_x,
             INT32_C(0),
-            fighter->traction_q16);
+            fighter->traction_f32);
         ++action_ticks;
         if ((uint32_t)action_ticks >= reflector_ticks)
         {
@@ -12206,7 +12183,7 @@ pf_status step_player(
         const struct reference_move *move =
             falcon_reference_move(
                 PF_M4_FALCON_NEUTRAL_SPECIAL_GROUND);
-        int32_t reference_motion_x_q16;
+        float reference_motion_x_f32;
 
         if (move == NULL)
         {
@@ -12223,14 +12200,14 @@ pf_status step_player(
         }
         else
         {
-            if (!falcon_reference_motion_x_q16(
+            if (!falcon_reference_motion_x_f32(
                     action_state,
                     (uint16_t)(action_ticks + UINT16_C(1)),
-                    &reference_motion_x_q16))
+                    &reference_motion_x_f32))
             {
                 return PF_STATUS_DETERMINISTIC_FAULT;
             }
-            velocity_x = (int32_t)facing * reference_motion_x_q16;
+            velocity_x = (int32_t)facing * reference_motion_x_f32;
             ++action_ticks;
         }
     }
@@ -12268,7 +12245,7 @@ pf_status step_player(
         }
         else
         {
-            const int32_t hit_scale_q16 =
+            const float hit_scale_f32 =
                 falcon_kick_hit_velocity_scale(
                     attributes,
                     scratch->falcon_kick_hit_count[player_index]);
@@ -12284,7 +12261,7 @@ pf_status step_player(
                 return PF_STATUS_DETERMINISTIC_FAULT;
             }
             velocity_x =
-                multiply_q16(velocity_x, hit_scale_q16);
+                multiply_f32(velocity_x, hit_scale_f32);
             ++action_ticks;
         }
     }
@@ -12372,20 +12349,20 @@ pf_status step_player(
         }
         else
         {
-            const int32_t friction_q16 =
+            const float friction_f32 =
                 action_ticks >= timing->landing_traction_begin_frame &&
                     action_ticks <= timing->landing_traction_end_frame
-                    ? multiply_q16(
-                          common->friction_q16,
+                    ? multiply_f32(
+                          common->friction_f32,
                           attributes
-                              ->speciallw_air_landing_traction_q16)
+                              ->speciallw_air_landing_traction_f32)
                     : falcon_source_ground_friction(
                           common,
                           common_special,
                           velocity_x);
 
             velocity_x =
-                approach(velocity_x, INT32_C(0), friction_q16);
+                approach(velocity_x, INT32_C(0), friction_f32);
             ++action_ticks;
         }
     }
@@ -12437,7 +12414,7 @@ pf_status step_player(
                 : PF_M4_FALCON_SIDE_SPECIAL_HIT_GROUND;
         const struct reference_move *move =
             falcon_reference_move(move_index);
-        int32_t reference_motion_x_q16;
+        float reference_motion_x_f32;
 
         if (move == NULL)
         {
@@ -12454,14 +12431,14 @@ pf_status step_player(
         }
         else
         {
-            if (!falcon_reference_motion_x_q16(
+            if (!falcon_reference_motion_x_f32(
                     action_state,
                     (uint16_t)(action_ticks + UINT16_C(1)),
-                    &reference_motion_x_q16))
+                    &reference_motion_x_f32))
             {
                 return PF_STATUS_DETERMINISTIC_FAULT;
             }
-            velocity_x = (int32_t)facing * reference_motion_x_q16;
+            velocity_x = (int32_t)facing * reference_motion_x_f32;
             ++action_ticks;
         }
     }
@@ -12473,7 +12450,7 @@ pf_status step_player(
         velocity_x = approach(
             velocity_x,
             INT32_C(0),
-            fighter->traction_q16);
+            fighter->traction_f32);
         ++action_ticks;
         if (action_ticks >= content->projectile.fire_recovery_ticks)
         {
@@ -12495,7 +12472,7 @@ pf_status step_player(
         velocity_x = approach(
             velocity_x,
             INT32_C(0),
-            fighter->traction_q16);
+            fighter->traction_f32);
         ++action_ticks;
         if (action_ticks >= recovery_ticks)
         {
@@ -12531,7 +12508,7 @@ pf_status step_player(
             velocity_x = approach(
                 velocity_x,
                 INT32_C(0),
-                fighter->traction_q16);
+                fighter->traction_f32);
         }
         ++action_ticks;
         if (action_ticks >=
@@ -12678,15 +12655,15 @@ pf_status step_player(
                           PF_M4_FALCON_SUBMOTION_TECH_ROLL_FORWARD
                     : (uint16_t)
                           PF_M4_FALCON_SUBMOTION_TECH_ROLL_BACKWARD;
-            int32_t translation_x_q16;
+            float translation_x_f32;
 
-            if (falcon_reference_translation_q16(
+            if (falcon_reference_translation_f32(
                     submotion_index,
                     (uint16_t)(action_ticks + UINT16_C(1)),
-                    &translation_x_q16,
+                    &translation_x_f32,
                     NULL))
             {
-                velocity_x = (int32_t)facing * translation_x_q16;
+                velocity_x = (int32_t)facing * translation_x_f32;
             }
             else
             {
@@ -12737,7 +12714,7 @@ pf_status step_player(
                     scratch->prone_roll_motion_orientation[player_index],
                     scratch->tech_direction[player_index],
                     facing);
-            int32_t translation_x_q16;
+            float translation_x_f32;
 
             ++action_ticks;
             if (action_ticks >= fighter->getup_roll_ticks)
@@ -12754,17 +12731,17 @@ pf_status step_player(
                     (uint8_t)PF_M4_PRONE_NONE;
             }
             else if (submotion_index == UINT16_MAX ||
-                     !falcon_reference_translation_q16(
+                     !falcon_reference_translation_f32(
                          submotion_index,
                          (uint16_t)(action_ticks + UINT16_C(1)),
-                         &translation_x_q16,
+                         &translation_x_f32,
                          NULL))
             {
                 return PF_STATUS_DETERMINISTIC_FAULT;
             }
             else
             {
-                velocity_x = (int32_t)facing * translation_x_q16;
+                velocity_x = (int32_t)facing * translation_x_f32;
             }
         }
         else if (
@@ -12788,16 +12765,16 @@ pf_status step_player(
                 forward != 0
                     ? (uint16_t)PF_M4_FALCON_SUBMOTION_ROLL_FORWARD
                     : (uint16_t)PF_M4_FALCON_SUBMOTION_ROLL_BACKWARD;
-            int32_t translation_x_q16;
+            float translation_x_f32;
 
-            if (falcon_reference_translation_q16(
+            if (falcon_reference_translation_f32(
                     submotion_index,
                     (uint16_t)(action_ticks + UINT16_C(1)),
-                    &translation_x_q16,
+                    &translation_x_f32,
                     NULL))
             {
                 velocity_x =
-                    (int32_t)source_facing * translation_x_q16;
+                    (int32_t)source_facing * translation_x_f32;
             }
             else
             {
@@ -12857,7 +12834,7 @@ pf_status step_player(
         {
             falcon_move_index move_index;
             const struct reference_move *move;
-            int32_t reference_motion_x_q16;
+            float reference_motion_x_f32;
 
             if (!falcon_reference_move_for_action(
                     action_state,
@@ -12913,13 +12890,13 @@ pf_status step_player(
                      * Attack100Loop animation. */
                     scratch->attack_hit_mask[player_index] = UINT8_C(0);
                 }
-                if (falcon_reference_motion_x_q16(
+                if (falcon_reference_motion_x_f32(
                         action_state,
                         next_frame,
-                        &reference_motion_x_q16))
+                        &reference_motion_x_f32))
                 {
                     velocity_x =
-                        (int32_t)facing * reference_motion_x_q16;
+                        (int32_t)facing * reference_motion_x_f32;
                 }
                 else
                 {
@@ -12954,25 +12931,25 @@ pf_status step_player(
             if (source_charge_frame != UINT16_C(0) &&
                 action_ticks < source_charge_frame)
             {
-                int32_t reference_motion_x_q16;
+                float reference_motion_x_f32;
 
                 if (falcon_reference_ground_physics_for_action(
                         release_action) ==
                         PF_M4_REFERENCE_GROUND_PHYSICS_ROOT_MOTION &&
-                    falcon_reference_motion_x_q16(
+                    falcon_reference_motion_x_f32(
                         release_action,
                         (uint16_t)(action_ticks + UINT16_C(1)),
-                        &reference_motion_x_q16))
+                        &reference_motion_x_f32))
                 {
                     velocity_x =
-                        (int32_t)facing * reference_motion_x_q16;
+                        (int32_t)facing * reference_motion_x_f32;
                 }
                 else
                 {
                     velocity_x = approach(
                         velocity_x,
                         INT32_C(0),
-                        fighter->traction_q16);
+                        fighter->traction_f32);
                 }
                 ++action_ticks;
             }
@@ -12981,7 +12958,7 @@ pf_status step_player(
                 velocity_x = approach(
                     velocity_x,
                     INT32_C(0),
-                    fighter->traction_q16);
+                    fighter->traction_f32);
                 if (light_attack_held != 0 &&
                     scratch->smash_charge_ticks[player_index] <
                         fighter->smash_charge_max_ticks)
@@ -13039,26 +13016,26 @@ pf_status step_player(
                 falcon_ground_reference_matches(
                     fighter,
                     action_state);
-            int32_t reference_motion_x_q16;
+            float reference_motion_x_f32;
 
             if (reference_match != 0 &&
                 falcon_reference_ground_physics_for_action(
                     action_state) ==
                     PF_M4_REFERENCE_GROUND_PHYSICS_ROOT_MOTION &&
-                falcon_reference_motion_x_q16(
+                falcon_reference_motion_x_f32(
                     action_state,
                     (uint16_t)(action_ticks + UINT16_C(1)),
-                    &reference_motion_x_q16))
+                    &reference_motion_x_f32))
             {
                 velocity_x =
-                    (int32_t)facing * reference_motion_x_q16;
+                    (int32_t)facing * reference_motion_x_f32;
             }
             else
             {
                 velocity_x = approach(
                     velocity_x,
                     INT32_C(0),
-                    fighter->traction_q16);
+                    fighter->traction_f32);
             }
             ++action_ticks;
             /* Imported move.total_frames is the last displayed animation
@@ -13105,10 +13082,10 @@ pf_status step_player(
             velocity_x = approach(
                 velocity_x,
                 INT32_C(0),
-                velocity_x > fighter->walk_speed_q16 ||
-                        velocity_x < -fighter->walk_speed_q16
-                    ? fighter->turn_acceleration_q16
-                    : fighter->traction_q16);
+                velocity_x > fighter->walk_speed_f32 ||
+                        velocity_x < -fighter->walk_speed_f32
+                    ? fighter->turn_acceleration_f32
+                    : fighter->traction_f32);
         }
         if (short_hop_latched != UINT8_C(2) &&
             (input->buttons & PF_INPUT_BUTTON_JUMP) == UINT64_C(0) &&
@@ -13154,7 +13131,7 @@ pf_status step_player(
         velocity_x = approach(
             velocity_x,
             INT32_C(0),
-            fighter->traction_q16);
+            fighter->traction_f32);
         status = advance_retained_damage_animation(
             source_submotion,
             grounded,
@@ -13175,10 +13152,10 @@ pf_status step_player(
         velocity_x = approach(
             velocity_x,
             INT32_C(0),
-            velocity_x > fighter->walk_speed_q16 ||
-                    velocity_x < -fighter->walk_speed_q16
-                ? fighter->turn_acceleration_q16
-                : fighter->traction_q16);
+            velocity_x > fighter->walk_speed_f32 ||
+                    velocity_x < -fighter->walk_speed_f32
+                ? fighter->turn_acceleration_f32
+                : fighter->traction_f32);
         ++action_ticks;
         if (action_ticks >= fighter->landing_ticks)
         {
@@ -13213,20 +13190,19 @@ pf_status step_player(
     {
         const falcon_special_attributes *attributes =
             falcon_reference_special_attributes();
-        const int32_t lag_q16 =
+        const float lag_f32 =
             action_state ==
                     (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_LANDING_HIT
                 ? (attributes != NULL
-                       ? attributes->specials_hit_landing_lag_q16
+                       ? attributes->specials_hit_landing_lag_f32
                        : INT32_C(0))
                 : (attributes != NULL
-                       ? attributes->specials_miss_landing_lag_q16
+                       ? attributes->specials_miss_landing_lag_f32
                        : INT32_C(0));
-        const uint16_t landing_ticks =
-            (uint16_t)(lag_q16 / (int32_t)PF_Q16_ONE);
+        const uint16_t landing_ticks = (uint16_t)lag_f32;
 
-        if (attributes == NULL || lag_q16 <= INT32_C(0) ||
-            lag_q16 % (int32_t)PF_Q16_ONE != INT32_C(0))
+        if (attributes == NULL || lag_f32 <= 0.0f ||
+            lag_f32 != truncf(lag_f32))
         {
             return PF_STATUS_DETERMINISTIC_FAULT;
         }
@@ -13248,15 +13224,14 @@ pf_status step_player(
     {
         const falcon_special_attributes *attributes =
             falcon_reference_special_attributes();
-        const int32_t lag_q16 =
+        const float lag_f32 =
             attributes != NULL
-                ? attributes->specialhi_landing_lag_q16
+                ? attributes->specialhi_landing_lag_f32
                 : INT32_C(0);
-        const uint16_t landing_ticks =
-            (uint16_t)(lag_q16 / (int32_t)PF_Q16_ONE);
+        const uint16_t landing_ticks = (uint16_t)lag_f32;
 
-        if (attributes == NULL || lag_q16 <= INT32_C(0) ||
-            lag_q16 % (int32_t)PF_Q16_ONE != INT32_C(0))
+        if (attributes == NULL || lag_f32 <= 0.0f ||
+            lag_f32 != truncf(lag_f32))
         {
             return PF_STATUS_DETERMINISTIC_FAULT;
         }
@@ -13279,10 +13254,10 @@ pf_status step_player(
         velocity_x = approach(
             velocity_x,
             INT32_C(0),
-            velocity_x > fighter->walk_speed_q16 ||
-                    velocity_x < -fighter->walk_speed_q16
-                ? fighter->turn_acceleration_q16
-                : fighter->traction_q16);
+            velocity_x > fighter->walk_speed_f32 ||
+                    velocity_x < -fighter->walk_speed_f32
+                ? fighter->turn_acceleration_f32
+                : fighter->traction_f32);
         ++action_ticks;
         if (action_ticks >= fighter->special_landing_ticks)
         {
@@ -13377,10 +13352,10 @@ pf_status step_player(
             velocity_x = approach(
                 velocity_x,
                 INT32_C(0),
-                velocity_x > fighter->walk_speed_q16 ||
-                        velocity_x < -fighter->walk_speed_q16
-                    ? fighter->turn_acceleration_q16
-                    : fighter->traction_q16);
+                velocity_x > fighter->walk_speed_f32 ||
+                        velocity_x < -fighter->walk_speed_f32
+                    ? fighter->turn_acceleration_f32
+                    : fighter->traction_f32);
             if (action_ticks >= fighter->crouch_start_ticks)
             {
                 action_state =
@@ -13459,7 +13434,7 @@ pf_status step_player(
                 velocity_x = approach(
                     velocity_x,
                     INT32_C(0),
-                    fighter->traction_q16);
+                    fighter->traction_f32);
             }
         }
         else if (input->main_stick_y <
@@ -13468,10 +13443,10 @@ pf_status step_player(
             velocity_x = approach(
                 velocity_x,
                 INT32_C(0),
-                velocity_x > fighter->walk_speed_q16 ||
-                        velocity_x < -fighter->walk_speed_q16
-                    ? fighter->turn_acceleration_q16
-                    : fighter->traction_q16);
+                velocity_x > fighter->walk_speed_f32 ||
+                        velocity_x < -fighter->walk_speed_f32
+                    ? fighter->turn_acceleration_f32
+                    : fighter->traction_f32);
             action_state = (uint8_t)PF_M4_ACTION_CROUCH_END;
             action_ticks = UINT16_C(1);
         }
@@ -13480,10 +13455,10 @@ pf_status step_player(
             velocity_x = approach(
                 velocity_x,
                 INT32_C(0),
-                velocity_x > fighter->walk_speed_q16 ||
-                        velocity_x < -fighter->walk_speed_q16
-                    ? fighter->turn_acceleration_q16
-                    : fighter->traction_q16);
+                velocity_x > fighter->walk_speed_f32 ||
+                        velocity_x < -fighter->walk_speed_f32
+                    ? fighter->turn_acceleration_f32
+                    : fighter->traction_f32);
             if (action_ticks < UINT16_C(600))
             {
                 ++action_ticks;
@@ -13505,7 +13480,7 @@ pf_status step_player(
                 fighter,
                 velocity_x,
                 input->main_stick_x,
-                fighter->walk_speed_q16,
+                fighter->walk_speed_f32,
                 1);
         }
         else
@@ -13513,10 +13488,10 @@ pf_status step_player(
             velocity_x = approach(
                 velocity_x,
                 INT32_C(0),
-                velocity_x > fighter->walk_speed_q16 ||
-                        velocity_x < -fighter->walk_speed_q16
-                    ? fighter->turn_acceleration_q16
-                    : fighter->traction_q16);
+                velocity_x > fighter->walk_speed_f32 ||
+                        velocity_x < -fighter->walk_speed_f32
+                    ? fighter->turn_acceleration_f32
+                    : fighter->traction_f32);
             if (action_ticks >= fighter->crouch_end_ticks)
             {
                 action_state =
@@ -13554,10 +13529,10 @@ pf_status step_player(
         velocity_x = approach(
             velocity_x,
             INT32_C(0),
-            velocity_x > fighter->walk_speed_q16 ||
-                    velocity_x < -fighter->walk_speed_q16
-                ? fighter->turn_acceleration_q16
-                : fighter->traction_q16);
+            velocity_x > fighter->walk_speed_f32 ||
+                    velocity_x < -fighter->walk_speed_f32
+                ? fighter->turn_acceleration_f32
+                : fighter->traction_f32);
         dash_direction = INT8_C(0);
     }
     else if (!ledge_motion_handled &&
@@ -13635,7 +13610,7 @@ pf_status step_player(
                     fighter,
                     velocity_x,
                     input->main_stick_x,
-                    fighter->walk_speed_q16,
+                    fighter->walk_speed_f32,
                     1);
             }
             else if ((uint32_t)action_ticks + UINT32_C(1) >=
@@ -13769,7 +13744,7 @@ pf_status step_player(
                 velocity_x = approach(
                     velocity_x,
                     INT32_C(0),
-                    fighter->traction_q16);
+                    fighter->traction_f32);
                 ++action_ticks;
                 if (action_ticks >= fighter->standing_turn_ticks)
                 {
@@ -13783,7 +13758,7 @@ pf_status step_player(
                             fighter,
                             velocity_x,
                             input->main_stick_x,
-                            fighter->walk_speed_q16,
+                            fighter->walk_speed_f32,
                             1);
                     }
                     else
@@ -13813,11 +13788,11 @@ pf_status step_player(
                     (uint8_t)PF_M4_ACTION_STANDING_TURN;
                 action_ticks = UINT16_C(1);
                 velocity_x = approach(
-                    multiply_q16(
+                    multiply_f32(
                         velocity_x,
-                        PF_Q16_ONE / INT32_C(4)),
+                        PF_F32_ONE / INT32_C(4)),
                     INT32_C(0),
-                    fighter->traction_q16);
+                    fighter->traction_f32);
             }
             else if (source_ground_input != NULL &&
                      fresh_dash_input != 0 &&
@@ -13840,7 +13815,7 @@ pf_status step_player(
                     fighter,
                     velocity_x,
                     input->main_stick_x,
-                    fighter->run_speed_q16,
+                    fighter->run_speed_f32,
                     0);
                 ++action_ticks;
                 if (run_continues != 0 &&
@@ -13864,9 +13839,9 @@ pf_status step_player(
                     if (action_state ==
                             (uint8_t)PF_M4_ACTION_GROUND_IDLE &&
                         (velocity_before_ground_input >
-                             fighter->walk_speed_q16 ||
+                             fighter->walk_speed_f32 ||
                          velocity_before_ground_input <
-                             -fighter->walk_speed_q16))
+                             -fighter->walk_speed_f32))
                     {
                         /*
                          * Dash physics already applied one traction step.
@@ -13876,7 +13851,7 @@ pf_status step_player(
                         velocity_x = approach(
                             velocity_x,
                             INT32_C(0),
-                            fighter->traction_q16);
+                            fighter->traction_f32);
                     }
                 }
             }
@@ -13902,7 +13877,7 @@ pf_status step_player(
                         fighter,
                         velocity_x,
                         input->main_stick_x,
-                        fighter->run_speed_q16,
+                        fighter->run_speed_f32,
                         2);
                 }
                 else
@@ -13912,7 +13887,7 @@ pf_status step_player(
                     velocity_x = approach(
                         velocity_x,
                         INT32_C(0),
-                        fighter->traction_q16);
+                        fighter->traction_f32);
                 }
             }
             else
@@ -13937,7 +13912,7 @@ pf_status step_player(
                     fighter,
                     velocity_x,
                     input->main_stick_x,
-                    fighter->run_speed_q16,
+                    fighter->run_speed_f32,
                     0);
             }
         }
@@ -13959,7 +13934,7 @@ pf_status step_player(
                     fighter,
                     velocity_x,
                     input->main_stick_x,
-                    fighter->run_speed_q16,
+                    fighter->run_speed_f32,
                     0);
             }
             else
@@ -13967,7 +13942,7 @@ pf_status step_player(
                 velocity_x = approach(
                     velocity_x,
                     INT32_C(0),
-                    fighter->traction_q16);
+                    fighter->traction_f32);
                 ++action_ticks;
                 if (action_ticks >= fighter->run_brake_ticks)
                 {
@@ -13988,7 +13963,7 @@ pf_status step_player(
                     fighter,
                     velocity_x,
                     input->main_stick_x,
-                    fighter->run_speed_q16,
+                    fighter->run_speed_f32,
                     2);
             }
             else if (run_turnaround_requested)
@@ -14001,7 +13976,7 @@ pf_status step_player(
                     fighter,
                     velocity_x,
                     input->main_stick_x,
-                    fighter->run_speed_q16,
+                    fighter->run_speed_f32,
                     0);
             }
             else if (!run_continues)
@@ -14012,7 +13987,7 @@ pf_status step_player(
                 velocity_x = approach(
                     velocity_x,
                     INT32_C(0),
-                    fighter->traction_q16);
+                    fighter->traction_f32);
             }
             else
             {
@@ -14020,7 +13995,7 @@ pf_status step_player(
                     fighter,
                     velocity_x,
                     input->main_stick_x,
-                    fighter->run_speed_q16,
+                    fighter->run_speed_f32,
                     2);
             }
         }
@@ -14047,13 +14022,13 @@ pf_status step_player(
                 velocity_x = approach(
                     velocity_x,
                     INT32_C(0),
-                    fighter->traction_q16);
+                    fighter->traction_f32);
                 status = advance_ground_damage_animation(
                     &action_state,
                     &action_ticks,
                     scratch->hitstun_ticks[player_index],
                     &scratch
-                         ->ground_knockback_velocity_q16[player_index]);
+                         ->ground_knockback_velocity_f32[player_index]);
                 if (status != PF_STATUS_OK)
                 {
                     return status;
@@ -14081,7 +14056,7 @@ pf_status step_player(
                     velocity_x = approach(
                         velocity_x,
                         INT32_C(0),
-                        fighter->traction_q16);
+                        fighter->traction_f32);
                 }
             }
             else if (action_state ==
@@ -14095,7 +14070,7 @@ pf_status step_player(
                     fighter,
                     velocity_x,
                     input->main_stick_x,
-                    fighter->run_speed_q16,
+                    fighter->run_speed_f32,
                     0);
                 ++action_ticks;
                 if (action_ticks >=
@@ -14123,10 +14098,10 @@ pf_status step_player(
                 velocity_x = approach(
                     velocity_x,
                     INT32_C(0),
-                    velocity_x > fighter->walk_speed_q16 ||
-                            velocity_x < -fighter->walk_speed_q16
-                        ? fighter->turn_acceleration_q16
-                        : fighter->traction_q16);
+                    velocity_x > fighter->walk_speed_f32 ||
+                            velocity_x < -fighter->walk_speed_f32
+                        ? fighter->turn_acceleration_f32
+                        : fighter->traction_f32);
             }
             else if ((action_state ==
                           (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
@@ -14144,10 +14119,10 @@ pf_status step_player(
                 velocity_x = approach(
                     velocity_x,
                     INT32_C(0),
-                    velocity_x > fighter->walk_speed_q16 ||
-                            velocity_x < -fighter->walk_speed_q16
-                        ? fighter->turn_acceleration_q16
-                        : fighter->traction_q16);
+                    velocity_x > fighter->walk_speed_f32 ||
+                            velocity_x < -fighter->walk_speed_f32
+                        ? fighter->turn_acceleration_f32
+                        : fighter->traction_f32);
             }
             else if (horizontal_magnitude >=
                      fighter->walk_axis_threshold)
@@ -14185,8 +14160,8 @@ pf_status step_player(
                     velocity_x,
                     input->main_stick_x,
                     walk != 0
-                        ? fighter->walk_speed_q16
-                        : fighter->run_speed_q16,
+                        ? fighter->walk_speed_f32
+                        : fighter->run_speed_f32,
                     walk != 0 ? 1 : 2);
             }
             else
@@ -14198,10 +14173,10 @@ pf_status step_player(
                 velocity_x = approach(
                     velocity_x,
                     INT32_C(0),
-                    velocity_x > fighter->walk_speed_q16 ||
-                            velocity_x < -fighter->walk_speed_q16
-                        ? fighter->turn_acceleration_q16
-                        : fighter->traction_q16);
+                    velocity_x > fighter->walk_speed_f32 ||
+                            velocity_x < -fighter->walk_speed_f32
+                        ? fighter->turn_acceleration_f32
+                        : fighter->traction_f32);
             }
         }
     }
@@ -14233,16 +14208,16 @@ pf_status step_player(
                     velocity_x =
                         (int32_t)scratch
                             ->tech_direction[player_index] *
-                        fighter->wall_tech_jump_speed_x_q16;
+                        fighter->wall_tech_jump_speed_x_f32;
                     velocity_y =
-                        -fighter->wall_tech_jump_speed_y_q16;
+                        -fighter->wall_tech_jump_speed_y_f32;
                 }
                 else
                 {
                     velocity_x =
                         (int32_t)scratch
                             ->tech_direction[player_index] *
-                        fighter->wall_tech_speed_q16;
+                        fighter->wall_tech_speed_f32;
                     velocity_y = INT32_C(0);
                 }
             }
@@ -14251,7 +14226,7 @@ pf_status step_player(
                 velocity_x = approach(
                     velocity_x,
                     INT32_C(0),
-                    fighter->air_friction_q16);
+                    fighter->air_friction_f32);
             }
             if (action_ticks >= action_duration)
             {
@@ -14264,15 +14239,15 @@ pf_status step_player(
         {
             if (action_ticks == fighter->ceiling_tech_control_tick)
             {
-                velocity_x = scale_axis_q16(
+                velocity_x = scale_axis_f32(
                     input->main_stick_x,
-                    fighter->ceiling_tech_speed_q16);
+                    fighter->ceiling_tech_speed_f32);
             }
             velocity_x = apply_air_input(
                 fighter,
                 velocity_x,
                 input->main_stick_x,
-                fighter->air_speed_q16);
+                fighter->air_speed_f32);
             if (action_ticks >= fighter->ceiling_tech_ticks)
             {
                 action_state = (uint8_t)PF_M4_ACTION_AIRBORNE;
@@ -14353,12 +14328,12 @@ pf_status step_player(
                 action_ticks <
                 fighter->air_dodge_ordinary_physics_begin_tick)
             {
-                velocity_x = multiply_q16(
+                velocity_x = multiply_f32(
                     velocity_x,
-                    fighter->air_dodge_decay_q16);
-                velocity_y = multiply_q16(
+                    fighter->air_dodge_decay_f32);
+                velocity_y = multiply_f32(
                     velocity_y,
-                    fighter->air_dodge_decay_q16);
+                    fighter->air_dodge_decay_f32);
             }
             else
             {
@@ -14366,7 +14341,7 @@ pf_status step_player(
                     fighter,
                     velocity_x,
                     input->main_stick_x,
-                    fighter->air_max_horizontal_speed_q16);
+                    fighter->air_max_horizontal_speed_f32);
             }
         }
         else if (action_state ==
@@ -14376,7 +14351,7 @@ pf_status step_player(
                 fighter,
                 velocity_x,
                 input->main_stick_x,
-                content->recovery.horizontal_speed_q16);
+                content->recovery.horizontal_speed_f32);
             ++action_ticks;
             if (action_ticks >= content->recovery.ascent_ticks)
             {
@@ -14399,12 +14374,12 @@ pf_status step_player(
                         (uint8_t)PF_M4_ACTION_FALCON_DIVE_FALL
                     ? falcon_reference_special_attributes()
                     : NULL;
-            const int32_t maximum_speed_q16 =
+            const float maximum_speed_f32 =
                 attributes != NULL
-                    ? multiply_q16(
-                          fighter->air_max_horizontal_speed_q16,
-                          attributes->specialhi_freefall_air_spd_mul_q16)
-                    : fighter->fall_special_mobility_q16;
+                    ? multiply_f32(
+                          fighter->air_max_horizontal_speed_f32,
+                          attributes->specialhi_freefall_air_spd_mul_f32)
+                    : fighter->fall_special_mobility_f32;
 
             if (action_uses_fall_special_pose(action_state))
             {
@@ -14431,7 +14406,7 @@ pf_status step_player(
                 fighter,
                 velocity_x,
                 input->main_stick_x,
-                maximum_speed_q16);
+                maximum_speed_f32);
         }
         else if (action_state == (uint8_t)PF_M4_ACTION_WALL_JUMP)
         {
@@ -14495,21 +14470,21 @@ pf_status step_player(
                 {
                     velocity_x =
                         -(int32_t)facing *
-                        fighter->grab_release_air_speed_x_q16;
-                    velocity_y = -fighter->grab_release_air_speed_y_q16;
+                        fighter->grab_release_air_speed_x_f32;
+                    velocity_y = -fighter->grab_release_air_speed_y_f32;
                 }
                 else
                 {
                     velocity_x =
                         -(int32_t)facing *
-                        fighter->grab_release_speed_x_q16;
+                        fighter->grab_release_speed_x_f32;
                 }
             }
             velocity_x = apply_air_input(
                 fighter,
                 velocity_x,
                 input->main_stick_x,
-                fighter->air_speed_q16);
+                fighter->air_speed_f32);
             release_ticks =
                 release_motion->animation_frame_count != UINT16_C(0)
                     ? release_motion->animation_frame_count
@@ -14544,7 +14519,7 @@ pf_status step_player(
                     fighter,
                     velocity_x,
                     input->main_stick_x,
-                    fighter->air_speed_q16);
+                    fighter->air_speed_f32);
             }
             else
             {
@@ -14554,7 +14529,7 @@ pf_status step_player(
                     fighter,
                     velocity_x,
                     input->main_stick_x,
-                    fighter->air_speed_q16);
+                    fighter->air_speed_f32);
                 ++action_ticks;
             }
         }
@@ -14581,7 +14556,7 @@ pf_status step_player(
                     fighter,
                     velocity_x,
                     input->main_stick_x,
-                    fighter->air_speed_q16);
+                    fighter->air_speed_f32);
                 ++action_ticks;
                 if ((uint32_t)action_ticks >= reflector_ticks)
                 {
@@ -14671,18 +14646,18 @@ pf_status step_player(
                         (uint8_t)
                             PF_M4_ACTION_FALCON_KICK_START_GROUND)
                     {
-                        const int32_t hit_scale_q16 =
+                        const float hit_scale_f32 =
                             falcon_kick_hit_velocity_scale(
                                 attributes,
                                 scratch
                                     ->falcon_kick_hit_count[player_index]);
 
-                        velocity_x = multiply_q16(
+                        velocity_x = multiply_f32(
                             velocity_x,
-                            hit_scale_q16);
-                        velocity_y = multiply_q16(
+                            hit_scale_f32);
+                        velocity_y = multiply_f32(
                             velocity_y,
-                            hit_scale_q16);
+                            hit_scale_f32);
                     }
                     ++action_ticks;
                     launched_this_tick = 1;
@@ -14793,16 +14768,16 @@ pf_status step_player(
                 {
                     const falcon_special_attributes *attributes =
                         falcon_reference_special_attributes();
-                    const int32_t fall_maximum_q16 =
+                    const float fall_maximum_f32 =
                         attributes != NULL
-                            ? multiply_q16(
-                                  fighter->air_max_horizontal_speed_q16,
+                            ? multiply_f32(
+                                  fighter->air_max_horizontal_speed_f32,
                                   attributes
-                                      ->specialhi_freefall_air_spd_mul_q16)
+                                      ->specialhi_freefall_air_spd_mul_f32)
                             : INT32_C(0);
 
                     if (attributes == NULL ||
-                        fall_maximum_q16 <= INT32_C(0))
+                        fall_maximum_f32 <= INT32_C(0))
                     {
                         return PF_STATUS_DETERMINISTIC_FAULT;
                     }
@@ -14813,7 +14788,7 @@ pf_status step_player(
                         fighter,
                         velocity_x,
                         input->main_stick_x,
-                        fall_maximum_q16);
+                        fall_maximum_f32);
                     scratch->attack_hit_mask[player_index] = UINT8_C(0);
                     scratch->attack_stale_registered[player_index] =
                         UINT8_C(0);
@@ -14860,7 +14835,7 @@ pf_status step_player(
                         fighter,
                         velocity_x,
                         input->main_stick_x,
-                        fighter->air_speed_q16);
+                        fighter->air_speed_f32);
                     scratch->attack_hit_mask[player_index] = UINT8_C(0);
                     scratch->attack_stale_registered[player_index] =
                         UINT8_C(0);
@@ -14913,12 +14888,12 @@ pf_status step_player(
                     displayed_frame <=
                         timing->velocity_scale_end_frame)
                 {
-                    velocity_x = multiply_q16(
+                    velocity_x = multiply_f32(
                         velocity_x,
-                        attributes->specialn_vel_mul_q16);
-                    velocity_y = multiply_q16(
+                        attributes->specialn_vel_mul_f32);
+                    velocity_y = multiply_f32(
                         velocity_y,
-                        attributes->specialn_vel_mul_q16);
+                        attributes->specialn_vel_mul_f32);
                     launched_this_tick = 1;
                 }
                 else if (displayed_frame <
@@ -14927,7 +14902,7 @@ pf_status step_player(
                     velocity_x = approach(
                         velocity_x,
                         INT32_C(0),
-                        fighter->air_friction_q16);
+                        fighter->air_friction_f32);
                 }
                 else
                 {
@@ -14935,7 +14910,7 @@ pf_status step_player(
                         fighter,
                         velocity_x,
                         input->main_stick_x,
-                        fighter->air_speed_q16);
+                        fighter->air_speed_f32);
                 }
                 ++action_ticks;
                 if (action_ticks > move->total_frames)
@@ -14968,7 +14943,7 @@ pf_status step_player(
                     falcon_reference_special_attributes();
                 const falcon_side_special_timing *timing =
                     falcon_reference_side_special_timing();
-                int32_t reference_motion_x_q16;
+                float reference_motion_x_f32;
 
                 if (move == NULL || attributes == NULL || timing == NULL)
                 {
@@ -14991,34 +14966,34 @@ pf_status step_player(
                     const uint16_t displayed_frame =
                         action_ticks + UINT16_C(1);
 
-                    if (!falcon_reference_motion_x_q16(
+                    if (!falcon_reference_motion_x_f32(
                             action_state,
                             displayed_frame,
-                            &reference_motion_x_q16))
+                            &reference_motion_x_f32))
                     {
                         return PF_STATUS_DETERMINISTIC_FAULT;
                     }
                     velocity_x =
-                        (int32_t)facing * reference_motion_x_q16;
+                        (int32_t)facing * reference_motion_x_f32;
                     if (hit != 0 ||
                         displayed_frame >=
                             timing->air_gravity_begin_frame)
                     {
-                        const int32_t gravity_q16 =
-                            falcon_source_velocity_to_sim_q16(
-                                attributes->specials_grav_q16,
+                        const float gravity_f32 =
+                            falcon_source_velocity_to_sim_f32(
+                                attributes->specials_grav_f32,
                                 INT32_C(11),
                                 INT32_C(62));
-                        const int32_t terminal_q16 =
-                            falcon_source_velocity_to_sim_q16(
-                                attributes->specials_terminal_vel_q16,
+                        const float terminal_f32 =
+                            falcon_source_velocity_to_sim_f32(
+                                attributes->specials_terminal_vel_f32,
                                 INT32_C(11),
                                 INT32_C(62));
 
                         velocity_y = approach(
                             velocity_y,
-                            terminal_q16,
-                            gravity_q16);
+                            terminal_f32,
+                            gravity_f32);
                     }
                     ++action_ticks;
                     launched_this_tick = 1;
@@ -15032,7 +15007,7 @@ pf_status step_player(
                     fighter,
                     velocity_x,
                     input->main_stick_x,
-                    fighter->air_speed_q16);
+                    fighter->air_speed_f32);
                 ++action_ticks;
                 if (action_ticks >=
                     content->projectile.fire_recovery_ticks)
@@ -15084,28 +15059,28 @@ pf_status step_player(
                 {
                     if (fighter->reference_frame_data_enabled != UINT8_C(0))
                     {
-                        int32_t reference_motion_x_q16 = INT32_C(0);
-                        int32_t reference_motion_y_q16 = INT32_C(0);
+                        float reference_motion_x_f32 = INT32_C(0);
+                        float reference_motion_y_f32 = INT32_C(0);
                         const uint16_t displayed_frame =
                             (uint16_t)(action_ticks + UINT16_C(1));
 
-                        (void)falcon_reference_motion_x_q16(
+                        (void)falcon_reference_motion_x_f32(
                             action_state,
                             displayed_frame,
-                            &reference_motion_x_q16);
-                        (void)falcon_reference_motion_y_q16(
+                            &reference_motion_x_f32);
+                        (void)falcon_reference_motion_y_f32(
                             action_state,
                             displayed_frame,
-                            &reference_motion_y_q16);
-                        animation_motion_x_q16 =
-                            (int32_t)facing * reference_motion_x_q16;
-                        animation_motion_y_q16 = reference_motion_y_q16;
+                            &reference_motion_y_f32);
+                        animation_motion_x_f32 =
+                            (int32_t)facing * reference_motion_x_f32;
+                        animation_motion_y_f32 = reference_motion_y_f32;
                     }
                     velocity_x = apply_air_input(
                         fighter,
                         velocity_x,
                         input->main_stick_x,
-                        fighter->air_speed_q16);
+                        fighter->air_speed_f32);
                     ++action_ticks;
                     if ((uint32_t)action_ticks >= aerial_attack_ticks)
                     {
@@ -15127,7 +15102,7 @@ pf_status step_player(
                     fighter,
                     velocity_x,
                     input->main_stick_x,
-                    fighter->air_speed_q16);
+                    fighter->air_speed_f32);
                 ++action_ticks;
                 if ((uint32_t)action_ticks >=
                     strong_aerial_attack_ticks)
@@ -15202,7 +15177,7 @@ pf_status step_player(
                     fighter,
                     velocity_x,
                     input->main_stick_x,
-                    fighter->air_speed_q16);
+                    fighter->air_speed_f32);
             }
             else
             {
@@ -15212,7 +15187,7 @@ pf_status step_player(
                         fighter,
                         velocity_x,
                         input->main_stick_x,
-                        fighter->air_speed_q16);
+                        fighter->air_speed_f32);
                 }
                 if (action_state ==
                     (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP)
@@ -15315,47 +15290,47 @@ pf_status step_player(
          * CollData.desired_ecb.bottom from the preceding map update; derive
          * that same value from canonical source state instead of storing a
          * second copy of the complete desired ECB. */
-        ecb_locked_bottom_y_q16 =
-            reference_ecb_lock_bottom_from_world_q16(
+        ecb_locked_bottom_y_f32 =
+            reference_ecb_lock_bottom_from_world_f32(
                 fighter,
                 world,
                 player_index,
-                previous_locked_bottom_y_q16);
+                previous_locked_bottom_y_f32);
         ecb_bottom_lock_ticks = PF_M4_COMMON_AIR_ENTRY_ECB_LOCK_TICKS;
-        inherited_locked_bottom_y_q16 = ecb_locked_bottom_y_q16;
+        inherited_locked_bottom_y_f32 = ecb_locked_bottom_y_f32;
     }
 
     if (action_state != (uint8_t)PF_M4_ACTION_SHIELD &&
         action_state != (uint8_t)PF_M4_ACTION_SHIELD_STUN)
     {
-        scratch->shield_health_q16[player_index] =
+        scratch->shield_health_f32[player_index] =
             shield_health_add(
-                scratch->shield_health_q16[player_index],
-                fighter->shield_regeneration_q16,
-                fighter->shield_health_q16);
+                scratch->shield_health_f32[player_index],
+                fighter->shield_regeneration_f32,
+                fighter->shield_health_f32);
     }
 
     const uint8_t shield_recoil_bit =
         (uint8_t)(UINT8_C(1) << player_index);
     int32_t shield_recoil_x =
         (scratch->shield_recoil_mask & shield_recoil_bit) != UINT8_C(0)
-            ? scratch->shield_recoil_x_q16[player_index]
+            ? scratch->shield_recoil_x_f32[player_index]
             : INT32_C(0);
 
     if (shield_recoil_x != INT32_C(0))
     {
-        const int32_t recoil_decay_q16 =
+        const float recoil_decay_f32 =
             grounded != UINT8_C(0)
-                ? multiply_q16(
-                      fighter->traction_q16,
+                ? multiply_f32(
+                      fighter->traction_f32,
                       fighter
-                          ->shield_attacker_pushback_ground_friction_scale_q16)
-                : fighter->shield_attacker_pushback_air_decay_q16;
+                          ->shield_attacker_pushback_ground_friction_scale_f32)
+                : fighter->shield_attacker_pushback_air_decay_f32;
 
         shield_recoil_x = approach(
             shield_recoil_x,
             INT32_C(0),
-            recoil_decay_q16);
+            recoil_decay_f32);
         if (shield_recoil_x == INT32_C(0))
         {
             scratch->shield_recoil_mask =
@@ -15380,50 +15355,50 @@ pf_status step_player(
      * x8c_kb_vel, then adds self velocity and knockback to position. The
      * dedicated knockback channel remains distinct from ordinary velocity
      * throughout integration. */
-    if (scratch->knockback_velocity_x_q16[player_index] != INT32_C(0) ||
-        scratch->knockback_velocity_y_q16[player_index] != INT32_C(0) ||
-        scratch->ground_knockback_velocity_q16[player_index] != INT32_C(0))
+    if (scratch->knockback_velocity_x_f32[player_index] != INT32_C(0) ||
+        scratch->knockback_velocity_y_f32[player_index] != INT32_C(0) ||
+        scratch->ground_knockback_velocity_f32[player_index] != INT32_C(0))
     {
         if (grounded != UINT8_C(0))
         {
-            const int32_t ground_decay_q16 =
+            const float ground_decay_f32 =
                 source_character != NULL
                     ? q32_rate_step(
                           (source_character->friction_q32 *
                            (int64_t)fighter
-                               ->ground_knockback_decay_scale_q16) /
+                               ->ground_knockback_decay_scale_f32) /
                               INT64_C(65536),
                           world->tick)
-                    : multiply_q16(
-                          fighter->traction_q16,
-                          fighter->ground_knockback_decay_scale_q16);
+                    : multiply_f32(
+                          fighter->traction_f32,
+                          fighter->ground_knockback_decay_scale_f32);
 
-            if (scratch->ground_knockback_velocity_q16[player_index] ==
+            if (scratch->ground_knockback_velocity_f32[player_index] ==
                 INT32_C(0))
             {
-                scratch->ground_knockback_velocity_q16[player_index] =
-                    scratch->knockback_velocity_x_q16[player_index];
+                scratch->ground_knockback_velocity_f32[player_index] =
+                    scratch->knockback_velocity_x_f32[player_index];
             }
-            scratch->ground_knockback_velocity_q16[player_index] =
+            scratch->ground_knockback_velocity_f32[player_index] =
                 approach(
-                    scratch->ground_knockback_velocity_q16[player_index],
+                    scratch->ground_knockback_velocity_f32[player_index],
                     INT32_C(0),
-                    ground_decay_q16);
-            project_ground_scalar_q16(
+                    ground_decay_f32);
+            project_ground_scalar_f32(
                 content,
                 support,
-                scratch->ground_knockback_velocity_q16[player_index],
-                &scratch->knockback_velocity_x_q16[player_index],
-                &scratch->knockback_velocity_y_q16[player_index]);
+                scratch->ground_knockback_velocity_f32[player_index],
+                &scratch->knockback_velocity_x_f32[player_index],
+                &scratch->knockback_velocity_y_f32[player_index]);
         }
         else
         {
-            scratch->ground_knockback_velocity_q16[player_index] =
+            scratch->ground_knockback_velocity_f32[player_index] =
                 INT32_C(0);
-            status = ssbm_decay_air_knockback_q16(
-                fighter->air_knockback_decay_q16,
-                &scratch->knockback_velocity_x_q16[player_index],
-                &scratch->knockback_velocity_y_q16[player_index]);
+            status = ssbm_decay_air_knockback_f32(
+                fighter->air_knockback_decay_f32,
+                &scratch->knockback_velocity_x_f32[player_index],
+                &scratch->knockback_velocity_y_f32[player_index]);
             if (status != PF_STATUS_OK)
             {
                 return status;
@@ -15437,29 +15412,29 @@ pf_status step_player(
          * later Dash callback can consume it. */
         tilt_x_age = UINT8_C(254);
     }
-    integrated_self_x_q16 =
+    integrated_self_x_f32 =
         initial_dash_entered_this_tick != 0
             ? initial_dash_entry_motion_velocity_x
             : velocity_x;
-    integrated_self_y_q16 = velocity_y;
-    integrated_animation_x_q16 = animation_motion_x_q16;
-    integrated_animation_y_q16 = animation_motion_y_q16;
+    integrated_self_y_f32 = velocity_y;
+    integrated_animation_x_f32 = animation_motion_x_f32;
+    integrated_animation_y_f32 = animation_motion_y_f32;
     if (grounded != UINT8_C(0) &&
         stage->reference_collision_profile !=
             (uint16_t)PF_M4_REFERENCE_STAGE_AUTHORED)
     {
-        project_ground_scalar_q16(
+        project_ground_scalar_f32(
             content,
             support,
-            integrated_self_x_q16,
-            &integrated_self_x_q16,
-            &integrated_self_y_q16);
-        project_ground_scalar_q16(
+            integrated_self_x_f32,
+            &integrated_self_x_f32,
+            &integrated_self_y_f32);
+        project_ground_scalar_f32(
             content,
             support,
-            animation_motion_x_q16,
-            &integrated_animation_x_q16,
-            &integrated_animation_y_q16);
+            animation_motion_x_f32,
+            &integrated_animation_x_f32,
+            &integrated_animation_y_f32);
     }
 
     if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
@@ -15477,8 +15452,8 @@ pf_status step_player(
         if (action_is_damage(previous_effective_action))
         {
             source_submotion = previous_source_submotion;
-            source_animation_frame_q16 =
-                previous_source_animation_frame_q16;
+            source_animation_frame_f32 =
+                previous_source_animation_frame_f32;
         }
         damage_motion =
             falcon_reference_submotion(source_submotion);
@@ -15491,21 +15466,21 @@ pf_status step_player(
         {
             return PF_STATUS_DETERMINISTIC_FAULT;
         }
-        source_animation_rate_q16 = (int32_t)PF_Q16_ONE;
+        source_animation_rate_f32 = (int32_t)PF_F32_ONE;
         if (action_state != (uint8_t)PF_M4_ACTION_HITLAG)
         {
-            const int64_t terminal_frame_q16 =
+            const float terminal_frame_f32 =
                 (int64_t)(damage_motion->animation_frame_count -
                           UINT16_C(1)) *
-                (int64_t)PF_Q16_ONE;
-            const int64_t next_frame_q16 =
-                (int64_t)source_animation_frame_q16 +
-                (int64_t)source_animation_rate_q16;
+                (int64_t)PF_F32_ONE;
+            const float next_frame_f32 =
+                (int64_t)source_animation_frame_f32 +
+                (int64_t)source_animation_rate_f32;
 
-            source_animation_frame_q16 =
-                (int32_t)(next_frame_q16 < terminal_frame_q16
-                              ? next_frame_q16
-                              : terminal_frame_q16);
+            source_animation_frame_f32 =
+                (int32_t)(next_frame_f32 < terminal_frame_f32
+                              ? next_frame_f32
+                              : terminal_frame_f32);
         }
     }
 
@@ -15519,8 +15494,8 @@ pf_status step_player(
         const int64_t numerator =
             landing != NULL
                 ? (int64_t)landing->animation_frame_count *
-                      (int64_t)PF_Q16_ONE +
-                      (int64_t)PF_Q16_ONE / INT64_C(10)
+                      (int64_t)PF_F32_ONE +
+                      (int64_t)PF_F32_ONE / INT64_C(10)
                 : INT64_C(0);
 
         if (landing == NULL ||
@@ -15533,11 +15508,11 @@ pf_status step_player(
         }
         source_submotion =
             (uint16_t)PF_M4_FALCON_SUBMOTION_LANDING_FALL_SPECIAL;
-        source_animation_rate_q16 = (int32_t)(
+        source_animation_rate_f32 = (int32_t)(
             numerator / (int64_t)fighter->special_landing_ticks);
-        source_animation_frame_q16 = (int32_t)(
+        source_animation_frame_f32 = (int32_t)(
             (int64_t)action_ticks *
-            (int64_t)source_animation_rate_q16);
+            (int64_t)source_animation_rate_f32);
     }
     else if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
              effective_action_state(
@@ -15552,24 +15527,24 @@ pf_status step_player(
 
         source_submotion =
             (uint16_t)PF_M4_FALCON_SUBMOTION_AIR_DODGE;
-        source_animation_rate_q16 = (int32_t)PF_Q16_ONE;
+        source_animation_rate_f32 = (int32_t)PF_F32_ONE;
         if (action_state == (uint8_t)PF_M4_ACTION_HITLAG)
         {
-            source_animation_frame_q16 =
-                previous_source_animation_frame_q16;
+            source_animation_frame_f32 =
+                previous_source_animation_frame_f32;
         }
         else if (previous_effective_action ==
                  (uint8_t)PF_M4_ACTION_AIR_DODGE)
         {
-            const int64_t next_frame_q16 =
-                (int64_t)previous_source_animation_frame_q16 +
-                (int64_t)PF_Q16_ONE;
+            const float next_frame_f32 =
+                (int64_t)previous_source_animation_frame_f32 +
+                (int64_t)PF_F32_ONE;
 
-            if (next_frame_q16 > (int64_t)INT32_MAX)
+            if (next_frame_f32 > (int64_t)INT32_MAX)
             {
                 return PF_STATUS_DETERMINISTIC_FAULT;
             }
-            source_animation_frame_q16 = (int32_t)next_frame_q16;
+            source_animation_frame_f32 = (int32_t)next_frame_f32;
         }
         else
         {
@@ -15577,7 +15552,7 @@ pf_status step_player(
              * zero, then the priority-zero animation proc advances its JObj
              * before this update's map collision. Slippi's displayed frame
              * one therefore owns HSD animation frame one for the sweep. */
-            source_animation_frame_q16 = (int32_t)PF_Q16_ONE;
+            source_animation_frame_f32 = (int32_t)PF_F32_ONE;
         }
     }
     else if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
@@ -15595,18 +15570,18 @@ pf_status step_player(
             previous_action_state,
             previous_hitlag_resume_action,
             previous_source_submotion,
-            previous_source_animation_frame_q16,
-            previous_source_animation_rate_q16,
-            previous_fall_animation_blend_q16,
+            previous_source_animation_frame_f32,
+            previous_source_animation_rate_f32,
+            previous_fall_animation_blend_f32,
             previous_fall_animation_target_switched,
-            previous_ground_velocity_q16,
+            previous_ground_velocity_f32,
             previous_facing,
             action_state,
             scratch->hitlag_resume_action[player_index],
             &source_submotion,
-            &source_animation_frame_q16,
-            &source_animation_rate_q16,
-            &fall_animation_blend_q16,
+            &source_animation_frame_f32,
+            &source_animation_rate_f32,
+            &fall_animation_blend_f32,
             &fall_animation_target_switched);
         if (status != PF_STATUS_OK)
         {
@@ -15620,19 +15595,19 @@ pf_status step_player(
             action_ticks,
             grounded,
             &source_submotion,
-            &source_animation_frame_q16))
+            &source_animation_frame_f32))
     {
-        source_animation_rate_q16 = (int32_t)PF_Q16_ONE;
+        source_animation_rate_f32 = (int32_t)PF_F32_ONE;
     }
 
     previous_position_x = position_x;
     next_position =
         (int64_t)position_x +
-        (int64_t)player_nudge_x_q16_value +
-        (int64_t)integrated_self_x_q16 +
-        (int64_t)scratch->knockback_velocity_x_q16[player_index] +
+        (int64_t)player_nudge_x_f32_value +
+        (int64_t)integrated_self_x_f32 +
+        (int64_t)scratch->knockback_velocity_x_f32[player_index] +
         (int64_t)shield_recoil_x +
-        (int64_t)integrated_animation_x_q16;
+        (int64_t)integrated_animation_x_f32;
     if (!ledge_motion_handled &&
         !checked_i32(next_position, &position_x))
     {
@@ -15642,9 +15617,9 @@ pf_status step_player(
     if (!ledge_motion_handled)
     {
         const int64_t future_y =
-            (int64_t)position_y + (int64_t)integrated_self_y_q16 +
-            (int64_t)scratch->knockback_velocity_y_q16[player_index] +
-            (int64_t)integrated_animation_y_q16;
+            (int64_t)position_y + (int64_t)integrated_self_y_f32 +
+            (int64_t)scratch->knockback_velocity_y_f32[player_index] +
+            (int64_t)integrated_animation_y_f32;
         const int64_t swept_center_top =
             future_y < (int64_t)position_y
                 ? future_y
@@ -15654,27 +15629,27 @@ pf_status step_player(
                 ? future_y
                 : (int64_t)position_y;
         const int64_t body_top =
-            swept_center_top - fighter->half_height_q16;
+            swept_center_top - fighter->half_height_f32;
         const int64_t body_bottom =
-            swept_center_bottom + fighter->half_height_q16;
+            swept_center_bottom + fighter->half_height_f32;
         int64_t wall_swept_top = body_top;
         int64_t wall_swept_bottom = body_bottom;
-        int32_t wall_side_x_extent_q16 = fighter->half_width_q16;
-        falcon_ecb_pose_q16 wall_pose;
-        int32_t wall_side_x_from_origin_q16 = fighter->half_width_q16;
-        int32_t wall_side_y_from_origin_q16 = INT32_C(0);
-        int32_t wall_impact_self_velocity_y_q16 = velocity_y;
+        float wall_side_x_extent_f32 = fighter->half_width_f32;
+        falcon_ecb_pose_f32 wall_pose;
+        float wall_side_x_from_origin_f32 = fighter->half_width_f32;
+        float wall_side_y_from_origin_f32 = INT32_C(0);
+        float wall_impact_self_velocity_y_f32 = velocity_y;
         int64_t exact_wall_future_y = future_y;
         hsd_compact_pose wall_blend_pose;
-        int32_t wall_blend_progress_q16 = INT32_C(0);
+        float wall_blend_progress_f32 = INT32_C(0);
         const hsd_compact_pose *wall_blend_pose_or_null = NULL;
         int exact_reference_wall_pose = 0;
         int exact_wall_contact = 0;
         int reference_wall_position_only = 0;
         const int moving_right = position_x > previous_position_x;
         const int vertical_overlap =
-            body_bottom > (int64_t)stage->solid_top_q16 &&
-            body_top < (int64_t)stage->solid_bottom_q16;
+            body_bottom > (int64_t)stage->solid_top_f32 &&
+            body_top < (int64_t)stage->solid_bottom_f32;
         int8_t away_direction = INT8_C(0);
         uint8_t wall_support = UINT8_C(0);
 
@@ -15683,9 +15658,9 @@ pf_status step_player(
                  (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD_ON ||
              falcon_reference_hsd_ecb_pose(
                  source_submotion,
-                 source_animation_frame_q16,
+                 source_animation_frame_f32,
                  grounded != UINT8_C(0),
-                 PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16,
+                 PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_F32,
                  &wall_pose) != 0))
         {
             status = evaluate_falcon_ground_blend_pose(
@@ -15694,74 +15669,74 @@ pf_status step_player(
                 action_state,
                 scratch->hitlag_resume_action[player_index],
                 source_submotion,
-                source_animation_frame_q16,
+                source_animation_frame_f32,
                 action_ticks,
                 &wall_blend_pose,
-                &wall_blend_progress_q16);
+                &wall_blend_progress_f32);
             if (status != PF_STATUS_OK)
             {
                 return status;
             }
-            if (wall_blend_progress_q16 > INT32_C(0))
+            if (wall_blend_progress_f32 > INT32_C(0))
             {
                 wall_blend_pose_or_null = &wall_blend_pose;
             }
         }
-        exact_reference_wall_pose = reference_ecb_pose_q16(
+        exact_reference_wall_pose = reference_ecb_pose_f32(
             fighter,
             effective_action_state(
                 action_state,
                 scratch->hitlag_resume_action[player_index]),
             action_ticks,
             grounded,
-            inherited_locked_bottom_y_q16,
+            inherited_locked_bottom_y_f32,
             source_submotion,
-            source_animation_frame_q16,
-            fall_animation_blend_q16,
+            source_animation_frame_f32,
+            fall_animation_blend_f32,
             fall_animation_target_switched,
             scratch->prone_orientation[player_index],
             scratch->prone_roll_motion_orientation[player_index],
             scratch->tech_direction[player_index],
             facing,
-            total_velocity_q16(
+            total_velocity_f32(
                 velocity_x,
-                scratch->knockback_velocity_x_q16[player_index]),
-            total_velocity_q16(
+                scratch->knockback_velocity_x_f32[player_index]),
+            total_velocity_f32(
                 velocity_y,
-                scratch->knockback_velocity_y_q16[player_index]),
-            wall_blend_progress_q16,
+                scratch->knockback_velocity_y_f32[player_index]),
+            wall_blend_progress_f32,
             wall_blend_pose_or_null,
             &wall_pose);
         if (exact_reference_wall_pose != 0)
         {
-            ecb_world_wall_side_q16(
+            ecb_world_wall_side_f32(
                 &wall_pose,
-                fighter->half_height_q16,
+                fighter->half_height_f32,
                 facing,
                 moving_right,
-                &wall_side_x_from_origin_q16,
-                &wall_side_y_from_origin_q16);
-            wall_side_x_extent_q16 =
-                wall_side_x_from_origin_q16 >= INT32_C(0)
-                    ? wall_side_x_from_origin_q16
-                    : -wall_side_x_from_origin_q16;
-            wall_impact_self_velocity_y_q16 =
+                &wall_side_x_from_origin_f32,
+                &wall_side_y_from_origin_f32);
+            wall_side_x_extent_f32 =
+                wall_side_x_from_origin_f32 >= INT32_C(0)
+                    ? wall_side_x_from_origin_f32
+                    : -wall_side_x_from_origin_f32;
+            wall_impact_self_velocity_y_f32 =
                 fast_fall != UINT8_C(0)
-                    ? fighter->fast_fall_speed_q16
+                    ? fighter->fast_fall_speed_f32
                     : approach(
                           velocity_y,
-                          fighter->fall_speed_q16,
-                          fighter->gravity_q16);
+                          fighter->fall_speed_f32,
+                          fighter->gravity_f32);
             exact_wall_future_y =
                 (int64_t)position_y +
-                wall_impact_self_velocity_y_q16 +
-                scratch->knockback_velocity_y_q16[player_index];
+                wall_impact_self_velocity_y_f32 +
+                scratch->knockback_velocity_y_f32[player_index];
             const int64_t previous_side_y =
                 (int64_t)position_y -
-                (int64_t)wall_side_y_from_origin_q16;
+                (int64_t)wall_side_y_from_origin_f32;
             const int64_t future_side_y =
                 exact_wall_future_y -
-                (int64_t)wall_side_y_from_origin_q16;
+                (int64_t)wall_side_y_from_origin_f32;
 
             wall_swept_top =
                 previous_side_y < future_side_y
@@ -15782,36 +15757,36 @@ pf_status step_player(
         {
             if (exact_reference_wall_pose != 0)
             {
-                falcon_ecb_pose_q16 previous_wall_pose;
-                int32_t previous_side_x_from_origin_q16 = INT32_C(0);
-                int32_t previous_side_y_from_origin_q16 = INT32_C(0);
-                int32_t future_position_y_q16 = INT32_C(0);
-                uint32_t contact_fraction_q16 = UINT32_C(0);
+                falcon_ecb_pose_f32 previous_wall_pose;
+                float previous_side_x_from_origin_f32 = INT32_C(0);
+                float previous_side_y_from_origin_f32 = INT32_C(0);
+                float future_position_y_f32 = INT32_C(0);
+                float contact_fraction_f32 = UINT32_C(0);
 
-                if (!reference_ecb_pose_q16(
+                if (!reference_ecb_pose_f32(
                     fighter,
                     effective_action_state(
                         world->action_state[player_index],
                         world->hitlag_resume_action[player_index]),
                     world->action_ticks[player_index],
                     world->grounded[player_index],
-                    previous_locked_bottom_y_q16,
+                    previous_locked_bottom_y_f32,
                     world->source_submotion[player_index],
-                    world->source_animation_frame_q16[player_index],
-                    world->fall_animation_blend_q16[player_index],
+                    world->source_animation_frame_f32[player_index],
+                    world->fall_animation_blend_f32[player_index],
                     world->fall_animation_target_switched[player_index],
                     world->prone_orientation[player_index],
                     world->prone_roll_motion_orientation[player_index],
                     world->tech_direction[player_index],
                     world->facing[player_index],
-                    total_velocity_q16(
-                        world->velocity_x_q16[player_index],
-                        world->knockback_velocity_x_q16[player_index]),
-                    total_velocity_q16(
-                        world->velocity_y_q16[player_index],
-                        world->knockback_velocity_y_q16[player_index]),
-                    world->ground_blend_progress_q16[player_index],
-                    world->ground_blend_progress_q16[player_index] >
+                    total_velocity_f32(
+                        world->velocity_x_f32[player_index],
+                        world->knockback_velocity_x_f32[player_index]),
+                    total_velocity_f32(
+                        world->velocity_y_f32[player_index],
+                        world->knockback_velocity_y_f32[player_index]),
+                    world->ground_blend_progress_f32[player_index],
+                    world->ground_blend_progress_f32[player_index] >
                             INT32_C(0)
                         ? &world->ground_blend_pose[player_index]
                         : NULL,
@@ -15819,16 +15794,16 @@ pf_status step_player(
                 {
                     previous_wall_pose = wall_pose;
                 }
-                ecb_world_wall_side_q16(
+                ecb_world_wall_side_f32(
                     &previous_wall_pose,
-                    fighter->half_height_q16,
+                    fighter->half_height_f32,
                     facing,
                     moving_right,
-                    &previous_side_x_from_origin_q16,
-                    &previous_side_y_from_origin_q16);
+                    &previous_side_x_from_origin_f32,
+                    &previous_side_y_from_origin_f32);
                 if (!checked_i32(
                         exact_wall_future_y,
-                        &future_position_y_q16))
+                        &future_position_y_f32))
                 {
                     return PF_STATUS_DETERMINISTIC_FAULT;
                 }
@@ -15836,38 +15811,38 @@ pf_status step_player(
                     ssbm_reference_stage_find_wall_point_contact(
                         stage->reference_collision_profile,
                         previous_position_x +
-                            previous_side_x_from_origin_q16,
-                        position_y - previous_side_y_from_origin_q16,
-                        position_x + wall_side_x_from_origin_q16,
-                        future_position_y_q16 -
-                            wall_side_y_from_origin_q16,
-                        &contact_fraction_q16,
+                            previous_side_x_from_origin_f32,
+                        position_y - previous_side_y_from_origin_f32,
+                        position_x + wall_side_x_from_origin_f32,
+                        future_position_y_f32 -
+                            wall_side_y_from_origin_f32,
+                        &contact_fraction_f32,
                         &wall_support,
                         &away_direction);
                 if (exact_wall_contact != 0)
                 {
-                    const int64_t root_delta_x_q16 =
+                    const float root_delta_x_f32 =
                         (int64_t)position_x - previous_position_x;
-                    const int64_t root_delta_y_q16 =
+                    const float root_delta_y_f32 =
                         exact_wall_future_y - position_y;
 
                     position_x = previous_position_x + (int32_t)(
-                        root_delta_x_q16 * contact_fraction_q16 /
+                        root_delta_x_f32 * contact_fraction_f32 /
                         INT64_C(65536));
-                    exact_wall_contact_position_y_q16 =
+                    exact_wall_contact_position_y_f32 =
                         position_y + (int32_t)(
-                            root_delta_y_q16 * contact_fraction_q16 /
+                            root_delta_y_f32 * contact_fraction_f32 /
                             INT64_C(65536));
                 }
                 else if (grounded == UINT8_C(0) &&
-                         reference_resolve_wall_ecb_q16(
+                         reference_resolve_wall_ecb_f32(
                              stage->reference_collision_profile,
                              previous_position_x,
                              position_y,
                              &previous_wall_pose,
-                             future_position_y_q16,
+                             future_position_y_f32,
                              &wall_pose,
-                             fighter->half_height_q16,
+                             fighter->half_height_f32,
                              facing,
                              moving_right,
                              &position_x,
@@ -15881,14 +15856,14 @@ pf_status step_player(
                 }
                 else if (grounded == UINT8_C(0) &&
                          position_x == previous_position_x &&
-                         reference_resolve_wall_ecb_q16(
+                         reference_resolve_wall_ecb_f32(
                              stage->reference_collision_profile,
                              previous_position_x,
                              position_y,
                              &previous_wall_pose,
-                             future_position_y_q16,
+                             future_position_y_f32,
                              &wall_pose,
-                             fighter->half_height_q16,
+                             fighter->half_height_f32,
                              facing,
                              1,
                              &position_x,
@@ -15912,7 +15887,7 @@ pf_status step_player(
                     position_x,
                     wall_swept_top,
                     wall_swept_bottom,
-                    wall_side_x_extent_q16,
+                    wall_side_x_extent_f32,
                     &position_x,
                     &wall_support,
                     &away_direction);
@@ -15920,25 +15895,25 @@ pf_status step_player(
         }
         else if (vertical_overlap &&
                  (int64_t)previous_position_x +
-                         fighter->half_width_q16 <=
-                     (int64_t)stage->solid_left_q16 &&
-                 (int64_t)position_x + fighter->half_width_q16 >=
-                     (int64_t)stage->solid_left_q16)
+                         fighter->half_width_f32 <=
+                     (int64_t)stage->solid_left_f32 &&
+                 (int64_t)position_x + fighter->half_width_f32 >=
+                     (int64_t)stage->solid_left_f32)
         {
             position_x =
-                stage->solid_left_q16 - fighter->half_width_q16;
+                stage->solid_left_f32 - fighter->half_width_f32;
             away_direction = INT8_C(-1);
         }
         else if (
             vertical_overlap &&
             (int64_t)previous_position_x -
-                    fighter->half_width_q16 >=
-                (int64_t)stage->solid_right_q16 &&
-            (int64_t)position_x - fighter->half_width_q16 <=
-                (int64_t)stage->solid_right_q16)
+                    fighter->half_width_f32 >=
+                (int64_t)stage->solid_right_f32 &&
+            (int64_t)position_x - fighter->half_width_f32 <=
+                (int64_t)stage->solid_right_f32)
         {
             position_x =
-                stage->solid_right_q16 + fighter->half_width_q16;
+                stage->solid_right_f32 + fighter->half_width_f32;
             away_direction = INT8_C(1);
         }
 
@@ -15989,10 +15964,10 @@ pf_status step_player(
                 (!action_is_surface_bounce(action_state) ||
                  action_ticks >=
                      fighter->surface_bounce_collision_lockout_ticks) &&
-                (scratch->knockback_velocity_x_q16[player_index] >
-                     fighter->surface_collision_threshold_x_q16 ||
-                 scratch->knockback_velocity_x_q16[player_index] <
-                     -fighter->surface_collision_threshold_x_q16))
+                (scratch->knockback_velocity_x_f32[player_index] >
+                     fighter->surface_collision_threshold_x_f32 ||
+                 scratch->knockback_velocity_x_f32[player_index] <
+                     -fighter->surface_collision_threshold_x_f32))
             {
                 const ssbm_stage_collision_line *wall_line =
                     wall_support != UINT8_C(0)
@@ -16000,13 +15975,13 @@ pf_status step_player(
                               stage->reference_collision_profile,
                               wall_support)
                         : NULL;
-                const int32_t source_normal_x_q16 =
+                const float source_normal_x_f32 =
                     wall_line != NULL
-                        ? wall_line->source_normal_x_q16
-                        : (int32_t)away_direction * PF_Q16_ONE;
-                const int32_t source_normal_y_q16 =
+                        ? wall_line->source_normal_x_f32
+                        : (int32_t)away_direction * PF_F32_ONE;
+                const float source_normal_y_f32 =
                     wall_line != NULL
-                        ? wall_line->source_normal_y_q16
+                        ? wall_line->source_normal_y_f32
                         : INT32_C(0);
                 const int up_held =
                     input->main_stick_y <=
@@ -16014,15 +15989,15 @@ pf_status step_player(
 
                 if (exact_wall_contact != 0)
                 {
-                    velocity_y = wall_impact_self_velocity_y_q16;
+                    velocity_y = wall_impact_self_velocity_y_f32;
                 }
 
                 status = enter_wall_impact(
                     fighter,
                     jump_pressed || up_held,
                     away_direction,
-                    source_normal_x_q16,
-                    source_normal_y_q16,
+                    source_normal_x_f32,
+                    source_normal_y_f32,
                     scratch,
                     player_index,
                     &velocity_x,
@@ -16076,7 +16051,7 @@ pf_status step_player(
         int32_t surface_right;
         int retains_surface;
 
-        surface_bounds_q16(
+        surface_bounds_f32(
             content,
             support,
             world->tick + UINT64_C(1),
@@ -16099,7 +16074,7 @@ pf_status step_player(
              * (Battlefield's center and wing segments are the common case).
              * Keep the action grounded and transfer support without a Fall
              * row; the successor line's height/normal owns the final snap. */
-            surface_bounds_q16(
+            surface_bounds_f32(
                 content,
                 support,
                 world->tick + UINT64_C(1),
@@ -16129,7 +16104,7 @@ pf_status step_player(
             retains_surface =
                 body_overlaps_horizontal_interval(
                     position_x,
-                    fighter->half_width_q16,
+                    fighter->half_width_f32,
                     surface_left,
                     surface_right);
         }
@@ -16170,7 +16145,7 @@ pf_status step_player(
             facing == INT8_C(-1) &&
             previous_position_x >= surface_left &&
             (int64_t)surface_left - (int64_t)position_x <=
-                (int64_t)fighter->teeter_snap_distance_q16)
+                (int64_t)fighter->teeter_snap_distance_f32)
         {
             position_x = surface_left;
             velocity_x = INT32_C(0);
@@ -16187,7 +16162,7 @@ pf_status step_player(
             facing == INT8_C(1) &&
             previous_position_x <= surface_right &&
             (int64_t)position_x - (int64_t)surface_right <=
-                (int64_t)fighter->teeter_snap_distance_q16)
+                (int64_t)fighter->teeter_snap_distance_f32)
         {
             position_x = surface_right;
             velocity_x = INT32_C(0);
@@ -16263,15 +16238,15 @@ pf_status step_player(
             {
                 velocity_x = clamp_i32(
                     velocity_x,
-                    -fighter->air_speed_q16,
-                    fighter->air_speed_q16);
+                    -fighter->air_speed_f32,
+                    fighter->air_speed_f32);
                 launched_this_tick = 1;
             }
 
             if (stage->reference_collision_profile !=
                 (uint16_t)PF_M4_REFERENCE_STAGE_AUTHORED)
             {
-                project_ground_scalar_q16(
+                project_ground_scalar_f32(
                     content,
                     support,
                     velocity_x,
@@ -16290,8 +16265,8 @@ pf_status step_player(
                  * physics update, not the conversion frame's position. */
                 velocity_x = clamp_i32(
                     velocity_x,
-                    -fighter->air_speed_q16,
-                    fighter->air_speed_q16);
+                    -fighter->air_speed_f32,
+                    fighter->air_speed_f32);
             }
 
             grounded = UINT8_C(0);
@@ -16354,24 +16329,24 @@ pf_status step_player(
                  * Fighter_procMap has already performed this update's ECB
                  * lock decrement, so the newly installed ten-update lock
                  * must commit at ten instead of being decremented below. */
-                ecb_locked_bottom_y_q16 =
-                    reference_ecb_lock_bottom_from_world_q16(
+                ecb_locked_bottom_y_f32 =
+                    reference_ecb_lock_bottom_from_world_f32(
                         fighter,
                         world,
                         player_index,
-                        previous_locked_bottom_y_q16);
+                        previous_locked_bottom_y_f32);
                 ecb_bottom_lock_ticks =
                     PF_M4_COMMON_AIR_ENTRY_ECB_LOCK_TICKS;
-                inherited_locked_bottom_y_q16 =
-                    ecb_locked_bottom_y_q16;
+                inherited_locked_bottom_y_f32 =
+                    ecb_locked_bottom_y_f32;
                 ecb_lock_entered_during_map = 1;
             }
         }
         else
         {
             position_y =
-                surface_y_q16(content, support, position_x) -
-                fighter->half_height_q16;
+                surface_y_f32(content, support, position_x) -
+                fighter->half_height_f32;
             if (action_state !=
                     (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_GROUND &&
                 action_state !=
@@ -16387,58 +16362,58 @@ pf_status step_player(
         action_state != (uint8_t)PF_M4_ACTION_KNOCKDOWN)
     {
         const int32_t previous_bottom =
-            position_y + fighter->half_height_q16;
+            position_y + fighter->half_height_f32;
         int previous_exact_floor_contact_pose = 0;
-        const int32_t previous_floor_contact_bottom_extent_q16 =
-            floor_contact_bottom_extent_q16(
+        const float previous_floor_contact_bottom_extent_f32 =
+            floor_contact_bottom_extent_f32(
                 fighter,
                 effective_action_state(
                     world->action_state[player_index],
                     world->hitlag_resume_action[player_index]),
                 world->action_ticks[player_index],
                 world->grounded[player_index],
-                previous_locked_bottom_y_q16,
+                previous_locked_bottom_y_f32,
                 world->source_submotion[player_index],
-                world->source_animation_frame_q16[player_index],
-                world->fall_animation_blend_q16[player_index],
+                world->source_animation_frame_f32[player_index],
+                world->fall_animation_blend_f32[player_index],
                 world->fall_animation_target_switched[player_index],
                 world->prone_orientation[player_index],
                 world->prone_roll_motion_orientation[player_index],
                 world->tech_direction[player_index],
                 world->facing[player_index],
-                total_velocity_q16(
-                    world->velocity_x_q16[player_index],
-                    world->knockback_velocity_x_q16[player_index]),
-                total_velocity_q16(
-                    world->velocity_y_q16[player_index],
-                    world->knockback_velocity_y_q16[player_index]),
+                total_velocity_f32(
+                    world->velocity_x_f32[player_index],
+                    world->knockback_velocity_x_f32[player_index]),
+                total_velocity_f32(
+                    world->velocity_y_f32[player_index],
+                    world->knockback_velocity_y_f32[player_index]),
                 &previous_exact_floor_contact_pose);
         int exact_floor_contact_pose = 0;
-        int32_t ceiling_top_extent_q16 = fighter->half_height_q16;
-        falcon_ecb_pose_q16 ceiling_pose;
-        const int32_t floor_contact_bottom_extent_q16_value =
-            floor_contact_bottom_extent_q16(
+        float ceiling_top_extent_f32 = fighter->half_height_f32;
+        falcon_ecb_pose_f32 ceiling_pose;
+        const int32_t floor_contact_bottom_extent_f32_value =
+            floor_contact_bottom_extent_f32(
                 fighter,
                 effective_action_state(
                     action_state,
                     scratch->hitlag_resume_action[player_index]),
                 action_ticks,
                 grounded,
-                inherited_locked_bottom_y_q16,
+                inherited_locked_bottom_y_f32,
                 source_submotion,
-                source_animation_frame_q16,
-                fall_animation_blend_q16,
+                source_animation_frame_f32,
+                fall_animation_blend_f32,
                 fall_animation_target_switched,
                 scratch->prone_orientation[player_index],
                 scratch->prone_roll_motion_orientation[player_index],
                 scratch->tech_direction[player_index],
                 facing,
-                total_velocity_q16(
+                total_velocity_f32(
                     velocity_x,
-                    scratch->knockback_velocity_x_q16[player_index]),
-                total_velocity_q16(
+                    scratch->knockback_velocity_x_f32[player_index]),
+                total_velocity_f32(
                     velocity_y,
-                    scratch->knockback_velocity_y_q16[player_index]),
+                    scratch->knockback_velocity_y_f32[player_index]),
                 &exact_floor_contact_pose);
         const pass_through_floor_sweep_policy sweep_policy =
                 exact_floor_contact_pose == 0
@@ -16449,30 +16424,30 @@ pf_status step_player(
                            ? PF_M4_PASS_THROUGH_FLOOR_SWEEP_DIRECT_OR_DEFERRED
                            : PF_M4_PASS_THROUGH_FLOOR_SWEEP_DIRECT);
         const int32_t previous_floor_contact =
-            world->position_y_q16[player_index] +
-            previous_floor_contact_bottom_extent_q16;
-        if (reference_ecb_pose_q16(
+            world->position_y_f32[player_index] +
+            previous_floor_contact_bottom_extent_f32;
+        if (reference_ecb_pose_f32(
                 fighter,
                 effective_action_state(
                     action_state,
                     scratch->hitlag_resume_action[player_index]),
                 action_ticks,
                 grounded,
-                inherited_locked_bottom_y_q16,
+                inherited_locked_bottom_y_f32,
                 source_submotion,
-                source_animation_frame_q16,
-                fall_animation_blend_q16,
+                source_animation_frame_f32,
+                fall_animation_blend_f32,
                 fall_animation_target_switched,
                 scratch->prone_orientation[player_index],
                 scratch->prone_roll_motion_orientation[player_index],
                 scratch->tech_direction[player_index],
                 facing,
-                total_velocity_q16(
+                total_velocity_f32(
                     velocity_x,
-                    scratch->knockback_velocity_x_q16[player_index]),
-                total_velocity_q16(
+                    scratch->knockback_velocity_x_f32[player_index]),
+                total_velocity_f32(
                     velocity_y,
-                    scratch->knockback_velocity_y_q16[player_index]),
+                    scratch->knockback_velocity_y_f32[player_index]),
                 INT32_C(0),
                 NULL,
                 &ceiling_pose) != 0)
@@ -16480,12 +16455,12 @@ pf_status step_player(
             /* HSD derives the ECB around Melee's fighter root. Canonical
              * positions use the body centre, which is half_height above
              * that root on the imported coordinate map. */
-            ceiling_top_extent_q16 =
-                ceiling_pose.top_y_from_origin_q16 -
-                fighter->half_height_q16;
+            ceiling_top_extent_f32 =
+                ceiling_pose.top_y_from_origin_f32 -
+                fighter->half_height_f32;
         }
         const int32_t previous_top =
-            position_y - ceiling_top_extent_q16;
+            position_y - ceiling_top_extent_f32;
         const int wall_tech_stalled =
             action_is_wall_tech(action_state) &&
             action_ticks < fighter->wall_tech_stall_ticks;
@@ -16536,61 +16511,61 @@ pf_status step_player(
             tilt_y_age < fighter->fast_fall_input_window_ticks &&
             velocity_y > INT32_C(0))
         {
-            velocity_y = fighter->fast_fall_speed_q16;
+            velocity_y = fighter->fast_fall_speed_f32;
             fast_fall = UINT8_C(1);
         }
         else if (fast_fall != UINT8_C(0))
         {
-            velocity_y = fighter->fast_fall_speed_q16;
+            velocity_y = fighter->fast_fall_speed_f32;
         }
         else
         {
             velocity_y = approach(
                 velocity_y,
-                fighter->fall_speed_q16,
-                fighter->gravity_q16);
+                fighter->fall_speed_f32,
+                fighter->gravity_f32);
         }
 
         next_position =
             exact_wall_response_this_tick != 0
-                ? (int64_t)exact_wall_contact_position_y_q16
+                ? (int64_t)exact_wall_contact_position_y_f32
                 : (int64_t)position_y +
                       (wall_tech_stalled
                            ? INT64_C(0)
                            : (int64_t)velocity_y +
                                  (int64_t)scratch
-                                     ->knockback_velocity_y_q16[player_index]);
+                                     ->knockback_velocity_y_f32[player_index]);
         if (!checked_i32(next_position, &position_y))
         {
             return PF_STATUS_DETERMINISTIC_FAULT;
         }
-        new_bottom = position_y + fighter->half_height_q16;
+        new_bottom = position_y + fighter->half_height_f32;
         new_floor_contact =
-            position_y + floor_contact_bottom_extent_q16_value;
-        new_top = position_y - ceiling_top_extent_q16;
+            position_y + floor_contact_bottom_extent_f32_value;
+        new_top = position_y - ceiling_top_extent_f32;
 
-        if (total_velocity_q16(
+        if (total_velocity_f32(
                 velocity_y,
-                scratch->knockback_velocity_y_q16[player_index]) >=
+                scratch->knockback_velocity_y_f32[player_index]) >=
                 INT32_C(0) &&
             !(launched_this_tick != 0 &&
               action_state ==
                   (uint8_t)PF_M4_ACTION_FALCON_KICK_WALL_REBOUND))
         {
             const int32_t platform_center =
-                platform_center_x_q16(
+                platform_center_x_f32(
                     stage,
                     world->tick + UINT64_C(1));
             const int32_t platform_left =
-                platform_center - stage->platform_half_width_q16;
+                platform_center - stage->platform_half_width_f32;
             const int32_t platform_right =
-                platform_center + stage->platform_half_width_q16;
+                platform_center + stage->platform_half_width_f32;
             const int32_t upper_platform_left =
-                stage->upper_platform_center_x_q16 -
-                stage->upper_platform_half_width_q16;
+                stage->upper_platform_center_x_f32 -
+                stage->upper_platform_half_width_f32;
             const int32_t upper_platform_right =
-                stage->upper_platform_center_x_q16 +
-                stage->upper_platform_half_width_q16;
+                stage->upper_platform_center_x_f32 +
+                stage->upper_platform_half_width_f32;
             const int down_held =
                 input->main_stick_y >=
                 (int16_t)fighter->crouch_axis_threshold;
@@ -16599,7 +16574,7 @@ pf_status step_player(
                 action_state == (uint8_t)PF_M4_ACTION_AIR_DODGE ||
                 action_state ==
                     (uint8_t)PF_M4_ACTION_SHIELD_BREAK;
-            int32_t landing_y_q16 = INT32_MAX;
+            float landing_y_f32 = INT32_MAX;
             uint8_t landing_support =
                 (uint8_t)PF_M4_SURFACE_NONE;
 
@@ -16615,20 +16590,20 @@ pf_status step_player(
                     sweep_policy,
                     pass_through_allowed,
                     platform_drop_ticks,
-                    &landing_y_q16,
+                    &landing_y_f32,
                     &landing_support);
             }
             else
             {
                 if (body_overlaps_horizontal_interval(
                         position_x,
-                        fighter->half_width_q16,
-                        stage->solid_left_q16,
-                        stage->solid_right_q16) &&
-                    previous_bottom <= stage->solid_top_q16 &&
-                    new_bottom >= stage->solid_top_q16)
+                        fighter->half_width_f32,
+                        stage->solid_left_f32,
+                        stage->solid_right_f32) &&
+                    previous_bottom <= stage->solid_top_f32 &&
+                    new_bottom >= stage->solid_top_f32)
                 {
-                    landing_y_q16 = stage->solid_top_q16;
+                    landing_y_f32 = stage->solid_top_f32;
                     landing_support =
                         (uint8_t)PF_M4_SURFACE_SOLID_TOP;
                 }
@@ -16639,13 +16614,13 @@ pf_status step_player(
                     floor_sweep_crosses_surface(
                         previous_bottom,
                         new_bottom,
-                        stage->platform_y_q16,
+                        stage->platform_y_f32,
                         1,
                         fast_fall,
                         sweep_policy) &&
-                    stage->platform_y_q16 < landing_y_q16)
+                    stage->platform_y_f32 < landing_y_f32)
                 {
-                    landing_y_q16 = stage->platform_y_q16;
+                    landing_y_f32 = stage->platform_y_f32;
                     landing_support =
                         (uint8_t)PF_M4_SURFACE_PLATFORM;
                 }
@@ -16656,28 +16631,28 @@ pf_status step_player(
                     floor_sweep_crosses_surface(
                         previous_bottom,
                         new_bottom,
-                        stage->upper_platform_y_q16,
+                        stage->upper_platform_y_f32,
                         1,
                         fast_fall,
                         sweep_policy) &&
-                    stage->upper_platform_y_q16 < landing_y_q16)
+                    stage->upper_platform_y_f32 < landing_y_f32)
                 {
-                    landing_y_q16 = stage->upper_platform_y_q16;
+                    landing_y_f32 = stage->upper_platform_y_f32;
                     landing_support =
                         (uint8_t)PF_M4_SURFACE_UPPER_PLATFORM;
                 }
-                if (position_x >= stage->floor_left_q16 &&
-                    position_x <= stage->floor_right_q16 &&
+                if (position_x >= stage->floor_left_f32 &&
+                    position_x <= stage->floor_right_f32 &&
                     floor_sweep_crosses_surface(
                         previous_floor_contact,
                         new_floor_contact,
-                        stage->floor_y_q16,
+                        stage->floor_y_f32,
                         0,
                         fast_fall,
                         sweep_policy) &&
-                    stage->floor_y_q16 < landing_y_q16)
+                    stage->floor_y_f32 < landing_y_f32)
                 {
-                    landing_y_q16 = stage->floor_y_q16;
+                    landing_y_f32 = stage->floor_y_f32;
                     landing_support =
                         (uint8_t)PF_M4_SURFACE_FLOOR;
                 }
@@ -16692,7 +16667,7 @@ pf_status step_player(
 
                 land_from_air(
                     content,
-                    landing_y_q16,
+                    landing_y_f32,
                     landing_support,
                     input->main_stick_x,
                     facing,
@@ -16724,7 +16699,7 @@ pf_status step_player(
         }
         else
         {
-            int32_t ceiling_y_q16 = INT32_C(0);
+            float ceiling_y_f32 = INT32_C(0);
             uint8_t ceiling_support = UINT8_C(0);
             const int hit_ceiling =
                 exact_wall_response_this_tick != 0
@@ -16736,15 +16711,15 @@ pf_status step_player(
                           position_x,
                           previous_top,
                           new_top,
-                          &ceiling_y_q16,
+                          &ceiling_y_f32,
                           &ceiling_support)
                     : body_overlaps_horizontal_interval(
                           position_x,
-                          fighter->half_width_q16,
-                          stage->solid_left_q16,
-                          stage->solid_right_q16) &&
-                          previous_top >= stage->solid_bottom_q16 &&
-                          new_top <= stage->solid_bottom_q16;
+                          fighter->half_width_f32,
+                          stage->solid_left_f32,
+                          stage->solid_right_f32) &&
+                          previous_top >= stage->solid_bottom_f32 &&
+                          new_top <= stage->solid_bottom_f32;
 
             (void)ceiling_support;
             if (hit_ceiling != 0)
@@ -16752,16 +16727,16 @@ pf_status step_player(
                 if (stage->reference_collision_profile ==
                     (uint16_t)PF_M4_REFERENCE_STAGE_AUTHORED)
                 {
-                    ceiling_y_q16 = stage->solid_bottom_q16;
+                    ceiling_y_f32 = stage->solid_bottom_f32;
                 }
-                position_y = ceiling_y_q16 + ceiling_top_extent_q16;
+                position_y = ceiling_y_f32 + ceiling_top_extent_f32;
                 if (scratch->tumble[player_index] != UINT8_C(0))
                 {
                     if ((!action_is_surface_bounce(action_state) ||
                          action_ticks >= fighter
                                              ->surface_bounce_collision_lockout_ticks) &&
-                        scratch->knockback_velocity_y_q16[player_index] <
-                            -fighter->surface_collision_threshold_y_q16)
+                        scratch->knockback_velocity_y_f32[player_index] <
+                            -fighter->surface_collision_threshold_y_f32)
                     {
                         const ssbm_stage_collision_line *ceiling_line =
                             ceiling_support != UINT8_C(0)
@@ -16769,19 +16744,19 @@ pf_status step_player(
                                       stage->reference_collision_profile,
                                       ceiling_support)
                                 : NULL;
-                        const int32_t source_normal_x_q16 =
+                        const float source_normal_x_f32 =
                             ceiling_line != NULL
-                                ? ceiling_line->source_normal_x_q16
+                                ? ceiling_line->source_normal_x_f32
                                 : INT32_C(0);
-                        const int32_t source_normal_y_q16 =
+                        const float source_normal_y_f32 =
                             ceiling_line != NULL
-                                ? ceiling_line->source_normal_y_q16
-                                : PF_Q16_ONE;
+                                ? ceiling_line->source_normal_y_f32
+                                : PF_F32_ONE;
 
                         status = enter_ceiling_impact(
                             fighter,
-                            source_normal_x_q16,
-                            source_normal_y_q16,
+                            source_normal_x_f32,
+                            source_normal_y_f32,
                             scratch,
                             player_index,
                             &velocity_x,
@@ -16839,7 +16814,7 @@ pf_status step_player(
                 &action_ticks,
                 scratch->hitstun_ticks[player_index],
                 &scratch
-                     ->ground_knockback_velocity_q16[player_index]);
+                     ->ground_knockback_velocity_f32[player_index]);
             if (status != PF_STATUS_OK)
             {
                 return status;
@@ -16893,11 +16868,11 @@ pf_status step_player(
                     fighter->reference_frame_data_enabled != UINT8_C(0)
                         ? (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_CATCH
                         : (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT;
-                scratch->knockback_velocity_x_q16[player_index] =
+                scratch->knockback_velocity_x_f32[player_index] =
                     INT32_C(0);
-                scratch->knockback_velocity_y_q16[player_index] =
+                scratch->knockback_velocity_y_f32[player_index] =
                     INT32_C(0);
-                scratch->ground_knockback_velocity_q16[player_index] =
+                scratch->ground_knockback_velocity_f32[player_index] =
                     INT32_C(0);
                 scratch->tumble[player_index] = UINT8_C(0);
                 scratch->tech_direction[player_index] = INT8_C(0);
@@ -16911,18 +16886,18 @@ pf_status step_player(
      * bounds.  Imported stage Y coordinates use that source-root origin,
      * while the canonical simulation position is the body center.
      */
-    const int64_t source_root_y_q16 =
-        (int64_t)position_y + fighter->half_height_q16;
+    const float source_root_y_f32 =
+        (int64_t)position_y + fighter->half_height_f32;
 
-    if (position_x < stage->blast_left_q16 ||
-        position_x > stage->blast_right_q16 ||
-        source_root_y_q16 < stage->blast_top_q16 ||
-        source_root_y_q16 > stage->blast_bottom_q16)
+    if (position_x < stage->blast_left_f32 ||
+        position_x > stage->blast_right_f32 ||
+        source_root_y_f32 < stage->blast_top_f32 ||
+        source_root_y_f32 > stage->blast_bottom_f32)
     {
-        const uint32_t ko_damage_q16 =
-            scratch->damage_q16[player_index];
-        const int32_t ko_velocity_x_q16 = velocity_x;
-        const int32_t ko_velocity_y_q16 = velocity_y;
+        const float ko_damage_f32 =
+            scratch->damage_f32[player_index];
+        const float ko_velocity_x_f32 = velocity_x;
+        const float ko_velocity_y_f32 = velocity_y;
         const uint8_t ko_source_player =
             scratch->last_hit_sequence[player_index] != UINT32_C(0) &&
                     scratch->last_hit_attacker[player_index] <
@@ -16969,9 +16944,9 @@ pf_status step_player(
         dash_direction = INT8_C(0);
         previous_strong_direction = INT8_C(0);
         directional_input_flags = UINT8_C(0);
-        scratch->knockback_velocity_x_q16[player_index] = INT32_C(0);
-        scratch->knockback_velocity_y_q16[player_index] = INT32_C(0);
-        scratch->ground_knockback_velocity_q16[player_index] = INT32_C(0);
+        scratch->knockback_velocity_x_f32[player_index] = INT32_C(0);
+        scratch->knockback_velocity_y_f32[player_index] = INT32_C(0);
+        scratch->ground_knockback_velocity_f32[player_index] = INT32_C(0);
         scratch->hitlag_ticks[player_index] = UINT16_C(0);
         scratch->hitstun_ticks[player_index] = UINT16_C(0);
         scratch->shield_stun_ticks[player_index] = UINT16_C(0);
@@ -17022,9 +16997,9 @@ pf_status step_player(
             PF_SIM_EVENT_KO,
             ko_source_player,
             (uint8_t)player_index,
-            ko_damage_q16,
-            ko_velocity_x_q16,
-            ko_velocity_y_q16,
+            ko_damage_f32,
+            ko_velocity_x_f32,
+            ko_velocity_y_f32,
             event_flags,
             (uint16_t)scratch->stocks_remaining[player_index],
             NULL);
@@ -17183,15 +17158,15 @@ pf_status step_player(
             previous_action_state,
             previous_hitlag_resume_action,
             previous_source_submotion,
-            previous_source_animation_frame_q16,
-            previous_source_animation_rate_q16,
-            previous_ground_velocity_q16,
+            previous_source_animation_frame_f32,
+            previous_source_animation_rate_f32,
+            previous_ground_velocity_f32,
             previous_facing,
             action_state,
             scratch->hitlag_resume_action[player_index],
             &source_submotion,
-            &source_animation_frame_q16,
-            &source_animation_rate_q16);
+            &source_animation_frame_f32,
+            &source_animation_rate_f32);
         if (status != PF_STATUS_OK)
         {
             return status;
@@ -17220,12 +17195,12 @@ pf_status step_player(
 
         if (previous_effective_action !=
                 (uint8_t)PF_M4_ACTION_SHIELD_STUN ||
-            previous_source_animation_rate_q16 <= INT32_C(0))
+            previous_source_animation_rate_f32 <= INT32_C(0))
         {
             return PF_STATUS_DETERMINISTIC_FAULT;
         }
-        source_animation_frame_q16 = previous_source_animation_frame_q16;
-        source_animation_rate_q16 = previous_source_animation_rate_q16;
+        source_animation_frame_f32 = previous_source_animation_frame_f32;
+        source_animation_rate_f32 = previous_source_animation_rate_f32;
         if (action_state == (uint8_t)PF_M4_ACTION_HITLAG)
         {
             /* The new GuardSetOff motion and rate exist during hitlag, but
@@ -17234,17 +17209,17 @@ pf_status step_player(
         }
         else
         {
-            const int64_t next_frame_q16 =
-                (int64_t)source_animation_frame_q16 +
-                (int64_t)source_animation_rate_q16;
+            const float next_frame_f32 =
+                (int64_t)source_animation_frame_f32 +
+                (int64_t)source_animation_rate_f32;
 
-            if (next_frame_q16 > (int64_t)INT32_MAX)
+            if (next_frame_f32 > (int64_t)INT32_MAX)
             {
                 return PF_STATUS_DETERMINISTIC_FAULT;
             }
             source_submotion =
                 (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD_SET_OFF;
-            source_animation_frame_q16 = (int32_t)next_frame_q16;
+            source_animation_frame_f32 = (int32_t)next_frame_f32;
         }
     }
     else if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
@@ -17262,26 +17237,26 @@ pf_status step_player(
             (uint16_t)PF_M4_FALCON_SUBMOTION_FURAFURA;
         if (action_state == (uint8_t)PF_M4_ACTION_HITLAG)
         {
-            source_animation_frame_q16 =
-                previous_source_animation_frame_q16;
+            source_animation_frame_f32 =
+                previous_source_animation_frame_f32;
         }
         else if (previous_effective_action ==
                  (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN)
         {
-            if (!falcon_advance_loop_animation_q16(
+            if (!falcon_advance_loop_animation_f32(
                     source_submotion,
-                    previous_source_animation_frame_q16,
-                    (int32_t)PF_Q16_ONE,
-                    &source_animation_frame_q16))
+                    previous_source_animation_frame_f32,
+                    (int32_t)PF_F32_ONE,
+                    &source_animation_frame_f32))
             {
                 return PF_STATUS_DETERMINISTIC_FAULT;
             }
         }
         else
         {
-            source_animation_frame_q16 = INT32_C(0);
+            source_animation_frame_f32 = INT32_C(0);
         }
-        source_animation_rate_q16 = (int32_t)PF_Q16_ONE;
+        source_animation_rate_f32 = (int32_t)PF_F32_ONE;
     }
     else if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
              action_state == (uint8_t)PF_M4_ACTION_CROUCH)
@@ -17295,17 +17270,17 @@ pf_status step_player(
             (uint16_t)PF_M4_FALCON_SUBMOTION_SQUAT_WAIT;
         if (previous_crouch == 0)
         {
-            source_animation_frame_q16 = INT32_C(0);
+            source_animation_frame_f32 = INT32_C(0);
         }
-        else if (!falcon_advance_loop_animation_q16(
+        else if (!falcon_advance_loop_animation_f32(
                      source_submotion,
-                     previous_source_animation_frame_q16,
-                     (int32_t)PF_Q16_ONE,
-                     &source_animation_frame_q16))
+                     previous_source_animation_frame_f32,
+                     (int32_t)PF_F32_ONE,
+                     &source_animation_frame_f32))
         {
             return PF_STATUS_DETERMINISTIC_FAULT;
         }
-        source_animation_rate_q16 = (int32_t)PF_Q16_ONE;
+        source_animation_rate_f32 = (int32_t)PF_F32_ONE;
     }
     else if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
              effective_action_state(
@@ -17317,10 +17292,10 @@ pf_status step_player(
             (uint16_t)PF_M4_FALCON_SUBMOTION_SQUAT_REVERSE;
         if (action_state != (uint8_t)PF_M4_ACTION_HITLAG)
         {
-            source_animation_frame_q16 =
-                (int32_t)(action_ticks - UINT16_C(1)) * PF_Q16_ONE;
+            source_animation_frame_f32 =
+                (int32_t)(action_ticks - UINT16_C(1)) * PF_F32_ONE;
         }
-        source_animation_rate_q16 = PF_Q16_ONE;
+        source_animation_rate_f32 = PF_F32_ONE;
     }
     else if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
              action_uses_direct_hsd_pose(
@@ -17331,28 +17306,28 @@ pf_status step_player(
         const uint8_t effective_action = effective_action_state(
             action_state,
             scratch->hitlag_resume_action[player_index]);
-        int32_t direct_frame_q16 = INT32_C(0);
+        float direct_frame_f32 = INT32_C(0);
 
         if (!falcon_reference_direct_hsd_pose(
                 effective_action,
                 action_ticks,
                 grounded,
                 &source_submotion,
-                &direct_frame_q16))
+                &direct_frame_f32))
         {
             return PF_STATUS_DETERMINISTIC_FAULT;
         }
         if (action_state != (uint8_t)PF_M4_ACTION_HITLAG)
         {
-            source_animation_frame_q16 = direct_frame_q16;
+            source_animation_frame_f32 = direct_frame_f32;
         }
-        source_animation_rate_q16 = (int32_t)PF_Q16_ONE;
+        source_animation_rate_f32 = (int32_t)PF_F32_ONE;
     }
     else
     {
-        source_animation_frame_q16 = INT32_C(0);
-        source_animation_rate_q16 = INT32_C(0);
-        fall_animation_blend_q16 = INT32_C(0);
+        source_animation_frame_f32 = INT32_C(0);
+        source_animation_rate_f32 = INT32_C(0);
+        fall_animation_blend_f32 = INT32_C(0);
         fall_animation_target_switched = UINT8_C(0);
     }
 
@@ -17427,7 +17402,7 @@ pf_status step_player(
      * second, stale motion channel. */
     if (grounded == UINT8_C(0))
     {
-        scratch->ground_knockback_velocity_q16[player_index] = INT32_C(0);
+        scratch->ground_knockback_velocity_f32[player_index] = INT32_C(0);
     }
 
     update_shield_tilt(
@@ -17455,19 +17430,19 @@ pf_status step_player(
 
     if (shield_recoil_x != INT32_C(0))
     {
-        scratch->shield_recoil_x_q16[player_index] = shield_recoil_x;
+        scratch->shield_recoil_x_f32[player_index] = shield_recoil_x;
     }
     if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
         action_state != (uint8_t)PF_M4_ACTION_HITLAG &&
         action_state == (uint8_t)PF_M4_ACTION_FALCON_DIVE_THROW)
     {
-        if (!falcon_direct_hsd_locked_bottom_q16(
+        if (!falcon_direct_hsd_locked_bottom_f32(
                 action_state,
-                (int32_t)PF_Q16_ONE,
+                (int32_t)PF_F32_ONE,
                 UINT8_C(0),
-                &ecb_locked_bottom_y_q16) ||
-            ecb_locked_bottom_y_q16 ==
-                PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16)
+                &ecb_locked_bottom_y_f32) ||
+            ecb_locked_bottom_y_f32 ==
+                PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_F32)
         {
             return PF_STATUS_DETERMINISTIC_FAULT;
         }
@@ -17482,7 +17457,7 @@ pf_status step_player(
     if (grounded != UINT8_C(0) || ecb_bottom_lock_ticks == UINT8_C(0))
     {
         ecb_bottom_lock_ticks = UINT8_C(0);
-        ecb_locked_bottom_y_q16 = INT32_C(0);
+        ecb_locked_bottom_y_f32 = INT32_C(0);
     }
     /* Run/Dash set GuardOn's x24 from common-data x68 after entering the
      * motion. GuardOn checks A before decrementing it on each later IASA
@@ -17516,8 +17491,8 @@ pf_status step_player(
         velocity_y,
         action_ticks,
         source_submotion,
-        source_animation_frame_q16,
-        source_animation_rate_q16,
+        source_animation_frame_f32,
+        source_animation_rate_f32,
         respawn_count,
         grounded,
         action_state,
@@ -17535,14 +17510,14 @@ pf_status step_player(
             tilt_y_direction,
             tilt_x_age,
             tilt_y_age);
-    scratch->fall_animation_blend_q16[player_index] =
-        fall_animation_blend_q16;
+    scratch->fall_animation_blend_f32[player_index] =
+        fall_animation_blend_f32;
     scratch->fall_animation_target_switched[player_index] =
         fall_animation_target_switched;
     scratch->ecb_bottom_lock_ticks[player_index] =
         ecb_bottom_lock_ticks;
-    scratch->ecb_locked_bottom_y_q16[player_index] =
-        ecb_locked_bottom_y_q16;
+    scratch->ecb_locked_bottom_y_f32[player_index] =
+        ecb_locked_bottom_y_f32;
     if (fighter->reference_frame_data_enabled != UINT8_C(0))
     {
         status = evaluate_falcon_ground_blend_pose(
@@ -17551,10 +17526,10 @@ pf_status step_player(
             scratch->action_state[player_index],
             scratch->hitlag_resume_action[player_index],
             scratch->source_submotion[player_index],
-            scratch->source_animation_frame_q16[player_index],
+            scratch->source_animation_frame_f32[player_index],
             scratch->action_ticks[player_index],
             &scratch->ground_blend_pose[player_index],
-            &scratch->ground_blend_progress_q16[player_index]);
+            &scratch->ground_blend_progress_f32[player_index]);
         if (status != PF_STATUS_OK)
         {
             return status;
@@ -17599,65 +17574,65 @@ pf_status inspect(
 
     stage = &sim->content.stage;
     platform_center =
-        platform_center_x_q16(stage, sim->world.tick);
-    out_inspection->stage.floor_left_q16 =
-        stage->floor_left_q16;
-    out_inspection->stage.floor_right_q16 =
-        stage->floor_right_q16;
-    out_inspection->stage.floor_y_q16 = stage->floor_y_q16;
-    out_inspection->stage.platform_left_q16 =
-        platform_center - stage->platform_half_width_q16;
-    out_inspection->stage.platform_right_q16 =
-        platform_center + stage->platform_half_width_q16;
-    out_inspection->stage.platform_y_q16 =
-        stage->platform_y_q16;
-    out_inspection->stage.solid_left_q16 =
-        stage->solid_left_q16;
-    out_inspection->stage.solid_right_q16 =
-        stage->solid_right_q16;
-    out_inspection->stage.solid_top_q16 =
-        stage->solid_top_q16;
-    out_inspection->stage.solid_bottom_q16 =
-        stage->solid_bottom_q16;
-    out_inspection->stage.left_ledge_x_q16 =
-        stage->floor_left_q16;
-    out_inspection->stage.right_ledge_x_q16 =
-        stage->floor_right_q16;
-    out_inspection->stage.ledge_y_q16 = stage->floor_y_q16;
-    out_inspection->stage.blast_left_q16 =
-        stage->blast_left_q16;
-    out_inspection->stage.blast_right_q16 =
-        stage->blast_right_q16;
-    out_inspection->stage.blast_top_q16 =
-        stage->blast_top_q16;
-    out_inspection->stage.blast_bottom_q16 =
-        stage->blast_bottom_q16;
-    out_inspection->stage.revival_platform_start_y_q16 =
-        stage->revival_platform_start_y_q16;
-    out_inspection->stage.revival_platform_end_y_q16 =
-        stage->revival_platform_end_y_q16;
-    out_inspection->stage.revival_platform_half_width_q16 =
-        stage->revival_platform_half_width_q16;
+        platform_center_x_f32(stage, sim->world.tick);
+    out_inspection->stage.floor_left_f32 =
+        stage->floor_left_f32;
+    out_inspection->stage.floor_right_f32 =
+        stage->floor_right_f32;
+    out_inspection->stage.floor_y_f32 = stage->floor_y_f32;
+    out_inspection->stage.platform_left_f32 =
+        platform_center - stage->platform_half_width_f32;
+    out_inspection->stage.platform_right_f32 =
+        platform_center + stage->platform_half_width_f32;
+    out_inspection->stage.platform_y_f32 =
+        stage->platform_y_f32;
+    out_inspection->stage.solid_left_f32 =
+        stage->solid_left_f32;
+    out_inspection->stage.solid_right_f32 =
+        stage->solid_right_f32;
+    out_inspection->stage.solid_top_f32 =
+        stage->solid_top_f32;
+    out_inspection->stage.solid_bottom_f32 =
+        stage->solid_bottom_f32;
+    out_inspection->stage.left_ledge_x_f32 =
+        stage->floor_left_f32;
+    out_inspection->stage.right_ledge_x_f32 =
+        stage->floor_right_f32;
+    out_inspection->stage.ledge_y_f32 = stage->floor_y_f32;
+    out_inspection->stage.blast_left_f32 =
+        stage->blast_left_f32;
+    out_inspection->stage.blast_right_f32 =
+        stage->blast_right_f32;
+    out_inspection->stage.blast_top_f32 =
+        stage->blast_top_f32;
+    out_inspection->stage.blast_bottom_f32 =
+        stage->blast_bottom_f32;
+    out_inspection->stage.revival_platform_start_y_f32 =
+        stage->revival_platform_start_y_f32;
+    out_inspection->stage.revival_platform_end_y_f32 =
+        stage->revival_platform_end_y_f32;
+    out_inspection->stage.revival_platform_half_width_f32 =
+        stage->revival_platform_half_width_f32;
     out_inspection->stage.revival_platform_descent_ticks =
         stage->revival_platform_descent_ticks;
     out_inspection->stage.revival_platform_hold_ticks =
         stage->revival_platform_hold_ticks;
-    out_inspection->stage.upper_platform_left_q16 =
-        stage->upper_platform_center_x_q16 -
-        stage->upper_platform_half_width_q16;
-    out_inspection->stage.upper_platform_right_q16 =
-        stage->upper_platform_center_x_q16 +
-        stage->upper_platform_half_width_q16;
-    out_inspection->stage.upper_platform_y_q16 =
-        stage->upper_platform_y_q16;
-    out_inspection->item.position_x_q16 =
-        sim->world.item_position_x_q16;
-    out_inspection->item.position_y_q16 =
-        sim->world.item_position_y_q16;
-    out_inspection->item.velocity_x_q16 =
-        sim->world.item_velocity_x_q16;
-    out_inspection->item.velocity_y_q16 =
-        sim->world.item_velocity_y_q16;
+    out_inspection->stage.upper_platform_left_f32 =
+        stage->upper_platform_center_x_f32 -
+        stage->upper_platform_half_width_f32;
+    out_inspection->stage.upper_platform_right_f32 =
+        stage->upper_platform_center_x_f32 +
+        stage->upper_platform_half_width_f32;
+    out_inspection->stage.upper_platform_y_f32 =
+        stage->upper_platform_y_f32;
+    out_inspection->item.position_x_f32 =
+        sim->world.item_position_x_f32;
+    out_inspection->item.position_y_f32 =
+        sim->world.item_position_y_f32;
+    out_inspection->item.velocity_x_f32 =
+        sim->world.item_velocity_x_f32;
+    out_inspection->item.velocity_y_f32 =
+        sim->world.item_velocity_y_f32;
     out_inspection->item.lifetime_ticks =
         sim->world.item_lifetime_ticks;
     out_inspection->item.respawn_ticks =
@@ -17685,26 +17660,26 @@ pf_status inspect(
             sim->world.item_source_slot != UINT8_C(0)
         ? UINT8_C(1)
         : UINT8_C(0);
-    out_inspection->projectile.position_x_q16 =
-        sim->world.projectile_position_x_q16;
-    out_inspection->projectile.position_y_q16 =
-        sim->world.projectile_position_y_q16;
-    out_inspection->projectile.velocity_x_q16 =
-        sim->world.projectile_velocity_x_q16;
-    out_inspection->projectile.velocity_y_q16 =
-        sim->world.projectile_velocity_y_q16;
-    out_inspection->projectile.hitbox_left_q16 =
-        sim->world.projectile_position_x_q16 -
-        sim->content.projectile.half_width_q16;
-    out_inspection->projectile.hitbox_right_q16 =
-        sim->world.projectile_position_x_q16 +
-        sim->content.projectile.half_width_q16;
-    out_inspection->projectile.hitbox_top_q16 =
-        sim->world.projectile_position_y_q16 -
-        sim->content.projectile.half_height_q16;
-    out_inspection->projectile.hitbox_bottom_q16 =
-        sim->world.projectile_position_y_q16 +
-        sim->content.projectile.half_height_q16;
+    out_inspection->projectile.position_x_f32 =
+        sim->world.projectile_position_x_f32;
+    out_inspection->projectile.position_y_f32 =
+        sim->world.projectile_position_y_f32;
+    out_inspection->projectile.velocity_x_f32 =
+        sim->world.projectile_velocity_x_f32;
+    out_inspection->projectile.velocity_y_f32 =
+        sim->world.projectile_velocity_y_f32;
+    out_inspection->projectile.hitbox_left_f32 =
+        sim->world.projectile_position_x_f32 -
+        sim->content.projectile.half_width_f32;
+    out_inspection->projectile.hitbox_right_f32 =
+        sim->world.projectile_position_x_f32 +
+        sim->content.projectile.half_width_f32;
+    out_inspection->projectile.hitbox_top_f32 =
+        sim->world.projectile_position_y_f32 -
+        sim->content.projectile.half_height_f32;
+    out_inspection->projectile.hitbox_bottom_f32 =
+        sim->world.projectile_position_y_f32 +
+        sim->content.projectile.half_height_f32;
     out_inspection->projectile.lifetime_ticks =
         sim->world.projectile_lifetime_ticks;
     out_inspection->projectile.enabled =
@@ -17732,14 +17707,14 @@ pf_status inspect(
             ground_loop_pose[PF_M4_HSD_POSE_MAX_JOINTS];
         const hsd_local_pose *ground_loop_pose_or_null = NULL;
 
-        player->position_x_q16 =
-            sim->world.position_x_q16[player_index];
-        player->position_y_q16 =
-            sim->world.position_y_q16[player_index];
-        player->self_velocity_x_q16 =
-            sim->world.velocity_x_q16[player_index];
-        player->self_velocity_y_q16 =
-            sim->world.velocity_y_q16[player_index];
+        player->position_x_f32 =
+            sim->world.position_x_f32[player_index];
+        player->position_y_f32 =
+            sim->world.position_y_f32[player_index];
+        player->self_velocity_x_f32 =
+            sim->world.velocity_x_f32[player_index];
+        player->self_velocity_y_f32 =
+            sim->world.velocity_y_f32[player_index];
         if (sim->world.grounded[player_index] != UINT8_C(0) &&
             sim->content.stage.reference_collision_profile !=
                 (uint16_t)PF_M4_REFERENCE_STAGE_AUTHORED &&
@@ -17755,71 +17730,71 @@ pf_status inspect(
                action_is_surface_tech(
                    sim->world.action_state[player_index]))))
         {
-            project_ground_scalar_q16(
+            project_ground_scalar_f32(
                 &sim->content,
                 sim->world.support[player_index],
-                sim->world.velocity_x_q16[player_index],
-                &player->self_velocity_x_q16,
-                &player->self_velocity_y_q16);
+                sim->world.velocity_x_f32[player_index],
+                &player->self_velocity_x_f32,
+                &player->self_velocity_y_f32);
         }
-        player->velocity_x_q16 =
-            total_velocity_q16(
-                player->self_velocity_x_q16,
-                sim->world.knockback_velocity_x_q16[player_index]);
-        player->velocity_y_q16 =
-            total_velocity_q16(
-                player->self_velocity_y_q16,
-                sim->world.knockback_velocity_y_q16[player_index]);
-        player->knockback_velocity_x_q16 =
-            sim->world.knockback_velocity_x_q16[player_index];
-        player->knockback_velocity_y_q16 =
-            sim->world.knockback_velocity_y_q16[player_index];
-        player->ground_knockback_velocity_q16 =
-            sim->world.ground_knockback_velocity_q16[player_index];
-        player->shield_recoil_x_q16 =
-            sim->world.shield_recoil_x_q16[player_index];
-        player->source_animation_frame_q16 =
-            sim->world.source_animation_frame_q16[player_index];
-        player->source_animation_rate_q16 =
-            sim->world.source_animation_rate_q16[player_index];
-        player->fall_animation_blend_q16 =
-            sim->world.fall_animation_blend_q16[player_index];
+        player->velocity_x_f32 =
+            total_velocity_f32(
+                player->self_velocity_x_f32,
+                sim->world.knockback_velocity_x_f32[player_index]);
+        player->velocity_y_f32 =
+            total_velocity_f32(
+                player->self_velocity_y_f32,
+                sim->world.knockback_velocity_y_f32[player_index]);
+        player->knockback_velocity_x_f32 =
+            sim->world.knockback_velocity_x_f32[player_index];
+        player->knockback_velocity_y_f32 =
+            sim->world.knockback_velocity_y_f32[player_index];
+        player->ground_knockback_velocity_f32 =
+            sim->world.ground_knockback_velocity_f32[player_index];
+        player->shield_recoil_x_f32 =
+            sim->world.shield_recoil_x_f32[player_index];
+        player->source_animation_frame_f32 =
+            sim->world.source_animation_frame_f32[player_index];
+        player->source_animation_rate_f32 =
+            sim->world.source_animation_rate_f32[player_index];
+        player->fall_animation_blend_f32 =
+            sim->world.fall_animation_blend_f32[player_index];
         player->fall_animation_target_switched =
             sim->world.fall_animation_target_switched[player_index];
         {
-            falcon_ecb_pose_q16 ecb_pose;
+            falcon_ecb_pose_f32 ecb_pose;
             const uint8_t effective_action = effective_action_state(
                 sim->world.action_state[player_index],
                 sim->world.hitlag_resume_action[player_index]);
 
-            if (reference_ecb_pose_q16(
+            if (reference_ecb_pose_f32(
                     &sim->content.fighter,
                     effective_action,
                     sim->world.action_ticks[player_index],
                     sim->world.grounded[player_index],
                     sim->world.ecb_bottom_lock_ticks[player_index] !=
                             UINT8_C(0)
-                        ? sim->world.ecb_locked_bottom_y_q16[player_index]
-                        : PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16,
+                        ? sim->world.ecb_locked_bottom_y_f32[player_index]
+                        : PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_F32,
                     sim->world.source_submotion[player_index],
-                    sim->world.source_animation_frame_q16[player_index],
-                    sim->world.fall_animation_blend_q16[player_index],
+                    sim->world.source_animation_frame_f32[player_index],
+                    sim->world.fall_animation_blend_f32[player_index],
                     sim->world.fall_animation_target_switched[player_index],
                     sim->world.prone_orientation[player_index],
                     sim->world.prone_roll_motion_orientation[player_index],
                     sim->world.tech_direction[player_index],
                     sim->world.facing[player_index],
-                    player->velocity_x_q16,
-                    player->velocity_y_q16,
-                    sim->world.ground_blend_progress_q16[player_index],
-                    sim->world.ground_blend_progress_q16[player_index] >
+                    player->velocity_x_f32,
+                    player->velocity_y_f32,
+                    sim->world.ground_blend_progress_f32[player_index],
+                    sim->world.ground_blend_progress_f32[player_index] >
                             INT32_C(0)
                         ? &sim->world.ground_blend_pose[player_index]
                         : NULL,
                     &ecb_pose))
             {
-                player->ecb_bottom_y_from_origin_q16 =
-                    ecb_pose.bottom_y_from_origin_q16;
+                player->ecb_bottom_y_from_origin_f32 =
+                    ecb_pose.bottom_y_from_origin_f32;
             }
         }
         player->action_ticks =
@@ -17859,12 +17834,12 @@ pf_status inspect(
             player->facing);
         player->last_hit_tick =
             sim->world.last_hit_tick[player_index];
-        player->damage_q16 =
-            sim->world.damage_q16[player_index];
+        player->damage_f32 =
+            sim->world.damage_f32[player_index];
         player->last_hit_sequence =
             sim->world.last_hit_sequence[player_index];
-        player->last_hit_damage_q16 =
-            sim->world.last_hit_damage_q16[player_index];
+        player->last_hit_damage_f32 =
+            sim->world.last_hit_damage_f32[player_index];
         player->hitlag_ticks =
             sim->world.hitlag_ticks[player_index];
         player->hitstun_ticks =
@@ -17930,8 +17905,8 @@ pf_status inspect(
             sim->world.tech_direction[player_index];
         player->prone_orientation =
             sim->world.prone_orientation[player_index];
-        player->shield_health_q16 =
-            sim->world.shield_health_q16[player_index];
+        player->shield_health_f32 =
+            sim->world.shield_health_f32[player_index];
         player->respawn_ticks =
             sim->world.respawn_ticks[player_index];
         player->respawn_invulnerability_ticks =
@@ -17961,19 +17936,19 @@ pf_status inspect(
             &player->shield_tilt_y);
         player->shield_active = (uint8_t)shield_box(
             &sim->content.fighter,
-            player->position_x_q16,
-            player->position_y_q16,
+            player->position_x_f32,
+            player->position_y_f32,
             player->action_state,
             sim->world.hitlag_resume_action[player_index],
-            player->shield_health_q16,
+            player->shield_health_f32,
             player->shield_strength,
             player->facing,
             sim->world.shield_angle_turn[player_index],
             sim->world.shield_magnitude[player_index],
-            &player->shield_left_q16,
-            &player->shield_right_q16,
-            &player->shield_top_q16,
-            &player->shield_bottom_q16);
+            &player->shield_left_f32,
+            &player->shield_right_f32,
+            &player->shield_top_f32,
+            &player->shield_bottom_f32);
         player->revival_platform_active =
             player->action_state ==
                     (uint8_t)PF_M4_ACTION_REVIVAL_PLATFORM
@@ -17981,22 +17956,22 @@ pf_status inspect(
                 : UINT8_C(0);
         if (player->revival_platform_active != UINT8_C(0))
         {
-            player->revival_platform_left_q16 =
-                player->position_x_q16 -
-                stage->revival_platform_half_width_q16;
-            player->revival_platform_right_q16 =
-                player->position_x_q16 +
-                stage->revival_platform_half_width_q16;
-            player->revival_platform_y_q16 =
-                player->position_y_q16 +
-                sim->content.fighter.half_height_q16;
+            player->revival_platform_left_f32 =
+                player->position_x_f32 -
+                stage->revival_platform_half_width_f32;
+            player->revival_platform_right_f32 =
+                player->position_x_f32 +
+                stage->revival_platform_half_width_f32;
+            player->revival_platform_y_f32 =
+                player->position_y_f32 +
+                sim->content.fighter.half_height_f32;
         }
         player->stale_move_count =
             sim->world.stale_move_count[player_index];
         if (player->stale_move_count == UINT8_C(0))
         {
-            player->stale_move_multiplier_q16 =
-                (uint32_t)PF_Q16_ONE;
+            player->stale_move_multiplier_f32 =
+                (uint32_t)PF_F32_ONE;
         }
         else
         {
@@ -18005,8 +17980,8 @@ pf_status inspect(
                     ? sim->world.hitlag_resume_action[player_index]
                     : player->action_state;
 
-            player->stale_move_multiplier_q16 =
-                stale_move_multiplier_q16(
+            player->stale_move_multiplier_f32 =
+                stale_move_multiplier_f32(
                     &sim->content.fighter,
                     sim->world.stale_move_ids[player_index],
                     sim->world.stale_move_count[player_index],
@@ -18036,36 +18011,36 @@ pf_status inspect(
             sim->world.recovery_available[player_index];
         player->hitbox_active = (uint8_t)attack_hitbox(
             &sim->content,
-            player->position_x_q16,
-            player->position_y_q16,
+            player->position_x_f32,
+            player->position_y_f32,
             player->facing,
             player->action_state,
             player->action_ticks,
             sim->world.source_submotion[player_index],
-            &player->hitbox_left_q16,
-            &player->hitbox_right_q16,
-            &player->hitbox_top_q16,
-            &player->hitbox_bottom_q16);
+            &player->hitbox_left_f32,
+            &player->hitbox_right_f32,
+            &player->hitbox_top_f32,
+            &player->hitbox_bottom_f32);
         player->hit_sphere_count = attack_hit_spheres(
             &sim->content,
-            player->position_x_q16,
-            player->position_y_q16,
+            player->position_x_f32,
+            player->position_y_f32,
             player->facing,
             player->action_state,
             player->action_ticks,
             player->hit_spheres);
         player->grabbox_active = (uint8_t)grabbox(
             &sim->content,
-            player->position_x_q16,
-            player->position_y_q16,
+            player->position_x_f32,
+            player->position_y_f32,
             player->facing,
             player->action_state,
             player->action_ticks,
-            &player->grabbox_left_q16,
-            &player->grabbox_right_q16,
-            &player->grabbox_top_q16,
-            &player->grabbox_bottom_q16);
-        if (sim->world.ground_blend_progress_q16[player_index] >
+            &player->grabbox_left_f32,
+            &player->grabbox_right_f32,
+            &player->grabbox_top_f32,
+            &player->grabbox_bottom_f32);
+        if (sim->world.ground_blend_progress_f32[player_index] >
             INT32_C(0))
         {
             const hsd_pose_data *data =
@@ -18073,8 +18048,8 @@ pf_status inspect(
             if (data == NULL ||
                 !falcon_resolve_compact_hsd_pose(
                     sim->world.source_submotion[player_index],
-                    sim->world.source_animation_frame_q16[player_index],
-                    sim->world.ground_blend_progress_q16[player_index],
+                    sim->world.source_animation_frame_f32[player_index],
+                    sim->world.ground_blend_progress_f32[player_index],
                     &sim->world.ground_blend_pose[player_index],
                     ground_loop_pose))
             {
@@ -18087,18 +18062,18 @@ pf_status inspect(
                 ? UINT8_C(0)
                 : reference_world_hurt_capsules(
                 &sim->content.fighter,
-                player->position_x_q16,
-                player->position_y_q16,
+                player->position_x_f32,
+                player->position_y_f32,
                 player->facing,
                 sim->world.dash_direction[player_index],
                 player->grounded,
                 player->action_state,
                 player->hitlag_resume_action,
                 sim->world.source_submotion[player_index],
-                sim->world.source_animation_frame_q16[player_index],
+                sim->world.source_animation_frame_f32[player_index],
                 player->action_ticks,
-                player->velocity_x_q16,
-                player->velocity_y_q16,
+                player->velocity_x_f32,
+                player->velocity_y_f32,
                 ground_loop_pose_or_null,
                 player->hurt_capsules);
     }

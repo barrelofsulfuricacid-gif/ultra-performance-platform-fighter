@@ -569,8 +569,8 @@
     "source_trace_sha256": "80c9ab75a98e2e7ef901055131b24f413c5e2672038315b526999f3143b38383",
     "production_trace_sha256": "136f2c97c30bf041018014d0e1a5fb20caf0c942a77aca5a53ab465cd99adfcf",
     "comparison_policy": {
-      "velocity_tolerance_q16": 32,
-      "position_tolerance_q16": 288,
+      "velocity_tolerance_f32": 32,
+      "position_tolerance_f32": 288,
       "position_bound": "maximum observed 274 LSB over 35 accumulated fixed-point air-physics steps"
     },
     "samples_per_case": 80,

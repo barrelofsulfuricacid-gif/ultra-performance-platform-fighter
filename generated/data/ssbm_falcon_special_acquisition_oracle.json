@@ -140,10 +140,10 @@
         "facing",
         "tilt_x_age",
         "grounded",
-        "position_x_q16_from_origin",
-        "position_y_q16_from_origin",
-        "velocity_x_q16",
-        "velocity_y_q16"
+        "position_x_f32_from_origin",
+        "position_y_f32_from_origin",
+        "velocity_x_f32",
+        "velocity_y_f32"
       ]
     },
     {
@@ -175,10 +175,10 @@
         "facing",
         "tilt_x_age",
         "grounded",
-        "position_x_q16_from_origin",
-        "position_y_q16_from_origin",
-        "velocity_x_q16",
-        "velocity_y_q16"
+        "position_x_f32_from_origin",
+        "position_y_f32_from_origin",
+        "velocity_x_f32",
+        "velocity_y_f32"
       ]
     },
     {
@@ -217,10 +217,10 @@
         "facing",
         "tilt_x_age",
         "grounded",
-        "position_x_q16_from_origin",
-        "position_y_q16_from_origin",
-        "velocity_x_q16",
-        "velocity_y_q16"
+        "position_x_f32_from_origin",
+        "position_y_f32_from_origin",
+        "velocity_x_f32",
+        "velocity_y_f32"
       ]
     },
     {
@@ -247,15 +247,15 @@
         "action_ticks",
         "facing",
         "grounded",
-        "position_x_q16_from_origin",
-        "position_y_q16_from_origin",
-        "velocity_x_q16",
-        "velocity_y_q16"
+        "position_x_f32_from_origin",
+        "position_y_f32_from_origin",
+        "velocity_x_f32",
+        "velocity_y_f32"
       ]
     },
     {
       "field_exclusions": {
-        "position_x_q16_from_origin": [
+        "position_x_f32_from_origin": [
           [
             9,
             13
@@ -292,15 +292,15 @@
         "action_ticks",
         "facing",
         "grounded",
-        "position_x_q16_from_origin",
-        "position_y_q16_from_origin",
-        "velocity_x_q16",
-        "velocity_y_q16"
+        "position_x_f32_from_origin",
+        "position_y_f32_from_origin",
+        "velocity_x_f32",
+        "velocity_y_f32"
       ]
     },
     {
       "field_exclusions": {
-        "position_x_q16_from_origin": [
+        "position_x_f32_from_origin": [
           [
             2,
             6
@@ -329,10 +329,10 @@
         "action_ticks",
         "facing",
         "grounded",
-        "position_x_q16_from_origin",
-        "position_y_q16_from_origin",
-        "velocity_x_q16",
-        "velocity_y_q16"
+        "position_x_f32_from_origin",
+        "position_y_f32_from_origin",
+        "velocity_x_f32",
+        "velocity_y_f32"
       ]
     },
     {
@@ -374,10 +374,10 @@
         "action_ticks",
         "facing",
         "grounded",
-        "position_x_q16_from_origin",
-        "position_y_q16_from_origin",
-        "velocity_x_q16",
-        "velocity_y_q16"
+        "position_x_f32_from_origin",
+        "position_y_f32_from_origin",
+        "velocity_x_f32",
+        "velocity_y_f32"
       ]
     },
     {
@@ -404,10 +404,10 @@
         "action_ticks",
         "facing",
         "grounded",
-        "position_x_q16_from_origin",
-        "position_y_q16_from_origin",
-        "velocity_x_q16",
-        "velocity_y_q16"
+        "position_x_f32_from_origin",
+        "position_y_f32_from_origin",
+        "velocity_x_f32",
+        "velocity_y_f32"
       ]
     },
     {
@@ -552,7 +552,7 @@
     },
     {
       "field_exclusions": {
-        "position_x_q16_from_origin": [
+        "position_x_f32_from_origin": [
           [
             0,
             7
@@ -583,21 +583,21 @@
         "action_ticks",
         "facing",
         "grounded",
-        "position_x_q16_from_origin",
-        "position_y_q16_from_origin",
-        "velocity_x_q16",
-        "velocity_y_q16"
+        "position_x_f32_from_origin",
+        "position_y_f32_from_origin",
+        "velocity_x_f32",
+        "velocity_y_f32"
       ]
     },
     {
       "field_exclusions": {
-        "position_x_q16_from_origin": [
+        "position_x_f32_from_origin": [
           [
             0,
             7
           ]
         ],
-        "velocity_x_q16": [
+        "velocity_x_f32": [
           [
             1,
             7
@@ -628,15 +628,15 @@
         "action_ticks",
         "facing",
         "grounded",
-        "position_x_q16_from_origin",
-        "position_y_q16_from_origin",
-        "velocity_x_q16",
-        "velocity_y_q16"
+        "position_x_f32_from_origin",
+        "position_y_f32_from_origin",
+        "velocity_x_f32",
+        "velocity_y_f32"
       ]
     },
     {
       "field_exclusions": {
-        "position_x_q16_from_origin": [
+        "position_x_f32_from_origin": [
           [
             0,
             7
@@ -667,15 +667,15 @@
         "action_ticks",
         "facing",
         "grounded",
-        "position_x_q16_from_origin",
-        "position_y_q16_from_origin",
-        "velocity_x_q16",
-        "velocity_y_q16"
+        "position_x_f32_from_origin",
+        "position_y_f32_from_origin",
+        "velocity_x_f32",
+        "velocity_y_f32"
       ]
     },
     {
       "field_exclusions": {
-        "position_x_q16_from_origin": [
+        "position_x_f32_from_origin": [
           [
             0,
             7
@@ -706,10 +706,10 @@
         "action_ticks",
         "facing",
         "grounded",
-        "position_x_q16_from_origin",
-        "position_y_q16_from_origin",
-        "velocity_x_q16",
-        "velocity_y_q16"
+        "position_x_f32_from_origin",
+        "position_y_f32_from_origin",
+        "velocity_x_f32",
+        "velocity_y_f32"
       ]
     },
     {
@@ -844,15 +844,15 @@
         "facing",
         "tilt_x_age",
         "grounded",
-        "position_x_q16_from_origin",
-        "position_y_q16_from_origin",
-        "velocity_x_q16",
-        "velocity_y_q16"
+        "position_x_f32_from_origin",
+        "position_y_f32_from_origin",
+        "velocity_x_f32",
+        "velocity_y_f32"
       ]
     },
     {
       "field_exclusions": {
-        "position_x_q16_from_origin": [
+        "position_x_f32_from_origin": [
           [
             4,
             7
@@ -882,21 +882,21 @@
         "facing",
         "tilt_x_age",
         "grounded",
-        "position_x_q16_from_origin",
-        "position_y_q16_from_origin",
-        "velocity_x_q16",
-        "velocity_y_q16"
+        "position_x_f32_from_origin",
+        "position_y_f32_from_origin",
+        "velocity_x_f32",
+        "velocity_y_f32"
       ]
     },
     {
       "field_exclusions": {
-        "position_x_q16_from_origin": [
+        "position_x_f32_from_origin": [
           [
             3,
             7
           ]
         ],
-        "velocity_x_q16": [
+        "velocity_x_f32": [
           [
             4,
             5
@@ -926,15 +926,15 @@
         "facing",
         "tilt_x_age",
         "grounded",
-        "position_x_q16_from_origin",
-        "position_y_q16_from_origin",
-        "velocity_x_q16",
-        "velocity_y_q16"
+        "position_x_f32_from_origin",
+        "position_y_f32_from_origin",
+        "velocity_x_f32",
+        "velocity_y_f32"
       ]
     },
     {
       "field_exclusions": {
-        "position_x_q16_from_origin": [
+        "position_x_f32_from_origin": [
           [
             4,
             7
@@ -964,10 +964,10 @@
         "facing",
         "tilt_x_age",
         "grounded",
-        "position_x_q16_from_origin",
-        "position_y_q16_from_origin",
-        "velocity_x_q16",
-        "velocity_y_q16"
+        "position_x_f32_from_origin",
+        "position_y_f32_from_origin",
+        "velocity_x_f32",
+        "velocity_y_f32"
       ]
     },
     {
@@ -978,7 +978,7 @@
             25
           ]
         ],
-        "position_x_q16_from_origin": [
+        "position_x_f32_from_origin": [
           [
             4,
             31
@@ -1007,10 +1007,10 @@
         "action_ticks",
         "facing",
         "grounded",
-        "position_x_q16_from_origin",
-        "position_y_q16_from_origin",
-        "velocity_x_q16",
-        "velocity_y_q16"
+        "position_x_f32_from_origin",
+        "position_y_f32_from_origin",
+        "velocity_x_f32",
+        "velocity_y_f32"
       ]
     },
     {
@@ -1021,13 +1021,13 @@
             25
           ]
         ],
-        "position_x_q16_from_origin": [
+        "position_x_f32_from_origin": [
           [
             4,
             31
           ]
         ],
-        "velocity_x_q16": [
+        "velocity_x_f32": [
           [
             25,
             31
@@ -1056,10 +1056,10 @@
         "action_ticks",
         "facing",
         "grounded",
-        "position_x_q16_from_origin",
-        "position_y_q16_from_origin",
-        "velocity_x_q16",
-        "velocity_y_q16"
+        "position_x_f32_from_origin",
+        "position_y_f32_from_origin",
+        "velocity_x_f32",
+        "velocity_y_f32"
       ]
     },
     {
@@ -1070,7 +1070,7 @@
             25
           ]
         ],
-        "position_x_q16_from_origin": [
+        "position_x_f32_from_origin": [
           [
             4,
             31
@@ -1099,10 +1099,10 @@
         "action_ticks",
         "facing",
         "grounded",
-        "position_x_q16_from_origin",
-        "position_y_q16_from_origin",
-        "velocity_x_q16",
-        "velocity_y_q16"
+        "position_x_f32_from_origin",
+        "position_y_f32_from_origin",
+        "velocity_x_f32",
+        "velocity_y_f32"
       ]
     },
     {
@@ -1113,7 +1113,7 @@
             25
           ]
         ],
-        "position_x_q16_from_origin": [
+        "position_x_f32_from_origin": [
           [
             4,
             31
@@ -1142,10 +1142,10 @@
         "action_ticks",
         "facing",
         "grounded",
-        "position_x_q16_from_origin",
-        "position_y_q16_from_origin",
-        "velocity_x_q16",
-        "velocity_y_q16"
+        "position_x_f32_from_origin",
+        "position_y_f32_from_origin",
+        "velocity_x_f32",
+        "velocity_y_f32"
       ]
     },
     {
@@ -1283,8 +1283,8 @@
         "action_ticks",
         "facing",
         "grounded",
-        "velocity_x_q16",
-        "velocity_y_q16"
+        "velocity_x_f32",
+        "velocity_y_f32"
       ]
     },
     {
@@ -1311,8 +1311,8 @@
         "action_ticks",
         "facing",
         "grounded",
-        "velocity_x_q16",
-        "velocity_y_q16"
+        "velocity_x_f32",
+        "velocity_y_f32"
       ]
     },
     {
@@ -1347,8 +1347,8 @@
         "action_ticks",
         "facing",
         "grounded",
-        "velocity_x_q16",
-        "velocity_y_q16"
+        "velocity_x_f32",
+        "velocity_y_f32"
       ]
     }
   ],

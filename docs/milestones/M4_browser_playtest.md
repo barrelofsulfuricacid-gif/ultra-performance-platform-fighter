@@ -46,7 +46,7 @@ primitives plus a four-stock KO, moving revival platform, post-drop
 invulnerability, sudden-death, and result/rematch loop and a deterministic
 combat-event feed in
 WebAssembly. It is no longer the
-disposable M0 float32/Q16.16 comparison. The default duel's two visible
+disposable M0 float32/float32 comparison. The default duel's two visible
 players, and all four fighters in the optional team lab, use the same validated
 M4 fighter and stage content used by native, replay, rollback, and headless
 execution.
@@ -214,7 +214,7 @@ event count is at 236, event entries begin at 237, the item block begins at
 397, the projectile block begins at 415, recovery availability begins at 427,
 and four append-only revival-platform values per fixed player occupy 431–446.
 Four 12-value stale-move records occupy 447–494: queue count, the selected
-move's Q16.16 multiplier, the per-attack registration latch, and nine canonical
+move's float32 multiplier, the per-attack registration latch, and nine canonical
 move IDs newest first. The thrown item's per-instance registration latch is at
 495. The stationary upper platform's exact left, right, and y values are
 append-only at 496–498. Four append-only prone-orientation values occupy

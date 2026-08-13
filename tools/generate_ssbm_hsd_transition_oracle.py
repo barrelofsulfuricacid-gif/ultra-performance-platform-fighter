@@ -85,7 +85,7 @@ def compact_pose(
         translations.append(
             [round_integer(float(value) * 65536.0) for value in values]
         )
-    return {"rotation_q15": rotations, "translation_q16": translations}
+    return {"rotation_q15": rotations, "translation_f32": translations}
 
 
 def continuation(previous: dict[str, Any], row: dict[str, Any]) -> bool:
@@ -123,8 +123,8 @@ def build_cases(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
             {
                 "trace_frame": int(row["trace_frame"]),
                 "source_submotion": int(new["fighter_animation_id"]),
-                "frame_q16": round_integer(float(new["fighter_animation_frame"]) * 65536.0),
-                "current_weight_q16": round_integer(current_weight * 65536.0),
+                "frame_f32": round_integer(float(new["fighter_animation_frame"]) * 65536.0),
+                "current_weight_f32": round_integer(current_weight * 65536.0),
                 "reset": index - 1 != previous_case_row,
                 "prior": compact_pose(previous),
                 "expected": compact_pose(row),
@@ -141,11 +141,11 @@ def build_production_cases(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         row = rows[index]
         old = previous["surface_collision_memory"]
         new = row["surface_collision_memory"]
-        old_progress_q16 = round_integer(
+        old_progress_f32 = round_integer(
             float(old["fighter_animation_blend_progress"]) * 65536.0
         )
-        if old_progress_q16 >= 6 * 65536:
-            old_progress_q16 = 0
+        if old_progress_f32 >= 6 * 65536:
+            old_progress_f32 = 0
         cases.append(
             {
                 "trace_frame": int(row["trace_frame"]),
@@ -154,29 +154,29 @@ def build_production_cases(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
                     float(previous["action_frame"])
                 ),
                 "previous_submotion": int(old["fighter_animation_id"]),
-                "previous_frame_q16": round_integer(
+                "previous_frame_f32": round_integer(
                     float(old["fighter_animation_frame"]) * 65536.0
                 ),
-                "previous_rate_q16": round_integer(
+                "previous_rate_f32": round_integer(
                     float(old["fighter_animation_rate"]) * 65536.0
                 ),
-                "previous_velocity_x_q16": round_integer(
+                "previous_velocity_x_f32": round_integer(
                     float(previous["ground_velocity_x"])
                     * 12.0
                     / 115.0
                     * 65536.0
                 ),
-                "previous_progress_q16": old_progress_q16,
+                "previous_progress_f32": old_progress_f32,
                 "previous_compact": compact_pose(previous),
                 "input_x": round_integer(
                     float(row["observed_main_x"]) * 32767.0
                 ),
                 "expected_action": ACTION_IDS[row["action"]],
                 "expected_submotion": int(new["fighter_animation_id"]),
-                "expected_frame_q16": round_integer(
+                "expected_frame_f32": round_integer(
                     float(new["fighter_animation_frame"]) * 65536.0
                 ),
-                "expected_progress_q16": round_integer(
+                "expected_progress_f32": round_integer(
                     float(new["fighter_animation_blend_progress"]) * 65536.0
                 ),
                 "expected_target_compact": compact_pose(row, "animation_pose"),
@@ -201,7 +201,7 @@ def emit_compact(pose: dict[str, list[list[int]]]) -> str:
     )
     translations = ", ".join(
         "{ " + ", ".join(c_i32(value) for value in row) + " }"
-        for row in pose["translation_q16"]
+        for row in pose["translation_f32"]
     )
     return (
         "{ { "
@@ -225,8 +225,8 @@ def emit(
         "    uint16_t source_submotion;",
         "    uint8_t reset;",
         "    uint8_t reserved;",
-        "    int32_t frame_q16;",
-        "    int32_t current_weight_q16;",
+        "    int32_t frame_f32;",
+        "    int32_t current_weight_f32;",
         "    hsd_compact_pose prior;",
         "    hsd_compact_pose expected;",
         "} hsd_transition_oracle_case;",
@@ -240,7 +240,7 @@ def emit(
                 "    {",
                 f"        UINT32_C({case['trace_frame']}), UINT16_C({case['source_submotion']}),",
                 f"        UINT8_C({1 if case['reset'] else 0}), UINT8_C(0),",
-                f"        {c_i32(case['frame_q16'])}, {c_i32(case['current_weight_q16'])},",
+                f"        {c_i32(case['frame_f32'])}, {c_i32(case['current_weight_f32'])},",
                 f"        {emit_compact(case['prior'])},",
                 f"        {emit_compact(case['expected'])}",
                 "    },",
@@ -255,16 +255,16 @@ def emit(
             "    uint32_t trace_frame;",
             "    uint16_t previous_action_ticks;",
             "    uint16_t previous_submotion;",
-            "    int32_t previous_frame_q16;",
-            "    int32_t previous_rate_q16;",
-            "    int32_t previous_velocity_x_q16;",
-            "    int32_t previous_progress_q16;",
+            "    int32_t previous_frame_f32;",
+            "    int32_t previous_rate_f32;",
+            "    int32_t previous_velocity_x_f32;",
+            "    int32_t previous_progress_f32;",
             "    int16_t input_x;",
             "    uint8_t previous_action;",
             "    uint8_t expected_action;",
             "    uint16_t expected_submotion;",
-            "    int32_t expected_frame_q16;",
-            "    int32_t expected_progress_q16;",
+            "    int32_t expected_frame_f32;",
+            "    int32_t expected_progress_f32;",
             "    hsd_compact_pose previous_compact;",
             "    hsd_compact_pose expected_target_compact;",
             "    hsd_compact_pose expected_compact;",
@@ -279,12 +279,12 @@ def emit(
             [
                 "    {",
                 f"        UINT32_C({case['trace_frame']}), UINT16_C({case['previous_action_ticks']}),",
-                f"        UINT16_C({case['previous_submotion']}), {c_i32(case['previous_frame_q16'])},",
-                f"        {c_i32(case['previous_rate_q16'])}, {c_i32(case['previous_velocity_x_q16'])},",
-                f"        {c_i32(case['previous_progress_q16'])}, {c_i16(case['input_x'])},",
+                f"        UINT16_C({case['previous_submotion']}), {c_i32(case['previous_frame_f32'])},",
+                f"        {c_i32(case['previous_rate_f32'])}, {c_i32(case['previous_velocity_x_f32'])},",
+                f"        {c_i32(case['previous_progress_f32'])}, {c_i16(case['input_x'])},",
                 f"        UINT8_C({case['previous_action']}), UINT8_C({case['expected_action']}),",
-                f"        UINT16_C({case['expected_submotion']}), {c_i32(case['expected_frame_q16'])},",
-                f"        {c_i32(case['expected_progress_q16'])},",
+                f"        UINT16_C({case['expected_submotion']}), {c_i32(case['expected_frame_f32'])},",
+                f"        {c_i32(case['expected_progress_f32'])},",
                 f"        {emit_compact(case['previous_compact'])},",
                 f"        {emit_compact(case['expected_target_compact'])},",
                 f"        {emit_compact(case['expected_compact'])}",

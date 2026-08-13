@@ -14,8 +14,8 @@ from compare_ssbm_movement import (
     falcon_kick_expected_ticks,
     native_input_line,
     normalized_shield_strength,
-    scaled_q16,
-    scaled_y_q16,
+    scaled_f32,
+    scaled_y_f32,
 )
 from generate_ssbm_stored_trace_oracle import (
     expand_case_samples,
@@ -147,21 +147,21 @@ def source_sample_values(
         ),
         "facing": int(row["facing"]) * horizontal_mirror,
         "grounded": int(bool(row["grounded"])),
-        "position_x_q16_from_origin": horizontal_mirror
-        * scaled_q16(float(row["position_x_from_origin"]) - anchor_x),
-        "position_y_q16_from_origin": scaled_y_q16(
+        "position_x_f32_from_origin": horizontal_mirror
+        * scaled_f32(float(row["position_x_from_origin"]) - anchor_x),
+        "position_y_f32_from_origin": scaled_y_f32(
             float(row["position_y"]) - anchor_y
         ),
-        "velocity_x_q16": horizontal_mirror
-        * scaled_q16(float(row[velocity_x_key])),
-        "velocity_y_q16": scaled_y_q16(float(row["velocity_y"])),
-        "shield_health_q16": round(float(row["shield_health"]) * 65536.0),
+        "velocity_x_f32": horizontal_mirror
+        * scaled_f32(float(row[velocity_x_key])),
+        "velocity_y_f32": scaled_y_f32(float(row["velocity_y"])),
+        "shield_health_f32": round(float(row["shield_health"]) * 65536.0),
         "shield_strength": shield_strength,
         "hitlag_ticks": round(hitlag_left),
         "opponent_hitlag_ticks": round(
             float(row.get("opponent_hitlag_left", 0.0))
         ),
-        "opponent_damage_q16": round(
+        "opponent_damage_f32": round(
             float(row.get("opponent_damage_percent", 0.0)) * 65536.0
         ),
     }

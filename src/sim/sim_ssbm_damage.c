@@ -3,194 +3,128 @@
 #include "sim_internal.h"
 #include "sim_ssbm_common_data.h"
 
-#include <limits.h>
+#include <math.h>
 #include <stdint.h>
 
-#define PF_M4_Q30_ONE INT64_C(1073741824)
-#define PF_M4_SSBM_VECTOR_EXTRA_SCALE INT64_C(256)
+#define PF_M4_Q30_SCALE 1073741824.0f
 
-static int64_t ssbm_abs_i64(int64_t value)
+static float ssbm_source_x(float world_x)
 {
-    return value < INT64_C(0) ? -value : value;
+    return world_x * (115.0f / 12.0f);
 }
 
-static int64_t ssbm_div_round_nearest_i64(
-    int64_t numerator,
-    int64_t denominator)
+static float ssbm_source_y_math(float world_y)
 {
-    return numerator < INT64_C(0)
-               ? -((-numerator + denominator / INT64_C(2)) / denominator)
-               : (numerator + denominator / INT64_C(2)) / denominator;
+    return -world_y * (62.0f / 11.0f);
 }
 
-ssbm_damage_floor_response
-ssbm_select_damage_floor_response_q16(
-    int32_t knockback_velocity_x_q16,
-    int32_t knockback_velocity_y_q16,
+static float ssbm_world_x(float source_x)
+{
+    return source_x * (12.0f / 115.0f);
+}
+
+static float ssbm_world_y(float source_y_math)
+{
+    return -source_y_math * (11.0f / 62.0f);
+}
+
+ssbm_damage_floor_response ssbm_select_damage_floor_response_f32(
+    float knockback_velocity_x_f32,
+    float knockback_velocity_y_f32,
     uint8_t force_down_bound)
 {
     const ssbm_damage_response_attributes *common =
         ssbm_common_reference_damage_response();
-    const int64_t source_x =
-        (int64_t)knockback_velocity_x_q16 * INT64_C(115) /
-        INT64_C(12);
-    const int64_t source_y =
-        -(int64_t)knockback_velocity_y_q16 * INT64_C(62) /
-        INT64_C(11);
-    uint64_t magnitude_squared;
-    uint64_t threshold_squared;
+    const float source_x = ssbm_source_x(knockback_velocity_x_f32);
+    const float source_y = ssbm_source_y_math(knockback_velocity_y_f32);
+    const float magnitude_squared = source_x * source_x + source_y * source_y;
 
     if (force_down_bound != UINT8_C(0) ||
-        ssbm_abs_i64(source_x) >=
-            common->damage_floor_down_speed_q16 ||
-        ssbm_abs_i64(source_y) >=
-            common->damage_floor_down_speed_q16)
+        fabsf(source_x) >= common->damage_floor_down_speed_f32 ||
+        fabsf(source_y) >= common->damage_floor_down_speed_f32 ||
+        magnitude_squared >= common->damage_floor_down_speed_f32 *
+                                 common->damage_floor_down_speed_f32)
     {
         return PF_M4_SSBM_DAMAGE_FLOOR_DOWN_BOUND;
     }
-
-    /* ftCo_Damage_Coll compares the isotropic Melee x8c magnitude. Both
-     * components are below x1E0 here, so the squared comparison is exact and
-     * cannot overflow; no runtime square root or floating point is needed. */
-    magnitude_squared =
-        (uint64_t)(source_x * source_x) +
-        (uint64_t)(source_y * source_y);
-    threshold_squared =
-        (uint64_t)common->damage_floor_down_speed_q16 *
-        (uint64_t)common->damage_floor_down_speed_q16;
-    if (magnitude_squared >= threshold_squared)
-    {
-        return PF_M4_SSBM_DAMAGE_FLOOR_DOWN_BOUND;
-    }
-    threshold_squared =
-        (uint64_t)common->damage_floor_landing_speed_q16 *
-        (uint64_t)common->damage_floor_landing_speed_q16;
-    return magnitude_squared >= threshold_squared
+    return magnitude_squared >= common->damage_floor_landing_speed_f32 *
+                                    common->damage_floor_landing_speed_f32
                ? PF_M4_SSBM_DAMAGE_FLOOR_LANDING
                : PF_M4_SSBM_DAMAGE_FLOOR_KEEP_ACTION;
 }
 
-pf_status ssbm_resolve_ground_damage_launch_q16(
-    int32_t source_normal_x_q16,
-    int32_t source_normal_y_q16,
-    int32_t ground_projection_x_q16,
-    int32_t ground_projection_y_q16,
+pf_status ssbm_resolve_ground_damage_launch_f32(
+    float source_normal_x_f32,
+    float source_normal_y_f32,
+    float ground_projection_x_f32,
+    float ground_projection_y_f32,
     uint8_t damage_level,
-    int32_t *velocity_x_q16,
-    int32_t *velocity_y_q16,
-    int32_t *ground_scalar_q16,
+    float *velocity_x_f32,
+    float *velocity_y_f32,
+    float *ground_scalar_f32,
     uint8_t *launch_grounded)
 {
     const ssbm_damage_response_attributes *common =
         ssbm_common_reference_damage_response();
-    int64_t source_x;
-    int64_t source_y_math;
-    int64_t maximum_component;
-    int64_t dot;
-    uint64_t magnitude_squared;
-    uint32_t magnitude;
-    uint32_t normal_magnitude;
+    float source_x;
+    float source_y;
+    float dot;
 
-    if (velocity_x_q16 == NULL || velocity_y_q16 == NULL ||
-        ground_scalar_q16 == NULL || launch_grounded == NULL ||
+    if (velocity_x_f32 == NULL || velocity_y_f32 == NULL ||
+        ground_scalar_f32 == NULL || launch_grounded == NULL ||
         common == NULL || damage_level > UINT8_C(3) ||
-        (source_normal_x_q16 == INT32_C(0) &&
-         source_normal_y_q16 == INT32_C(0)) ||
-        ssbm_abs_i64(source_normal_x_q16) > PF_Q16_ONE ||
-        ssbm_abs_i64(source_normal_y_q16) > PF_Q16_ONE)
+        (source_normal_x_f32 == 0.0f && source_normal_y_f32 == 0.0f) ||
+        fabsf(source_normal_x_f32) > 1.0f ||
+        fabsf(source_normal_y_f32) > 1.0f)
     {
         return PF_STATUS_INVALID_ARGUMENT;
     }
 
-    /* ftCo_8008DCE0 compares the launch vector with the current floor in
-     * Melee's isotropic positive-Y-up coordinates. Undo the world scale,
-     * then reduce only extreme, unreachable API inputs until squaring is
-     * safe; the common factor leaves every angle test unchanged. */
-    source_x =
-        (int64_t)*velocity_x_q16 * INT64_C(115) / INT64_C(12);
-    source_y_math =
-        -(int64_t)*velocity_y_q16 * INT64_C(62) / INT64_C(11);
-    maximum_component = ssbm_abs_i64(source_x);
-    if (ssbm_abs_i64(source_y_math) > maximum_component)
-    {
-        maximum_component = ssbm_abs_i64(source_y_math);
-    }
-    while (maximum_component > (INT64_C(1) << 30U))
-    {
-        source_x /= INT64_C(2);
-        source_y_math /= INT64_C(2);
-        maximum_component /= INT64_C(2);
-    }
-    dot =
-        source_x * (int64_t)source_normal_x_q16 +
-        source_y_math * (int64_t)source_normal_y_q16;
-
-    *ground_scalar_q16 = INT32_C(0);
+    source_x = ssbm_source_x(*velocity_x_f32);
+    source_y = ssbm_source_y_math(*velocity_y_f32);
+    dot = source_x * source_normal_x_f32 +
+          source_y * source_normal_y_f32;
+    *ground_scalar_f32 = 0.0f;
     *launch_grounded = UINT8_C(0);
-    if (dot > INT64_C(0))
+    if (dot > 0.0f)
     {
         return PF_STATUS_OK;
     }
     if (damage_level != UINT8_C(3))
     {
-        const int64_t projected_x =
-            (int64_t)*velocity_x_q16 * ground_projection_x_q16 /
-            (int64_t)PF_Q16_ONE;
-        const int64_t projected_y =
-            (int64_t)*velocity_x_q16 * ground_projection_y_q16 /
-            (int64_t)PF_Q16_ONE;
-
-        if (projected_x < (int64_t)INT32_MIN ||
-            projected_x > (int64_t)INT32_MAX ||
-            projected_y < (int64_t)INT32_MIN ||
-            projected_y > (int64_t)INT32_MAX)
-        {
-            return PF_STATUS_DETERMINISTIC_FAULT;
-        }
-        *ground_scalar_q16 = *velocity_x_q16;
-        *velocity_x_q16 = (int32_t)projected_x;
-        *velocity_y_q16 = (int32_t)projected_y;
+        *ground_scalar_f32 = *velocity_x_f32;
+        *velocity_x_f32 *= ground_projection_x_f32;
+        *velocity_y_f32 =
+            *ground_scalar_f32 * ground_projection_y_f32;
         *launch_grounded = UINT8_C(1);
-        return PF_STATUS_OK;
+        return isfinite(*velocity_x_f32) && isfinite(*velocity_y_f32)
+                   ? PF_STATUS_OK
+                   : PF_STATUS_DETERMINISTIC_FAULT;
     }
 
-    magnitude_squared =
-        (uint64_t)(source_x * source_x) +
-        (uint64_t)(source_y_math * source_y_math);
-    magnitude = u64_sqrt(magnitude_squared);
-    normal_magnitude = u64_sqrt(
-        (uint64_t)((int64_t)source_normal_x_q16 *
-                   source_normal_x_q16) +
-        (uint64_t)((int64_t)source_normal_y_q16 *
-                   source_normal_y_q16));
-    /* The source comparison is strict: angle > 90 degrees + x1E8. For a
-     * unit floor normal this is -dot > |velocity| * sin(x1E8). */
-    if (-dot >
-        (int64_t)magnitude * (int64_t)normal_magnitude *
-            common->ground_damage_steep_angle_sine_q16 /
-            (int64_t)PF_Q16_ONE)
     {
-        const int64_t reflected_y =
-            -(int64_t)*velocity_y_q16 *
-            common->ground_damage_vertical_reflection_q16 /
-            (int64_t)PF_Q16_ONE;
+        const float magnitude = sqrtf(source_x * source_x + source_y * source_y);
+        const float normal_magnitude = sqrtf(
+            source_normal_x_f32 * source_normal_x_f32 +
+            source_normal_y_f32 * source_normal_y_f32);
 
-        if (reflected_y < (int64_t)INT32_MIN ||
-            reflected_y > (int64_t)INT32_MAX)
+        if (-dot > magnitude * normal_magnitude *
+                       common->ground_damage_steep_angle_sine_f32)
         {
-            return PF_STATUS_DETERMINISTIC_FAULT;
+            *velocity_y_f32 = -*velocity_y_f32 *
+                              common->ground_damage_vertical_reflection_f32;
         }
-        *velocity_y_q16 = (int32_t)reflected_y;
     }
-    return PF_STATUS_OK;
+    return isfinite(*velocity_y_f32) ? PF_STATUS_OK
+                                     : PF_STATUS_DETERMINISTIC_FAULT;
 }
 
 pf_status ssbm_select_damage_motion(
     uint8_t launch_grounded,
     uint8_t damage_level,
-    uint32_t resulting_damage_q16,
-    int32_t launch_velocity_x_q16,
-    int32_t launch_velocity_y_q16,
+    float resulting_damage_f32,
+    float launch_velocity_x_f32,
+    float launch_velocity_y_f32,
     uint64_t *rng_state,
     ssbm_damage_motion_kind *out_motion)
 {
@@ -206,32 +140,19 @@ pf_status ssbm_select_damage_motion(
     {
         return PF_STATUS_OK;
     }
-
-    if (launch_velocity_y_q16 < INT32_C(0))
+    if (launch_velocity_y_f32 < 0.0f)
     {
-        const uint64_t source_horizontal =
-            (uint64_t)(launch_velocity_x_q16 < INT32_C(0)
-                           ? -(int64_t)launch_velocity_x_q16
-                           : (int64_t)launch_velocity_x_q16) *
-            UINT64_C(115) * UINT64_C(11) * UINT64_C(65536);
-        const uint64_t source_vertical_limit =
-            (uint64_t)(-(int64_t)launch_velocity_y_q16) *
-            UINT64_C(62) * UINT64_C(12) *
-            (uint64_t)(uint32_t)
-                common->damage_fly_top_horizontal_ratio_q16;
+        const float horizontal = fabsf(ssbm_source_x(launch_velocity_x_f32));
+        const float vertical = ssbm_source_y_math(launch_velocity_y_f32);
 
-        /* ftCo_8008DCE0 uses strict 70/110-degree bounds. Comparing the
-         * source-space horizontal/vertical ratio avoids libm and preserves
-         * the project's anisotropic world conversion. */
-        if (source_horizontal < source_vertical_limit)
+        if (horizontal < vertical * common->damage_fly_top_horizontal_ratio_f32)
         {
             *out_motion = PF_M4_SSBM_DAMAGE_MOTION_FLY_TOP;
             return PF_STATUS_OK;
         }
     }
-    if (resulting_damage_q16 >=
-        (uint32_t)common->damage_fly_roll_damage_threshold *
-            UINT32_C(65536))
+    if (resulting_damage_f32 >=
+        (float)common->damage_fly_roll_damage_threshold)
     {
         const uint16_t random = pf_sim_hsd_random_u16(rng_state);
 
@@ -243,40 +164,9 @@ pf_status ssbm_select_damage_motion(
     return PF_STATUS_OK;
 }
 
-static int32_t ssbm_clamp_stick_axis(int16_t axis)
+static float ssbm_stick_axis(int16_t axis)
 {
-    return axis == INT16_MIN ? INT32_C(-32767) : (int32_t)axis;
-}
-
-static int64_t ssbm_mul_q30(int64_t left, int64_t right)
-{
-    return (left * right) / PF_M4_Q30_ONE;
-}
-
-static void ssbm_sin_cos_q30(
-    int64_t angle_q30,
-    int64_t *out_sin_q30,
-    int64_t *out_cos_q30)
-{
-    const int64_t angle_2 =
-        ssbm_mul_q30(angle_q30, angle_q30);
-    const int64_t angle_3 =
-        ssbm_mul_q30(angle_2, angle_q30);
-    const int64_t angle_4 =
-        ssbm_mul_q30(angle_2, angle_2);
-    const int64_t angle_5 =
-        ssbm_mul_q30(angle_4, angle_q30);
-    const int64_t angle_6 =
-        ssbm_mul_q30(angle_4, angle_2);
-
-    /* |angle| is source-bounded to 18 degrees for legal controller input.
-     * These fixed Taylor terms stay below one Q16.16 velocity unit of the
-     * corresponding libm rotation over that interval. */
-    *out_sin_q30 =
-        angle_q30 - angle_3 / INT64_C(6) + angle_5 / INT64_C(120);
-    *out_cos_q30 =
-        PF_M4_Q30_ONE - angle_2 / INT64_C(2) +
-        angle_4 / INT64_C(24) - angle_6 / INT64_C(720);
+    return axis == INT16_MIN ? -32767.0f : (float)axis;
 }
 
 int ssbm_stick_meets_radial_threshold(
@@ -284,292 +174,130 @@ int ssbm_stick_meets_radial_threshold(
     int16_t stick_y,
     uint16_t threshold)
 {
-    const int64_t x = (int64_t)ssbm_clamp_stick_axis(stick_x);
-    const int64_t y = (int64_t)ssbm_clamp_stick_axis(stick_y);
-    const int64_t threshold_64 = (int64_t)threshold;
+    const float x = ssbm_stick_axis(stick_x);
+    const float y = ssbm_stick_axis(stick_y);
+    const float limit = (float)threshold;
 
-    return x * x + y * y >= threshold_64 * threshold_64;
+    return x * x + y * y >= limit * limit;
 }
 
-int32_t ssbm_analog_displacement_q16(
+float ssbm_analog_displacement_f32(
     int16_t stick_axis,
-    int32_t maximum_distance_q16)
+    float maximum_distance_f32)
 {
-    return (int32_t)(
-        (int64_t)ssbm_clamp_stick_axis(stick_axis) *
-        (int64_t)maximum_distance_q16 /
-        INT64_C(32767));
+    return ssbm_stick_axis(stick_axis) * maximum_distance_f32 / 32767.0f;
 }
 
-pf_status ssbm_decay_air_knockback_q16(
-    int32_t decay_q16,
-    int32_t *velocity_x_q16,
-    int32_t *velocity_y_q16)
+pf_status ssbm_decay_air_knockback_f32(
+    float decay_f32,
+    float *velocity_x_f32,
+    float *velocity_y_f32)
 {
-    /* ftCommon_8007D494 subtracts a scalar from the knockback magnitude in
-     * Melee coordinates. Preserve eight guard bits while undoing the
-     * project's anisotropic world conversion, then convert the shortened
-     * vector back only once. */
-    int64_t source_x;
-    int64_t source_y;
-    uint64_t magnitude_squared;
-    uint32_t magnitude;
-    int64_t guarded_decay;
-    int64_t remaining;
-    int64_t decayed_source_x;
-    int64_t decayed_source_y;
-    int64_t decayed_x;
-    int64_t decayed_y;
+    float source_x;
+    float source_y;
+    float magnitude;
+    float remaining;
 
-    if (decay_q16 < INT32_C(0) || velocity_x_q16 == NULL ||
-        velocity_y_q16 == NULL)
+    if (decay_f32 < 0.0f || velocity_x_f32 == NULL ||
+        velocity_y_f32 == NULL)
     {
         return PF_STATUS_INVALID_ARGUMENT;
     }
-    source_x = ssbm_div_round_nearest_i64(
-        (int64_t)*velocity_x_q16 * INT64_C(115) *
-            PF_M4_SSBM_VECTOR_EXTRA_SCALE,
-        INT64_C(12));
-    source_y = ssbm_div_round_nearest_i64(
-        (int64_t)*velocity_y_q16 * INT64_C(62) *
-            PF_M4_SSBM_VECTOR_EXTRA_SCALE,
-        INT64_C(11));
-    magnitude_squared =
-        (uint64_t)(source_x * source_x) +
-        (uint64_t)(source_y * source_y);
-    magnitude = u64_sqrt(magnitude_squared);
-    guarded_decay =
-        (int64_t)decay_q16 * PF_M4_SSBM_VECTOR_EXTRA_SCALE;
-    if (magnitude == UINT32_C(0) ||
-        (int64_t)magnitude <= guarded_decay)
+    source_x = ssbm_source_x(*velocity_x_f32);
+    source_y = ssbm_source_y_math(*velocity_y_f32);
+    magnitude = sqrtf(source_x * source_x + source_y * source_y);
+    if (!(magnitude > decay_f32))
     {
-        *velocity_x_q16 = INT32_C(0);
-        *velocity_y_q16 = INT32_C(0);
+        *velocity_x_f32 = 0.0f;
+        *velocity_y_f32 = 0.0f;
         return PF_STATUS_OK;
     }
-
-    remaining = (int64_t)magnitude - guarded_decay;
-    decayed_source_x = ssbm_div_round_nearest_i64(
-        source_x * remaining,
-        (int64_t)magnitude);
-    decayed_source_y = ssbm_div_round_nearest_i64(
-        source_y * remaining,
-        (int64_t)magnitude);
-    decayed_x = ssbm_div_round_nearest_i64(
-        decayed_source_x * INT64_C(12),
-        INT64_C(115) * PF_M4_SSBM_VECTOR_EXTRA_SCALE);
-    decayed_y = ssbm_div_round_nearest_i64(
-        decayed_source_y * INT64_C(11),
-        INT64_C(62) * PF_M4_SSBM_VECTOR_EXTRA_SCALE);
-    if (decayed_x < (int64_t)INT32_MIN ||
-        decayed_x > (int64_t)INT32_MAX ||
-        decayed_y < (int64_t)INT32_MIN ||
-        decayed_y > (int64_t)INT32_MAX)
-    {
-        return PF_STATUS_DETERMINISTIC_FAULT;
-    }
-    *velocity_x_q16 = (int32_t)decayed_x;
-    *velocity_y_q16 = (int32_t)decayed_y;
-    return PF_STATUS_OK;
+    remaining = (magnitude - decay_f32) / magnitude;
+    *velocity_x_f32 = ssbm_world_x(source_x * remaining);
+    *velocity_y_f32 = ssbm_world_y(source_y * remaining);
+    return isfinite(*velocity_x_f32) && isfinite(*velocity_y_f32)
+               ? PF_STATUS_OK
+               : PF_STATUS_DETERMINISTIC_FAULT;
 }
 
-pf_status ssbm_mirror_velocity_q16(
-    int32_t source_normal_x_q16,
-    int32_t source_normal_y_q16,
-    int32_t multiplier_q16,
-    int32_t *velocity_x_q16,
-    int32_t *velocity_y_q16)
+pf_status ssbm_mirror_velocity_f32(
+    float source_normal_x_f32,
+    float source_normal_y_f32,
+    float multiplier_f32,
+    float *velocity_x_f32,
+    float *velocity_y_f32)
 {
-    int64_t source_x;
-    int64_t source_y_math;
-    int64_t dot;
-    int64_t mirrored_source_x;
-    int64_t mirrored_source_y_math;
-    int64_t mirrored_x;
-    int64_t mirrored_y;
+    float source_x;
+    float source_y;
+    float dot;
 
-    if (multiplier_q16 < INT32_C(0) || velocity_x_q16 == NULL ||
-        velocity_y_q16 == NULL ||
-        (source_normal_x_q16 == INT32_C(0) &&
-         source_normal_y_q16 == INT32_C(0)))
+    if (multiplier_f32 < 0.0f || velocity_x_f32 == NULL ||
+        velocity_y_f32 == NULL ||
+        (source_normal_x_f32 == 0.0f && source_normal_y_f32 == 0.0f))
     {
         return PF_STATUS_INVALID_ARGUMENT;
     }
-
-    /* Axis-aligned surfaces need no coordinate conversion. Besides avoiding
-     * needless divisions, this preserves the already live-qualified integer
-     * result for ordinary vertical walls and horizontal ceilings. */
-    if (source_normal_y_q16 == INT32_C(0))
-    {
-        mirrored_x =
-            -(int64_t)*velocity_x_q16 * (int64_t)multiplier_q16 /
-            (int64_t)PF_Q16_ONE;
-        mirrored_y =
-            (int64_t)*velocity_y_q16 * (int64_t)multiplier_q16 /
-            (int64_t)PF_Q16_ONE;
-        goto store_result;
-    }
-    if (source_normal_x_q16 == INT32_C(0))
-    {
-        mirrored_x =
-            (int64_t)*velocity_x_q16 * (int64_t)multiplier_q16 /
-            (int64_t)PF_Q16_ONE;
-        mirrored_y =
-            -(int64_t)*velocity_y_q16 * (int64_t)multiplier_q16 /
-            (int64_t)PF_Q16_ONE;
-        goto store_result;
-    }
-
-    /* lbVector_Mirror operates in Melee's isotropic, positive-Y-up physics
-     * coordinates. Preserve eight guard bits while undoing this project's
-     * anisotropic world conversion, mirror around the generated source-space
-     * unit normal, apply common-data x1BC, and convert back once. */
-    source_x =
-        (int64_t)*velocity_x_q16 * INT64_C(115) *
-        PF_M4_SSBM_VECTOR_EXTRA_SCALE / INT64_C(12);
-    source_y_math =
-        -(int64_t)*velocity_y_q16 * INT64_C(62) *
-        PF_M4_SSBM_VECTOR_EXTRA_SCALE / INT64_C(11);
-    dot =
-        (source_x * (int64_t)source_normal_x_q16 +
-         source_y_math * (int64_t)source_normal_y_q16) /
-        (int64_t)PF_Q16_ONE;
-    mirrored_source_x =
-        source_x -
-        INT64_C(2) * dot * (int64_t)source_normal_x_q16 /
-            (int64_t)PF_Q16_ONE;
-    mirrored_source_y_math =
-        source_y_math -
-        INT64_C(2) * dot * (int64_t)source_normal_y_q16 /
-            (int64_t)PF_Q16_ONE;
-    mirrored_source_x =
-        mirrored_source_x * (int64_t)multiplier_q16 /
-        (int64_t)PF_Q16_ONE;
-    mirrored_source_y_math =
-        mirrored_source_y_math * (int64_t)multiplier_q16 /
-        (int64_t)PF_Q16_ONE;
-    mirrored_x =
-        mirrored_source_x * INT64_C(12) /
-        (INT64_C(115) * PF_M4_SSBM_VECTOR_EXTRA_SCALE);
-    mirrored_y =
-        -mirrored_source_y_math * INT64_C(11) /
-        (INT64_C(62) * PF_M4_SSBM_VECTOR_EXTRA_SCALE);
-store_result:
-    if (mirrored_x < (int64_t)INT32_MIN ||
-        mirrored_x > (int64_t)INT32_MAX ||
-        mirrored_y < (int64_t)INT32_MIN ||
-        mirrored_y > (int64_t)INT32_MAX)
-    {
-        return PF_STATUS_DETERMINISTIC_FAULT;
-    }
-    *velocity_x_q16 = (int32_t)mirrored_x;
-    *velocity_y_q16 = (int32_t)mirrored_y;
-    return PF_STATUS_OK;
+    source_x = ssbm_source_x(*velocity_x_f32);
+    source_y = ssbm_source_y_math(*velocity_y_f32);
+    dot = source_x * source_normal_x_f32 +
+          source_y * source_normal_y_f32;
+    source_x = (source_x - 2.0f * dot * source_normal_x_f32) *
+               multiplier_f32;
+    source_y = (source_y - 2.0f * dot * source_normal_y_f32) *
+               multiplier_f32;
+    *velocity_x_f32 = ssbm_world_x(source_x);
+    *velocity_y_f32 = ssbm_world_y(source_y);
+    return isfinite(*velocity_x_f32) && isfinite(*velocity_y_f32)
+               ? PF_STATUS_OK
+               : PF_STATUS_DETERMINISTIC_FAULT;
 }
 
-pf_status ssbm_apply_di_q16(
+pf_status ssbm_apply_di_f32(
     int32_t max_angle_radians_q30,
     int16_t stick_x,
     int16_t stick_y,
-    int32_t *velocity_x_q16,
-    int32_t *velocity_y_q16)
+    float *velocity_x_f32,
+    float *velocity_y_f32)
 {
-    /* Keep eight fractional guard bits while undoing the project's
-     * anisotropic Melee-to-world coordinate conversion. DI rotates in
-     * Melee's source coordinate system, not in screen-scaled world units. */
-    int64_t source_velocity_x;
-    int64_t source_velocity_y_math;
-    const int64_t stick_x_64 =
-        (int64_t)ssbm_clamp_stick_axis(stick_x);
-    const int64_t stick_y_math =
-        -(int64_t)ssbm_clamp_stick_axis(stick_y);
-    uint64_t speed_squared;
-    uint32_t speed;
-    int64_t cross;
-    int64_t projected_q16;
-    int64_t projection_ratio_q16;
-    int64_t turn_fraction_q16;
-    int64_t angle_q30;
-    int64_t sin_q30;
-    int64_t cos_q30;
-    int64_t influenced_source_x;
-    int64_t influenced_source_y_math;
-    int64_t influenced_x;
-    int64_t influenced_y;
+    float source_x;
+    float source_y;
+    float speed;
+    float cross;
+    float projection;
+    float turn_fraction;
+    float angle;
+    float sine;
+    float cosine;
 
-    if (max_angle_radians_q30 < INT32_C(0) ||
-        velocity_x_q16 == NULL || velocity_y_q16 == NULL)
+    if (max_angle_radians_q30 < INT32_C(0) || velocity_x_f32 == NULL ||
+        velocity_y_f32 == NULL)
     {
         return PF_STATUS_INVALID_ARGUMENT;
     }
-    source_velocity_x =
-        (int64_t)*velocity_x_q16 * INT64_C(115) *
-        PF_M4_SSBM_VECTOR_EXTRA_SCALE /
-        INT64_C(12);
-    source_velocity_y_math =
-        -(int64_t)*velocity_y_q16 * INT64_C(62) *
-        PF_M4_SSBM_VECTOR_EXTRA_SCALE /
-        INT64_C(11);
-    speed_squared =
-        (uint64_t)(source_velocity_x * source_velocity_x) +
-        (uint64_t)(source_velocity_y_math * source_velocity_y_math);
-    speed = u64_sqrt(speed_squared);
-
-    if (speed == UINT32_C(0) ||
+    source_x = ssbm_source_x(*velocity_x_f32);
+    source_y = ssbm_source_y_math(*velocity_y_f32);
+    speed = sqrtf(source_x * source_x + source_y * source_y);
+    if (!(speed > 0.0f) ||
         (stick_x == INT16_C(0) && stick_y == INT16_C(0)))
     {
         return PF_STATUS_OK;
     }
+    cross = source_x * -ssbm_stick_axis(stick_y) -
+            source_y * ssbm_stick_axis(stick_x);
+    projection = cross / speed / 32767.0f;
+    turn_fraction = copysignf(projection * projection, cross);
+    angle = ((float)max_angle_radians_q30 / PF_M4_Q30_SCALE) *
+            turn_fraction;
+    sine = sinf(angle);
+    cosine = cosf(angle);
+    {
+        const float rotated_x = source_x * cosine - source_y * sine;
+        const float rotated_y = source_x * sine + source_y * cosine;
 
-    /* Melee squares the signed perpendicular stick projection rather than
-     * linearly interpolating the maximum angle. Keep the quotient and
-     * remainder separate so the Q16 projection cannot overflow int64_t. */
-    cross =
-        source_velocity_x * stick_y_math -
-        source_velocity_y_math * stick_x_64;
-    projected_q16 =
-        (cross / (int64_t)speed) * (int64_t)PF_Q16_ONE +
-        ((cross % (int64_t)speed) * (int64_t)PF_Q16_ONE) /
-            (int64_t)speed;
-    projection_ratio_q16 = projected_q16 / INT64_C(32767);
-    turn_fraction_q16 =
-        (projection_ratio_q16 * projection_ratio_q16) /
-        (int64_t)PF_Q16_ONE;
-    if (cross < INT64_C(0))
-    {
-        turn_fraction_q16 = -turn_fraction_q16;
+        *velocity_x_f32 = ssbm_world_x(rotated_x);
+        *velocity_y_f32 = ssbm_world_y(rotated_y);
     }
-    angle_q30 =
-        (int64_t)max_angle_radians_q30 * turn_fraction_q16 /
-        (int64_t)PF_Q16_ONE;
-    if (angle_q30 == INT64_C(0))
-    {
-        return PF_STATUS_OK;
-    }
-    ssbm_sin_cos_q30(angle_q30, &sin_q30, &cos_q30);
-
-    influenced_source_x =
-        (source_velocity_x * cos_q30 -
-         source_velocity_y_math * sin_q30) /
-        PF_M4_Q30_ONE;
-    influenced_source_y_math =
-        (source_velocity_x * sin_q30 +
-         source_velocity_y_math * cos_q30) /
-        PF_M4_Q30_ONE;
-    influenced_x =
-        influenced_source_x * INT64_C(12) /
-        (INT64_C(115) * PF_M4_SSBM_VECTOR_EXTRA_SCALE);
-    influenced_y =
-        -influenced_source_y_math * INT64_C(11) /
-        (INT64_C(62) * PF_M4_SSBM_VECTOR_EXTRA_SCALE);
-    if (influenced_x < (int64_t)INT32_MIN ||
-        influenced_x > (int64_t)INT32_MAX ||
-        influenced_y < (int64_t)INT32_MIN ||
-        influenced_y > (int64_t)INT32_MAX)
-    {
-        return PF_STATUS_DETERMINISTIC_FAULT;
-    }
-    *velocity_x_q16 = (int32_t)influenced_x;
-    *velocity_y_q16 = (int32_t)influenced_y;
-    return PF_STATUS_OK;
+    return isfinite(*velocity_x_f32) && isfinite(*velocity_y_f32)
+               ? PF_STATUS_OK
+               : PF_STATUS_DETERMINISTIC_FAULT;
 }

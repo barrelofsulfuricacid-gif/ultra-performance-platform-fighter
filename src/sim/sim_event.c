@@ -23,9 +23,9 @@ pf_status pf_sim_push_event(
     pf_sim_event_type type,
     uint8_t source_player,
     uint8_t target_player,
-    uint32_t value_q16,
-    int32_t velocity_x_q16,
-    int32_t velocity_y_q16,
+    float value_f32,
+    float velocity_x_f32,
+    float velocity_y_f32,
     uint16_t flags,
     uint16_t detail,
     uint32_t *out_sequence)
@@ -53,9 +53,9 @@ pf_status pf_sim_push_event(
     (void)memset(event, 0, sizeof(*event));
     event->tick = tick;
     event->sequence = scratch->combat_event_sequence;
-    event->value_q16 = value_q16;
-    event->velocity_x_q16 = velocity_x_q16;
-    event->velocity_y_q16 = velocity_y_q16;
+    event->value_f32 = value_f32;
+    event->velocity_x_f32 = velocity_x_f32;
+    event->velocity_y_f32 = velocity_y_f32;
     event->type = (uint16_t)type;
     event->flags = flags;
     event->detail = detail;

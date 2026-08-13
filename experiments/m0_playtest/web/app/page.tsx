@@ -309,7 +309,7 @@ export default function Home() {
     const api = apiRef.current;
     if (!api || !scoresComplete) return;
     const label = (candidate: Candidate) =>
-      api.m0_model(candidate) === 0 ? "float32" : "Q16.16";
+      api.m0_model(candidate) === 0 ? "float32" : "float32";
     setMapping([label(0), label(1)]);
   }, [scoresComplete]);
 
@@ -745,7 +745,7 @@ export default function Home() {
                 <span>Owner decision</span>
                 <select value={decision} onChange={(event) => setDecision(event.target.value)}>
                   <option value="">Choose…</option>
-                  <option>Approve Q16.16</option>
+                  <option>Approve float32</option>
                   <option>Approve float32</option>
                   <option>Request changes and retest</option>
                 </select>

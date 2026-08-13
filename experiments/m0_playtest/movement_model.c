@@ -707,4 +707,4 @@ int16_t m0_axis_clamp(int value)
 _Static_assert(sizeof(float) == sizeof(uint32_t),
                "the float32 candidate requires a 32-bit float");
 _Static_assert(INT32_MAX >= 2147483647,
-               "the Q16.16 candidate requires 32-bit integers");
+               "the float32 candidate requires 32-bit integers");

@@ -92,9 +92,9 @@ def replay_compare(
     compare_script: Path,
     capture: Path,
     runner: Path,
-    position_tolerance_q16: int,
-    velocity_tolerance_q16: int,
-    shield_health_tolerance_q16: int,
+    position_tolerance_f32: int,
+    velocity_tolerance_f32: int,
+    shield_health_tolerance_f32: int,
 ) -> None:
     completed = subprocess.run(
         [
@@ -103,11 +103,11 @@ def replay_compare(
             str(capture),
             str(runner),
             "--position-tolerance-q16",
-            str(position_tolerance_q16),
+            str(position_tolerance_f32),
             "--velocity-tolerance-q16",
-            str(velocity_tolerance_q16),
+            str(velocity_tolerance_f32),
             "--shield-health-tolerance-q16",
-            str(shield_health_tolerance_q16),
+            str(shield_health_tolerance_f32),
         ],
         check=False,
         capture_output=True,
@@ -167,24 +167,24 @@ def main() -> int:
         compare_script,
         args.capture,
         args.runner,
-        int(policy["position_tolerance_q16"]),
-        int(policy["velocity_tolerance_q16"]),
-        int(policy["shield_health_tolerance_q16"]),
+        int(policy["position_tolerance_f32"]),
+        int(policy["velocity_tolerance_f32"]),
+        int(policy["shield_health_tolerance_f32"]),
     )
     replay_compare(
         compare_script,
         args.repeat_capture,
         args.runner,
-        int(policy["position_tolerance_q16"]),
-        int(policy["velocity_tolerance_q16"]),
-        int(policy["shield_health_tolerance_q16"]),
+        int(policy["position_tolerance_f32"]),
+        int(policy["velocity_tolerance_f32"]),
+        int(policy["shield_health_tolerance_f32"]),
     )
     print(
         "ssbm-falcon-shield-break=pass "
         f"frames={len(rows)} repeats=2 semantic_sha256={semantic_digest} "
-        f"position_tolerance_q16={policy['position_tolerance_q16']} "
-        f"velocity_tolerance_q16={policy['velocity_tolerance_q16']} "
-        f"shield_health_tolerance_q16={policy['shield_health_tolerance_q16']}"
+        f"position_tolerance_f32={policy['position_tolerance_f32']} "
+        f"velocity_tolerance_f32={policy['velocity_tolerance_f32']} "
+        f"shield_health_tolerance_f32={policy['shield_health_tolerance_f32']}"
     )
     return 0
 

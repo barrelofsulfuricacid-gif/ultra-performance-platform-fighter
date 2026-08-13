@@ -22,7 +22,7 @@ foundation:
   WebAssembly, and in the browser inspector.
 - An owner-approved C RL ABI with single/batched reset and step, raw analog
   actions, structured and compact seed-redacted policy observations,
-  legal-button masks, exact shaped/outcome Q16.16 rewards, and diagnostic
+  legal-button masks, exact shaped/outcome float32 rewards, and diagnostic
   flags.
 - An uncapped headless throughput runner and an optional Gymnasium 1.3 vector
   adapter over the C ABI.

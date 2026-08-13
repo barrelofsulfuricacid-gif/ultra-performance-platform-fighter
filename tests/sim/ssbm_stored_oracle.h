@@ -30,8 +30,8 @@ typedef struct pf_ssbm_stored_geometry_case
 {
     uint16_t attacker_move;
     uint16_t attacker_action_frame;
-    int32_t target_offset_x_q16;
-    int32_t target_offset_y_q16;
+    float target_offset_x_f32;
+    float target_offset_y_f32;
     int8_t attacker_facing;
     int8_t target_facing;
     uint8_t grabbable_only;
@@ -69,13 +69,13 @@ typedef struct pf_ssbm_stored_case
 
 typedef struct pf_ssbm_stored_hurt_capsule
 {
-    int32_t endpoint_a_x_q16;
-    int32_t endpoint_a_y_q16;
-    int32_t endpoint_a_z_q16;
-    int32_t endpoint_b_x_q16;
-    int32_t endpoint_b_y_q16;
-    int32_t endpoint_b_z_q16;
-    int32_t radius_q16;
+    float endpoint_a_x_f32;
+    float endpoint_a_y_f32;
+    float endpoint_a_z_f32;
+    float endpoint_b_x_f32;
+    float endpoint_b_y_f32;
+    float endpoint_b_z_f32;
+    float radius_f32;
     uint8_t hurtbox_id;
     uint8_t height;
     uint8_t grabbable;
@@ -143,14 +143,14 @@ typedef struct pf_ssbm_stored_trace_input
 
 typedef struct pf_ssbm_stored_trace_sample
 {
-    int32_t position_x_q16;
-    int32_t position_y_q16;
-    int32_t self_velocity_x_q16;
-    int32_t self_velocity_y_q16;
-    int32_t knockback_velocity_x_q16;
-    int32_t knockback_velocity_y_q16;
-    int32_t ground_knockback_velocity_q16;
-    uint32_t damage_q16;
+    float position_x_f32;
+    float position_y_f32;
+    float self_velocity_x_f32;
+    float self_velocity_y_f32;
+    float knockback_velocity_x_f32;
+    float knockback_velocity_y_f32;
+    float ground_knockback_velocity_f32;
+    float damage_f32;
     uint16_t action_ticks;
     uint16_t hitlag_ticks;
     uint16_t hitstun_ticks;

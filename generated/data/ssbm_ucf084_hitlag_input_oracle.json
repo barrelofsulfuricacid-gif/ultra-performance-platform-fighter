@@ -35,7 +35,7 @@
         "action_state",
         "hitlag_ticks",
         "grounded",
-        "position_x_q16_from_origin"
+        "position_x_f32_from_origin"
       ]
     },
     {
@@ -73,7 +73,7 @@
         "action_state",
         "hitlag_ticks",
         "grounded",
-        "position_x_q16_from_origin"
+        "position_x_f32_from_origin"
       ]
     },
     {
@@ -111,7 +111,7 @@
         "action_state",
         "hitlag_ticks",
         "grounded",
-        "position_x_q16_from_origin"
+        "position_x_f32_from_origin"
       ]
     },
     {
@@ -149,7 +149,7 @@
         "action_state",
         "hitlag_ticks",
         "grounded",
-        "position_x_q16_from_origin"
+        "position_x_f32_from_origin"
       ]
     }
   ],

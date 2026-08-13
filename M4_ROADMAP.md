@@ -13,7 +13,7 @@ separately because a stored pass cannot establish new SSBM truth.
 1. Make the SSBM-to-simulation equivalence harness fast, reusable across
    characters, and explicit about the behavior domains it proves.
 2. Finish the Captain Falcon NTSC 1.02 port with official pinned UCF 0.84
-   enabled, allowing only documented bounded Q16.16 representation
+   enabled, allowing only documented bounded float32 representation
    differences.
 3. Deliver a native playtest frontend with Battlefield.
 4. Continuously improve the `ssbm-character-importer` skill so later character
@@ -1226,7 +1226,7 @@ Current DownBound prior-art/source sweep:
 - [x] Re-audit the existing 540-frame Final Destination Falcon-versus-Falcon
   route before writing new behavior. It already qualifies both horizontal
   directions and both controller ports, including strict action, facing,
-  grounded state, and velocity plus the documented one-nudge Q16.16 position
+  grounded state, and velocity plus the documented one-nudge float32 position
   allowance.
 - [x] Recheck pinned decomp revision
   `9509dc04406fb2028bfab01243841ba4787c0fb7` against current
@@ -1422,7 +1422,7 @@ Implemented and pushed in `b3edb14`:
   route.
 - [x] Replay the same six input routes in the simulation and compare every
   hitlag/launch position, self velocity, knockback velocity, and timer against
-  the live trace within a 0.001 Melee-unit Q16.16 envelope.
+  the live trace within a 0.001 Melee-unit float32 envelope.
 - [x] Keep the six-case live pack to 138 rows and a 2-second warm budget;
   measured warm capture is 0.671 seconds and its stable observation digest is
   `51402cd3605ba2761e3c11ed6baab74eb1b7ab22136822507b39d0a00cc40d95`.
@@ -1490,7 +1490,7 @@ Prior-art/source sweep completed before implementation:
   `PassiveCeil` 204.
 - Falcon's already imported common-attribute words give passive-wall X speed
   0.5, wall-tech-jump X/Y 1.4/3.1, and passive-ceiling X speed 2.0. The current
-  Q16.16 velocity constants are the exact project-unit conversions, so this
+  float32 velocity constants are the exact project-unit conversions, so this
   slice must preserve them rather than replace them with new authored values.
 - `PlCo.dat` words `x760=5` and `x764=14` feed the source wall-tech freeze and
   collision/invulnerability paths. Falcon's complete generated submotion
@@ -1661,7 +1661,7 @@ Execution results:
   `3459f671fa8573a238b2d97bcec3a5fba1cb05a154b249cd02237cc2d1d88080`.
   All 8 cases / 450 samples pass on action, clock, facing, grounding,
   invulnerability, position, and velocity within the manifest-owned bounded
-  Q16.16 envelope.
+  float32 envelope.
 - [x] Register the focused CTest and ninth generic stored domain. The WSL
   focused test takes 0.02 seconds; all nine generated checks, 62 cases, and
   deterministic replay pass in 0.926 seconds. Full Windows, WSL, sanitizer,
@@ -1976,7 +1976,7 @@ other stage/pushbox topologies.
   files are unchanged; libmelee's projection helper explicitly omits ECB
   evolution and is unsuitable as an exact runtime oracle.
 - [x] Replace the reference-stage central-rectangle wall and ceiling checks
-  with allocation-free Q16.16 queries over the imported immutable line ranges.
+  with allocation-free float32 queries over the imported immutable line ranges.
   The same catalog now drives ordinary movement, hitlag/SDI rejection, and
   stationary wall-contact probing without duplicating stage geometry.
 - [x] Exhaustively exercise the five ceiling and twelve wall catalog entries,
@@ -2032,7 +2032,7 @@ other stage/pushbox topologies.
   and `BOUNCE_WALL` frames 0..50, with top, bottom, left, and right ECB points
   on every row.
 - [x] Canonicalize the source poses facing-right and generate immutable full
-  top/bottom/left/right Q16.16 tracks: nine ceiling poses and 51 wall poses.
+  top/bottom/left/right float32 tracks: nine ceiling poses and 51 wall poses.
   Raw/profile/semantic identities are
   `f1989a139185635d41d5cc2a51b0f88d41c1a26cf24c57fa82614feed6fda1c2`,
   `d6ccb5701f0bada0d7de1874004281e8ca46fcc0070db94e529d84d3fc637608`,
@@ -2069,7 +2069,7 @@ other stage/pushbox topologies.
   `0dc57f8ffb85549be76b3b5a0017690b0df16905456169eaceaa2e7975eedc0c`
   and semantic frame/ECB SHA-256
   `90060e614f359189c32b25d76b780b3fa92861dfdcfae0fd357dcc07ec10e6f8`;
-  generate the complete immutable Q16.16 bottom-ECB table byte-identically.
+  generate the complete immutable float32 bottom-ECB table byte-identically.
 - [x] Pass the full 348-frame identical-input Battlefield movement capture on
   Windows and WSL within the existing 640-Q16 position envelope. The former
   frame-276 divergence now lands on the same source frame with the same
@@ -2142,7 +2142,7 @@ other stage/pushbox topologies.
   is immediately followed by ordinary air control. Production now performs
   both operations in that order without a character-specific state branch.
 - [x] Import complete JumpF, JumpB, JumpAerialF, JumpAerialB, Fall, and
-  FallAerial bottom-ECB tracks: 186 immutable Q16.16 poses from two
+  FallAerial bottom-ECB tracks: 186 immutable float32 poses from two
   byte-identical 494-row captures. Profile/semantic SHA-256 are
   `407a62269b2aa65002bb4a78152f12a49b56d36d8b68a684c6d55a11ce69a1ba` /
   `21a2d02fbb3abfcd9c29bb170c4c378fc8972fe191098fb5587140e965dac25a`.

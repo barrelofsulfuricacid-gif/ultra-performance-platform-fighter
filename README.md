@@ -21,7 +21,7 @@ grounded low-percent crouch cancel, target-weighted hit reaction, grab pummels,
 four directional throws, and a deterministic four-stock
 KO/respawn/match-result loop in the live
 two-player browser playtest. M0 selected
-Q16.16 deterministic motion and geometry after benchmark,
+float32 deterministic motion and geometry after benchmark,
 verifier, and blind human-playtest evidence. The accepted
 milestones are summarized in
 [`docs/milestones/M0_checkpoint_report.md`](docs/milestones/M0_checkpoint_report.md)
@@ -87,7 +87,7 @@ Current progress and remaining M1 adoption/checkpoint items are tracked in
 ## Build the current M2 deterministic kernel
 
 M2 now provides a caller-owned strict-C17 simulation ABI with seeded reset,
-normalized two/four-player inputs, fixed Q16.16 ticks, deterministic episode
+normalized two/four-player inputs, fixed float32 ticks, deterministic episode
 completion, and a structured observation candidate. It is a kernel
 conformance slice, not playable combat.
 
@@ -198,7 +198,7 @@ directories, templates, lifecycle samples, and recursion guard with:
 
 ## Reproduce the M0 movement playtest
 
-The completed M0 gate used a blind human comparison of float32 and Q16.16
+The completed M0 gate used a blind human comparison of float32 and float32
 movement. The archived pure-C models, SDL3 client, build instructions,
 controls, and protocol remain in
 [`experiments/m0_playtest/`](experiments/m0_playtest/).
@@ -212,7 +212,7 @@ ctest --test-dir build/m0_playtest --output-on-failure
 Use
 [`docs/milestones/M0_playtest_worksheet.md`](docs/milestones/M0_playtest_worksheet.md)
 to reproduce the comparison. The owner reported no perceptible difference and
-approved Q16.16 on 2026-07-27; M1 is unblocked.
+approved float32 on 2026-07-27; M1 is unblocked.
 
 ## Repository guide
 

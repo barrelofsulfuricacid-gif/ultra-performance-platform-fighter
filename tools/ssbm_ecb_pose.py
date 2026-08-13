@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import hashlib
 import json
+import struct
 from typing import Any
 
 
-X_Q16_PER_MELEE_UNIT = 65536.0 * 12.0 / 115.0
-Y_Q16_PER_MELEE_UNIT = 65536.0 * 11.0 / 62.0
+X_SIM_PER_MELEE_UNIT = 12.0 / 115.0
+Y_SIM_PER_MELEE_UNIT = 11.0 / 62.0
 ECB_POINTS = ("top", "bottom", "right", "left")
 
 
@@ -40,15 +41,19 @@ def canonical_source_ecb(
     }
 
 
-def coordinate_q16(value: float, axis: int) -> int:
+def binary32(value: float) -> float:
+    return struct.unpack(">f", struct.pack(">f", float(value)))[0]
+
+
+def coordinate_f32(value: float, axis: int) -> float:
     if axis not in (0, 1):
         raise ValueError(f"invalid ECB coordinate axis {axis}")
-    scale = X_Q16_PER_MELEE_UNIT if axis == 0 else Y_Q16_PER_MELEE_UNIT
-    return round(value * scale)
+    scale = X_SIM_PER_MELEE_UNIT if axis == 0 else Y_SIM_PER_MELEE_UNIT
+    return binary32(value * scale)
 
 
-def pose_q16(ecb: dict[str, Any]) -> dict[str, list[int]]:
-    result: dict[str, list[int]] = {}
+def pose_f32(ecb: dict[str, Any]) -> dict[str, list[float]]:
+    result: dict[str, list[float]] = {}
     for point in ECB_POINTS:
         coordinates = ecb.get(point)
         if (
@@ -61,16 +66,16 @@ def pose_q16(ecb: dict[str, Any]) -> dict[str, list[int]]:
         ):
             raise ValueError(f"invalid ECB {point} point")
         result[point] = [
-            coordinate_q16(float(coordinates[0]), 0),
-            coordinate_q16(float(coordinates[1]), 1),
+            coordinate_f32(float(coordinates[0]), 0),
+            coordinate_f32(float(coordinates[1]), 1),
         ]
     return result
 
 
 def semantic_payload(tracks: list[dict[str, Any]]) -> dict[str, Any]:
     return {
-        "schema": 1,
-        "coordinate_system": "simulation-q16.16-from-melee-source-units",
+        "schema": 2,
+        "coordinate_system": "simulation-float32-from-melee-source-units",
         "tracks": [
             {
                 "id": track["id"],
@@ -78,7 +83,7 @@ def semantic_payload(tracks: list[dict[str, Any]]) -> dict[str, Any]:
                 "poses": [
                     {
                         "displayed_frame": frame["displayed_frame"],
-                        "ecb_q16": frame["ecb_q16"],
+                        "ecb_f32": frame["ecb_f32"],
                     }
                     for frame in track["frames"]
                 ],

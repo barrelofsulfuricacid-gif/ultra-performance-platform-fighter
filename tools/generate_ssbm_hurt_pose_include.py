@@ -113,7 +113,7 @@ def load_and_validate(
             frames,
             start=first_displayed_frame,
         ):
-            capsules = frame.get("capsules_q16")
+            capsules = frame.get("capsules_f32")
             if (
                 frame.get("displayed_frame") != displayed_frame
                 or not isinstance(capsules, list)
@@ -173,7 +173,7 @@ def generate(manifest: dict[str, Any], profile: dict[str, Any]) -> str:
     for track in tracks:
         frame_offset = len(frames)
         for frame in track["frames"]:
-            pose = tuple(tuple(capsule) for capsule in frame["capsules_q16"])
+            pose = tuple(tuple(capsule) for capsule in frame["capsules_f32"])
             capsule_offset = pose_offsets.get(pose)
             if capsule_offset is None:
                 capsule_offset = len(capsules)

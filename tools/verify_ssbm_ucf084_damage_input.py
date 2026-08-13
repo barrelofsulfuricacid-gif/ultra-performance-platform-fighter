@@ -229,21 +229,21 @@ def compare_hitlag(
             if {
                 key: value
                 for key, value in left.items()
-                if key != "position_x_q16_from_origin"
+                if key != "position_x_f32_from_origin"
             } != {
                 key: value
                 for key, value in right.items()
-                if key != "position_x_q16_from_origin"
+                if key != "position_x_f32_from_origin"
             }:
                 fail(f"hitlag-native-field case={source_case['id']} row={index}")
-        source_base = source_samples[1]["position_x_q16_from_origin"]
-        production_base = production_samples[1]["position_x_q16_from_origin"]
+        source_base = source_samples[1]["position_x_f32_from_origin"]
+        production_base = production_samples[1]["position_x_f32_from_origin"]
         for index in range(1, 4):
             source_delta = (
-                source_samples[index]["position_x_q16_from_origin"] - source_base
+                source_samples[index]["position_x_f32_from_origin"] - source_base
             )
             production_delta = (
-                production_samples[index]["position_x_q16_from_origin"]
+                production_samples[index]["position_x_f32_from_origin"]
                 - production_base
             )
             if abs(source_delta - production_delta) > 1:

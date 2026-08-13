@@ -23,7 +23,7 @@
       "frame_count": 35,
       "frames": [
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -12119,
               -44600,
@@ -160,7 +160,7 @@
           "displayed_frame": 0
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -11761,
               -44569,
@@ -297,7 +297,7 @@
           "displayed_frame": 1
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -11163,
               -44538,
@@ -434,7 +434,7 @@
           "displayed_frame": 2
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -10370,
               -44491,
@@ -571,7 +571,7 @@
           "displayed_frame": 3
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -9454,
               -44406,
@@ -708,7 +708,7 @@
           "displayed_frame": 4
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -8502,
               -44271,
@@ -845,7 +845,7 @@
           "displayed_frame": 5
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -7599,
               -44101,
@@ -982,7 +982,7 @@
           "displayed_frame": 6
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -6811,
               -43944,
@@ -1119,7 +1119,7 @@
           "displayed_frame": 7
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -6183,
               -43874,
@@ -1256,7 +1256,7 @@
           "displayed_frame": 8
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -5660,
               -43881,
@@ -1393,7 +1393,7 @@
           "displayed_frame": 9
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -5172,
               -43911,
@@ -1530,7 +1530,7 @@
           "displayed_frame": 10
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -4722,
               -43961,
@@ -1667,7 +1667,7 @@
           "displayed_frame": 11
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -4317,
               -44031,
@@ -1804,7 +1804,7 @@
           "displayed_frame": 12
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -3963,
               -44117,
@@ -1941,7 +1941,7 @@
           "displayed_frame": 13
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -3665,
               -44213,
@@ -2078,7 +2078,7 @@
           "displayed_frame": 14
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -3429,
               -44316,
@@ -2215,7 +2215,7 @@
           "displayed_frame": 15
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -3261,
               -44421,
@@ -2352,7 +2352,7 @@
           "displayed_frame": 16
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -3165,
               -44522,
@@ -2489,7 +2489,7 @@
           "displayed_frame": 17
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -3146,
               -44616,
@@ -2626,7 +2626,7 @@
           "displayed_frame": 18
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -3208,
               -44700,
@@ -2763,7 +2763,7 @@
           "displayed_frame": 19
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -3355,
               -44769,
@@ -2900,7 +2900,7 @@
           "displayed_frame": 20
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -3620,
               -44814,
@@ -3037,7 +3037,7 @@
           "displayed_frame": 21
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -4018,
               -44830,
@@ -3174,7 +3174,7 @@
           "displayed_frame": 22
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -4575,
               -44877,
@@ -3311,7 +3311,7 @@
           "displayed_frame": 23
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -5312,
               -44980,
@@ -3448,7 +3448,7 @@
           "displayed_frame": 24
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -6192,
               -45098,
@@ -3585,7 +3585,7 @@
           "displayed_frame": 25
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -7166,
               -45194,
@@ -3722,7 +3722,7 @@
           "displayed_frame": 26
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -8168,
               -45246,
@@ -3859,7 +3859,7 @@
           "displayed_frame": 27
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -9127,
               -45244,
@@ -3996,7 +3996,7 @@
           "displayed_frame": 28
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -9974,
               -45184,
@@ -4133,7 +4133,7 @@
           "displayed_frame": 29
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -10696,
               -45082,
@@ -4270,7 +4270,7 @@
           "displayed_frame": 30
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -11308,
               -44966,
@@ -4407,7 +4407,7 @@
           "displayed_frame": 31
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -11783,
               -44848,
@@ -4544,7 +4544,7 @@
           "displayed_frame": 32
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -12097,
               -44740,
@@ -4681,7 +4681,7 @@
           "displayed_frame": 33
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -12221,
               -44654,
@@ -4827,7 +4827,7 @@
       "frame_count": 20,
       "frames": [
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -12119,
               -44562,
@@ -4964,7 +4964,7 @@
           "displayed_frame": 0
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -25104,
               -41512,
@@ -5101,7 +5101,7 @@
           "displayed_frame": 1
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -37386,
               -39050,
@@ -5238,7 +5238,7 @@
           "displayed_frame": 2
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -33684,
               -40004,
@@ -5375,7 +5375,7 @@
           "displayed_frame": 3
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -26670,
               -41813,
@@ -5512,7 +5512,7 @@
           "displayed_frame": 4
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -22815,
               -42619,
@@ -5649,7 +5649,7 @@
           "displayed_frame": 5
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -18873,
               -43315,
@@ -5786,7 +5786,7 @@
           "displayed_frame": 6
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -15277,
               -43853,
@@ -5923,7 +5923,7 @@
           "displayed_frame": 7
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -12427,
               -44213,
@@ -6060,7 +6060,7 @@
           "displayed_frame": 8
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -10760,
               -44444,
@@ -6197,7 +6197,7 @@
           "displayed_frame": 9
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -10925,
               -44612,
@@ -6334,7 +6334,7 @@
           "displayed_frame": 10
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -11081,
               -44720,
@@ -6471,7 +6471,7 @@
           "displayed_frame": 11
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -11227,
               -44778,
@@ -6608,7 +6608,7 @@
           "displayed_frame": 12
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -11364,
               -44795,
@@ -6745,7 +6745,7 @@
           "displayed_frame": 13
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -11492,
               -44780,
@@ -6882,7 +6882,7 @@
           "displayed_frame": 14
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -11613,
               -44743,
@@ -7019,7 +7019,7 @@
           "displayed_frame": 15
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -11726,
               -44694,
@@ -7156,7 +7156,7 @@
           "displayed_frame": 16
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -11833,
               -44641,
@@ -7293,7 +7293,7 @@
           "displayed_frame": 17
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -11934,
               -44594,
@@ -7430,7 +7430,7 @@
           "displayed_frame": 18
         },
         {
-          "capsules_q16": [
+          "capsules_f32": [
             [
               -12029,
               -44565,

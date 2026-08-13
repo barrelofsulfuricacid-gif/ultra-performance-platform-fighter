@@ -566,8 +566,8 @@
         "sample_count": 4,
         "serialized_fields": [
           "action_state", "action_ticks", "facing", "tilt_x_age", "grounded",
-          "position_x_q16_from_origin", "position_y_q16_from_origin",
-          "velocity_x_q16", "velocity_y_q16"
+          "position_x_f32_from_origin", "position_y_f32_from_origin",
+          "velocity_x_f32", "velocity_y_f32"
         ],
         "field_exclusions": {
           "action_ticks": [[0, 1]]
@@ -586,8 +586,8 @@
         "sample_count": 9,
         "serialized_fields": [
           "action_state", "action_ticks", "facing", "tilt_x_age", "grounded",
-          "position_x_q16_from_origin", "position_y_q16_from_origin",
-          "velocity_x_q16", "velocity_y_q16"
+          "position_x_f32_from_origin", "position_y_f32_from_origin",
+          "velocity_x_f32", "velocity_y_f32"
         ],
         "input_phases": [
           { "ticks": 1, "lanes": [{ "main": [-16384, 0], "raw_main": [-40, 0] }, {}] },
@@ -603,8 +603,8 @@
         "sample_count": 9,
         "serialized_fields": [
           "action_state", "action_ticks", "facing", "tilt_x_age", "grounded",
-          "position_x_q16_from_origin", "position_y_q16_from_origin",
-          "velocity_x_q16", "velocity_y_q16"
+          "position_x_f32_from_origin", "position_y_f32_from_origin",
+          "velocity_x_f32", "velocity_y_f32"
         ],
         "field_exclusions": {
           "action_ticks": [[0, 1]]
@@ -623,8 +623,8 @@
         "sample_count": 6,
         "serialized_fields": [
           "action_state", "action_ticks", "facing", "grounded",
-          "position_x_q16_from_origin", "position_y_q16_from_origin",
-          "velocity_x_q16", "velocity_y_q16"
+          "position_x_f32_from_origin", "position_y_f32_from_origin",
+          "velocity_x_f32", "velocity_y_f32"
         ],
         "action_mapping": {
           "FSMASH_MID": { "action_state": 91, "action_tick_offset": 0 }
@@ -642,11 +642,11 @@
         "sample_count": 13,
         "serialized_fields": [
           "action_state", "action_ticks", "facing", "grounded",
-          "position_x_q16_from_origin", "position_y_q16_from_origin",
-          "velocity_x_q16", "velocity_y_q16"
+          "position_x_f32_from_origin", "position_y_f32_from_origin",
+          "velocity_x_f32", "velocity_y_f32"
         ],
         "field_exclusions": {
-          "position_x_q16_from_origin": [[9, 13]]
+          "position_x_f32_from_origin": [[9, 13]]
         },
         "input_phases": [
           { "ticks": 1, "lanes": [{ "main": [-16384, 0] }, {}] },
@@ -663,11 +663,11 @@
         "sample_count": 6,
         "serialized_fields": [
           "action_state", "action_ticks", "facing", "grounded",
-          "position_x_q16_from_origin", "position_y_q16_from_origin",
-          "velocity_x_q16", "velocity_y_q16"
+          "position_x_f32_from_origin", "position_y_f32_from_origin",
+          "velocity_x_f32", "velocity_y_f32"
         ],
         "field_exclusions": {
-          "position_x_q16_from_origin": [[2, 6]]
+          "position_x_f32_from_origin": [[2, 6]]
         },
         "input_phases": [
           { "ticks": 1, "lanes": [{ "main": [32767, 0] }, {}] },
@@ -682,8 +682,8 @@
         "sample_count": 13,
         "serialized_fields": [
           "action_state", "action_ticks", "facing", "grounded",
-          "position_x_q16_from_origin", "position_y_q16_from_origin",
-          "velocity_x_q16", "velocity_y_q16"
+          "position_x_f32_from_origin", "position_y_f32_from_origin",
+          "velocity_x_f32", "velocity_y_f32"
         ],
         "field_exclusions": {
           "action_ticks": [[8, 13]]
@@ -703,8 +703,8 @@
         "sample_count": 6,
         "serialized_fields": [
           "action_state", "action_ticks", "facing", "grounded",
-          "position_x_q16_from_origin", "position_y_q16_from_origin",
-          "velocity_x_q16", "velocity_y_q16"
+          "position_x_f32_from_origin", "position_y_f32_from_origin",
+          "velocity_x_f32", "velocity_y_f32"
         ],
         "input_phases": [
           { "ticks": 1, "lanes": [{ "main": [32767, 0] }, {}] },
@@ -776,11 +776,11 @@
         "sample_count": 7,
         "serialized_fields": [
           "action_state", "action_ticks", "facing", "grounded",
-          "position_x_q16_from_origin", "position_y_q16_from_origin",
-          "velocity_x_q16", "velocity_y_q16"
+          "position_x_f32_from_origin", "position_y_f32_from_origin",
+          "velocity_x_f32", "velocity_y_f32"
         ],
         "field_exclusions": {
-          "position_x_q16_from_origin": [[0, 7]]
+          "position_x_f32_from_origin": [[0, 7]]
         },
         "input_phases": [
           { "ticks": 1, "lanes": [{ "main": [11878, 0] }, {}] },
@@ -795,12 +795,12 @@
         "sample_count": 7,
         "serialized_fields": [
           "action_state", "action_ticks", "facing", "grounded",
-          "position_x_q16_from_origin", "position_y_q16_from_origin",
-          "velocity_x_q16", "velocity_y_q16"
+          "position_x_f32_from_origin", "position_y_f32_from_origin",
+          "velocity_x_f32", "velocity_y_f32"
         ],
         "field_exclusions": {
-          "position_x_q16_from_origin": [[0, 7]],
-          "velocity_x_q16": [[1, 7]]
+          "position_x_f32_from_origin": [[0, 7]],
+          "velocity_x_f32": [[1, 7]]
         },
         "input_phases": [
           { "ticks": 1, "lanes": [{ "main": [11878, 0] }, {}] },
@@ -815,11 +815,11 @@
         "sample_count": 7,
         "serialized_fields": [
           "action_state", "action_ticks", "facing", "grounded",
-          "position_x_q16_from_origin", "position_y_q16_from_origin",
-          "velocity_x_q16", "velocity_y_q16"
+          "position_x_f32_from_origin", "position_y_f32_from_origin",
+          "velocity_x_f32", "velocity_y_f32"
         ],
         "field_exclusions": {
-          "position_x_q16_from_origin": [[0, 7]]
+          "position_x_f32_from_origin": [[0, 7]]
         },
         "input_phases": [
           { "ticks": 1, "lanes": [{ "main": [11878, 0] }, {}] },
@@ -834,11 +834,11 @@
         "sample_count": 7,
         "serialized_fields": [
           "action_state", "action_ticks", "facing", "grounded",
-          "position_x_q16_from_origin", "position_y_q16_from_origin",
-          "velocity_x_q16", "velocity_y_q16"
+          "position_x_f32_from_origin", "position_y_f32_from_origin",
+          "velocity_x_f32", "velocity_y_f32"
         ],
         "field_exclusions": {
-          "position_x_q16_from_origin": [[0, 7]]
+          "position_x_f32_from_origin": [[0, 7]]
         },
         "input_phases": [
           { "ticks": 1, "lanes": [{ "main": [11878, 0] }, {}] },
@@ -898,8 +898,8 @@
         "sample_count": 7,
         "serialized_fields": [
           "action_state", "action_ticks", "facing", "tilt_x_age", "grounded",
-          "position_x_q16_from_origin", "position_y_q16_from_origin",
-          "velocity_x_q16", "velocity_y_q16"
+          "position_x_f32_from_origin", "position_y_f32_from_origin",
+          "velocity_x_f32", "velocity_y_f32"
         ],
         "input_phases": [
           { "ticks": 1, "lanes": [{ "main": [32767, 0] }, {}] },
@@ -914,11 +914,11 @@
         "sample_count": 7,
         "serialized_fields": [
           "action_state", "action_ticks", "facing", "tilt_x_age", "grounded",
-          "position_x_q16_from_origin", "position_y_q16_from_origin",
-          "velocity_x_q16", "velocity_y_q16"
+          "position_x_f32_from_origin", "position_y_f32_from_origin",
+          "velocity_x_f32", "velocity_y_f32"
         ],
         "field_exclusions": {
-          "position_x_q16_from_origin": [[4, 7]]
+          "position_x_f32_from_origin": [[4, 7]]
         },
         "input_phases": [
           { "ticks": 1, "lanes": [{ "main": [32767, 0] }, {}] },
@@ -933,12 +933,12 @@
         "sample_count": 7,
         "serialized_fields": [
           "action_state", "action_ticks", "facing", "tilt_x_age", "grounded",
-          "position_x_q16_from_origin", "position_y_q16_from_origin",
-          "velocity_x_q16", "velocity_y_q16"
+          "position_x_f32_from_origin", "position_y_f32_from_origin",
+          "velocity_x_f32", "velocity_y_f32"
         ],
         "field_exclusions": {
-          "position_x_q16_from_origin": [[3, 7]],
-          "velocity_x_q16": [[4, 5]]
+          "position_x_f32_from_origin": [[3, 7]],
+          "velocity_x_f32": [[4, 5]]
         },
         "input_phases": [
           { "ticks": 1, "lanes": [{ "main": [32767, 0] }, {}] },
@@ -953,11 +953,11 @@
         "sample_count": 7,
         "serialized_fields": [
           "action_state", "action_ticks", "facing", "tilt_x_age", "grounded",
-          "position_x_q16_from_origin", "position_y_q16_from_origin",
-          "velocity_x_q16", "velocity_y_q16"
+          "position_x_f32_from_origin", "position_y_f32_from_origin",
+          "velocity_x_f32", "velocity_y_f32"
         ],
         "field_exclusions": {
-          "position_x_q16_from_origin": [[4, 7]]
+          "position_x_f32_from_origin": [[4, 7]]
         },
         "input_phases": [
           { "ticks": 1, "lanes": [{ "main": [32767, 0] }, {}] },
@@ -972,12 +972,12 @@
         "sample_count": 31,
         "serialized_fields": [
           "action_state", "action_ticks", "facing", "grounded",
-          "position_x_q16_from_origin", "position_y_q16_from_origin",
-          "velocity_x_q16", "velocity_y_q16"
+          "position_x_f32_from_origin", "position_y_f32_from_origin",
+          "velocity_x_f32", "velocity_y_f32"
         ],
         "field_exclusions": {
           "action_ticks": [[15, 25]],
-          "position_x_q16_from_origin": [[4, 31]]
+          "position_x_f32_from_origin": [[4, 31]]
         },
         "input_phases": [
           { "ticks": 25, "lanes": [{ "main": [32767, 0] }, {}] },
@@ -992,13 +992,13 @@
         "sample_count": 31,
         "serialized_fields": [
           "action_state", "action_ticks", "facing", "grounded",
-          "position_x_q16_from_origin", "position_y_q16_from_origin",
-          "velocity_x_q16", "velocity_y_q16"
+          "position_x_f32_from_origin", "position_y_f32_from_origin",
+          "velocity_x_f32", "velocity_y_f32"
         ],
         "field_exclusions": {
           "action_ticks": [[15, 25]],
-          "position_x_q16_from_origin": [[4, 31]],
-          "velocity_x_q16": [[25, 31]]
+          "position_x_f32_from_origin": [[4, 31]],
+          "velocity_x_f32": [[25, 31]]
         },
         "input_phases": [
           { "ticks": 25, "lanes": [{ "main": [32767, 0] }, {}] },
@@ -1013,12 +1013,12 @@
         "sample_count": 31,
         "serialized_fields": [
           "action_state", "action_ticks", "facing", "grounded",
-          "position_x_q16_from_origin", "position_y_q16_from_origin",
-          "velocity_x_q16", "velocity_y_q16"
+          "position_x_f32_from_origin", "position_y_f32_from_origin",
+          "velocity_x_f32", "velocity_y_f32"
         ],
         "field_exclusions": {
           "action_ticks": [[15, 25]],
-          "position_x_q16_from_origin": [[4, 31]]
+          "position_x_f32_from_origin": [[4, 31]]
         },
         "input_phases": [
           { "ticks": 25, "lanes": [{ "main": [32767, 0] }, {}] },
@@ -1033,12 +1033,12 @@
         "sample_count": 31,
         "serialized_fields": [
           "action_state", "action_ticks", "facing", "grounded",
-          "position_x_q16_from_origin", "position_y_q16_from_origin",
-          "velocity_x_q16", "velocity_y_q16"
+          "position_x_f32_from_origin", "position_y_f32_from_origin",
+          "velocity_x_f32", "velocity_y_f32"
         ],
         "field_exclusions": {
           "action_ticks": [[15, 25]],
-          "position_x_q16_from_origin": [[4, 31]]
+          "position_x_f32_from_origin": [[4, 31]]
         },
         "input_phases": [
           { "ticks": 25, "lanes": [{ "main": [32767, 0] }, {}] },
@@ -1097,7 +1097,7 @@
         "sample_count": 6,
         "serialized_fields": [
           "action_state", "action_ticks", "facing", "grounded",
-          "velocity_x_q16", "velocity_y_q16"
+          "velocity_x_f32", "velocity_y_f32"
         ],
         "input_phases": [
           { "ticks": 1, "lanes": [{ "buttons": ["jump"] }, {}] },
@@ -1113,7 +1113,7 @@
         "sample_count": 6,
         "serialized_fields": [
           "action_state", "action_ticks", "facing", "grounded",
-          "velocity_x_q16", "velocity_y_q16"
+          "velocity_x_f32", "velocity_y_f32"
         ],
         "input_phases": [
           { "ticks": 1, "lanes": [{ "buttons": ["jump"] }, {}] },
@@ -1128,7 +1128,7 @@
         "sample_count": 12,
         "serialized_fields": [
           "action_state", "action_ticks", "facing", "grounded",
-          "velocity_x_q16", "velocity_y_q16"
+          "velocity_x_f32", "velocity_y_f32"
         ],
         "input_phases": [
           { "ticks": 1, "lanes": [{ "main": [-16384, 0] }, {}] },

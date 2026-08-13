@@ -105,12 +105,12 @@ def parse_sim_observations(path: Path) -> dict[str, list[dict[str, int]]]:
     return parsed
 
 
-def sim_x_to_source(value_q16: int) -> float:
-    return float(value_q16) * 115.0 / (12.0 * 65536.0)
+def sim_x_to_source(value_f32: int) -> float:
+    return float(value_f32) * 115.0 / (12.0 * 65536.0)
 
 
-def sim_y_to_source(value_q16: int) -> float:
-    return -float(value_q16) * 62.0 / (11.0 * 65536.0)
+def sim_y_to_source(value_f32: int) -> float:
+    return -float(value_f32) * 62.0 / (11.0 * 65536.0)
 
 
 def compare_sim_observations(

@@ -7,7 +7,7 @@ document that describe all movement numbers as original placeholders. Imported
 NTSC 1.02 fields, unit conversions, and remaining divergences are authoritative
 in `falcon_ntsc102_data_provenance.md` and `ssbm_fidelity_audit.md`.
 
-This contract promotes the accepted Q16.16 movement experiment into the real
+This contract promotes the accepted float32 movement experiment into the real
 simulation. The first original placeholder content consists of one tuning
 fighter definition and one moving-platform test stage. These identifiers,
 values, and geometry are provisional design data, not final character or stage

@@ -52,10 +52,10 @@
       "action_state",
       "facing",
       "grounded",
-      "position_x_q16_from_origin",
-      "velocity_x_q16",
-      "velocity_y_q16",
-      "shield_health_q16",
+      "position_x_f32_from_origin",
+      "velocity_x_f32",
+      "velocity_y_f32",
+      "shield_health_f32",
       "shield_strength"
     ],
     "cases": [
@@ -68,11 +68,11 @@
           "action_ticks",
           "facing",
           "grounded",
-          "position_x_q16_from_origin",
-          "position_y_q16_from_origin",
-          "velocity_x_q16",
-          "velocity_y_q16",
-          "shield_health_q16",
+          "position_x_f32_from_origin",
+          "position_y_f32_from_origin",
+          "velocity_x_f32",
+          "velocity_y_f32",
+          "shield_health_f32",
           "shield_strength"
         ],
         "field_exclusions": {
@@ -98,11 +98,11 @@
           "action_ticks",
           "facing",
           "grounded",
-          "position_x_q16_from_origin",
-          "position_y_q16_from_origin",
-          "velocity_x_q16",
-          "velocity_y_q16",
-          "shield_health_q16",
+          "position_x_f32_from_origin",
+          "position_y_f32_from_origin",
+          "velocity_x_f32",
+          "velocity_y_f32",
+          "shield_health_f32",
           "shield_strength"
         ],
         "field_exclusions": {
@@ -128,10 +128,10 @@
           "action_ticks",
           "facing",
           "grounded",
-          "position_x_q16_from_origin",
-          "velocity_x_q16",
-          "velocity_y_q16",
-          "shield_health_q16",
+          "position_x_f32_from_origin",
+          "velocity_x_f32",
+          "velocity_y_f32",
+          "shield_health_f32",
           "shield_strength"
         ],
         "input_phases": [
@@ -154,14 +154,14 @@
           "action_ticks",
           "facing",
           "grounded",
-          "position_x_q16_from_origin",
-          "velocity_x_q16",
-          "velocity_y_q16",
-          "shield_health_q16",
+          "position_x_f32_from_origin",
+          "velocity_x_f32",
+          "velocity_y_f32",
+          "shield_health_f32",
           "shield_strength",
           "hitlag_ticks",
           "opponent_hitlag_ticks",
-          "opponent_damage_q16"
+          "opponent_damage_f32"
         ],
         "field_exclusions": {
           "action_ticks": [[20, 25], [56, 96]]
@@ -186,11 +186,11 @@
           "action_ticks",
           "facing",
           "grounded",
-          "position_x_q16_from_origin",
-          "position_y_q16_from_origin",
-          "velocity_x_q16",
-          "velocity_y_q16",
-          "shield_health_q16",
+          "position_x_f32_from_origin",
+          "position_y_f32_from_origin",
+          "velocity_x_f32",
+          "velocity_y_f32",
+          "shield_health_f32",
           "shield_strength"
         ],
         "input_phases": [

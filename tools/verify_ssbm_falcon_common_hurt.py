@@ -13,7 +13,7 @@ from typing import Any
 
 from ssbm_collision import (
     canonical_json_sha256,
-    canonical_hurt_pose_q16,
+    canonical_hurt_pose_f32,
     captured_collision_margin,
     hurt_pose_tracks_semantic_payload,
     q16_hurt_poses_equivalent,
@@ -279,14 +279,14 @@ def verify_captured_pose(
     observed_position_key: str = "opponent_fighter_position",
     observed_facing_key: str = "opponent_facing",
 ) -> None:
-    source_pose = canonical_hurt_pose_q16(
+    source_pose = canonical_hurt_pose_f32(
         dict(source_row["hitbox_memory"]),
         "fighter_hurtboxes",
         "fighter_position",
         int(source_row["facing"]),
         MELEE_TO_SIM_Q16,
     )
-    observed_pose = canonical_hurt_pose_q16(
+    observed_pose = canonical_hurt_pose_f32(
         dict(observed_row["hitbox_memory"]),
         observed_hurtbox_key,
         observed_position_key,
@@ -403,7 +403,7 @@ def generic_rectangle_margin(
     return max(margins, default=-math.inf)
 
 
-def active_hitbox_signature_q16(
+def active_hitbox_signature_f32(
     row: dict[str, Any],
     hitbox_key: str,
     position_key: str,
@@ -417,7 +417,7 @@ def active_hitbox_signature_q16(
     if facing not in (-1, 1):
         raise SystemExit("collision attacker facing is invalid")
 
-    def local_q16(position: object) -> tuple[int, int, int]:
+    def local_f32(position: object) -> tuple[int, int, int]:
         if not isinstance(position, list) or len(position) != 3:
             raise SystemExit("collision hitbox position is invalid")
         return (
@@ -430,8 +430,8 @@ def active_hitbox_signature_q16(
     for hitbox in memory[hitbox_key]:
         if int(hitbox.get("state", 0)) == 0:
             continue
-        current = local_q16(hitbox["position"])
-        previous = local_q16(hitbox["previous_position"])
+        current = local_f32(hitbox["position"])
+        previous = local_f32(hitbox["previous_position"])
         signatures.append(
             (
                 int(hitbox["hit_id"]),
@@ -467,7 +467,7 @@ def profile_hurt_pose(
         )
     return tuple(
         tuple(int(value) for value in capsule)
-        for capsule in frames[0]["capsules_q16"]
+        for capsule in frames[0]["capsules_f32"]
     )
 
 
@@ -561,7 +561,7 @@ def verify_ledge_collision_discriminator(
     expected_target_pose = profile_hurt_pose(
         ledge_profile, "ledge_climb_quick", 29
     )
-    observed_target_pose = canonical_hurt_pose_q16(
+    observed_target_pose = canonical_hurt_pose_f32(
         dict(miss_frame["hitbox_memory"]),
         "fighter_hurtboxes",
         "fighter_position",
@@ -573,9 +573,9 @@ def verify_ledge_collision_discriminator(
 
     expected_hitboxes = tuple(
         tuple(int(value) for value in hitbox)
-        for hitbox in qualification.get("attacker_hitboxes_q16", [])
+        for hitbox in qualification.get("attacker_hitboxes_f32", [])
     )
-    observed_hitboxes = active_hitbox_signature_q16(
+    observed_hitboxes = active_hitbox_signature_f32(
         miss_frame,
         "opponent_hitboxes",
         "opponent_fighter_position",
@@ -621,20 +621,20 @@ def verify_ledge_collision_discriminator(
     semantic_payload = {
         "schema": 1,
         "case_ids": case_ids,
-        "initial_damage_q16": round(60.0 * 65536.0),
-        "positive_damage_q16": round(62.0 * 65536.0),
+        "initial_damage_f32": round(60.0 * 65536.0),
+        "positive_damage_f32": round(62.0 * 65536.0),
         "positive_action": "DAMAGE_NEUTRAL_2",
         "negative_action": "EDGE_GETUP_QUICK",
         "target_action": "EDGE_GETUP_QUICK",
         "target_displayed_frame": 29,
         "attacker_action": "NEUTRAL_ATTACK_1",
         "attacker_displayed_frame": 4,
-        "attacker_positions_q16": [
+        "attacker_positions_f32": [
             round(requested_positions[case_id] * MELEE_TO_SIM_Q16)
             for case_id in case_ids
         ],
-        "target_pose_q16": expected_target_pose,
-        "attacker_hitboxes_q16": observed_hitboxes,
+        "target_pose_f32": expected_target_pose,
+        "attacker_hitboxes_f32": observed_hitboxes,
     }
     semantic_sha256 = canonical_json_sha256(semantic_payload)
     if semantic_sha256 != qualification.get("semantic_sha256"):
@@ -977,7 +977,7 @@ def main() -> int:
                 (
                     action,
                     round(float(row["action_frame"])),
-                    canonical_hurt_pose_q16(
+                    canonical_hurt_pose_f32(
                         dict(row["hitbox_memory"]),
                         "fighter_hurtboxes",
                         "fighter_position",
@@ -996,7 +996,7 @@ def main() -> int:
                         int(frame["displayed_frame"]),
                         tuple(
                             tuple(int(value) for value in capsule)
-                            for capsule in frame["capsules_q16"]
+                            for capsule in frame["capsules_f32"]
                         ),
                     )
                     for frame in profile_track["frames"]

@@ -2,7 +2,7 @@
 
 #include "sim_internal.h"
 
-#include <limits.h>
+#include <float.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
@@ -21,12 +21,15 @@ _Static_assert(
             PF_SIM_MAX_PLAYERS *
                 PF_RL_COMPACT_STALE_MOVE_PLAYER_STRIDE,
     "compact RL observation dimensions must cover canonical entity state");
-_Static_assert(
-    (PF_RL_ENGAGEMENT_REFERENCE_DISTANCE_Q16 >> 9U) ==
-        PF_RL_ENGAGEMENT_POTENTIAL_LIMIT_Q16,
-    "engagement reference and potential must retain the shift fast path");
-
 static int32_t pf_rl_u32_bits(uint32_t value)
+{
+    int32_t result;
+
+    (void)memcpy(&result, &value, sizeof(result));
+    return result;
+}
+
+static int32_t pf_rl_f32_bits(float value)
 {
     int32_t result;
 
@@ -44,104 +47,102 @@ static int32_t pf_rl_u64_high(uint64_t value)
     return pf_rl_u32_bits((uint32_t)(value >> 32U));
 }
 
-static int64_t pf_rl_horizontal_distance_q16(
-    int32_t left_position_q16,
-    int32_t right_position_q16)
+static float pf_rl_horizontal_distance_f32(
+    float left_position_f32,
+    float right_position_f32)
 {
-    const int64_t difference =
-        (int64_t)left_position_q16 - (int64_t)right_position_q16;
-    return difference < INT64_C(0) ? -difference : difference;
+    const float difference = left_position_f32 - right_position_f32;
+    return difference < 0.0f ? -difference : difference;
 }
 
-static int32_t pf_rl_engagement_potential_from_distance_q16(
-    int64_t distance_q16)
+static float pf_rl_engagement_potential_from_distance_f32(
+    float distance_f32)
 {
-    if (distance_q16 >
-        (int64_t)PF_RL_ENGAGEMENT_REFERENCE_DISTANCE_Q16)
+    if (distance_f32 > PF_RL_ENGAGEMENT_REFERENCE_DISTANCE_F32)
     {
-        distance_q16 =
-            (int64_t)PF_RL_ENGAGEMENT_REFERENCE_DISTANCE_Q16;
+        distance_f32 =
+            PF_RL_ENGAGEMENT_REFERENCE_DISTANCE_F32;
     }
 
-    return -(int32_t)(distance_q16 >> 9U);
+    return -distance_f32 / 512.0f;
 }
 
-static int32_t pf_rl_duel_engagement_potential_q16(
+static float pf_rl_duel_engagement_potential_f32(
     const pf_world_state *world)
 {
     if (world->active[0] == UINT8_C(0) ||
         world->active[1] == UINT8_C(0) ||
         world->team[0] == world->team[1])
     {
-        return INT32_C(0);
+        return 0.0f;
     }
-    return pf_rl_engagement_potential_from_distance_q16(
-        pf_rl_horizontal_distance_q16(
-            world->position_x_q16[0],
-            world->position_x_q16[1]));
+    return pf_rl_engagement_potential_from_distance_f32(
+        pf_rl_horizontal_distance_f32(
+            world->position_x_f32[0],
+            world->position_x_f32[1]));
 }
 
-static int32_t pf_rl_engagement_potential_q16(
+static float pf_rl_engagement_potential_f32(
     const pf_world_state *world,
     uint32_t player_index)
 {
-    int64_t nearest_distance_q16 = INT64_MAX;
+    float nearest_distance_f32 = FLT_MAX;
     uint32_t opponent_index;
 
     if (player_index >= (uint32_t)world->player_count ||
         world->active[player_index] == UINT8_C(0))
     {
-        return INT32_C(0);
+        return 0.0f;
     }
 
     for (opponent_index = UINT32_C(0);
          opponent_index < (uint32_t)world->player_count;
          ++opponent_index)
     {
-        int64_t distance_q16;
+        float distance_f32;
 
         if (world->active[opponent_index] == UINT8_C(0) ||
             world->team[opponent_index] == world->team[player_index])
         {
             continue;
         }
-        distance_q16 = pf_rl_horizontal_distance_q16(
-            world->position_x_q16[player_index],
-            world->position_x_q16[opponent_index]);
-        if (distance_q16 < nearest_distance_q16)
+        distance_f32 = pf_rl_horizontal_distance_f32(
+            world->position_x_f32[player_index],
+            world->position_x_f32[opponent_index]);
+        if (distance_f32 < nearest_distance_f32)
         {
-            nearest_distance_q16 = distance_q16;
+            nearest_distance_f32 = distance_f32;
         }
     }
 
-    if (nearest_distance_q16 == INT64_MAX)
+    if (nearest_distance_f32 == FLT_MAX)
     {
-        return INT32_C(0);
+        return 0.0f;
     }
 
-    return pf_rl_engagement_potential_from_distance_q16(
-        nearest_distance_q16);
+    return pf_rl_engagement_potential_from_distance_f32(
+        nearest_distance_f32);
 }
 
 static void pf_rl_engagement_potentials(
     const pf_world_state *world,
-    int32_t potentials_q16[PF_SIM_MAX_PLAYERS])
+    float potentials_f32[PF_SIM_MAX_PLAYERS])
 {
     uint32_t player_index;
 
     (void)memset(
-        potentials_q16,
+        potentials_f32,
         0,
-        sizeof(*potentials_q16) * (size_t)PF_SIM_MAX_PLAYERS);
+        sizeof(*potentials_f32) * (size_t)PF_SIM_MAX_PLAYERS);
     if (world->player_count == UINT8_C(2) &&
         world->active[0] != UINT8_C(0) &&
         world->active[1] != UINT8_C(0) &&
         world->team[0] != world->team[1])
     {
-        const int32_t shared_potential_q16 =
-            pf_rl_duel_engagement_potential_q16(world);
-        potentials_q16[0] = shared_potential_q16;
-        potentials_q16[1] = shared_potential_q16;
+        const float shared_potential_f32 =
+            pf_rl_duel_engagement_potential_f32(world);
+        potentials_f32[0] = shared_potential_f32;
+        potentials_f32[1] = shared_potential_f32;
         return;
     }
 
@@ -149,8 +150,8 @@ static void pf_rl_engagement_potentials(
          player_index < (uint32_t)world->player_count;
          ++player_index)
     {
-        potentials_q16[player_index] =
-            pf_rl_engagement_potential_q16(world, player_index);
+        potentials_f32[player_index] =
+            pf_rl_engagement_potential_f32(world, player_index);
     }
 }
 
@@ -181,9 +182,9 @@ static void pf_rl_transition_init_fast(pf_rl_transition *transition)
     transition->compact_observation.value_count =
         PF_RL_COMPACT_VALUE_COUNT;
     (void)memset(
-        transition->reward_q16,
+        transition->reward_f32,
         0,
-        sizeof(transition->reward_q16));
+        sizeof(transition->reward_f32));
     (void)memset(
         transition->legal_buttons,
         0,
@@ -256,13 +257,13 @@ static void pf_rl_fill_compact(
         compact->values[base + UINT16_C(1)] =
             pf_rl_u64_high(player->previous_buttons);
         compact->values[base + UINT16_C(2)] =
-            player->position_x_q16;
+            pf_rl_f32_bits(player->position_x_f32);
         compact->values[base + UINT16_C(3)] =
-            player->position_y_q16;
+            pf_rl_f32_bits(player->position_y_f32);
         compact->values[base + UINT16_C(4)] =
-            player->velocity_x_q16;
+            pf_rl_f32_bits(player->velocity_x_f32);
         compact->values[base + UINT16_C(5)] =
-            player->velocity_y_q16;
+            pf_rl_f32_bits(player->velocity_y_f32);
         compact->values[base + UINT16_C(6)] =
             pf_rl_u32_bits(player_bits);
         compact->values[
@@ -286,13 +287,13 @@ static void pf_rl_fill_compact(
             ((uint32_t)item->hit_mask << 12U);
 
         compact->values[PF_RL_COMPACT_ITEM_BASE] =
-            item->position_x_q16;
+            pf_rl_f32_bits(item->position_x_f32);
         compact->values[PF_RL_COMPACT_ITEM_BASE + UINT16_C(1)] =
-            item->position_y_q16;
+            pf_rl_f32_bits(item->position_y_f32);
         compact->values[PF_RL_COMPACT_ITEM_BASE + UINT16_C(2)] =
-            item->velocity_x_q16;
+            pf_rl_f32_bits(item->velocity_x_f32);
         compact->values[PF_RL_COMPACT_ITEM_BASE + UINT16_C(3)] =
-            item->velocity_y_q16;
+            pf_rl_f32_bits(item->velocity_y_f32);
         compact->values[
             PF_RL_COMPACT_ITEM_BASE +
             PF_RL_COMPACT_ITEM_STATE_BITS_OFFSET] =
@@ -318,16 +319,16 @@ static void pf_rl_fill_compact(
             ((uint32_t)projectile->owner_slot << 2U);
 
         compact->values[PF_RL_COMPACT_PROJECTILE_BASE] =
-            projectile->position_x_q16;
+            pf_rl_f32_bits(projectile->position_x_f32);
         compact->values[
             PF_RL_COMPACT_PROJECTILE_BASE + UINT16_C(1)] =
-            projectile->position_y_q16;
+            pf_rl_f32_bits(projectile->position_y_f32);
         compact->values[
             PF_RL_COMPACT_PROJECTILE_BASE + UINT16_C(2)] =
-            projectile->velocity_x_q16;
+            pf_rl_f32_bits(projectile->velocity_x_f32);
         compact->values[
             PF_RL_COMPACT_PROJECTILE_BASE + UINT16_C(3)] =
-            projectile->velocity_y_q16;
+            pf_rl_f32_bits(projectile->velocity_y_f32);
         compact->values[
             PF_RL_COMPACT_PROJECTILE_BASE +
             PF_RL_COMPACT_PROJECTILE_STATE_BITS_OFFSET] =
@@ -372,8 +373,8 @@ static void pf_rl_fill_compact(
         compact->values[
             PF_RL_COMPACT_SHIELD_HEALTH_BASE +
             (uint16_t)player_index] =
-            (int32_t)observation->players[player_index]
-                .shield_health_q16;
+            pf_rl_f32_bits(observation->players[player_index]
+                               .shield_health_f32);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
@@ -404,7 +405,7 @@ static void pf_rl_fill_compact(
         {
             compact->values[
                 base + PF_RL_COMPACT_STALE_MOVE_MULTIPLIER_OFFSET] =
-                (int32_t)PF_Q16_ONE;
+                pf_rl_f32_bits(PF_F32_ONE);
             compact->values[
                 base +
                 PF_RL_COMPACT_STALE_MOVE_COUNT_IDS_0_2_OFFSET] =
@@ -433,7 +434,7 @@ static void pf_rl_fill_compact(
 
         compact->values[
             base + PF_RL_COMPACT_STALE_MOVE_MULTIPLIER_OFFSET] =
-            (int32_t)player->stale_move_multiplier_q16;
+            pf_rl_f32_bits(player->stale_move_multiplier_f32);
         compact->values[
             base + PF_RL_COMPACT_STALE_MOVE_COUNT_IDS_0_2_OFFSET] =
             pf_rl_u32_bits(count_ids_0_2);
@@ -449,12 +450,12 @@ static void pf_rl_fill_compact(
 static pf_status pf_rl_fill_transition(
     const pf_sim *sim,
     pf_status operation_status,
-    const int32_t previous_potentials_q16[PF_SIM_MAX_PLAYERS],
+    const float previous_potentials_f32[PF_SIM_MAX_PLAYERS],
     int grant_step_reward,
     pf_rl_transition *transition)
 {
     pf_status observe_status;
-    int32_t current_potentials_q16[PF_SIM_MAX_PLAYERS];
+    float current_potentials_f32[PF_SIM_MAX_PLAYERS];
     uint32_t player_index;
 
     transition->status = (uint32_t)operation_status;
@@ -495,30 +496,30 @@ static pf_status pf_rl_fill_transition(
     }
 
     if (grant_step_reward != 0 &&
-        previous_potentials_q16 != NULL)
+        previous_potentials_f32 != NULL)
     {
         if (sim->world.player_count == UINT8_C(2))
         {
-            const int32_t shared_reward_q16 =
-                pf_rl_duel_engagement_potential_q16(
+            const float shared_reward_f32 =
+                pf_rl_duel_engagement_potential_f32(
                     &sim->world) -
-                previous_potentials_q16[0];
-            transition->reward_q16[0] = shared_reward_q16;
-            transition->reward_q16[1] = shared_reward_q16;
+                previous_potentials_f32[0];
+            transition->reward_f32[0] = shared_reward_f32;
+            transition->reward_f32[1] = shared_reward_f32;
         }
         else
         {
             pf_rl_engagement_potentials(
                 &sim->world,
-                current_potentials_q16);
+                current_potentials_f32);
             for (player_index = UINT32_C(0);
                  player_index <
                      (uint32_t)sim->world.player_count;
                  ++player_index)
             {
-                transition->reward_q16[player_index] =
-                    current_potentials_q16[player_index] -
-                    previous_potentials_q16[player_index];
+                transition->reward_f32[player_index] =
+                    current_potentials_f32[player_index] -
+                    previous_potentials_f32[player_index];
             }
         }
     }
@@ -533,10 +534,10 @@ static pf_status pf_rl_fill_transition(
         {
             const uint8_t player_bit =
                 (uint8_t)(UINT32_C(1) << player_index);
-            transition->reward_q16[player_index] +=
+            transition->reward_f32[player_index] +=
                 (sim->world.winner_mask & player_bit) != UINT8_C(0)
-                    ? PF_Q16_ONE
-                    : -PF_Q16_ONE;
+                    ? PF_F32_ONE
+                    : -PF_F32_ONE;
         }
     }
     return operation_status;
@@ -575,9 +576,9 @@ pf_status pf_rl_query_spec(pf_rl_spec *out_spec)
     out_spec->axis_maximum = INT16_MAX;
     out_spec->trigger_minimum = UINT16_C(0);
     out_spec->trigger_maximum = UINT16_MAX;
-    out_spec->terminal_reward_one_q16 = PF_Q16_ONE;
-    out_spec->engagement_potential_limit_q16 =
-        PF_RL_ENGAGEMENT_POTENTIAL_LIMIT_Q16;
+    out_spec->terminal_reward_one_f32 = PF_F32_ONE;
+    out_spec->engagement_potential_limit_f32 =
+        PF_RL_ENGAGEMENT_POTENTIAL_LIMIT_F32;
     return PF_STATUS_OK;
 }
 
@@ -609,7 +610,7 @@ pf_status pf_rl_step(
     pf_rl_transition *out_transition)
 {
     pf_input_frame inputs[PF_SIM_MAX_PLAYERS];
-    int32_t previous_potentials_q16[PF_SIM_MAX_PLAYERS];
+    float previous_potentials_f32[PF_SIM_MAX_PLAYERS];
     pf_tick_result tick_result;
     pf_status status;
     uint32_t player_index;
@@ -672,14 +673,14 @@ pf_status pf_rl_step(
 
     if (sim->world.player_count == UINT8_C(2))
     {
-        previous_potentials_q16[0] =
-            pf_rl_duel_engagement_potential_q16(&sim->world);
+        previous_potentials_f32[0] =
+            pf_rl_duel_engagement_potential_f32(&sim->world);
     }
     else
     {
         pf_rl_engagement_potentials(
             &sim->world,
-            previous_potentials_q16);
+            previous_potentials_f32);
     }
     status = pf_sim_tick(
         sim,
@@ -689,7 +690,7 @@ pf_status pf_rl_step(
     return pf_rl_fill_transition(
         sim,
         status,
-        previous_potentials_q16,
+        previous_potentials_f32,
         status == PF_STATUS_OK,
         out_transition);
 }
