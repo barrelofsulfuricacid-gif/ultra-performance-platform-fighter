@@ -532,7 +532,7 @@ static int run_duel_test(const pf_content_view *content)
         transition.tick_result.terminated != UINT8_C(1) ||
         transition.tick_result.winner_mask != UINT8_C(2) ||
         transition.reward_f32[1] - transition.reward_f32[0] !=
-            INT32_C(2) * PF_F32_ONE ||
+            INT32_C(2) * 1.0f ||
         transition.legal_buttons[0] != UINT64_C(0) ||
         transition.legal_buttons[1] != UINT64_C(0))
     {
@@ -599,10 +599,10 @@ static int run_team_reward_test(const pf_content_view *content)
             PF_STATUS_OK,
             "team-forfeit") ||
         transition.tick_result.winner_mask != UINT8_C(5) ||
-        transition.reward_f32[0] != PF_F32_ONE ||
-        transition.reward_f32[1] != -PF_F32_ONE ||
-        transition.reward_f32[2] != PF_F32_ONE ||
-        transition.reward_f32[3] != -PF_F32_ONE)
+        transition.reward_f32[0] != 1.0f ||
+        transition.reward_f32[1] != -1.0f ||
+        transition.reward_f32[2] != 1.0f ||
+        transition.reward_f32[3] != -1.0f)
     {
         (void)fprintf(
             stderr,
@@ -809,8 +809,8 @@ static int run_batch_test(const pf_content_view *content)
         }
     }
     if (transitions[0].tick_result.terminated != UINT8_C(1) ||
-        transitions[0].reward_f32[0] != -PF_F32_ONE ||
-        transitions[0].reward_f32[1] != PF_F32_ONE)
+        transitions[0].reward_f32[0] != -1.0f ||
+        transitions[0].reward_f32[1] != 1.0f)
     {
         (void)fprintf(
             stderr,
@@ -885,7 +885,7 @@ int main(void)
         spec.axis_maximum != INT16_MAX ||
         spec.trigger_minimum != UINT16_C(0) ||
         spec.trigger_maximum != UINT16_MAX ||
-        spec.terminal_reward_one_f32 != PF_F32_ONE ||
+        spec.terminal_reward_one_f32 != 1.0f ||
         spec.engagement_potential_limit_f32 !=
             PF_RL_ENGAGEMENT_POTENTIAL_LIMIT_F32)
     {
@@ -923,7 +923,7 @@ int main(void)
         " schema=%u\n",
         (unsigned int)PF_RL_COMPACT_VALUE_COUNT,
         (unsigned int)TEST_BATCH_ENVIRONMENTS,
-        PF_F32_ONE,
+        1.0f,
         PF_RL_ENGAGEMENT_POTENTIAL_LIMIT_F32,
         (unsigned int)PF_RL_SCHEMA_VERSION);
     return 0;

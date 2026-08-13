@@ -3,7 +3,6 @@
 
 #include "pf/m4.h"
 #include "pf/sim.h"
-#include "sim_fixed_math.h"
 #include "sim_hsd_pose.h"
 
 #include <stdint.h>
@@ -362,16 +361,6 @@ static inline float multiply_f32_nearest(
     float multiplier_f32)
 {
     return value_f32 * multiplier_f32;
-}
-
-/* Transitional decoder for generated rates that have not yet been regenerated
- * as binary32 literals. The phase no longer affects a float rate. */
-static inline float q32_rate_step(
-    int64_t rate_q32,
-    uint64_t phase)
-{
-    (void)phase;
-    return (float)rate_q32 * 0x1p-32f;
 }
 
 static inline float axis_f32(int16_t axis)

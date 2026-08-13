@@ -1436,7 +1436,7 @@ static int pf_native_render(
             player + 1,
             (unsigned)(
                 inspection.players[player].damage_f32 /
-                (uint32_t)PF_F32_ONE),
+                (uint32_t)1.0f),
             (unsigned)inspection.players[player].stocks_remaining,
             (unsigned)inspection.players[player].action_state,
             (unsigned)inspection.players[player].action_ticks);

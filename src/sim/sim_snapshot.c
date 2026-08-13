@@ -2684,7 +2684,7 @@ static int snapshot_source_animation_clock_valid(
            rate_f32 >= INT32_C(0) &&
            (int64_t)frame_f32 <
                (int64_t)motion->animation_frame_count *
-                   (int64_t)PF_F32_ONE;
+                   (int64_t)1.0f;
 }
 
 static int snapshot_ground_blend_valid(
@@ -2755,8 +2755,8 @@ static int snapshot_ground_blend_valid(
         progress_f32 <= INT32_C(0) ||
         (guard_on_pose
              ? progress_f32 >
-                   (int32_t)PF_M4_FALCON_GUARD_ON_FRAME_COUNT * PF_F32_ONE
-             : progress_f32 >= INT32_C(6) * PF_F32_ONE))
+                   (int32_t)PF_M4_FALCON_GUARD_ON_FRAME_COUNT * 1.0f
+             : progress_f32 >= INT32_C(6) * 1.0f))
     {
         return 0;
     }
@@ -2832,7 +2832,7 @@ static int snapshot_fall_animation_blend_valid(
         world->action_state[player_index],
         world->hitlag_resume_action[player_index]);
 
-    if (blend_f32 < INT32_C(0) || blend_f32 > PF_F32_ONE ||
+    if (blend_f32 < INT32_C(0) || blend_f32 > 1.0f ||
         target_switched > UINT8_C(1))
     {
         return 0;
@@ -3348,10 +3348,10 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
          world->player_count != UINT8_C(4)) ||
         (world->mode != (uint8_t)PF_SIM_MODE_DUEL &&
          world->mode != (uint8_t)PF_SIM_MODE_TEAMS) ||
-        world->arena_half_width_f32 < INT32_C(16) * PF_F32_ONE ||
-        world->arena_half_width_f32 > INT32_C(4096) * PF_F32_ONE ||
-        world->arena_ceiling_f32 < INT32_C(16) * PF_F32_ONE ||
-        world->arena_ceiling_f32 > INT32_C(4096) * PF_F32_ONE ||
+        world->arena_half_width_f32 < INT32_C(16) * 1.0f ||
+        world->arena_half_width_f32 > INT32_C(4096) * 1.0f ||
+        world->arena_ceiling_f32 < INT32_C(16) * 1.0f ||
+        world->arena_ceiling_f32 > INT32_C(4096) * 1.0f ||
         world->stock_count > PF_SIM_MAX_STOCK_COUNT ||
         world->respawn_delay_config_ticks > PF_SIM_MAX_RESPAWN_TICKS ||
         world->respawn_invulnerability_config_ticks >

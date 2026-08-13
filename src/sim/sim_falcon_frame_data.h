@@ -243,8 +243,7 @@ static inline int falcon_wait_hsd_pose_is_direct(
            source_submotion == (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT_3 ||
            (source_submotion == (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT &&
             source_animation_frame_f32 >=
-                (int32_t)PF_M4_FALCON_WAIT_HSD_FIRST_UNBLENDED_FRAME *
-                    INT32_C(65536));
+                (float)PF_M4_FALCON_WAIT_HSD_FIRST_UNBLENDED_FRAME);
 }
 
 typedef enum falcon_capture_hurt_index
@@ -420,7 +419,6 @@ typedef struct falcon_common_attributes
     float fast_walk_animation_scaling_f32;
     float run_animation_scaling_f32;
     float friction_f32;
-    int64_t friction_q32;
     float dash_initial_velocity_f32;
     float dash_run_acceleration_a_f32;
     float dash_run_acceleration_b_f32;
@@ -439,8 +437,6 @@ typedef struct falcon_common_attributes
     float terminal_velocity_f32;
     float air_mobility_a_f32;
     float air_mobility_b_f32;
-    int64_t air_mobility_a_q32;
-    int64_t air_mobility_b_q32;
     float max_aerial_horizontal_velocity_f32;
     float air_friction_f32;
     float fast_fall_terminal_velocity_f32;

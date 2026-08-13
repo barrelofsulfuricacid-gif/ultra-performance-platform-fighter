@@ -405,7 +405,7 @@ static void pf_rl_fill_compact(
         {
             compact->values[
                 base + PF_RL_COMPACT_STALE_MOVE_MULTIPLIER_OFFSET] =
-                pf_rl_f32_bits(PF_F32_ONE);
+                pf_rl_f32_bits(1.0f);
             compact->values[
                 base +
                 PF_RL_COMPACT_STALE_MOVE_COUNT_IDS_0_2_OFFSET] =
@@ -536,8 +536,8 @@ static pf_status pf_rl_fill_transition(
                 (uint8_t)(UINT32_C(1) << player_index);
             transition->reward_f32[player_index] +=
                 (sim->world.winner_mask & player_bit) != UINT8_C(0)
-                    ? PF_F32_ONE
-                    : -PF_F32_ONE;
+                    ? 1.0f
+                    : -1.0f;
         }
     }
     return operation_status;
@@ -576,7 +576,7 @@ pf_status pf_rl_query_spec(pf_rl_spec *out_spec)
     out_spec->axis_maximum = INT16_MAX;
     out_spec->trigger_minimum = UINT16_C(0);
     out_spec->trigger_maximum = UINT16_MAX;
-    out_spec->terminal_reward_one_f32 = PF_F32_ONE;
+    out_spec->terminal_reward_one_f32 = 1.0f;
     out_spec->engagement_potential_limit_f32 =
         PF_RL_ENGAGEMENT_POTENTIAL_LIMIT_F32;
     return PF_STATUS_OK;

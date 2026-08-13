@@ -93,7 +93,7 @@ static int run_qualified_action_ecb_cases(uint32_t *out_pose_count)
                     &actual) ||
                 !falcon_reference_hsd_ecb_pose(
                     test_case->source_submotion,
-                    source_frame * (int32_t)PF_F32_ONE,
+                    source_frame * (int32_t)1.0f,
                     1,
                     PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_F32,
                     &expected) ||
@@ -168,7 +168,7 @@ static int run_production_common_air_entry_ecb_lock(void)
     sim->world.source_submotion[0] =
         (uint16_t)PF_M4_FALCON_SUBMOTION_FALL;
     sim->world.source_animation_frame_f32[0] = INT32_C(0);
-    sim->world.source_animation_rate_f32[0] = (int32_t)PF_F32_ONE;
+    sim->world.source_animation_rate_f32[0] = (int32_t)1.0f;
     sim->world.air_jumps_remaining[0] = UINT8_C(1);
     sim->world.ecb_bottom_lock_ticks[0] = UINT8_C(3);
     sim->world.ecb_locked_bottom_y_f32[0] = INT32_C(0);
@@ -538,55 +538,55 @@ int main(void)
             PF_M4_HSD_COMPACT_TRANSLATION_CAPACITY ||
         !falcon_reference_hsd_ecb_pose(
             PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_START_GROUND,
-            INT32_C(3) * INT32_C(65536),
+            INT32_C(3) * 1.0f,
             1,
             PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_F32,
             &raptor_ground_start) ||
         !falcon_reference_hsd_ecb_pose(
             PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_START_AIR,
-            INT32_C(1) * INT32_C(65536),
+            INT32_C(1) * 1.0f,
             0,
             INT32_C(0),
             &raptor_air_start) ||
         !falcon_reference_hsd_ecb_pose(
             PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_HIT_GROUND,
-            INT32_C(1) * INT32_C(65536),
+            INT32_C(1) * 1.0f,
             1,
             PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_F32,
             &raptor_ground_hit) ||
         !falcon_reference_hsd_ecb_pose(
             PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_HIT_AIR,
-            INT32_C(34) * INT32_C(65536),
+            INT32_C(34) * 1.0f,
             0,
             PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_F32,
             &raptor_air_hit) ||
         !falcon_reference_hsd_ecb_pose(
             PF_M4_FALCON_SUBMOTION_FALCON_DIVE_START_GROUND,
-            INT32_C(16) * INT32_C(65536),
+            INT32_C(16) * 1.0f,
             0,
             INT32_C(0),
             &dive_ground_start_airborne) ||
         !falcon_reference_hsd_ecb_pose(
             PF_M4_FALCON_SUBMOTION_FALCON_DIVE_START_AIR,
-            INT32_C(14) * INT32_C(65536),
+            INT32_C(14) * 1.0f,
             0,
             INT32_C(25250),
             &dive_air_start_relocked) ||
         !falcon_reference_hsd_ecb_pose(
             PF_M4_FALCON_SUBMOTION_FALCON_DIVE_START_GROUND,
-            INT32_C(13) * INT32_C(65536),
+            INT32_C(13) * 1.0f,
             1,
             PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_F32,
             &dive_ground_catch_entry) ||
         !falcon_reference_hsd_ecb_pose(
             PF_M4_FALCON_SUBMOTION_FALCON_DIVE_CATCH,
-            INT32_C(1) * INT32_C(65536),
+            INT32_C(1) * 1.0f,
             0,
             PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_F32,
             &dive_air_catch) ||
         !falcon_reference_hsd_ecb_pose(
             PF_M4_FALCON_SUBMOTION_FALCON_DIVE_THROW,
-            INT32_C(45) * INT32_C(65536),
+            INT32_C(45) * 1.0f,
             0,
             INT32_C(92238),
             &dive_throw_relocked) ||
@@ -599,14 +599,14 @@ int main(void)
             &fall_special_entry) ||
         !falcon_reference_hsd_fall_ecb_pose(
             PF_M4_FALCON_SUBMOTION_FALL_SPECIAL_FORWARD,
-            PF_F32_ONE,
+            1.0f,
             INT32_C(8547),
             UINT8_C(1),
             PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_F32,
             &fall_special_direction_switch) ||
         !falcon_reference_hsd_fall_ecb_pose(
             PF_M4_FALCON_SUBMOTION_FALL_SPECIAL_FORWARD,
-            INT32_C(2) * PF_F32_ONE,
+            INT32_C(2) * 1.0f,
             INT32_C(12497),
             UINT8_C(0),
             PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_F32,

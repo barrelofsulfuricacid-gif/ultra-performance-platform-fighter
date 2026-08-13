@@ -128,10 +128,10 @@ static int make_projectile_content(
     {
         return 0;
     }
-    content->stage.spawn_spacing_f32 = INT32_C(2) * PF_F32_ONE;
+    content->stage.spawn_spacing_f32 = INT32_C(2) * 1.0f;
     content->stage.platform_center_x_f32 =
-        -INT32_C(20) * PF_F32_ONE;
-    content->stage.platform_motion_amplitude_f32 = INT32_C(0);
+        -INT32_C(20) * 1.0f;
+    content->stage.platform_motion_amplitude_f32 = 0.0f;
     content->fighter.reference_frame_data_enabled = UINT8_C(0);
     content->projectile.enabled = UINT8_C(1);
     return expect_status(
@@ -280,7 +280,7 @@ static int run_content_contract(void)
         return 0;
     }
     invalid = enabled;
-    invalid.projectile.speed_f32 = INT32_C(0);
+    invalid.projectile.speed_f32 = 0.0f;
     if (!expect_status(
             validate_content(&invalid),
             PF_STATUS_INVALID_CONFIG,
@@ -610,7 +610,7 @@ static int run_camping_trace(
             inspection.players[1].position_x_f32 -
             inspection.players[0].position_x_f32;
         const int approach_attack_requested =
-            separation_f32 <= INT32_C(2) * PF_F32_ONE &&
+            separation_f32 <= INT32_C(2) * 1.0f &&
             (tick & UINT32_C(1)) == UINT32_C(0);
         const int special_requested =
             fire_projectiles != 0 &&
@@ -705,8 +705,8 @@ static int run_camping_contract(void)
     }
     content.fighter.reference_frame_data_enabled = UINT8_C(0);
     content.projectile.enabled = UINT8_C(1);
-    content.stage.spawn_spacing_f32 = INT32_C(8) * PF_F32_ONE;
-    content.stage.platform_motion_amplitude_f32 = INT32_C(0);
+    content.stage.spawn_spacing_f32 = INT32_C(8) * 1.0f;
+    content.stage.platform_motion_amplitude_f32 = 0.0f;
     if (!expect_status(
             make_content_view(&content, &view),
             PF_STATUS_OK,
@@ -722,7 +722,7 @@ static int run_camping_contract(void)
         camping.approach_hits != UINT32_C(0) ||
         camping.camper_damage_f32 != UINT32_C(0) ||
         camping.approacher_damage_f32 <
-            UINT32_C(18) * UINT32_C(65536) ||
+            UINT32_C(18) * 1.0f ||
         camping.minimum_separation_f32 !=
             TEST_CAMPING_MINIMUM_SEPARATION_Q16 ||
         no_fire.completed_ticks != UINT64_C(180) ||

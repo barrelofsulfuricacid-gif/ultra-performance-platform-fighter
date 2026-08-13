@@ -34,8 +34,6 @@ extern "C"
 #define PF_SIM_DEFAULT_STOCK_COUNT UINT8_C(4)
 #define PF_SIM_DEFAULT_RESPAWN_DELAY_TICKS UINT16_C(60)
 #define PF_SIM_DEFAULT_RESPAWN_INVULNERABILITY_TICKS UINT16_C(120)
-#define PF_F32_ONE 1.0f
-
 #if defined(__cplusplus)
 static_assert(
     CHAR_BIT == 8 && sizeof(float) == 4 && FLT_RADIX == 2 &&

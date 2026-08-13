@@ -418,9 +418,9 @@ static int pf_web_initialize_team_wobble_lab(void)
         return 0;
     }
     pf_web_content.stage.spawn_spacing_f32 =
-        (INT32_C(2) * PF_F32_ONE) / INT32_C(5);
+        (INT32_C(2) * 1.0f) / INT32_C(5);
     pf_web_content.stage.platform_center_x_f32 =
-        -INT32_C(20) * PF_F32_ONE;
+        -INT32_C(20) * 1.0f;
     pf_web_content.stage.platform_motion_amplitude_f32 = INT32_C(0);
     pf_web_content.item.enabled = UINT8_C(0);
     return pf_web_initialize_content(

@@ -89,8 +89,6 @@ set(
     src/sim/sim_combat.c
     src/sim/sim_content.c
     src/sim/sim_falcon_frame_data.c
-    src/sim/sim_fixed_math.c
-    src/sim/sim_fixed_math.h
     src/sim/sim_hsd_pose.c
     src/sim/sim_hsd_pose.h
     src/sim/sim_ssbm_common_data.c

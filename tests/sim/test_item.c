@@ -108,9 +108,9 @@ static int make_item_content(
     {
         return 0;
     }
-    content->stage.spawn_spacing_f32 = PF_F32_ONE;
+    content->stage.spawn_spacing_f32 = 1.0f;
     content->item.enabled = UINT8_C(1);
-    content->item.spawn_x_f32 = -PF_F32_ONE / INT32_C(2);
+    content->item.spawn_x_f32 = -1.0f / INT32_C(2);
     content->item.spawn_y_f32 =
         content->stage.floor_y_f32 - content->item.half_height_f32;
     return expect_status(
@@ -791,8 +791,8 @@ static int run_aerial_drop_contract(
             (int64_t)inspection.players[1].position_x_f32;
 
         if (inspection.players[0].grounded == UINT8_C(0) &&
-            delta >= -(int64_t)(PF_F32_ONE / INT32_C(2)) &&
-            delta <= (int64_t)(PF_F32_ONE / INT32_C(2)))
+            delta >= -(int64_t)(1.0f / INT32_C(2)) &&
+            delta <= (int64_t)(1.0f / INT32_C(2)))
         {
             break;
         }
@@ -818,7 +818,7 @@ static int run_aerial_drop_contract(
         {
             hit_seen = hit->source_player == UINT8_C(0) &&
                        hit->target_player == UINT8_C(1) &&
-                       hit->value_f32 == UINT32_C(7) * UINT32_C(65536);
+                       hit->value_f32 == UINT32_C(7) * 1.0f;
             break;
         }
         if (!neutral_step(sim, &result, &inspection))
@@ -828,7 +828,7 @@ static int run_aerial_drop_contract(
     }
     if (hit_seen == 0 ||
         inspection.players[1].damage_f32 !=
-            UINT32_C(7) * UINT32_C(65536) ||
+            UINT32_C(7) * 1.0f ||
         inspection.item.velocity_y_f32 >= INT32_C(0) ||
         inspection.item.hit_mask != UINT8_C(2) ||
         inspection.item.stale_registered != UINT8_C(1) ||

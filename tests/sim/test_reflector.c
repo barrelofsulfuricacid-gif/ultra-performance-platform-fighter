@@ -110,19 +110,19 @@ static int make_reflector_content(
     content->fighter.reference_frame_data_enabled = UINT8_C(0);
     content->reflector.enabled = UINT8_C(1);
     content->projectile.enabled = UINT8_C(1);
-    content->stage.floor_left_f32 = -INT32_C(8) * PF_F32_ONE;
-    content->stage.floor_right_f32 = INT32_C(8) * PF_F32_ONE;
-    content->stage.platform_center_x_f32 = -INT32_C(4) * PF_F32_ONE;
-    content->stage.platform_half_width_f32 = INT32_C(1) * PF_F32_ONE;
-    content->stage.platform_motion_amplitude_f32 = INT32_C(0);
-    content->stage.upper_platform_center_x_f32 = INT32_C(0);
-    content->stage.upper_platform_half_width_f32 = PF_F32_ONE;
-    content->stage.solid_left_f32 = INT32_C(2) * PF_F32_ONE;
-    content->stage.solid_right_f32 = INT32_C(6) * PF_F32_ONE;
-    content->stage.blast_left_f32 = -INT32_C(12) * PF_F32_ONE;
-    content->stage.blast_right_f32 = INT32_C(12) * PF_F32_ONE;
-    content->stage.blast_bottom_f32 = INT32_C(40) * PF_F32_ONE;
-    content->stage.spawn_spacing_f32 = INT32_C(1) * PF_F32_ONE;
+    content->stage.floor_left_f32 = -INT32_C(8) * 1.0f;
+    content->stage.floor_right_f32 = INT32_C(8) * 1.0f;
+    content->stage.platform_center_x_f32 = -INT32_C(4) * 1.0f;
+    content->stage.platform_half_width_f32 = INT32_C(1) * 1.0f;
+    content->stage.platform_motion_amplitude_f32 = 0.0f;
+    content->stage.upper_platform_center_x_f32 = 0.0f;
+    content->stage.upper_platform_half_width_f32 = 1.0f;
+    content->stage.solid_left_f32 = INT32_C(2) * 1.0f;
+    content->stage.solid_right_f32 = INT32_C(6) * 1.0f;
+    content->stage.blast_left_f32 = -INT32_C(12) * 1.0f;
+    content->stage.blast_right_f32 = INT32_C(12) * 1.0f;
+    content->stage.blast_bottom_f32 = INT32_C(40) * 1.0f;
+    content->stage.spawn_spacing_f32 = INT32_C(1) * 1.0f;
     return expect_status(
         make_content_view(content, view),
         PF_STATUS_OK,
@@ -258,7 +258,7 @@ static int run_content_contract(void)
         return 0;
     }
     invalid = enabled;
-    invalid.reflector.base_knockback_y_f32 = -INT32_C(1);
+    invalid.reflector.base_knockback_y_f32 = (-((float)INT32_C(1) / 65536.0f));
     return expect_status(
         validate_content(&invalid),
         PF_STATUS_INVALID_CONFIG,

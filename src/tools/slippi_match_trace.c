@@ -305,8 +305,8 @@ int main(int argc, char **argv)
         return fail_status("default-config", status);
     }
     config.max_ticks = max_ticks;
-    config.arena_half_width_f32 = INT32_C(256) * PF_F32_ONE;
-    config.arena_ceiling_f32 = INT32_C(256) * PF_F32_ONE;
+    config.arena_half_width_f32 = INT32_C(256) * 1.0f;
+    config.arena_ceiling_f32 = INT32_C(256) * 1.0f;
     config.stock_count = UINT8_C(4);
     status = pf_sim_init(
         storage.state,

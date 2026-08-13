@@ -629,7 +629,7 @@ static int run_air_dodge_test(
     }
 
     invalid_content.fighter.air_dodge_decay_f32 =
-        PF_F32_ONE + INT32_C(1);
+        1.0f + INT32_C(1);
     if (!expect_status(
             validate_content(&invalid_content),
             PF_STATUS_INVALID_CONFIG,
@@ -828,12 +828,12 @@ static int run_air_dodge_test(
             (int32_t)(
                 (int64_t)entry_velocity_x *
                 default_content->fighter.air_dodge_decay_f32 /
-                PF_F32_ONE) ||
+                1.0f) ||
         inspection.players[0].velocity_y_f32 !=
             (int32_t)(
                 (int64_t)entry_velocity_y *
                 default_content->fighter.air_dodge_decay_f32 /
-                PF_F32_ONE) ||
+                1.0f) ||
         inspection.players[0].facing != takeoff_facing)
     {
         (void)fprintf(
@@ -1069,13 +1069,13 @@ static int run_air_dodge_test(
     }
 
     platform_content.stage.platform_center_x_f32 =
-        -INT32_C(2) * PF_F32_ONE;
+        -INT32_C(2) * 1.0f;
     platform_content.stage.platform_y_f32 =
         platform_content.stage.floor_y_f32 -
-        INT32_C(6) * PF_F32_ONE;
-    platform_content.stage.platform_motion_amplitude_f32 = INT32_C(0);
+        INT32_C(6) * 1.0f;
+    platform_content.stage.platform_motion_amplitude_f32 = 0.0f;
     platform_content.stage.spawn_spacing_f32 =
-        INT32_C(2) * PF_F32_ONE;
+        INT32_C(2) * 1.0f;
     if (!expect_status(
             make_content_view(
                 &platform_content,
@@ -1358,19 +1358,19 @@ static int run_ledge_cancel_test(const struct content *default_content)
     uint32_t tick;
 
     ledge_content.stage.platform_center_x_f32 =
-        -(INT32_C(5) * PF_F32_ONE) / INT32_C(2);
+        -(INT32_C(5) * 1.0f) / INT32_C(2);
     ledge_content.stage.platform_y_f32 =
         ledge_content.stage.floor_y_f32 -
-        INT32_C(6) * PF_F32_ONE;
-    ledge_content.stage.platform_half_width_f32 = PF_F32_ONE;
-    ledge_content.stage.platform_motion_amplitude_f32 = INT32_C(0);
+        INT32_C(6) * 1.0f;
+    ledge_content.stage.platform_half_width_f32 = 1.0f;
+    ledge_content.stage.platform_motion_amplitude_f32 = 0.0f;
     ledge_content.stage.spawn_spacing_f32 =
-        INT32_C(2) * PF_F32_ONE;
+        INT32_C(2) * 1.0f;
     center_content = ledge_content;
     center_content.stage.platform_center_x_f32 =
-        -INT32_C(2) * PF_F32_ONE;
+        -INT32_C(2) * 1.0f;
     center_content.stage.platform_half_width_f32 =
-        INT32_C(5) * PF_F32_ONE;
+        INT32_C(5) * 1.0f;
 
     if (!expect_status(
             make_content_view(&ledge_content, &ledge_view),
@@ -1624,8 +1624,8 @@ static int run_ground_dodge_test(
     int32_t expected_x;
     int8_t facing;
     uint32_t elapsed;
-    float forward_roll_displacement_f32 = INT32_C(0);
-    float backward_roll_displacement_f32 = INT32_C(0);
+    float forward_roll_displacement_f32 = 0.0f;
+    float backward_roll_displacement_f32 = 0.0f;
     uint16_t translation_frame;
 
     for (translation_frame = UINT16_C(1);
@@ -1711,7 +1711,7 @@ static int run_ground_dodge_test(
         return 0;
     }
 
-    invalid_content.fighter.forward_roll_speed_f32 = INT32_C(0);
+    invalid_content.fighter.forward_roll_speed_f32 = 0.0f;
     if (!expect_status(
             validate_content(&invalid_content),
             PF_STATUS_INVALID_CONFIG,
@@ -2451,14 +2451,14 @@ static int run_ground_dodge_test(
     }
 
     wall_content.stage.solid_left_f32 =
-        -INT32_C(6) * PF_F32_ONE;
+        -INT32_C(6) * 1.0f;
     wall_content.stage.solid_right_f32 =
-        -INT32_C(4) * PF_F32_ONE;
+        -INT32_C(4) * 1.0f;
     wall_content.stage.solid_bottom_f32 =
-        INT32_C(31) * PF_F32_ONE;
+        INT32_C(31) * 1.0f;
     wall_content.stage.platform_center_x_f32 =
-        INT32_C(6) * PF_F32_ONE;
-    wall_content.stage.platform_motion_amplitude_f32 = INT32_C(0);
+        INT32_C(6) * 1.0f;
+    wall_content.stage.platform_motion_amplitude_f32 = 0.0f;
     if (!expect_status(
             make_content_view(&wall_content, &wall_view),
             PF_STATUS_OK,
@@ -2522,13 +2522,13 @@ static int run_ground_dodge_test(
     }
 
     edge_content.stage.spawn_spacing_f32 =
-        PF_F32_ONE / INT32_C(8);
+        1.0f / INT32_C(8);
     edge_content.stage.floor_left_f32 =
-        -(INT32_C(3) * PF_F32_ONE) / INT32_C(2);
+        -(INT32_C(3) * 1.0f) / INT32_C(2);
     edge_content.stage.platform_center_x_f32 =
-        INT32_C(4) * PF_F32_ONE;
-    edge_content.stage.platform_half_width_f32 = PF_F32_ONE;
-    edge_content.stage.platform_motion_amplitude_f32 = INT32_C(0);
+        INT32_C(4) * 1.0f;
+    edge_content.stage.platform_half_width_f32 = 1.0f;
+    edge_content.stage.platform_motion_amplitude_f32 = 0.0f;
     edge_content.stage.revival_platform_half_width_f32 =
         edge_content.fighter.half_width_f32;
     if (!expect_status(
@@ -2678,7 +2678,7 @@ static int run_content_contract_test(
     }
 
     invalid_content = *default_content;
-    invalid_content.fighter.jump_horizontal_input_speed_f32 = INT32_C(0);
+    invalid_content.fighter.jump_horizontal_input_speed_f32 = 0.0f;
     if (default_content->fighter.jump_horizontal_input_speed_f32 !=
             falcon_attributes->jump_horizontal_initial_velocity_f32 ||
         default_content->fighter.ground_max_horizontal_speed_f32 !=
@@ -2700,7 +2700,7 @@ static int run_content_contract_test(
     }
     invalid_content = *default_content;
     invalid_content.fighter.jump_horizontal_momentum_multiplier_f32 =
-        PF_F32_ONE + INT32_C(1);
+        1.0f + INT32_C(1);
     if (!expect_status(
             validate_content(&invalid_content),
             PF_STATUS_INVALID_CONFIG,
@@ -2821,9 +2821,9 @@ static int run_content_contract_test(
     }
 
     invalid_content = *default_content;
-    invalid_content.fighter.teeter_snap_distance_f32 = INT32_C(0);
+    invalid_content.fighter.teeter_snap_distance_f32 = 0.0f;
     if (default_content->fighter.teeter_snap_distance_f32 !=
-            (INT32_C(2) * PF_F32_ONE) / INT32_C(5) ||
+            (INT32_C(2) * 1.0f) / INT32_C(5) ||
         default_content->fighter.teeter_ticks !=
             teeter_motion->animation_frame_count ||
         !expect_status(
@@ -2924,7 +2924,7 @@ static int run_content_contract_test(
     }
 
     invalid_content = *default_content;
-    invalid_content.fighter.crouch_step_speed_f32 = -INT32_C(1);
+    invalid_content.fighter.crouch_step_speed_f32 = (-((float)INT32_C(1) / 65536.0f));
     if (default_content->fighter.crouch_step_speed_f32 !=
             0.0f ||
         default_content->fighter.crouch_step_ticks != UINT16_C(1) ||
@@ -3035,7 +3035,7 @@ static int run_content_contract_test(
         return 0;
     }
 
-    tuned_content.fighter.walk_speed_f32 = PF_F32_ONE / INT32_C(20);
+    tuned_content.fighter.walk_speed_f32 = 1.0f / INT32_C(20);
     if (!expect_status(
             make_content_view(&tuned_content, &tuned_view),
             PF_STATUS_OK,
@@ -4302,7 +4302,7 @@ static int run_ground_control_test(
             (uint16_t)PF_M4_FALCON_SUBMOTION_SQUAT_WAIT ||
         inspection.players[0].source_animation_frame_f32 != 0.0f ||
         inspection.players[0].source_animation_rate_f32 !=
-            (int32_t)PF_F32_ONE)
+            (int32_t)1.0f)
     {
         (void)fprintf(
             stderr,
@@ -4325,7 +4325,7 @@ static int run_ground_control_test(
             (uint8_t)PF_M4_ACTION_CROUCH ||
         inspection.players[0].action_ticks != UINT16_C(2) ||
         inspection.players[0].source_animation_frame_f32 !=
-            (int32_t)PF_F32_ONE)
+            (int32_t)1.0f)
     {
         (void)fprintf(
             stderr,
@@ -5680,7 +5680,7 @@ static int enter_right_teeter(
             content->stage.floor_right_f32 -
             out_inspection->players[0].position_x_f32;
 
-        if (distance_f32 <= 7.6293945E-05f * PF_F32_ONE)
+        if (distance_f32 <= 7.6293945E-05f * 1.0f)
         {
             break;
         }
@@ -5739,7 +5739,7 @@ static int enter_right_teeter(
                 ? velocity_f32 - content->fighter.traction_f32
                 : INT32_C(0);
         int16_t selected_axis = INT16_C(0);
-        float selected_velocity_f32 = INT32_C(0);
+        float selected_velocity_f32 = 0.0f;
         uint32_t axis;
 
         if (release_velocity_f32 > distance_f32)
@@ -8840,19 +8840,19 @@ static int run_aerial_landing_test(
     }
 
     auto_content.fighter.gravity_f32 =
-        PF_F32_ONE / INT32_C(20);
+        1.0f / INT32_C(20);
     auto_content.fighter.fall_speed_f32 =
-        PF_F32_ONE / INT32_C(10);
+        1.0f / INT32_C(10);
     auto_content.fighter.platform_drop_speed_y_f32 =
-        (INT32_C(3) * PF_F32_ONE) / INT32_C(40);
+        (INT32_C(3) * 1.0f) / INT32_C(40);
     auto_content.fighter.fast_fall_speed_f32 =
-        (INT32_C(3) * PF_F32_ONE) / INT32_C(20);
+        (INT32_C(3) * 1.0f) / INT32_C(20);
     auto_content.fighter.short_hop_speed_f32 =
-        (INT32_C(3) * PF_F32_ONE) / INT32_C(50);
+        (INT32_C(3) * 1.0f) / INT32_C(50);
     auto_content.fighter.full_hop_speed_f32 =
-        (INT32_C(3) * PF_F32_ONE) / INT32_C(25);
+        (INT32_C(3) * 1.0f) / INT32_C(25);
     auto_content.fighter.double_jump_speed_f32 =
-        (INT32_C(3) * PF_F32_ONE) / INT32_C(25);
+        (INT32_C(3) * 1.0f) / INT32_C(25);
     /* This fixture intentionally mutates authored gravity/jump values to
      * exercise generic auto-cancel timing, not the imported Melee ECB path. */
     auto_content.fighter.reference_frame_data_enabled = UINT8_C(0);
@@ -9173,11 +9173,11 @@ static int run_platform_test(const struct content *default_content)
     }
 
     platform_content.stage.platform_center_x_f32 =
-        -INT32_C(8) * PF_F32_ONE;
+        -INT32_C(8) * 1.0f;
     platform_content.stage.platform_motion_amplitude_f32 =
-        INT32_C(2) * PF_F32_ONE;
+        INT32_C(2) * 1.0f;
     platform_content.stage.platform_half_width_f32 =
-        INT32_C(6) * PF_F32_ONE;
+        INT32_C(6) * 1.0f;
     tuned_content = platform_content;
     ++tuned_content.fighter.platform_drop_startup_ticks;
     if (!expect_status(
@@ -9529,7 +9529,7 @@ static int run_upper_platform_test(
     }
 
     invalid_content = *default_content;
-    invalid_content.stage.upper_platform_half_width_f32 = INT32_C(0);
+    invalid_content.stage.upper_platform_half_width_f32 = 0.0f;
     if (!expect_status(
             validate_content(&invalid_content),
             PF_STATUS_INVALID_CONFIG,
@@ -9581,16 +9581,16 @@ static int run_upper_platform_test(
     }
 
     platform_content.stage.platform_center_x_f32 =
-        -INT32_C(24) * PF_F32_ONE;
-    platform_content.stage.platform_motion_amplitude_f32 = INT32_C(0);
+        -INT32_C(24) * 1.0f;
+    platform_content.stage.platform_motion_amplitude_f32 = 0.0f;
     platform_content.stage.platform_half_width_f32 =
-        INT32_C(2) * PF_F32_ONE;
+        INT32_C(2) * 1.0f;
     platform_content.stage.upper_platform_center_x_f32 =
-        -INT32_C(4) * PF_F32_ONE;
+        -INT32_C(4) * 1.0f;
     platform_content.stage.upper_platform_y_f32 =
-        INT32_C(26) * PF_F32_ONE;
+        INT32_C(26) * 1.0f;
     platform_content.stage.upper_platform_half_width_f32 =
-        INT32_C(6) * PF_F32_ONE;
+        INT32_C(6) * 1.0f;
     if (!expect_status(
             make_content_view(&platform_content, &platform_view),
             PF_STATUS_OK,
@@ -9609,7 +9609,7 @@ static int run_upper_platform_test(
             &loaded) ||
         !prepare_upper_platform(source, &source_inspection) ||
         source_inspection.stage.upper_platform_left_f32 !=
-            -INT32_C(10) * PF_F32_ONE ||
+            -INT32_C(10) * 1.0f ||
         source_inspection.stage.upper_platform_right_f32 !=
             2.0f ||
         source_inspection.stage.upper_platform_y_f32 !=
@@ -9867,7 +9867,7 @@ static void force_reference_crouch_history(
     sim->world.source_submotion[0] =
         (uint16_t)PF_M4_FALCON_SUBMOTION_SQUAT_WAIT;
     sim->world.source_animation_frame_f32[0] = INT32_C(0);
-    sim->world.source_animation_rate_f32[0] = (int32_t)PF_F32_ONE;
+    sim->world.source_animation_rate_f32[0] = (int32_t)1.0f;
     sim->world.dash_direction[0] = INT8_C(0);
     sim->world.previous_tilt_x_direction[0] = INT8_C(0);
     sim->world.previous_tilt_y_direction[0] = previous_y_direction;
@@ -9893,10 +9893,10 @@ static int run_crouch_platform_drop_test(
     const uint8_t ucf_age_before = UINT8_C(40);
 
     platform_content.stage.platform_center_x_f32 =
-        -INT32_C(8) * PF_F32_ONE;
-    platform_content.stage.platform_motion_amplitude_f32 = INT32_C(0);
+        -INT32_C(8) * 1.0f;
+    platform_content.stage.platform_motion_amplitude_f32 = 0.0f;
     platform_content.stage.platform_half_width_f32 =
-        INT32_C(6) * PF_F32_ONE;
+        INT32_C(6) * 1.0f;
     if (ground_input == NULL ||
         ground_input->platform_drop_axis_threshold != UINT16_C(21626) ||
         ground_input->platform_drop_tilt_window_ticks != UINT16_C(6) ||
@@ -10117,10 +10117,10 @@ static int run_shield_platform_drop_test(
     }
 
     platform_content.stage.platform_center_x_f32 =
-        -INT32_C(8) * PF_F32_ONE;
-    platform_content.stage.platform_motion_amplitude_f32 = INT32_C(0);
+        -INT32_C(8) * 1.0f;
+    platform_content.stage.platform_motion_amplitude_f32 = 0.0f;
     platform_content.stage.platform_half_width_f32 =
-        INT32_C(6) * PF_F32_ONE;
+        INT32_C(6) * 1.0f;
     if (!expect_status(
             make_content_view(
                 &platform_content,
@@ -10403,19 +10403,19 @@ static int make_solid_geometry_content(
 {
     *out_content = *default_content;
     out_content->stage.spawn_spacing_f32 =
-        (INT32_C(9) * PF_F32_ONE) / INT32_C(5);
+        (INT32_C(9) * 1.0f) / INT32_C(5);
     out_content->stage.platform_center_x_f32 =
-        -INT32_C(20) * PF_F32_ONE;
+        -INT32_C(20) * 1.0f;
     out_content->stage.platform_half_width_f32 =
-        INT32_C(2) * PF_F32_ONE;
-    out_content->stage.platform_motion_amplitude_f32 = INT32_C(0);
-    out_content->stage.solid_left_f32 = INT32_C(0);
+        INT32_C(2) * 1.0f;
+    out_content->stage.platform_motion_amplitude_f32 = 0.0f;
+    out_content->stage.solid_left_f32 = 0.0f;
     out_content->stage.solid_right_f32 =
-        INT32_C(8) * PF_F32_ONE;
+        INT32_C(8) * 1.0f;
     out_content->stage.solid_top_f32 =
-        INT32_C(26) * PF_F32_ONE;
+        INT32_C(26) * 1.0f;
     out_content->stage.solid_bottom_f32 =
-        INT32_C(29) * PF_F32_ONE;
+        INT32_C(29) * 1.0f;
     return expect_status(
         make_content_view(out_content, out_view),
         PF_STATUS_OK,
@@ -10447,7 +10447,7 @@ static int run_solid_geometry_test(
     const int32_t wall_contact_x =
         -default_content->fighter.half_width_f32;
     const int32_t top_contact_y =
-        INT32_C(26) * PF_F32_ONE -
+        INT32_C(26) * 1.0f -
         default_content->fighter.half_height_f32;
     int observed_wall = 0;
     int observed_ceiling = 0;
@@ -10463,8 +10463,8 @@ static int run_solid_geometry_test(
     }
     right_corner_content = content;
     right_corner_content.stage.solid_left_f32 =
-        -INT32_C(8) * PF_F32_ONE;
-    right_corner_content.stage.solid_right_f32 = INT32_C(0);
+        -INT32_C(8) * 1.0f;
+    right_corner_content.stage.solid_right_f32 = 0.0f;
     if (!expect_status(
             make_content_view(
                 &right_corner_content,
@@ -10896,7 +10896,7 @@ static int grab_player0_right_ledge(
                 (uint8_t)PF_M4_ACTION_RUN &&
             out_inspection->players[0].position_x_f32 >=
                 out_inspection->stage.right_ledge_x_f32 -
-                    INT32_C(5) * PF_F32_ONE)
+                    INT32_C(5) * 1.0f)
         {
             break;
         }
@@ -11218,10 +11218,10 @@ static int run_ledge_occupancy_test(
                 (uint8_t)PF_M4_ACTION_RUN &&
             inspection.players[0].position_x_f32 >=
                 inspection.stage.right_ledge_x_f32 -
-                    INT32_C(5) * PF_F32_ONE &&
+                    INT32_C(5) * 1.0f &&
             inspection.players[1].position_x_f32 >=
                 inspection.stage.right_ledge_x_f32 -
-                    INT32_C(5) * PF_F32_ONE)
+                    INT32_C(5) * 1.0f)
         {
             break;
         }
@@ -11379,9 +11379,9 @@ static int run_ledge_hit_rejection_test(
 
     content.fighter.reference_frame_data_enabled = UINT8_C(0);
     content.fighter.jab_hitbox_half_width_f32 =
-        INT32_C(64) * PF_F32_ONE;
+        INT32_C(64) * 1.0f;
     content.fighter.jab_hitbox_half_height_f32 =
-        INT32_C(64) * PF_F32_ONE;
+        INT32_C(64) * 1.0f;
     if (!expect_status(
             make_content_view(&content, &view),
             PF_STATUS_OK,
@@ -12630,11 +12630,11 @@ static int run_planking_test(
      * jab only supplies a deterministic responding-opponent threat.
      */
     content.fighter.double_jump_speed_f32 =
-        INT32_C(31) * PF_F32_ONE / INT32_C(100);
+        INT32_C(31) * 1.0f / INT32_C(100);
     content.fighter.jab_hitbox_half_width_f32 =
-        INT32_C(64) * PF_F32_ONE;
+        INT32_C(64) * 1.0f;
     content.fighter.jab_hitbox_half_height_f32 =
-        INT32_C(64) * PF_F32_ONE;
+        INT32_C(64) * 1.0f;
     expected_carried_invulnerability =
         (uint16_t)(
             (uint32_t)content.fighter.ledge_invulnerability_ticks -
@@ -13808,7 +13808,7 @@ static int run_vector_ascent_test(const struct content *base_content)
         content.recovery.schema_version != PF_M4_RECOVERY_SCHEMA_VERSION ||
         content.recovery.enabled != UINT8_C(0) ||
         content.recovery.horizontal_speed_f32 !=
-            PF_F32_ONE / INT32_C(4) ||
+            1.0f / INT32_C(4) ||
         content.recovery.vertical_speed_f32 !=
             0.8f ||
         content.recovery.ascent_ticks != UINT16_C(18) ||
@@ -14309,7 +14309,7 @@ static int run_player_push_test(const struct content *default_content)
     }
 
     content = *default_content;
-    content.fighter.player_push_half_width_f32 = INT32_C(0);
+    content.fighter.player_push_half_width_f32 = 0.0f;
     if (!expect_status(
             validate_content(&content),
             PF_STATUS_INVALID_CONFIG,
@@ -14318,7 +14318,7 @@ static int run_player_push_test(const struct content *default_content)
         return 0;
     }
     content = *default_content;
-    content.fighter.player_push_speed_f32 = INT32_C(0);
+    content.fighter.player_push_speed_f32 = 0.0f;
     return expect_status(
         validate_content(&content),
         PF_STATUS_INVALID_CONFIG,
@@ -14537,7 +14537,7 @@ static int run_falcon_punch_source_data_test(
     }
 
     ground_content.stage.spawn_spacing_f32 =
-        INT32_C(8) * PF_F32_ONE;
+        INT32_C(8) * 1.0f;
     if (!expect_status(
             make_content_view(&ground_content, &ground_view),
             PF_STATUS_OK,
@@ -14617,8 +14617,8 @@ static int run_falcon_punch_source_data_test(
     }
 
     air_content.stage.spawn_spacing_f32 =
-        INT32_C(10) * PF_F32_ONE;
-    air_content.stage.platform_motion_amplitude_f32 = INT32_C(0);
+        INT32_C(10) * 1.0f;
+    air_content.stage.platform_motion_amplitude_f32 = 0.0f;
     if (!expect_status(
             make_content_view(&air_content, &air_view),
             PF_STATUS_OK,
@@ -14857,8 +14857,8 @@ static int run_raptor_boost_source_data_test(
     }
 
     ground_content.stage.spawn_spacing_f32 =
-        INT32_C(8) * PF_F32_ONE;
-    ground_content.stage.platform_motion_amplitude_f32 = INT32_C(0);
+        INT32_C(8) * 1.0f;
+    ground_content.stage.platform_motion_amplitude_f32 = 0.0f;
     if (!expect_status(
             make_content_view(&ground_content, &ground_view),
             PF_STATUS_OK,
@@ -14967,8 +14967,8 @@ static int run_raptor_boost_source_data_test(
     }
 
     ground_hit_content.stage.spawn_spacing_f32 =
-        INT32_C(2) * PF_F32_ONE;
-    ground_hit_content.stage.platform_motion_amplitude_f32 = INT32_C(0);
+        INT32_C(2) * 1.0f;
+    ground_hit_content.stage.platform_motion_amplitude_f32 = 0.0f;
     if (!expect_status(
             make_content_view(
                 &ground_hit_content,
@@ -15071,8 +15071,8 @@ static int run_raptor_boost_source_data_test(
     }
 
     air_content.stage.spawn_spacing_f32 =
-        INT32_C(8) * PF_F32_ONE;
-    air_content.stage.platform_motion_amplitude_f32 = INT32_C(0);
+        INT32_C(8) * 1.0f;
+    air_content.stage.platform_motion_amplitude_f32 = 0.0f;
     if (!expect_status(
             make_content_view(&air_content, &air_view),
             PF_STATUS_OK,
@@ -15253,8 +15253,8 @@ static int run_falcon_dive_source_data_test(
         return 0;
     }
 
-    content.stage.spawn_spacing_f32 = INT32_C(8) * PF_F32_ONE;
-    content.stage.platform_motion_amplitude_f32 = INT32_C(0);
+    content.stage.spawn_spacing_f32 = INT32_C(8) * 1.0f;
+    content.stage.platform_motion_amplitude_f32 = 0.0f;
     if (!expect_status(
             make_content_view(&content, &view),
             PF_STATUS_OK,
@@ -15280,8 +15280,8 @@ static int run_falcon_dive_source_data_test(
     }
     for (frame = UINT32_C(1); frame <= UINT32_C(64); ++frame)
     {
-        float expected_motion_x_f32 = INT32_C(0);
-        float expected_motion_y_f32 = INT32_C(0);
+        float expected_motion_x_f32 = 0.0f;
+        float expected_motion_y_f32 = 0.0f;
         const uint8_t expected_grounded =
             frame <= UINT32_C(13) ? UINT8_C(1) : UINT8_C(0);
 
@@ -15306,8 +15306,8 @@ static int run_falcon_dive_source_data_test(
                 stderr,
                 "m4-movement=fail operation=falcon-dive-ground-frame "
                 "frame=%" PRIu32 " action=%u ticks=%u grounded=%u "
-                "vx=%" PRId32 " expected_vx=%" PRId32 " "
-                "vy=%" PRId32 " expected_vy=%" PRId32 "\n",
+                "vx=%.9g expected_vx=%.9g "
+                "vy=%.9g expected_vy=%.9g\n",
                 frame,
                 (unsigned int)inspection.players[0].action_state,
                 (unsigned int)inspection.players[0].action_ticks,
@@ -15418,17 +15418,17 @@ static int run_falcon_dive_behind_ledge_test(
     uint32_t tick;
 
     content.item.enabled = UINT8_C(0);
-    content.stage.floor_left_f32 = -INT32_C(585144);
-    content.stage.floor_right_f32 = INT32_C(585144);
-    content.stage.spawn_spacing_f32 = INT32_C(2) * PF_F32_ONE;
-    content.stage.platform_center_x_f32 = INT32_C(0);
-    content.stage.platform_half_width_f32 = PF_F32_ONE;
-    content.stage.platform_motion_amplitude_f32 = INT32_C(0);
+    content.stage.floor_left_f32 = (-((float)INT32_C(585144) / 65536.0f));
+    content.stage.floor_right_f32 = ((float)INT32_C(585144) / 65536.0f);
+    content.stage.spawn_spacing_f32 = INT32_C(2) * 1.0f;
+    content.stage.platform_center_x_f32 = 0.0f;
+    content.stage.platform_half_width_f32 = 1.0f;
+    content.stage.platform_motion_amplitude_f32 = 0.0f;
     content.stage.upper_platform_center_x_f32 =
-        INT32_C(2) * PF_F32_ONE;
-    content.stage.upper_platform_half_width_f32 = PF_F32_ONE;
-    content.stage.solid_left_f32 = INT32_C(2) * PF_F32_ONE;
-    content.stage.solid_right_f32 = INT32_C(3) * PF_F32_ONE;
+        INT32_C(2) * 1.0f;
+    content.stage.upper_platform_half_width_f32 = 1.0f;
+    content.stage.solid_left_f32 = INT32_C(2) * 1.0f;
+    content.stage.solid_right_f32 = INT32_C(3) * 1.0f;
     if (!expect_status(
             make_content_view(&content, &view),
             PF_STATUS_OK,
@@ -15454,7 +15454,7 @@ static int run_falcon_dive_behind_ledge_test(
     for (tick = UINT32_C(0); tick < UINT32_C(300); ++tick)
     {
         const int16_t stick_x =
-            inspection.players[0].position_x_f32 > -INT32_C(302203)
+            inspection.players[0].position_x_f32 > -4.61125183f
                 ? -INT16_C(12000)
                 : INT16_C(0);
 
@@ -15467,7 +15467,7 @@ static int run_falcon_dive_behind_ledge_test(
         {
             return 0;
         }
-        if (inspection.players[0].position_x_f32 <= -INT32_C(302203) &&
+        if (inspection.players[0].position_x_f32 <= -4.61125183f &&
             inspection.players[0].velocity_x_f32 == 0.0f &&
             inspection.players[0].grounded != UINT8_C(0) &&
             inspection.players[0].action_state ==
@@ -15616,7 +15616,7 @@ static void set_player0_damage_fall_state(pf_sim *sim)
     sim->world.respawn_ticks[0] = UINT16_C(0);
     sim->world.grounded[0] = UINT8_C(0);
     sim->world.support[0] = (uint8_t)PF_M4_SURFACE_NONE;
-    sim->world.position_y_f32[0] = INT32_C(20) * PF_F32_ONE;
+    sim->world.position_y_f32[0] = INT32_C(20) * 1.0f;
     sim->world.velocity_x_f32[0] = INT32_C(0);
     sim->world.velocity_y_f32[0] = INT32_C(0);
     sim->world.action_state[0] = (uint8_t)PF_M4_ACTION_AIRBORNE;
@@ -15968,8 +15968,8 @@ static int run_ucf084_input_contract_test(
     }
     sim->world.grounded[0] = UINT8_C(0);
     sim->world.support[0] = (uint8_t)PF_M4_SURFACE_NONE;
-    sim->world.position_y_f32[0] = INT32_C(20) * PF_F32_ONE;
-    sim->world.velocity_y_f32[0] = -PF_F32_ONE;
+    sim->world.position_y_f32[0] = INT32_C(20) * 1.0f;
+    sim->world.velocity_y_f32[0] = -1.0f;
     sim->world.action_state[0] = (uint8_t)PF_M4_ACTION_AIRBORNE;
     sim->world.action_ticks[0] = UINT16_C(0);
     sim->world.source_submotion[0] =
@@ -16182,8 +16182,8 @@ static int run_initial_dash_origin_callback_test(
     uint8_t save_bytes[2048];
     pf_mut_bytes destination;
     pf_bytes source;
-    int32_t entry_velocity_x;
-    int32_t expected_velocity_x;
+    float entry_velocity_x;
+    float expected_velocity_x;
 
     if (ground_input == NULL || common == NULL || common_special == NULL ||
         common_special->fast_ground_friction_multiplier_f32 !=
@@ -16304,7 +16304,7 @@ static int run_initial_dash_origin_callback_test(
     entry_velocity_x = inspection.players[0].velocity_x_f32;
     expected_velocity_x = multiply_f32(
         entry_velocity_x,
-        (int32_t)PF_F32_ONE -
+        1.0f -
             ground_input->initial_dash_iasa_velocity_decay_f32);
     expected_velocity_x += common->friction_f32;
     destination.bytes = save_bytes;
@@ -16341,7 +16341,7 @@ static int run_initial_dash_origin_callback_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=initial-dash-turn-shield"
-            " action=%u phase=%d window=%u velocity_x=%" PRId32 "\n",
+            " action=%u phase=%d window=%u velocity_x=%.9g\n",
             (unsigned int)inspection.players[0].action_state,
             (int)loaded->world.dash_direction[0],
             (unsigned int)
@@ -16366,7 +16366,7 @@ static int run_initial_dash_origin_callback_test(
     entry_velocity_x = inspection.players[0].velocity_x_f32;
     expected_velocity_x = multiply_f32(
         entry_velocity_x,
-        (int32_t)PF_F32_ONE -
+        (int32_t)1.0f -
             ground_input->initial_dash_iasa_velocity_decay_f32);
     expected_velocity_x -= common->friction_f32;
     if (!step_duel(
@@ -16919,8 +16919,8 @@ static int run_reference_callback_owner_test(
     sim->world.action_ticks[0] = UINT16_C(1);
     sim->world.source_submotion[0] =
         (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD_SET_OFF;
-    sim->world.source_animation_frame_f32[0] = PF_F32_ONE;
-    sim->world.source_animation_rate_f32[0] = PF_F32_ONE;
+    sim->world.source_animation_frame_f32[0] = 1.0f;
+    sim->world.source_animation_rate_f32[0] = 1.0f;
     sim->world.shield_stun_ticks[0] = UINT16_C(1);
     sim->world.previous_tilt_y_direction[0] = INT8_C(0);
     sim->world.tilt_y_age[0] = UINT8_C(254);
@@ -16953,7 +16953,7 @@ static int run_reference_callback_owner_test(
     }
     sim->world.grounded[0] = UINT8_C(0);
     sim->world.support[0] = (uint8_t)PF_M4_SURFACE_NONE;
-    sim->world.position_y_f32[0] = INT32_C(50) * PF_F32_ONE;
+    sim->world.position_y_f32[0] = INT32_C(50) * 1.0f;
     sim->world.action_state[0] = (uint8_t)PF_M4_ACTION_AERIAL_ATTACK;
     sim->world.action_ticks[0] = (uint16_t)(neutral_aerial_ticks - UINT32_C(1));
     sim->world.attack_hit_mask[0] = UINT8_C(1);
@@ -17073,8 +17073,8 @@ static int run_reference_callback_owner_test(
     sim->world.source_submotion[0] =
         (uint16_t)PF_M4_FALCON_SUBMOTION_DAMAGE_NEUTRAL_2;
     sim->world.source_animation_frame_f32[0] =
-        INT32_C(14) * PF_F32_ONE;
-    sim->world.source_animation_rate_f32[0] = PF_F32_ONE;
+        INT32_C(14) * 1.0f;
+    sim->world.source_animation_rate_f32[0] = 1.0f;
     sim->world.shield_held[0] = UINT8_C(0);
     if (!step_duel_trigger(
             sim,
@@ -17087,7 +17087,7 @@ static int run_reference_callback_owner_test(
             (uint8_t)PF_M4_ACTION_SHIELD ||
         inspection.players[0].source_submotion !=
             (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD_ON ||
-        sim->world.ground_blend_progress_f32[0] != PF_F32_ONE)
+        sim->world.ground_blend_progress_f32[0] != 1.0f)
     {
         (void)fprintf(
             stderr,

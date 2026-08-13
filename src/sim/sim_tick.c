@@ -96,7 +96,7 @@ static pf_status begin_sudden_death(
             PF_SIM_EVENT_SUDDEN_DEATH,
             PF_SIM_EVENT_NO_PLAYER,
             PF_SIM_EVENT_NO_PLAYER,
-            UINT32_C(300) * (uint32_t)PF_F32_ONE,
+            UINT32_C(300) * (uint32_t)1.0f,
             INT32_C(0),
             INT32_C(0),
             (uint16_t)PF_SIM_EVENT_FLAG_SUDDEN_DEATH,
@@ -131,7 +131,7 @@ static pf_status begin_sudden_death(
         world->action_state[player_index] =
             (uint8_t)PF_M4_ACTION_RESPAWN_WAIT;
         world->damage_f32[player_index] =
-            UINT32_C(300) * (uint32_t)PF_F32_ONE;
+            UINT32_C(300) * (uint32_t)1.0f;
     }
     scratch->stale_move_sync_valid = UINT8_C(0);
     return PF_STATUS_OK;

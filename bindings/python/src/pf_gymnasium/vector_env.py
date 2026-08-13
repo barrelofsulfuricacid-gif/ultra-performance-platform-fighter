@@ -14,7 +14,6 @@ from gymnasium.vector.utils import batch_space
 from ._native import (
     NativeBatch,
     NativeCallError,
-    PF_F32_ONE,
     PF_RL_BUTTON_BITS,
     PF_RL_BUTTON_COUNT,
     PF_RL_COMPACT_VALUE_COUNT,
@@ -164,8 +163,8 @@ class PlatformFighterVectorEnv(VectorEnv):
         self._observations[environment_index, :] = np.ctypeslib.as_array(
             transition.compact_observation.values
         )
-        self._rewards[environment_index] = (
-            int(transition.reward_f32[self.reward_player]) / PF_F32_ONE
+        self._rewards[environment_index] = float(
+            transition.reward_f32[self.reward_player]
         )
         self._terminations[environment_index] = bool(
             transition.tick_result.terminated
@@ -185,7 +184,7 @@ class PlatformFighterVectorEnv(VectorEnv):
             "diagnostic_flags": np.zeros(self.num_envs, dtype=np.uint32),
             "winner_mask": np.zeros(self.num_envs, dtype=np.uint8),
             "player_rewards_f32": np.zeros(
-                (self.num_envs, PF_SIM_MAX_PLAYERS), dtype=np.int32
+                (self.num_envs, PF_SIM_MAX_PLAYERS), dtype=np.float32
             ),
             "player_rewards": np.zeros(
                 (self.num_envs, PF_SIM_MAX_PLAYERS), dtype=np.float32
@@ -214,11 +213,9 @@ class PlatformFighterVectorEnv(VectorEnv):
             )
             rewards_f32 = np.ctypeslib.as_array(
                 transition.reward_f32
-            ).astype(np.int32, copy=True)
+            ).astype(np.float32, copy=True)
             infos["player_rewards_f32"][environment_index, :] = rewards_f32
-            infos["player_rewards"][environment_index, :] = (
-                rewards_f32.astype(np.float32) / PF_F32_ONE
-            )
+            infos["player_rewards"][environment_index, :] = rewards_f32
             infos["legal_buttons"][environment_index, :] = (
                 np.ctypeslib.as_array(transition.legal_buttons)
             )

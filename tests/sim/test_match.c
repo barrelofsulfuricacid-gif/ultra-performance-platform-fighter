@@ -61,11 +61,11 @@ static int run_revival_content_contract_test(void)
         content.schema_version != PF_M4_CONTENT_SCHEMA_VERSION ||
         content.stage.schema_version != PF_M4_STAGE_SCHEMA_VERSION ||
         content.stage.revival_platform_start_y_f32 !=
-            INT32_C(4) * PF_F32_ONE ||
+            INT32_C(4) * 1.0f ||
         content.stage.revival_platform_end_y_f32 !=
-            INT32_C(12) * PF_F32_ONE ||
+            INT32_C(12) * 1.0f ||
         content.stage.revival_platform_half_width_f32 !=
-            INT32_C(2) * PF_F32_ONE ||
+            INT32_C(2) * 1.0f ||
         content.stage.revival_platform_descent_ticks != UINT16_C(60) ||
         content.stage.revival_platform_hold_ticks != UINT16_C(240) ||
         !expect_status(
@@ -165,35 +165,35 @@ static int make_match_content(
     }
 
     out_content->stage.floor_left_f32 =
-        -INT32_C(8) * PF_F32_ONE;
+        -INT32_C(8) * 1.0f;
     out_content->stage.floor_right_f32 =
-        INT32_C(8) * PF_F32_ONE;
+        INT32_C(8) * 1.0f;
     out_content->stage.platform_center_x_f32 =
-        INT32_C(5) * PF_F32_ONE;
+        INT32_C(5) * 1.0f;
     out_content->stage.platform_half_width_f32 =
-        INT32_C(1) * PF_F32_ONE;
-    out_content->stage.platform_motion_amplitude_f32 = INT32_C(0);
+        INT32_C(1) * 1.0f;
+    out_content->stage.platform_motion_amplitude_f32 = 0.0f;
     out_content->stage.upper_platform_center_x_f32 =
-        -INT32_C(5) * PF_F32_ONE;
-    out_content->stage.upper_platform_half_width_f32 = PF_F32_ONE;
+        -INT32_C(5) * 1.0f;
+    out_content->stage.upper_platform_half_width_f32 = 1.0f;
     out_content->stage.solid_left_f32 =
-        -PF_F32_ONE / INT32_C(10);
+        -1.0f / INT32_C(10);
     out_content->stage.solid_right_f32 =
-        PF_F32_ONE / INT32_C(10);
+        1.0f / INT32_C(10);
     out_content->stage.blast_left_f32 =
-        -INT32_C(10) * PF_F32_ONE;
+        -INT32_C(10) * 1.0f;
     out_content->stage.blast_right_f32 =
-        INT32_C(10) * PF_F32_ONE;
+        INT32_C(10) * 1.0f;
     out_content->stage.blast_bottom_f32 =
-        INT32_C(34) * PF_F32_ONE;
+        INT32_C(34) * 1.0f;
     out_content->stage.spawn_spacing_f32 =
-        (INT32_C(4) * PF_F32_ONE) / INT32_C(5);
+        (INT32_C(4) * 1.0f) / INT32_C(5);
     out_content->stage.revival_platform_start_y_f32 =
-        INT32_C(4) * PF_F32_ONE;
+        INT32_C(4) * 1.0f;
     out_content->stage.revival_platform_end_y_f32 =
-        INT32_C(8) * PF_F32_ONE;
+        INT32_C(8) * 1.0f;
     out_content->stage.revival_platform_half_width_f32 =
-        INT32_C(1) * PF_F32_ONE;
+        INT32_C(1) * 1.0f;
     out_content->stage.revival_platform_descent_ticks = UINT16_C(3);
     out_content->stage.revival_platform_hold_ticks = UINT16_C(4);
 
@@ -559,10 +559,10 @@ static int run_stock_respawn_match_test(
         inspection.players[0].invulnerable != UINT8_C(1) ||
         inspection.players[0].revival_platform_active != UINT8_C(1) ||
         inspection.players[0].position_x_f32 !=
-            -(INT32_C(4) * PF_F32_ONE) / INT32_C(5) ||
+            -(INT32_C(4) * 1.0f) / INT32_C(5) ||
         inspection.players[0].position_y_f32 !=
             inspection.stage.revival_platform_start_y_f32 -
-                (INT32_C(4) * PF_F32_ONE) / INT32_C(5) ||
+                (INT32_C(4) * 1.0f) / INT32_C(5) ||
         inspection.players[0].revival_platform_y_f32 !=
             inspection.stage.revival_platform_start_y_f32 ||
         inspection.players[0].revival_platform_left_f32 !=
@@ -952,9 +952,9 @@ static int run_simultaneous_ko_sudden_death_test(
         inspection.players[0].stocks_remaining != UINT8_C(1) ||
         inspection.players[1].stocks_remaining != UINT8_C(1) ||
         inspection.players[0].damage_f32 !=
-            UINT32_C(300) * (uint32_t)PF_F32_ONE ||
+            UINT32_C(300) * (uint32_t)1.0f ||
         inspection.players[1].damage_f32 !=
-            UINT32_C(300) * (uint32_t)PF_F32_ONE ||
+            UINT32_C(300) * (uint32_t)1.0f ||
         inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_RESPAWN_WAIT ||
         inspection.players[1].action_state !=
@@ -970,7 +970,7 @@ static int run_simultaneous_ko_sudden_death_test(
         result.events[3].type !=
             (uint16_t)PF_SIM_EVENT_SUDDEN_DEATH ||
         result.events[3].value_f32 !=
-            UINT32_C(300) * (uint32_t)PF_F32_ONE)
+            UINT32_C(300) * (uint32_t)1.0f)
     {
         return fail("simultaneous-final-stock-enters-sudden-death");
     }
@@ -992,9 +992,9 @@ static int run_simultaneous_ko_sudden_death_test(
     if (inspection.players[0].active != UINT8_C(1) ||
         inspection.players[1].active != UINT8_C(1) ||
         inspection.players[0].damage_f32 !=
-            UINT32_C(300) * (uint32_t)PF_F32_ONE ||
+            UINT32_C(300) * (uint32_t)1.0f ||
         inspection.players[1].damage_f32 !=
-            UINT32_C(300) * (uint32_t)PF_F32_ONE ||
+            UINT32_C(300) * (uint32_t)1.0f ||
         result.event_count != UINT8_C(3) ||
         result.events[0].type !=
             (uint16_t)PF_SIM_EVENT_RESPAWN ||
@@ -1006,7 +1006,7 @@ static int run_simultaneous_ko_sudden_death_test(
         (result.events[0].flags &
          (uint16_t)PF_SIM_EVENT_FLAG_SUDDEN_DEATH) == UINT16_C(0) ||
         result.events[0].value_f32 !=
-            UINT32_C(300) * (uint32_t)PF_F32_ONE)
+            UINT32_C(300) * (uint32_t)1.0f)
     {
         return fail("sudden-death-spawn-retains-300-percent");
     }

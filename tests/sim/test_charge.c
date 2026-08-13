@@ -133,12 +133,12 @@ static int make_charge_content(
     }
     content->fighter.reference_frame_data_enabled = UINT8_C(0);
     content->charge.enabled = UINT8_C(1);
-    content->charge.hitbox_offset_x_f32 = INT32_C(0);
-    content->charge.hitbox_half_width_f32 = INT32_C(4) * PF_F32_ONE;
-    content->fighter.jab_hitbox_offset_x_f32 = INT32_C(0);
+    content->charge.hitbox_offset_x_f32 = 0.0f;
+    content->charge.hitbox_half_width_f32 = INT32_C(4) * 1.0f;
+    content->fighter.jab_hitbox_offset_x_f32 = 0.0f;
     content->fighter.jab_hitbox_half_width_f32 =
-        INT32_C(4) * PF_F32_ONE;
-    content->stage.spawn_spacing_f32 = PF_F32_ONE;
+        INT32_C(4) * 1.0f;
+    content->stage.spawn_spacing_f32 = 1.0f;
     return expect_status(
         make_content_view(content, view),
         PF_STATUS_OK,
@@ -505,7 +505,7 @@ static int run_release_and_interrupt_contract(
     {
         (void)fprintf(
             stderr,
-            "m4-charge=debug interruption damage=%u charge=%u action=%u\n",
+            "m4-charge=debug interruption damage=%.9g charge=%u action=%u\n",
             inspection.players[0].damage_f32,
             (unsigned int)inspection.players[0].charge_ticks,
             (unsigned int)inspection.players[0].action_state);

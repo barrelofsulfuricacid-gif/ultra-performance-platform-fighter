@@ -11,23 +11,22 @@ from typing import Iterable
 import numpy as np
 
 PF_STATUS_OK = 0
-PF_SIM_ABI_VERSION = 5
+PF_SIM_ABI_VERSION = 6
 PF_SIM_CONTENT_SCHEMA_VERSION = 1
 PF_RL_SCHEMA_VERSION = 14
 PF_RL_ACTION_SCHEMA_VERSION = 1
 PF_RL_TRANSITION_SCHEMA_VERSION = 12
-PF_RL_COMPACT_OBSERVATION_SCHEMA_VERSION = 13
+PF_RL_COMPACT_OBSERVATION_SCHEMA_VERSION = 14
 PF_SIM_MAX_PLAYERS = 4
 PF_SIM_MAX_EVENTS_PER_TICK = 16
 PF_RL_COMPACT_VALUE_COUNT = 102
 PF_RL_BUTTON_BITS = (0, 1, 2, 3, 4, 63)
 PF_RL_BUTTON_COUNT = len(PF_RL_BUTTON_BITS)
 PF_INPUT_KNOWN_BUTTONS = sum(1 << bit for bit in PF_RL_BUTTON_BITS)
-PF_F32_ONE = 65_536
 PF_RL_REWARD_COMPONENT_TERMINAL = 1 << 0
 PF_RL_REWARD_COMPONENT_ENGAGEMENT = 1 << 1
-PF_RL_ENGAGEMENT_POTENTIAL_LIMIT_F32 = 16_384
-PF_RL_ENGAGEMENT_REFERENCE_DISTANCE_F32 = 8_388_608
+PF_RL_ENGAGEMENT_POTENTIAL_LIMIT_F32 = 0.25
+PF_RL_ENGAGEMENT_REFERENCE_DISTANCE_F32 = 128.0
 
 
 class NativeCallError(RuntimeError):
@@ -62,8 +61,8 @@ class _SimConfig(ct.Structure):
         ("player_count", ct.c_uint8),
         ("mode", ct.c_uint8),
         ("max_ticks", ct.c_uint64),
-        ("arena_half_width_f32", ct.c_int32),
-        ("arena_ceiling_f32", ct.c_int32),
+        ("arena_half_width_f32", ct.c_float),
+        ("arena_ceiling_f32", ct.c_float),
         ("stock_count", ct.c_uint8),
         ("reserved2", ct.c_uint8),
         ("respawn_delay_ticks", ct.c_uint16),
@@ -85,9 +84,9 @@ class _SimEvent(ct.Structure):
     _fields_ = [
         ("tick", ct.c_uint64),
         ("sequence", ct.c_uint32),
-        ("value_f32", ct.c_uint32),
-        ("velocity_x_f32", ct.c_int32),
-        ("velocity_y_f32", ct.c_int32),
+        ("value_f32", ct.c_float),
+        ("velocity_x_f32", ct.c_float),
+        ("velocity_y_f32", ct.c_float),
         ("type", ct.c_uint16),
         ("flags", ct.c_uint16),
         ("detail", ct.c_uint16),
@@ -114,10 +113,10 @@ class _TickResult(ct.Structure):
 class _PlayerObservation(ct.Structure):
     _fields_ = [
         ("previous_buttons", ct.c_uint64),
-        ("position_x_f32", ct.c_int32),
-        ("position_y_f32", ct.c_int32),
-        ("velocity_x_f32", ct.c_int32),
-        ("velocity_y_f32", ct.c_int32),
+        ("position_x_f32", ct.c_float),
+        ("position_y_f32", ct.c_float),
+        ("velocity_x_f32", ct.c_float),
+        ("velocity_y_f32", ct.c_float),
         ("player_slot", ct.c_uint8),
         ("team", ct.c_uint8),
         ("grounded", ct.c_uint8),
@@ -131,8 +130,8 @@ class _PlayerObservation(ct.Structure):
         ("shield_strength", ct.c_uint16),
         ("shield_tilt_x", ct.c_int16),
         ("shield_tilt_y", ct.c_int16),
-        ("shield_health_f32", ct.c_uint32),
-        ("stale_move_multiplier_f32", ct.c_uint32),
+        ("shield_health_f32", ct.c_float),
+        ("stale_move_multiplier_f32", ct.c_float),
         ("stale_move_count", ct.c_uint8),
         ("stale_move_ids", ct.c_uint8 * 9),
         ("prone_orientation", ct.c_uint8),
@@ -142,10 +141,10 @@ class _PlayerObservation(ct.Structure):
 
 class _ItemObservation(ct.Structure):
     _fields_ = [
-        ("position_x_f32", ct.c_int32),
-        ("position_y_f32", ct.c_int32),
-        ("velocity_x_f32", ct.c_int32),
-        ("velocity_y_f32", ct.c_int32),
+        ("position_x_f32", ct.c_float),
+        ("position_y_f32", ct.c_float),
+        ("velocity_x_f32", ct.c_float),
+        ("velocity_y_f32", ct.c_float),
         ("lifetime_ticks", ct.c_uint16),
         ("respawn_ticks", ct.c_uint16),
         ("pickup_lockout_ticks", ct.c_uint16),
@@ -160,10 +159,10 @@ class _ItemObservation(ct.Structure):
 
 class _ProjectileObservation(ct.Structure):
     _fields_ = [
-        ("position_x_f32", ct.c_int32),
-        ("position_y_f32", ct.c_int32),
-        ("velocity_x_f32", ct.c_int32),
-        ("velocity_y_f32", ct.c_int32),
+        ("position_x_f32", ct.c_float),
+        ("position_y_f32", ct.c_float),
+        ("velocity_x_f32", ct.c_float),
+        ("velocity_y_f32", ct.c_float),
         ("lifetime_ticks", ct.c_uint16),
         ("state", ct.c_uint8),
         ("owner_slot", ct.c_uint8),
@@ -230,8 +229,8 @@ class _RlSpec(ct.Structure):
         ("axis_maximum", ct.c_int16),
         ("trigger_minimum", ct.c_uint16),
         ("trigger_maximum", ct.c_uint16),
-        ("terminal_reward_one_f32", ct.c_int32),
-        ("engagement_potential_limit_f32", ct.c_int32),
+        ("terminal_reward_one_f32", ct.c_float),
+        ("engagement_potential_limit_f32", ct.c_float),
     ]
 
 
@@ -245,7 +244,7 @@ class _RlTransition(ct.Structure):
         ("tick_result", _TickResult),
         ("structured_observation", _SimObservation),
         ("compact_observation", _RlCompactObservation),
-        ("reward_f32", ct.c_int32 * PF_SIM_MAX_PLAYERS),
+        ("reward_f32", ct.c_float * PF_SIM_MAX_PLAYERS),
         ("legal_buttons", ct.c_uint64 * PF_SIM_MAX_PLAYERS),
     ]
 
@@ -413,7 +412,7 @@ class NativeBatch:
                 PF_RL_REWARD_COMPONENT_TERMINAL
                 | PF_RL_REWARD_COMPONENT_ENGAGEMENT
             )
-            or self.spec.terminal_reward_one_f32 != PF_F32_ONE
+            or self.spec.terminal_reward_one_f32 != 1.0
             or self.spec.engagement_potential_limit_f32
             != PF_RL_ENGAGEMENT_POTENTIAL_LIMIT_F32
         ):
@@ -706,7 +705,6 @@ class NativeBatch:
 __all__ = [
     "NativeBatch",
     "NativeCallError",
-    "PF_F32_ONE",
     "PF_RL_BUTTON_BITS",
     "PF_RL_BUTTON_COUNT",
     "PF_RL_COMPACT_VALUE_COUNT",

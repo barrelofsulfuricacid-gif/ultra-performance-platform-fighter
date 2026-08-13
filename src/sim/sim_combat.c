@@ -346,7 +346,7 @@ float stale_move_multiplier_f32(
         stale_move_count > PF_SIM_STALE_MOVE_QUEUE_CAPACITY ||
         move_id == UINT8_C(0))
     {
-        return PF_F32_ONE;
+        return 1.0f;
     }
     for (stale_index = UINT32_C(0);
          stale_index < (uint32_t)stale_move_count;
@@ -358,7 +358,7 @@ float stale_move_multiplier_f32(
                 fighter->stale_move_slot_reduction_f32[stale_index];
         }
     }
-    return PF_F32_ONE - reduction_f32;
+    return 1.0f - reduction_f32;
 }
 
 static float stale_scaled_damage_f32(
@@ -381,7 +381,7 @@ static float stale_scaled_damage_f32(
             scratch->stale_move_ids[player_index],
             scratch->stale_move_count[player_index],
             move_id);
-    if (multiplier_f32 == PF_F32_ONE)
+    if (multiplier_f32 == 1.0f)
     {
         return damage_f32;
     }
@@ -2360,14 +2360,14 @@ static int shield_volume_for_player(
     }
 
     density_scale_f32 =
-        PF_F32_ONE -
-        (PF_F32_ONE - fighter->dense_shield_size_scale_f32) *
+        1.0f -
+        (1.0f - fighter->dense_shield_size_scale_f32) *
             (float)shield_strength / (float)UINT16_MAX;
     health_scale_f32 = shield_health_f32 / fighter->shield_health_f32;
     combined_scale_f32 = health_scale_f32 * density_scale_f32;
     size_scale_f32 =
         fighter->shield_minimum_size_scale_f32 +
-        (PF_F32_ONE - fighter->shield_minimum_size_scale_f32) *
+        (1.0f - fighter->shield_minimum_size_scale_f32) *
             combined_scale_f32;
     out_volume->radius_x_f32 = fighter->shield_radius_x_f32 * size_scale_f32;
     out_volume->radius_y_f32 = fighter->shield_radius_y_f32 * size_scale_f32;
@@ -4156,8 +4156,8 @@ static pf_status apply_hit_reaction(
             return PF_STATUS_DETERMINISTIC_FAULT;
         }
         scratch->source_submotion[target_index] = damage_submotion;
-        scratch->source_animation_frame_f32[target_index] = PF_F32_ONE;
-        scratch->source_animation_rate_f32[target_index] = PF_F32_ONE;
+        scratch->source_animation_frame_f32[target_index] = 1.0f;
+        scratch->source_animation_rate_f32[target_index] = 1.0f;
     }
     /* DamageFly is airborne from its entry frame, including the hitlag-held
      * rows before its physics callback first advances.  Ground damage keeps
@@ -4705,7 +4705,7 @@ static pf_status resolve_grabs(
                 scratch->source_animation_frame_f32[target_index] =
                     INT32_C(0);
                 scratch->source_animation_rate_f32[target_index] =
-                    PF_F32_ONE;
+                    1.0f;
                 scratch->action_ticks[target_index] = UINT16_C(0);
             }
             if (throw_data != NULL)
@@ -5351,11 +5351,11 @@ static pf_status resolve_grabs(
                     ? (float)catch_frame
                     : 0.0f;
             scratch->source_animation_frame_f32[target_index] =
-                reference_ground_capture != 0 ? PF_F32_ONE : 0.0f;
+                reference_ground_capture != 0 ? 1.0f : 0.0f;
             scratch->source_animation_rate_f32[attacker_index] =
-                reference_ground_capture != 0 ? PF_F32_ONE : 0.0f;
+                reference_ground_capture != 0 ? 1.0f : 0.0f;
             scratch->source_animation_rate_f32[target_index] =
-                reference_ground_capture != 0 ? PF_F32_ONE : 0.0f;
+                reference_ground_capture != 0 ? 1.0f : 0.0f;
             scratch->charge_ticks[target_index] = UINT16_C(0);
             scratch->smash_charge_ticks[target_index] = UINT16_C(0);
             if (falcon_dive_grab != 0 &&

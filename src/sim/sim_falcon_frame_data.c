@@ -750,7 +750,7 @@ int falcon_reference_ecb_apply_bottom_lock_f32(
     const float one_y_f32 = falcon_ecb_source_scale_f32(
         1.0f, INT32_C(11), INT32_C(62));
     const float epsilon_y_f32 = falcon_ecb_source_scale_f32(
-        66.0f / 65536.0f, INT32_C(11), INT32_C(62));
+        0.00100708008f, INT32_C(11), INT32_C(62));
 
     if (pose == NULL)
     {
@@ -1112,7 +1112,7 @@ int falcon_reference_direct_hsd_pose(
     float *out_frame_f32)
 {
     uint16_t submotion;
-    float frame_f32 = (int32_t)action_ticks * PF_F32_ONE;
+    float frame_f32 = (int32_t)action_ticks * 1.0f;
 
     if (out_submotion == NULL || out_frame_f32 == NULL)
     {
@@ -1149,13 +1149,13 @@ int falcon_reference_direct_hsd_pose(
         {
             submotion = (uint16_t)
                 PF_M4_FALCON_SUBMOTION_FALCON_DIVE_START_GROUND;
-            frame_f32 = INT32_C(13) * PF_F32_ONE;
+            frame_f32 = INT32_C(13) * 1.0f;
         }
         else if (action_ticks == UINT16_C(0))
         {
             submotion = (uint16_t)
                 PF_M4_FALCON_SUBMOTION_FALCON_DIVE_START_AIR;
-            frame_f32 = INT32_C(13) * PF_F32_ONE;
+            frame_f32 = INT32_C(13) * 1.0f;
         }
         else
         {
@@ -1264,7 +1264,7 @@ int falcon_reference_hsd_fall_ecb_pose(
 
     if (out_pose == NULL || source_animation_frame_f32 < INT32_C(0) ||
         directional_blend_f32 < INT32_C(0) ||
-        directional_blend_f32 > PF_F32_ONE ||
+        directional_blend_f32 > 1.0f ||
         directional_target_switched > UINT8_C(1) ||
         !hsd_evaluate_local_pose_f32(
             &falcon_dynamic_hsd_data,
@@ -1279,7 +1279,7 @@ int falcon_reference_hsd_fall_ecb_pose(
         const falcon_submotion_data *directional_motion =
             falcon_reference_submotion(directional_submotion);
         float directional_frame_f32 =
-            source_animation_frame_f32 + PF_F32_ONE;
+            source_animation_frame_f32 + 1.0f;
 
         if (directional_motion == NULL ||
             directional_motion->animation_frame_count == UINT16_C(0))
@@ -1301,17 +1301,17 @@ int falcon_reference_hsd_fall_ecb_pose(
                  &falcon_dynamic_hsd_data,
                  directional,
                  neutral,
-                 PF_F32_ONE - directional_blend_f32,
+                 1.0f - directional_blend_f32,
                  transition)))
         {
             return 0;
         }
         while (directional_frame_f32 >=
-            (int32_t)directional_motion->animation_frame_count * PF_F32_ONE)
+            (int32_t)directional_motion->animation_frame_count * 1.0f)
         {
             directional_frame_f32 -=
                 (int32_t)directional_motion->animation_frame_count *
-                PF_F32_ONE;
+                1.0f;
         }
         if (!hsd_evaluate_local_pose_f32(
                 &falcon_dynamic_hsd_data,
@@ -1324,7 +1324,7 @@ int falcon_reference_hsd_fall_ecb_pose(
                 directional_target_switched != UINT8_C(0)
                     ? transition
                     : neutral,
-                PF_F32_ONE - directional_blend_f32,
+                1.0f - directional_blend_f32,
                 blended))
         {
             return 0;
@@ -2165,7 +2165,7 @@ int falcon_reference_retained_hsd_pose(
             action_state == (uint8_t)PF_M4_ACTION_SHIELD_STUN ||
             action_state == (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN
             ? source_animation_frame_f32
-            : (int32_t)action_ticks * PF_F32_ONE;
+            : (int32_t)action_ticks * 1.0f;
     return 1;
 }
 

@@ -1821,7 +1821,7 @@ pf_status default_content(struct content *out_content)
     fighter->half_height_f32 = PF_F32_RATIO(4, 5);
     fighter->player_push_half_width_f32 = PF_F32_RATIO(42, 115);
     fighter->player_push_speed_f32 = PF_F32_RATIO(18, 575);
-    fighter->weight_f32 = PF_F32_ONE;
+    fighter->weight_f32 = 1.0f;
     fighter->ground_acceleration_f32 =
         falcon_attributes->dash_run_acceleration_a_f32;
     fighter->turn_acceleration_f32 = PF_F32_RATIO(48, 2875);
@@ -2222,7 +2222,7 @@ pf_status default_content(struct content *out_content)
         PF_F32_RATIO(57, 40);
     fighter->dense_shield_stun_damage_multiplier_f32 =
         PF_F32_RATIO(9, 20);
-    fighter->shield_stun_base_f32 = INT32_C(2) * PF_F32_ONE;
+    fighter->shield_stun_base_f32 = INT32_C(2) * 1.0f;
     fighter->shield_defender_pushback_stun_scale_f32 =
         PF_F32_RATIO(12, 575);
     fighter->shield_defender_pushback_normal_scale_f32 =
@@ -2441,39 +2441,39 @@ pf_status default_content(struct content *out_content)
     stage->schema_version = PF_M4_STAGE_SCHEMA_VERSION;
     stage->reference_collision_profile =
         (uint16_t)PF_M4_REFERENCE_STAGE_AUTHORED;
-    stage->floor_left_f32 = -INT32_C(32) * PF_F32_ONE;
-    stage->floor_right_f32 = INT32_C(32) * PF_F32_ONE;
-    stage->floor_y_f32 = INT32_C(32) * PF_F32_ONE;
+    stage->floor_left_f32 = -INT32_C(32) * 1.0f;
+    stage->floor_right_f32 = INT32_C(32) * 1.0f;
+    stage->floor_y_f32 = INT32_C(32) * 1.0f;
     stage->platform_center_x_f32 = INT32_C(0);
-    stage->platform_y_f32 = INT32_C(26) * PF_F32_ONE;
-    stage->platform_half_width_f32 = INT32_C(5) * PF_F32_ONE;
+    stage->platform_y_f32 = INT32_C(26) * 1.0f;
+    stage->platform_half_width_f32 = INT32_C(5) * 1.0f;
     stage->platform_motion_amplitude_f32 =
-        INT32_C(4) * PF_F32_ONE;
-    stage->solid_left_f32 = INT32_C(14) * PF_F32_ONE;
-    stage->solid_right_f32 = INT32_C(27) * PF_F32_ONE;
-    stage->solid_top_f32 = INT32_C(16) * PF_F32_ONE;
-    stage->solid_bottom_f32 = INT32_C(29) * PF_F32_ONE;
-    stage->blast_left_f32 = -INT32_C(52) * PF_F32_ONE;
-    stage->blast_right_f32 = INT32_C(52) * PF_F32_ONE;
-    stage->blast_top_f32 = INT32_C(2) * PF_F32_ONE;
-    stage->blast_bottom_f32 = INT32_C(58) * PF_F32_ONE;
-    stage->spawn_spacing_f32 = INT32_C(8) * PF_F32_ONE;
+        INT32_C(4) * 1.0f;
+    stage->solid_left_f32 = INT32_C(14) * 1.0f;
+    stage->solid_right_f32 = INT32_C(27) * 1.0f;
+    stage->solid_top_f32 = INT32_C(16) * 1.0f;
+    stage->solid_bottom_f32 = INT32_C(29) * 1.0f;
+    stage->blast_left_f32 = -INT32_C(52) * 1.0f;
+    stage->blast_right_f32 = INT32_C(52) * 1.0f;
+    stage->blast_top_f32 = INT32_C(2) * 1.0f;
+    stage->blast_bottom_f32 = INT32_C(58) * 1.0f;
+    stage->spawn_spacing_f32 = INT32_C(8) * 1.0f;
     stage->platform_motion_period_ticks = UINT16_C(120);
     stage->reference_spawn_line = UINT16_C(0);
     stage->reference_spawn_x_f32 = INT32_C(0);
     stage->revival_platform_start_y_f32 =
-        INT32_C(4) * PF_F32_ONE;
+        INT32_C(4) * 1.0f;
     stage->revival_platform_end_y_f32 =
-        INT32_C(12) * PF_F32_ONE;
+        INT32_C(12) * 1.0f;
     stage->revival_platform_half_width_f32 =
-        INT32_C(2) * PF_F32_ONE;
+        INT32_C(2) * 1.0f;
     stage->revival_platform_descent_ticks = rebirth->descent_ticks;
     stage->revival_platform_hold_ticks = rebirth->wait_ticks;
     stage->upper_platform_center_x_f32 =
-        INT32_C(20) * PF_F32_ONE;
-    stage->upper_platform_y_f32 = INT32_C(13) * PF_F32_ONE;
+        INT32_C(20) * 1.0f;
+    stage->upper_platform_y_f32 = INT32_C(13) * 1.0f;
     stage->upper_platform_half_width_f32 =
-        INT32_C(4) * PF_F32_ONE;
+        INT32_C(4) * 1.0f;
 
     item = &out_content->item;
     item->struct_size = (uint32_t)sizeof(*item);
@@ -2481,7 +2481,7 @@ pf_status default_content(struct content *out_content)
     item->enabled = UINT8_C(0);
     item->half_width_f32 = PF_F32_RATIO(1, 8);
     item->half_height_f32 = PF_F32_RATIO(1, 2);
-    item->spawn_x_f32 = -INT32_C(7) * PF_F32_ONE;
+    item->spawn_x_f32 = -INT32_C(7) * 1.0f;
     item->spawn_y_f32 =
         stage->floor_y_f32 - item->half_height_f32;
     item->pickup_half_width_f32 = PF_F32_RATIO(3, 2);
@@ -2666,22 +2666,22 @@ static pf_status apply_battlefield_stage(struct content *content)
         stage->upper_platform_center_x_f32);
     stage->upper_platform_half_width_f32 =
         stage_line_half_width_f32(side_platform);
-    stage->solid_left_f32 = -PF_F32_ONE;
-    stage->solid_right_f32 = PF_F32_ONE;
-    stage->solid_top_f32 = stage->floor_y_f32 - INT32_C(3) * PF_F32_ONE;
-    stage->solid_bottom_f32 = stage->floor_y_f32 - PF_F32_ONE;
+    stage->solid_left_f32 = -1.0f;
+    stage->solid_right_f32 = 1.0f;
+    stage->solid_top_f32 = stage->floor_y_f32 - INT32_C(3) * 1.0f;
+    stage->solid_bottom_f32 = stage->floor_y_f32 - 1.0f;
     stage->blast_left_f32 = profile->blast_left_f32;
     stage->blast_right_f32 = profile->blast_right_f32;
     stage->blast_top_f32 = profile->blast_top_f32;
     stage->blast_bottom_f32 = profile->blast_bottom_f32;
-    stage->spawn_spacing_f32 = PF_F32_ONE;
+    stage->spawn_spacing_f32 = 1.0f;
     stage->platform_motion_period_ticks = UINT16_C(120);
     stage->reference_spawn_line = (uint16_t)spawn->support - UINT16_C(1);
     stage->reference_spawn_x_f32 = spawn->position_x_f32;
     stage->revival_platform_start_y_f32 = profile->camera_top_f32;
     /* Battlefield's Rebirth target root is source-world Y=80. */
     stage->revival_platform_end_y_f32 = 5.8064575f;
-    stage->revival_platform_half_width_f32 = INT32_C(2) * PF_F32_ONE;
+    stage->revival_platform_half_width_f32 = INT32_C(2) * 1.0f;
     return PF_STATUS_OK;
 }
 
@@ -2840,7 +2840,7 @@ pf_status validate_content(const struct content *content)
         stale_reduction_total_f32 += reduction;
     }
     if (stale_reduction_total_f32 >
-        PF_F32_ONE * 0.5f)
+        1.0f * 0.5f)
     {
         return PF_STATUS_INVALID_CONFIG;
     }
@@ -2868,7 +2868,7 @@ pf_status validate_content(const struct content *content)
             maximum_fighter_extent_f32) ||
         fighter->smash_charge_damage_bonus_f32 == 0.0f ||
         fighter->smash_charge_damage_bonus_f32 >
-            PF_F32_ONE ||
+            1.0f ||
         fighter->smash_charge_max_ticks == UINT16_C(0) ||
         fighter->smash_charge_max_ticks > UINT16_C(600) ||
         !charged_attack_damage_is_valid(
@@ -2968,8 +2968,8 @@ pf_status validate_content(const struct content *content)
         fighter->player_push_speed_f32 <= INT32_C(0) ||
         fighter->player_push_speed_f32 >
             maximum_fighter_extent_f32 ||
-        fighter->weight_f32 < PF_F32_ONE / INT32_C(2) ||
-        fighter->weight_f32 > INT32_C(2) * PF_F32_ONE ||
+        fighter->weight_f32 < 1.0f / INT32_C(2) ||
+        fighter->weight_f32 > INT32_C(2) * 1.0f ||
         fighter->ground_acceleration_f32 <= INT32_C(0) ||
         fighter->turn_acceleration_f32 <
             fighter->ground_acceleration_f32 ||
@@ -2994,9 +2994,9 @@ pf_status validate_content(const struct content *content)
         fighter->ground_max_horizontal_speed_f32 <
             fighter->initial_dash_speed_f32 ||
         fighter->walk_acceleration_taper_f32 <= INT32_C(0) ||
-        fighter->walk_acceleration_taper_f32 > PF_F32_ONE ||
+        fighter->walk_acceleration_taper_f32 > 1.0f ||
         fighter->run_acceleration_taper_f32 <= INT32_C(0) ||
-        fighter->run_acceleration_taper_f32 > PF_F32_ONE ||
+        fighter->run_acceleration_taper_f32 > 1.0f ||
         fighter->teeter_snap_distance_f32 <= INT32_C(0) ||
         fighter->crouch_step_speed_f32 < INT32_C(0) ||
         fighter->crouch_step_speed_f32 > fighter->walk_speed_f32 ||
@@ -3008,7 +3008,7 @@ pf_status validate_content(const struct content *content)
         fighter->air_speed_f32 <= INT32_C(0) ||
         fighter->jump_horizontal_input_speed_f32 <= INT32_C(0) ||
         fighter->jump_horizontal_momentum_multiplier_f32 <= INT32_C(0) ||
-        fighter->jump_horizontal_momentum_multiplier_f32 > PF_F32_ONE ||
+        fighter->jump_horizontal_momentum_multiplier_f32 > 1.0f ||
         fighter->jump_horizontal_max_speed_f32 <
             fighter->jump_horizontal_input_speed_f32 ||
         fighter->gravity_f32 <= INT32_C(0) ||
@@ -3030,7 +3030,7 @@ pf_status validate_content(const struct content *content)
             fighter->half_width_f32 +
                 fighter->platform_drop_nudge_f32 ||
         fighter->ledge_roll_distance_f32 >
-            INT32_C(8) * PF_F32_ONE ||
+            INT32_C(8) * 1.0f ||
         fighter->drop_cancel_snap_distance_f32 <=
             fighter->platform_drop_nudge_f32 ||
         fighter->drop_cancel_snap_distance_f32 >
@@ -3038,7 +3038,7 @@ pf_status validate_content(const struct content *content)
         fighter->air_dodge_speed_x_f32 <= INT32_C(0) ||
         fighter->air_dodge_speed_y_f32 <= INT32_C(0) ||
         fighter->air_dodge_decay_f32 <= INT32_C(0) ||
-        fighter->air_dodge_decay_f32 > PF_F32_ONE ||
+        fighter->air_dodge_decay_f32 > 1.0f ||
         fighter->fall_special_mobility_f32 <= INT32_C(0) ||
         fighter->fall_special_mobility_f32 >
             fighter->air_speed_f32 ||
@@ -3196,7 +3196,7 @@ pf_status validate_content(const struct content *content)
         fighter->getup_attack_knockback_growth_f32 <= INT32_C(0) ||
         fighter->hitstun_velocity_per_tick_f32 <= INT32_C(0) ||
         fighter->v_cancel_velocity_scale_f32 <= INT32_C(0) ||
-        fighter->v_cancel_velocity_scale_f32 >= PF_F32_ONE ||
+        fighter->v_cancel_velocity_scale_f32 >= 1.0f ||
         fighter->knockback_weight == UINT16_C(0) ||
         fighter->knockback_weight > UINT16_C(1000) ||
         fighter->knockback_reserved != UINT16_C(0) ||
@@ -3204,21 +3204,21 @@ pf_status validate_content(const struct content *content)
         fighter->crouch_cancel_max_damage_f32 >
             PF_SIM_MAX_DAMAGE_F32 ||
         fighter->crouch_cancel_velocity_scale_f32 <= INT32_C(0) ||
-        fighter->crouch_cancel_velocity_scale_f32 >= PF_F32_ONE ||
+        fighter->crouch_cancel_velocity_scale_f32 >= 1.0f ||
         fighter->crouch_cancel_hitstun_scale_f32 <= INT32_C(0) ||
-        fighter->crouch_cancel_hitstun_scale_f32 >= PF_F32_ONE ||
+        fighter->crouch_cancel_hitstun_scale_f32 >= 1.0f ||
         fighter->di_max_angle_radians_q30 <= INT32_C(0) ||
         fighter->di_max_angle_radians_q30 > INT32_C(1073741824) ||
         fighter->ground_knockback_decay_scale_f32 <= INT32_C(0) ||
-        fighter->ground_knockback_decay_scale_f32 > PF_F32_ONE ||
+        fighter->ground_knockback_decay_scale_f32 > 1.0f ||
         fighter->air_knockback_decay_f32 <= INT32_C(0) ||
-        fighter->air_knockback_decay_f32 > PF_F32_ONE ||
+        fighter->air_knockback_decay_f32 > 1.0f ||
         fighter->sdi_distance_x_f32 <= INT32_C(0) ||
         fighter->sdi_distance_x_f32 >
-            INT32_C(4) * PF_F32_ONE ||
+            INT32_C(4) * 1.0f ||
         fighter->sdi_distance_y_f32 <= INT32_C(0) ||
         fighter->sdi_distance_y_f32 >
-            INT32_C(4) * PF_F32_ONE ||
+            INT32_C(4) * 1.0f ||
         fighter->asdi_distance_x_f32 <= INT32_C(0) ||
         fighter->asdi_distance_x_f32 >
             fighter->sdi_distance_x_f32 ||
@@ -3226,7 +3226,7 @@ pf_status validate_content(const struct content *content)
         fighter->asdi_distance_y_f32 >
             fighter->sdi_distance_y_f32 ||
         fighter->shield_sdi_scale_f32 <= INT32_C(0) ||
-        fighter->shield_sdi_scale_f32 > PF_F32_ONE ||
+        fighter->shield_sdi_scale_f32 > 1.0f ||
         fighter->tech_roll_speed_f32 <= INT32_C(0) ||
         fighter->tech_roll_speed_f32 >
             PF_SIM_MAX_MOTION_SPEED_F32 ||
@@ -3255,7 +3255,7 @@ pf_status validate_content(const struct content *content)
         fighter->surface_collision_threshold_y_f32 >
             PF_SIM_MAX_MOTION_SPEED_F32 ||
         fighter->surface_bounce_multiplier_f32 <= INT32_C(0) ||
-        fighter->surface_bounce_multiplier_f32 > PF_F32_ONE ||
+        fighter->surface_bounce_multiplier_f32 > 1.0f ||
         fighter->shield_health_f32 == UINT32_C(0) ||
         fighter->shield_health_f32 >
             PF_SIM_MAX_SHIELD_HEALTH_F32 ||
@@ -3280,28 +3280,28 @@ pf_status validate_content(const struct content *content)
             fighter->light_shield_damage_multiplier_f32 ||
         fighter->light_shield_stun_damage_multiplier_f32 <= INT32_C(0) ||
         fighter->light_shield_stun_damage_multiplier_f32 >
-            INT32_C(2) * PF_F32_ONE ||
+            INT32_C(2) * 1.0f ||
         fighter->dense_shield_stun_damage_multiplier_f32 <= INT32_C(0) ||
         fighter->dense_shield_stun_damage_multiplier_f32 >
             fighter->light_shield_stun_damage_multiplier_f32 ||
         fighter->shield_stun_base_f32 <= INT32_C(0) ||
         fighter->shield_stun_base_f32 >
-            INT32_C(16) * PF_F32_ONE ||
+            INT32_C(16) * 1.0f ||
         fighter->shield_defender_pushback_stun_scale_f32 <=
             INT32_C(0) ||
         fighter->shield_defender_pushback_stun_scale_f32 >
-            PF_F32_ONE ||
+            1.0f ||
         fighter->shield_defender_pushback_normal_scale_f32 <=
             INT32_C(0) ||
         fighter->shield_defender_pushback_normal_scale_f32 >
-            PF_F32_ONE ||
+            1.0f ||
         fighter->shield_defender_pushback_max_f32 <= INT32_C(0) ||
         fighter->shield_defender_pushback_max_f32 >
             PF_SIM_MAX_MOTION_SPEED_F32 ||
         fighter->shield_attacker_pushback_damage_f32 <=
             INT32_C(0) ||
         fighter->shield_attacker_pushback_damage_f32 >
-            PF_F32_ONE ||
+            1.0f ||
         fighter->shield_attacker_pushback_base_f32 <=
             INT32_C(0) ||
         fighter->shield_attacker_pushback_base_f32 >
@@ -3313,7 +3313,7 @@ pf_status validate_content(const struct content *content)
         fighter->shield_attacker_pushback_ground_friction_scale_f32 <=
             INT32_C(0) ||
         fighter->shield_attacker_pushback_ground_friction_scale_f32 >
-            INT32_C(2) * PF_F32_ONE ||
+            INT32_C(2) * 1.0f ||
         fighter->shield_radius_x_f32 <= INT32_C(0) ||
         fighter->shield_radius_x_f32 >
             maximum_fighter_extent_f32 ||
@@ -3323,7 +3323,7 @@ pf_status validate_content(const struct content *content)
         fighter->shield_minimum_size_scale_f32 <= INT32_C(0) ||
         fighter->shield_minimum_size_scale_f32 >=
             fighter->dense_shield_size_scale_f32 ||
-        fighter->dense_shield_size_scale_f32 > PF_F32_ONE ||
+        fighter->dense_shield_size_scale_f32 > 1.0f ||
         fighter->shield_center_forward_f32 < INT32_C(0) ||
         fighter->shield_center_forward_f32 >
             maximum_fighter_extent_f32 ||
@@ -3840,7 +3840,7 @@ pf_status validate_content(const struct content *content)
         fighter->grabbed_offset_y_f32 >
             maximum_fighter_extent_f32 ||
         fighter->grab_escape_damage_ticks_f32 < INT32_C(0) ||
-        fighter->grab_escape_damage_ticks_f32 > PF_F32_ONE ||
+        fighter->grab_escape_damage_ticks_f32 > 1.0f ||
         fighter->grab_startup_ticks == UINT16_C(0) ||
         fighter->grab_startup_ticks > UINT16_C(120) ||
         fighter->grab_active_ticks == UINT16_C(0) ||
@@ -4150,7 +4150,7 @@ pf_status validate_content(const struct content *content)
         item->down_throw.velocity_y_f32 >
             PF_SIM_MAX_MOTION_SPEED_F32 ||
         item->momentum_transfer_f32 < INT32_C(0) ||
-        item->momentum_transfer_f32 > PF_F32_ONE ||
+        item->momentum_transfer_f32 > 1.0f ||
         item->hitbox_half_width_f32 < item->half_width_f32 ||
         item->hitbox_half_height_f32 < item->half_height_f32 ||
         item->hitbox_half_width_f32 > maximum_fighter_extent_f32 ||

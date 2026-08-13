@@ -1787,11 +1787,6 @@ def generate(
             raw_f32(common_attribute_bits, 11) * MELEE_X_TO_SIM
         ),
         "friction_f32": binary32(raw_f32(common_attribute_bits, 6) * MELEE_X_TO_SIM),
-        "friction_q32": round(
-            raw_f32(common_attribute_bits, 6)
-            * MELEE_X_TO_SIM
-            * 65536.0
-        ),
         "dash_initial_velocity_f32": binary32(
             raw_f32(common_attribute_bits, 7) * MELEE_X_TO_SIM
         ),
@@ -1841,20 +1836,6 @@ def generate(
         ),
         "air_mobility_b_f32": binary32(
             raw_f32(common_attribute_bits, 26) * MELEE_X_TO_SIM
-        ),
-        # Preserve the source coefficients below one float32 unit so the
-        # runtime can evaluate Melee's single combined A*stick+B expression
-        # before rounding. Rounding A and B independently introduces a
-        # systematic velocity bias that accumulates across complete matches.
-        "air_mobility_a_q32": round(
-            raw_f32(common_attribute_bits, 25)
-            * MELEE_X_TO_SIM
-            * 65536.0
-        ),
-        "air_mobility_b_q32": round(
-            raw_f32(common_attribute_bits, 26)
-            * MELEE_X_TO_SIM
-            * 65536.0
         ),
         "max_aerial_horizontal_velocity_f32": binary32(
             raw_f32(common_attribute_bits, 27) * MELEE_X_TO_SIM
@@ -2358,8 +2339,6 @@ def generate(
             }
             else f"    .{name} = UINT8_C({value}),"
             if name in {"weight_independent_throws_mask", "reserved"}
-            else f"    .{name} = INT64_C({value}),"
-            if name.endswith("_q32")
             else f"    .{name} = {c_f32(value)},"
         )
         for name, value in common_attributes.items()

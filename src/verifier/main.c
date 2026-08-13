@@ -358,21 +358,21 @@ static int make_match_content(
      * charge, recovery, and item systems rather than Falcon equivalence. */
     content->fighter.reference_frame_data_enabled = UINT8_C(0);
 
-    content->stage.floor_left_f32 = -INT32_C(8) * PF_F32_ONE;
-    content->stage.floor_right_f32 = INT32_C(8) * PF_F32_ONE;
+    content->stage.floor_left_f32 = -INT32_C(8) * 1.0f;
+    content->stage.floor_right_f32 = INT32_C(8) * 1.0f;
     content->stage.platform_center_x_f32 = INT32_C(0);
-    content->stage.platform_half_width_f32 = INT32_C(3) * PF_F32_ONE;
+    content->stage.platform_half_width_f32 = INT32_C(3) * 1.0f;
     content->stage.platform_motion_amplitude_f32 = INT32_C(0);
     content->stage.upper_platform_center_x_f32 =
-        -INT32_C(6) * PF_F32_ONE;
-    content->stage.upper_platform_half_width_f32 = PF_F32_ONE;
-    content->stage.solid_left_f32 = INT32_C(5) * PF_F32_ONE;
-    content->stage.solid_right_f32 = INT32_C(6) * PF_F32_ONE;
-    content->stage.blast_left_f32 = -INT32_C(10) * PF_F32_ONE;
-    content->stage.blast_right_f32 = INT32_C(10) * PF_F32_ONE;
-    content->stage.blast_bottom_f32 = INT32_C(34) * PF_F32_ONE;
+        -INT32_C(6) * 1.0f;
+    content->stage.upper_platform_half_width_f32 = 1.0f;
+    content->stage.solid_left_f32 = INT32_C(5) * 1.0f;
+    content->stage.solid_right_f32 = INT32_C(6) * 1.0f;
+    content->stage.blast_left_f32 = -INT32_C(10) * 1.0f;
+    content->stage.blast_right_f32 = INT32_C(10) * 1.0f;
+    content->stage.blast_bottom_f32 = INT32_C(34) * 1.0f;
     content->stage.spawn_spacing_f32 =
-        (INT32_C(4) * PF_F32_ONE) / INT32_C(5);
+        (INT32_C(4) * 1.0f) / INT32_C(5);
 
     return make_content_view(content, view) == PF_STATUS_OK;
 }

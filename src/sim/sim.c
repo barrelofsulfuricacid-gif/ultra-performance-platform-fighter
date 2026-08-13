@@ -137,8 +137,8 @@ pf_status pf_sim_default_config(
     out_config->player_count = player_count;
     out_config->mode = (uint8_t)mode;
     out_config->max_ticks = UINT64_C(3600);
-    out_config->arena_half_width_f32 = INT32_C(64) * PF_F32_ONE;
-    out_config->arena_ceiling_f32 = INT32_C(64) * PF_F32_ONE;
+    out_config->arena_half_width_f32 = INT32_C(64) * 1.0f;
+    out_config->arena_ceiling_f32 = INT32_C(64) * 1.0f;
     out_config->stock_count = PF_SIM_DEFAULT_STOCK_COUNT;
     out_config->respawn_delay_ticks =
         PF_SIM_DEFAULT_RESPAWN_DELAY_TICKS;
@@ -150,8 +150,8 @@ pf_status pf_sim_default_config(
 
 pf_status pf_sim_validate_config(const pf_sim_config *config)
 {
-    const float minimum_arena_f32 = INT32_C(16) * PF_F32_ONE;
-    const float maximum_arena_f32 = INT32_C(4096) * PF_F32_ONE;
+    const float minimum_arena_f32 = INT32_C(16) * 1.0f;
+    const float maximum_arena_f32 = INT32_C(4096) * 1.0f;
 
     if (config == NULL)
     {
@@ -606,7 +606,7 @@ pf_status pf_sim_observe(
         if (player->stale_move_count == UINT8_C(0))
         {
             player->stale_move_multiplier_f32 =
-                (uint32_t)PF_F32_ONE;
+                (uint32_t)1.0f;
         }
         else
         {
