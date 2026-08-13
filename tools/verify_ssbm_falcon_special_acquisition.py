@@ -463,6 +463,63 @@ def qualify_capture(
         "dash_up",
     )
 
+    jump_terminal_cases = {
+        "jump_terminal_edge_neutral_history": [0, 0, 0, 0, 80, 0],
+        "jump_terminal_edge_held_history": [0, 80, 80, 80, 80, 0],
+    }
+    jump_terminal_rows: dict[str, list[dict[str, Any]]] = {}
+    for case_id, expected_raw_x in jump_terminal_cases.items():
+        current = case_rows(rows, case_id)
+        jump_terminal_rows[case_id] = current
+        require_ordered_actions(
+            current,
+            [("KNEE_BEND", frame) for frame in range(1, 5)]
+            + [("JUMPING_FORWARD", 1), ("JUMPING_FORWARD", 2)],
+            case_id,
+        )
+        if (
+            [row.get("grounded") for row in current]
+            != [True, True, True, True, False, False]
+            or [row.get("facing") for row in current] != [1.0] * 6
+            or [row.get("observed_raw_main_x") for row in current]
+            != expected_raw_x
+        ):
+            fail(f"jump-terminal-contract case={case_id}")
+    neutral_entry_velocity = float(
+        jump_terminal_rows["jump_terminal_edge_neutral_history"][4][
+            "air_velocity_x"
+        ]
+    )
+    held_entry_velocity = float(
+        jump_terminal_rows["jump_terminal_edge_held_history"][4][
+            "air_velocity_x"
+        ]
+    )
+    if (
+        abs(neutral_entry_velocity) > 1e-9
+        or abs(held_entry_velocity - 0.95) > 1e-6
+    ):
+        fail(
+            "jump-terminal-entry-velocity "
+            f"neutral={neutral_entry_velocity:.9f} "
+            f"held={held_entry_velocity:.9f}"
+        )
+
+    early_reverse = case_rows(rows, "dash_turn_origin_early_reverse")
+    require_ordered_actions(
+        early_reverse,
+        [("TURNING", frame) for frame in range(1, 8)]
+        + [("DASHING", frame) for frame in range(1, 4)]
+        + [("TURNING", 1), ("TURNING", 2)],
+        "dash_turn_origin_early_reverse",
+    )
+    if (
+        [row.get("facing") for row in early_reverse]
+        != [1.0] * 7 + [-1.0] * 4 + [1.0]
+        or any(row.get("grounded") is not True for row in early_reverse)
+    ):
+        fail("dash-turn-origin-early-reverse-contract")
+
     run_setup = (
         [("DASHING", frame) for frame in range(1, 16)]
         + [("RUNNING", frame) for frame in [1, 2, 2, 3, 4, 5, 6, 7, 8, 9]]

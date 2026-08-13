@@ -14,6 +14,15 @@ static int64_t pf_m4_ssbm_abs_i64(int64_t value)
     return value < INT64_C(0) ? -value : value;
 }
 
+static int64_t pf_m4_ssbm_div_round_nearest_i64(
+    int64_t numerator,
+    int64_t denominator)
+{
+    return numerator < INT64_C(0)
+               ? -((-numerator + denominator / INT64_C(2)) / denominator)
+               : (numerator + denominator / INT64_C(2)) / denominator;
+}
+
 pf_m4_ssbm_damage_floor_response
 pf_m4_ssbm_select_damage_floor_response_q16(
     int32_t knockback_velocity_x_q16,
@@ -317,12 +326,14 @@ pf_status pf_m4_ssbm_decay_air_knockback_q16(
     {
         return PF_STATUS_INVALID_ARGUMENT;
     }
-    source_x =
+    source_x = pf_m4_ssbm_div_round_nearest_i64(
         (int64_t)*velocity_x_q16 * INT64_C(115) *
-        PF_M4_SSBM_VECTOR_EXTRA_SCALE / INT64_C(12);
-    source_y =
+            PF_M4_SSBM_VECTOR_EXTRA_SCALE,
+        INT64_C(12));
+    source_y = pf_m4_ssbm_div_round_nearest_i64(
         (int64_t)*velocity_y_q16 * INT64_C(62) *
-        PF_M4_SSBM_VECTOR_EXTRA_SCALE / INT64_C(11);
+            PF_M4_SSBM_VECTOR_EXTRA_SCALE,
+        INT64_C(11));
     magnitude_squared =
         (uint64_t)(source_x * source_x) +
         (uint64_t)(source_y * source_y);
@@ -338,14 +349,18 @@ pf_status pf_m4_ssbm_decay_air_knockback_q16(
     }
 
     remaining = (int64_t)magnitude - guarded_decay;
-    decayed_source_x = source_x * remaining / (int64_t)magnitude;
-    decayed_source_y = source_y * remaining / (int64_t)magnitude;
-    decayed_x =
-        decayed_source_x * INT64_C(12) /
-        (INT64_C(115) * PF_M4_SSBM_VECTOR_EXTRA_SCALE);
-    decayed_y =
-        decayed_source_y * INT64_C(11) /
-        (INT64_C(62) * PF_M4_SSBM_VECTOR_EXTRA_SCALE);
+    decayed_source_x = pf_m4_ssbm_div_round_nearest_i64(
+        source_x * remaining,
+        (int64_t)magnitude);
+    decayed_source_y = pf_m4_ssbm_div_round_nearest_i64(
+        source_y * remaining,
+        (int64_t)magnitude);
+    decayed_x = pf_m4_ssbm_div_round_nearest_i64(
+        decayed_source_x * INT64_C(12),
+        INT64_C(115) * PF_M4_SSBM_VECTOR_EXTRA_SCALE);
+    decayed_y = pf_m4_ssbm_div_round_nearest_i64(
+        decayed_source_y * INT64_C(11),
+        INT64_C(62) * PF_M4_SSBM_VECTOR_EXTRA_SCALE);
     if (decayed_x < (int64_t)INT32_MIN ||
         decayed_x > (int64_t)INT32_MAX ||
         decayed_y < (int64_t)INT32_MIN ||

@@ -1100,6 +1100,55 @@ def throw_release_frame(
     return releases[0]
 
 
+def throw_absolute_effect(
+    dat_data: dict[str, Any], subaction_index: int, subaction_name: str
+) -> dict[str, int]:
+    """Decode the thrower's absolute hit directly from opcode 0x22/0x88.
+
+    The pinned meleeDat2Json throw layout predates the matched command struct:
+    it decodes the final command word several bits late, turning Falcon's real
+    throw BKB values 45/30/70/75 into 11/7/17/18 and interpreting padding as
+    an element.  ``ftAction_80071E04`` and ``lb/types.h`` are authoritative:
+    the three big-endian words after the six-bit opcode are damage, then
+    angle/KBG/WDSK, then BKB/element.  Slot zero is the victim throw hit; slot
+    one is the collateral thrown-body hitbox.
+    """
+    subactions = dat_data["nodes"][0]["data"]["subactions"]
+    subaction = subactions[subaction_index]
+    if str(subaction["name"]) != subaction_name:
+        raise ValueError(f"subaction {subaction_index}: name mismatch")
+
+    effects: list[dict[str, int]] = []
+    for event in subaction.get("events", []):
+        if int(str(event["commandId"]), 16) != 0x88:
+            continue
+        encoded = bytes.fromhex(str(event["bytes"]))
+        if len(encoded) != 12:
+            raise ValueError(
+                f"subaction {subaction_index}: invalid throw command width"
+            )
+        word0, word1, word2 = struct.unpack(">III", encoded)
+        slot = (word0 >> 23) & 0x7
+        if slot != 0:
+            continue
+        effects.append(
+            {
+                "damage": word0 & 0x7FFFFF,
+                "angle": word1 >> 23,
+                "kbGrowth": (word1 >> 14) & 0x1FF,
+                "weightDepKb": (word1 >> 5) & 0x1FF,
+                "baseKb": word2 >> 23,
+                "element": (word2 >> 19) & 0xF,
+            }
+        )
+    if len(effects) != 1:
+        raise ValueError(
+            f"subaction {subaction_index}: expected one slot-zero throw hit, "
+            f"found {len(effects)}"
+        )
+    return effects[0]
+
+
 def ledge_attack_reference(
     subactions: list[dict[str, Any]],
     submotion_catalog: list[dict[str, int]],
@@ -1698,6 +1747,11 @@ def generate(
             raw_f32(common_attribute_bits, 11) * MELEE_X_TO_SIM_Q16
         ),
         "friction_q16": round(raw_f32(common_attribute_bits, 6) * MELEE_X_TO_SIM_Q16),
+        "friction_q32": round(
+            raw_f32(common_attribute_bits, 6)
+            * MELEE_X_TO_SIM_Q16
+            * 65536.0
+        ),
         "dash_initial_velocity_q16": round(
             raw_f32(common_attribute_bits, 7) * MELEE_X_TO_SIM_Q16
         ),
@@ -1748,6 +1802,20 @@ def generate(
         "air_mobility_b_q16": round(
             raw_f32(common_attribute_bits, 26) * MELEE_X_TO_SIM_Q16
         ),
+        # Preserve the source coefficients below one Q16.16 unit so the
+        # runtime can evaluate Melee's single combined A*stick+B expression
+        # before rounding. Rounding A and B independently introduces a
+        # systematic velocity bias that accumulates across complete matches.
+        "air_mobility_a_q32": round(
+            raw_f32(common_attribute_bits, 25)
+            * MELEE_X_TO_SIM_Q16
+            * 65536.0
+        ),
+        "air_mobility_b_q32": round(
+            raw_f32(common_attribute_bits, 26)
+            * MELEE_X_TO_SIM_Q16
+            * 65536.0
+        ),
         "max_aerial_horizontal_velocity_q16": round(
             raw_f32(common_attribute_bits, 27) * MELEE_X_TO_SIM_Q16
         ),
@@ -1777,6 +1845,14 @@ def generate(
         ),
         "wall_jump_vertical_velocity_q16": round(
             raw_f32(common_attribute_bits, 66) * MELEE_Y_TO_SIM_Q16
+        ),
+        # ftCo_800C6408 multiplies the per-fighter trophy scale by the
+        # code-authored 1.497345 rise distance. Standard-match model scale is
+        # 1.0 in the qualified ruleset.
+        "match_entry_rise_q16": round(
+            raw_f32(common_attribute_bits, 68)
+            * 1.497345
+            * MELEE_Y_TO_SIM_Q16
         ),
         "jump_startup_ticks": round(raw_f32(common_attribute_bits, 14)),
         "number_of_jumps": common_attribute_bits[22],
@@ -2026,7 +2102,11 @@ def generate(
         throw_index = 0xFFFF
         if "throw" in move:
             throw_index = len(throws)
-            throw = dict(move["throw"])
+            throw = throw_absolute_effect(
+                dat_data,
+                int(move["subactionIndex"]),
+                str(move["subactionName"]),
+            )
             throw["releaseFrame"] = (
                 throw_release_frame(
                     dat_data,
@@ -2237,6 +2317,8 @@ def generate(
             }
             else f"    .{name} = UINT8_C({value}),"
             if name in {"weight_independent_throws_mask", "reserved"}
+            else f"    .{name} = INT64_C({value}),"
+            if name.endswith("_q32")
             else f"    .{name} = INT32_C({value}),"
         )
         for name, value in common_attributes.items()

@@ -113,6 +113,7 @@ def generate(raw: bytes) -> str:
     escape_roll_tilt_window_ticks = i32(0x320)
     platform_drop_axis_threshold = f32(0x464)
     platform_drop_tilt_window_ticks = f32(0x468)
+    crouch_pass_delay_ticks = f32(0x470)
     guard_dash_grab_window_ticks = f32(0x068)
     special_vertical_axis_threshold = f32(0x21C)
     neutral_special_turn_window_ticks = i32(0x224)
@@ -126,6 +127,9 @@ def generate(raw: bytes) -> str:
     rebirth_descent_ticks = i32(0x5D0)
     rebirth_wait_ticks = i32(0x5D4)
     rebirth_invulnerability_ticks = i32(0x5D8)
+    match_entry_ascent_ticks = i32(0x6BC)
+    match_entry_descent_ticks = i32(0x6C0)
+    match_entry_invulnerability_ticks = i32(0x6C8)
     maximum_hitlag_ticks = f32(0x194)
     hitlag_damage_scale = f32(0x198)
     hitlag_base_ticks = f32(0x19C)
@@ -228,6 +232,8 @@ def generate(raw: bytes) -> str:
         or not 0.0 < platform_drop_axis_threshold <= 1.0
         or not platform_drop_tilt_window_ticks.is_integer()
         or not 0 < platform_drop_tilt_window_ticks <= 0xFFFF
+        or not crouch_pass_delay_ticks.is_integer()
+        or not 0 < crouch_pass_delay_ticks < 0xFF
         or not guard_dash_grab_window_ticks.is_integer()
         or not 0 < guard_dash_grab_window_ticks <= 0xFF
         or not 0.0 < special_vertical_axis_threshold <= 1.0
@@ -462,6 +468,10 @@ def generate(raw: bytes) -> str:
         "throw_animation_weight_scale_q16": q16(
             throw_animation_weight_scale
         ),
+        "throw_animation_weight_scale_q30": round(
+            throw_animation_weight_scale * float(1 << 30)
+        ),
+        "up_special_repress_interval_ticks": i32(0x01C),
         "teeter_turn_axis_threshold": round(
             teeter_turn_axis_threshold * 32767.0
         ),
@@ -496,6 +506,7 @@ def generate(raw: bytes) -> str:
         "platform_drop_tilt_window_ticks": int(
             platform_drop_tilt_window_ticks
         ),
+        "crouch_pass_delay_ticks": int(crouch_pass_delay_ticks),
         "guard_dash_grab_window_ticks": int(
             guard_dash_grab_window_ticks
         ),
@@ -558,6 +569,13 @@ def generate(raw: bytes) -> str:
         "descent_ticks": rebirth_descent_ticks,
         "wait_ticks": rebirth_wait_ticks,
         "invulnerability_ticks": rebirth_invulnerability_ticks,
+    }
+    match_entry_attributes = {
+        "ascent_ticks": match_entry_ascent_ticks,
+        "descent_ticks": match_entry_descent_ticks,
+        "invulnerability_ticks": match_entry_invulnerability_ticks,
+        # gm_16AE initializes each player five updates after the previous one.
+        "player_delay_stride_ticks": 5,
     }
     clank_attributes = {
         "rebound_strength_damage_scale_q16": q16(f32(0x3D0)),
@@ -716,6 +734,7 @@ def generate(raw: bytes) -> str:
             f"    INT32_C({ground_input_attributes['grab_release_air_speed_x_q16']}),",
             f"    INT32_C({ground_input_attributes['grab_release_air_speed_y_q16']}),",
             f"    INT32_C({ground_input_attributes['throw_animation_weight_scale_q16']}),",
+            f"    INT32_C({ground_input_attributes['throw_animation_weight_scale_q30']}),",
             f"    UINT16_C({ground_input_attributes['teeter_turn_axis_threshold']}),",
             f"    UINT16_C({ground_input_attributes['teeter_walk_axis_threshold']}),",
             f"    UINT16_C({ground_input_attributes['walk_axis_threshold']}),",
@@ -730,8 +749,10 @@ def generate(raw: bytes) -> str:
             f"    UINT16_C({ground_input_attributes['escape_tilt_window_ticks']}),",
             f"    UINT16_C({ground_input_attributes['platform_drop_axis_threshold']}),",
             f"    UINT16_C({ground_input_attributes['platform_drop_tilt_window_ticks']}),",
+            f"    UINT16_C({ground_input_attributes['crouch_pass_delay_ticks']}),",
             f"    UINT16_C({ground_input_attributes['guard_dash_grab_window_ticks']}),",
             f"    UINT16_C({ground_input_attributes['special_vertical_axis_threshold']}),",
+            f"    UINT16_C({ground_input_attributes['up_special_repress_interval_ticks']}),",
             f"    UINT16_C({ground_input_attributes['neutral_special_turn_window_ticks']}),",
             f"    UINT16_C({ground_input_attributes['initial_dash_early_end_frame']}),",
             f"    UINT16_C({ground_input_attributes['initial_dash_forward_roll_end_frame']}),",
@@ -757,6 +778,14 @@ def generate(raw: bytes) -> str:
             f"    UINT16_C({rebirth_attributes['wait_ticks']}),",
             f"    UINT16_C({rebirth_attributes['invulnerability_ticks']}),",
             "    UINT16_C(0),",
+            "};",
+            "",
+            "static const pf_m4_ssbm_match_entry_attributes",
+            "pf_m4_ssbm_match_entry_attribute_data = {",
+            f"    UINT16_C({match_entry_attributes['ascent_ticks']}),",
+            f"    UINT16_C({match_entry_attributes['descent_ticks']}),",
+            f"    UINT16_C({match_entry_attributes['invulnerability_ticks']}),",
+            f"    UINT16_C({match_entry_attributes['player_delay_stride_ticks']}),",
             "};",
             "",
             "static const pf_m4_ssbm_clank_attributes",

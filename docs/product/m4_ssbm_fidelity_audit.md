@@ -782,6 +782,30 @@ directional B edge and observe six successor frames. Two independent 467-row
 captures canonicalize identically, and source equals Windows/WSL production at
 SHA-256
 `9546194d57f47eb320102b70be475111cead96c975e74af486201f3bf6d67cbb`.
+
+### 2026-08-12: broad replay discovery promoted two source-backed acquisition gaps
+
+The offline discovery lane now contains 2,093 hash-pinned Falcon replays and
+has completed two full passes. Public replay metadata does not prove the exact
+disc image or pinned UCF 0.84 revision, so its 740 executed prefixes remain
+diagnostic rather than equivalence evidence. The first pass found 134
+deterministic candidates; after fixing source-backed terminal Jump entry input
+ordering, the second found 58. A pinned-UCF cardinal-signature classifier also
+stops generic-`UCF` recordings whose raw/processed pair contradicts UCF 0.84,
+preventing modifier differences from becoming false production gaps.
+
+The two promoted findings now live in the authoritative common
+special-acquisition lane. Terminal KneeBend-to-Jump entry consumes canonical
+prior processed X before the current input callback; Turn-origin Dash may
+reverse during displayed Dash frames 1-3 because its decomp provenance flag
+skips the ordinary early-Dash branch. The enlarged pack contains 39 cases /
+491 rows. Source and production hash to
+`c68d3bc9cd830283648f98b210502a471ca0724fc3b5197caea5b71aaa29a07b` and
+`dfdf53934818d7436fa02fc265e3febb129e97f34b1573d0b670cfc66075a6c6`;
+the sole difference is one allowed Q16 unit on the second held-Jump sample.
+This qualifies those two bounded callback/input rules, not whole-character
+movement equivalence. Remaining replay candidates and uncaptured callback
+owners remain open audit inputs.
 Action, displayed frame, facing, grounding, vertical motion, and applicable
 horizontal velocity are strict. Position masks cover only the Walk fixture's
 one-tick origin offset and accumulated 1-9-Q16 Run conversion differences;

@@ -6995,3 +6995,68 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   a separate later 96-Q16 aerial horizontal-velocity residual. Eighteen focused
   Python tests and focused Windows/WSL movement tests cover the analog-to-click
   positive sequence plus the early-click-held negative control.
+
+## 2026-08-12: 2,093-replay Falcon sweep, Jump input order, and Turn-origin Dash reversal
+
+- Completed the required prior-art expansion with the MIT-licensed
+  `erickfm/melee-ranked-replays` Falcon shards at dataset revision
+  `11142d4b86d423716fdd2e9ca565de9bafc9d37e`. The two archives contain 782
+  and 1,311 unique `.slp` files and hash to
+  `e7906939235c1841d8abb2e8eb160a7ed84b0d0da35407b5b053b85c5b5f5acb` and
+  `60bb7e5cae1e469bdf54d646b60be5a5a77d0942a6c3b6405ba1600b23b2fe87`.
+  The 2,093-file / 7.08-GB extracted corpus is ignored; its hash-pinned manifest
+  SHA-256 is
+  `0e7b2b0805de1b09999b1f3104fb483cb2cbfbf2083864bb2d0d43cda3b6cd62`.
+- The first full 2,093-file pass found 887 natural anchors, executed 740
+  diagnostic prefixes / 13,441 semantic frames, and recorded 210 passes, 396
+  unsupported source-modifier boundaries, and 134 deterministic candidates in
+  1,265.375 seconds. Because public setup metadata says only generic `UCF`, the
+  worker now fails closed when raw primary/orthogonal bytes meet UCF 0.84's
+  inclusive 80/6 cardinal gate but the source processed pair is not snapped.
+  Such prefixes are classified as `ucf084-cardinal-signature-mismatch`; they
+  are not reported as production divergences.
+- The largest initial cluster exposed a real animation/input ordering rule.
+  Pinned `ftCo_KneeBend_Anim` installs Jump before the update's input callback,
+  and Jump entry consumes the preceding processed horizontal input. Production
+  now routes ground-jump momentum and the Falcon JumpF/JumpB submotion choice
+  through canonical prior processed X, while double-jump entry retains current
+  input. Normalized source SHA-256 values are
+  `91249dcf7a0aa59277e8912bd8b5a82548262df66ef3426d6ed3d27cebdd6c12`
+  for `ftCo_KneeBend.c` and
+  `6905ee45c6f498a73971682b3d49cb1896e3134a0ef936dd49ed49bfde6f5605`
+  for `ftCo_Jump.c`.
+- Two six-row live cases independently prove neutral-history and held-history
+  terminal Jump entry. The source reports Jump frame-1 horizontal velocity
+  0.0 and 0.95 respectively. The enlarged common special-acquisition pack has
+  39 cases / 491 rows. Its independent raw capture SHA-256 values are
+  `c2f6deed8346eb1729a9ee3d8444b77d9426e8fd457fb2b931a4978dc783704c`
+  and `97095e1ebdc2fc5c022feec9d9fc6635c94988526576bf9cc76c22b2753dbb85`;
+  source and production semantic hashes are
+  `c68d3bc9cd830283648f98b210502a471ca0724fc3b5197caea5b71aaa29a07b`
+  and `dfdf53934818d7436fa02fc265e3febb129e97f34b1573d0b670cfc66075a6c6`.
+  Their only difference is one accepted Q16 unit on held Jump frame 2. The
+  generated oracle SHA-256 is
+  `7dcb3fdaae5cd74acbb31e5c537299bd07728696857855c7acaab77936e6d0fb`.
+- A second full pass after the Jump correction executed the same 740 prefixes
+  over 15,511 frames, raised passes to 254, and reduced deterministic
+  candidates to 58 in 1,102.245 seconds. Its ignored report hashes to
+  `8792b8f0685912030a72baf0482433836df603971fb183d4103465ca8e46c1ad`.
+  The original Jump exemplar is now a clean pass.
+- The largest remaining cluster (16 prefixes) was Turn-origin Dash reversal.
+  Pinned `ftCo_Dash_IASA` gives Turn-origin Dash `mv.co.dash.x4 == 0`, so it
+  reaches the normal Dash input callback and may reverse during displayed Dash
+  frames 1-3; ordinary Dash keeps the early x44 branch and its lockout.
+  Production's existing origin bit now participates in the reversal predicate,
+  with no added state or runtime allocation. A new 12-row natural theorem
+  proves Turn frames 1-7, Dash frames 1-3, then immediate Turn frames 1-2 on
+  the reverse edge. Normalized `ftCo_Dash.c` SHA-256 is
+  `23fd2ad0af701c320fb24f6b5e7406971d7c31060b87916a20b242c076d10f7c`.
+- Twenty focused replay-worker tests, the 491-row live verifier, stored-oracle
+  generation check, and strict Windows/MSVC plus WSL/GCC movement suites pass.
+  The root stored registry remains temporarily blocked by its authored
+  240-tick replay interaction fixture: the corrected Jump-entry semantics
+  invalidate that fixture's required hit/SDI/grounded-roll route. The focused
+  source/native qualification is passing; the replay golden must be rebuilt
+  as a real interaction scenario rather than weakening its coverage checks.
+  Public replay results remain diagnostic until the exact disc and pinned UCF
+  0.84 revision are independently proven.

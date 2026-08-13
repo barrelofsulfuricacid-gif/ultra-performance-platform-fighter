@@ -1,6 +1,7 @@
 #include "sim_falcon_frame_data.h"
 #include "sim_fixed_math.h"
 #include "sim_hsd_pose.h"
+#include "sim_ssbm_common_data.h"
 
 #include "pf/m4.h"
 
@@ -635,6 +636,94 @@ static int32_t pf_m4_falcon_ecb_source_scale_q16(
                                denominator);
 }
 
+static uint64_t pf_m4_falcon_abs_i64(int64_t value)
+{
+    return value < INT64_C(0) ? (uint64_t)(-value) : (uint64_t)value;
+}
+
+static uint64_t pf_m4_falcon_ecb_sim_to_source_abs_q16(
+    uint64_t value_q16,
+    uint32_t numerator,
+    uint32_t denominator)
+{
+    return (value_q16 * denominator + numerator / UINT32_C(2)) / numerator;
+}
+
+int pf_m4_falcon_reference_collision_sweep_step_count_q16(
+    int32_t position_delta_x_q16,
+    int32_t position_delta_y_q16,
+    const pf_m4_falcon_ecb_pose_q16 *current_ecb,
+    const pf_m4_falcon_ecb_pose_q16 *desired_ecb,
+    uint16_t *out_step_count)
+{
+    const uint64_t source_threshold_q16 =
+        UINT64_C(6) * UINT64_C(65536);
+    uint64_t maximum_source_delta_q16;
+    uint64_t source_delta_q16;
+    uint64_t step_count;
+
+    if (current_ecb == NULL || desired_ecb == NULL ||
+        out_step_count == NULL)
+    {
+        return 0;
+    }
+    maximum_source_delta_q16 =
+        pf_m4_falcon_ecb_sim_to_source_abs_q16(
+            pf_m4_falcon_abs_i64(position_delta_x_q16),
+            UINT32_C(12),
+            UINT32_C(115));
+    source_delta_q16 = pf_m4_falcon_ecb_sim_to_source_abs_q16(
+        pf_m4_falcon_abs_i64(position_delta_y_q16),
+        UINT32_C(11),
+        UINT32_C(62));
+    if (source_delta_q16 > maximum_source_delta_q16)
+    {
+        maximum_source_delta_q16 = source_delta_q16;
+    }
+#define PF_M4_FALCON_ACCUMULATE_SWEEP_X(field)                              \
+    do                                                                       \
+    {                                                                        \
+        source_delta_q16 = pf_m4_falcon_ecb_sim_to_source_abs_q16(          \
+            pf_m4_falcon_abs_i64(                                            \
+                (int64_t)desired_ecb->field - current_ecb->field),          \
+            UINT32_C(12),                                                     \
+            UINT32_C(115));                                                   \
+        if (source_delta_q16 > maximum_source_delta_q16)                     \
+        {                                                                    \
+            maximum_source_delta_q16 = source_delta_q16;                     \
+        }                                                                    \
+    } while (0)
+#define PF_M4_FALCON_ACCUMULATE_SWEEP_Y(field)                              \
+    do                                                                       \
+    {                                                                        \
+        source_delta_q16 = pf_m4_falcon_ecb_sim_to_source_abs_q16(          \
+            pf_m4_falcon_abs_i64(                                            \
+                (int64_t)desired_ecb->field - current_ecb->field),          \
+            UINT32_C(11),                                                     \
+            UINT32_C(62));                                                    \
+        if (source_delta_q16 > maximum_source_delta_q16)                     \
+        {                                                                    \
+            maximum_source_delta_q16 = source_delta_q16;                     \
+        }                                                                    \
+    } while (0)
+    PF_M4_FALCON_ACCUMULATE_SWEEP_X(left_x_from_origin_q16);
+    PF_M4_FALCON_ACCUMULATE_SWEEP_X(right_x_from_origin_q16);
+    PF_M4_FALCON_ACCUMULATE_SWEEP_Y(top_y_from_origin_q16);
+    PF_M4_FALCON_ACCUMULATE_SWEEP_Y(right_y_from_origin_q16);
+#undef PF_M4_FALCON_ACCUMULATE_SWEEP_Y
+#undef PF_M4_FALCON_ACCUMULATE_SWEEP_X
+    step_count = maximum_source_delta_q16 > source_threshold_q16
+                     ? maximum_source_delta_q16 / source_threshold_q16 +
+                           UINT64_C(1)
+                     : UINT64_C(1);
+    if (step_count > UINT16_MAX)
+    {
+        return 0;
+    }
+    *out_step_count = (uint16_t)step_count;
+    return 1;
+}
+
 enum
 {
     PF_M4_FALCON_HSD_ECB_JOINT_COUNT =
@@ -908,19 +997,18 @@ pf_m4_falcon_reference_hsd_ecb_pose(
         out_pose);
 }
 
-int pf_m4_falcon_reference_action_hsd_ecb_pose(
+int pf_m4_falcon_reference_action_hsd_source(
     uint8_t action_state,
     uint16_t action_ticks,
-    uint8_t grounded,
-    int32_t locked_bottom_y_q16,
-    pf_m4_falcon_ecb_pose_q16 *out_pose)
+    uint16_t *out_submotion,
+    int32_t *out_frame_q16)
 {
     pf_m4_falcon_move_index move_index;
     const pf_m4_reference_move *move;
     int8_t frame_offset;
     int32_t source_frame;
 
-    if (out_pose == NULL ||
+    if (out_submotion == NULL || out_frame_q16 == NULL ||
         !pf_m4_falcon_reference_move_for_action(action_state, &move_index))
     {
         return 0;
@@ -938,9 +1026,33 @@ int pf_m4_falcon_reference_action_hsd_ecb_pose(
     {
         return 0;
     }
+    *out_submotion = move->subaction_index;
+    *out_frame_q16 = source_frame * (int32_t)PF_Q16_ONE;
+    return 1;
+}
+
+int pf_m4_falcon_reference_action_hsd_ecb_pose(
+    uint8_t action_state,
+    uint16_t action_ticks,
+    uint8_t grounded,
+    int32_t locked_bottom_y_q16,
+    pf_m4_falcon_ecb_pose_q16 *out_pose)
+{
+    uint16_t source_submotion;
+    int32_t source_frame_q16;
+
+    if (out_pose == NULL ||
+        !pf_m4_falcon_reference_action_hsd_source(
+            action_state,
+            action_ticks,
+            &source_submotion,
+            &source_frame_q16))
+    {
+        return 0;
+    }
     return pf_m4_falcon_reference_hsd_ecb_pose(
-        move->subaction_index,
-        source_frame * (int32_t)PF_Q16_ONE,
+        source_submotion,
+        source_frame_q16,
         grounded != UINT8_C(0),
         locked_bottom_y_q16,
         out_pose);
@@ -950,6 +1062,39 @@ const pf_m4_hsd_pose_data *
 pf_m4_falcon_reference_hsd_pose_data(void)
 {
     return &pf_m4_falcon_dynamic_hsd_data;
+}
+
+const pf_m4_hsd_local_pose *
+pf_m4_falcon_reference_guard_target_hsd_pose(void)
+{
+    return pf_m4_falcon_dynamic_hsd_guard_target_pose;
+}
+
+int pf_m4_falcon_resolve_compact_hsd_pose(
+    uint16_t source_submotion,
+    int32_t source_animation_frame_q16,
+    int32_t progress_q16,
+    const pf_m4_hsd_compact_pose *compact,
+    pf_m4_hsd_local_pose out_pose[PF_M4_HSD_POSE_MAX_JOINTS])
+{
+    if (compact != NULL &&
+        compact->mode == (uint8_t)PF_M4_HSD_COMPACT_POSE_PACKED &&
+        source_submotion ==
+            (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD_ON)
+    {
+        return pf_m4_hsd_inflate_compact_pose_q16(
+            &pf_m4_falcon_dynamic_hsd_data,
+            pf_m4_falcon_dynamic_hsd_guard_target_pose,
+            compact,
+            out_pose);
+    }
+    return pf_m4_hsd_resolve_compact_pose_q16(
+        &pf_m4_falcon_dynamic_hsd_data,
+        source_submotion,
+        source_animation_frame_q16,
+        progress_q16,
+        compact,
+        out_pose);
 }
 
 const pf_m4_hsd_wait_animation *
@@ -989,63 +1134,68 @@ int pf_m4_falcon_reference_direct_hsd_pose(
     uint16_t *out_submotion,
     int32_t *out_frame_q16)
 {
+    uint16_t submotion;
+    int32_t frame_q16 = (int32_t)action_ticks * PF_Q16_ONE;
+
     if (out_submotion == NULL || out_frame_q16 == NULL)
     {
         return 0;
     }
-    *out_frame_q16 = (int32_t)action_ticks * PF_Q16_ONE;
     switch (action_state)
     {
     case PF_M4_ACTION_RAPTOR_BOOST_START_GROUND:
-        *out_submotion =
+        submotion =
             (uint16_t)PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_START_GROUND;
-        return 1;
+        break;
     case PF_M4_ACTION_RAPTOR_BOOST_HIT_GROUND:
-        *out_submotion =
+        submotion =
             (uint16_t)PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_HIT_GROUND;
-        return 1;
+        break;
     case PF_M4_ACTION_RAPTOR_BOOST_START_AIR:
-        *out_submotion =
+        submotion =
             (uint16_t)PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_START_AIR;
-        return 1;
+        break;
     case PF_M4_ACTION_RAPTOR_BOOST_HIT_AIR:
-        *out_submotion =
+        submotion =
             (uint16_t)PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_HIT_AIR;
-        return 1;
+        break;
     case PF_M4_ACTION_FALCON_DIVE_START_GROUND:
-        *out_submotion =
+        submotion =
             (uint16_t)PF_M4_FALCON_SUBMOTION_FALCON_DIVE_START_GROUND;
-        return 1;
+        break;
     case PF_M4_ACTION_FALCON_DIVE_START_AIR:
-        *out_submotion =
+        submotion =
             (uint16_t)PF_M4_FALCON_SUBMOTION_FALCON_DIVE_START_AIR;
-        return 1;
+        break;
     case PF_M4_ACTION_FALCON_DIVE_CATCH:
         if (grounded != UINT8_C(0))
         {
-            *out_submotion = (uint16_t)
+            submotion = (uint16_t)
                 PF_M4_FALCON_SUBMOTION_FALCON_DIVE_START_GROUND;
-            *out_frame_q16 = INT32_C(13) * PF_Q16_ONE;
+            frame_q16 = INT32_C(13) * PF_Q16_ONE;
         }
         else if (action_ticks == UINT16_C(0))
         {
-            *out_submotion = (uint16_t)
+            submotion = (uint16_t)
                 PF_M4_FALCON_SUBMOTION_FALCON_DIVE_START_AIR;
-            *out_frame_q16 = INT32_C(13) * PF_Q16_ONE;
+            frame_q16 = INT32_C(13) * PF_Q16_ONE;
         }
         else
         {
-            *out_submotion =
+            submotion =
                 (uint16_t)PF_M4_FALCON_SUBMOTION_FALCON_DIVE_CATCH;
         }
-        return 1;
+        break;
     case PF_M4_ACTION_FALCON_DIVE_THROW:
-        *out_submotion =
+        submotion =
             (uint16_t)PF_M4_FALCON_SUBMOTION_FALCON_DIVE_THROW;
-        return 1;
+        break;
     default:
         return 0;
     }
+    *out_submotion = submotion;
+    *out_frame_q16 = frame_q16;
+    return 1;
 }
 
 static int pf_m4_falcon_reference_hsd_ecb_pose_from_local_pose(
@@ -1092,7 +1242,7 @@ int pf_m4_falcon_reference_hsd_ground_ecb_pose_from_local_pose(
         out_pose);
 }
 
-int pf_m4_falcon_reference_hsd_fall_special_ecb_pose(
+int pf_m4_falcon_reference_hsd_fall_ecb_pose(
     uint16_t directional_submotion,
     int32_t source_animation_frame_q16,
     int32_t directional_blend_q16,
@@ -1105,20 +1255,43 @@ int pf_m4_falcon_reference_hsd_fall_special_ecb_pose(
     pf_m4_hsd_local_pose transition[PF_M4_HSD_POSE_MAX_JOINTS];
     pf_m4_hsd_local_pose blended[PF_M4_HSD_POSE_MAX_JOINTS];
     const pf_m4_hsd_local_pose *pose = neutral;
+    uint16_t neutral_submotion;
+
+    if (directional_submotion >=
+            (uint16_t)PF_M4_FALCON_SUBMOTION_FALL &&
+        directional_submotion <=
+            (uint16_t)PF_M4_FALCON_SUBMOTION_FALL_BACKWARD)
+    {
+        neutral_submotion = (uint16_t)PF_M4_FALCON_SUBMOTION_FALL;
+    }
+    else if (directional_submotion >=
+                 (uint16_t)PF_M4_FALCON_SUBMOTION_FALL_AERIAL &&
+             directional_submotion <=
+                 (uint16_t)PF_M4_FALCON_SUBMOTION_FALL_AERIAL_BACKWARD)
+    {
+        neutral_submotion =
+            (uint16_t)PF_M4_FALCON_SUBMOTION_FALL_AERIAL;
+    }
+    else if (directional_submotion >=
+                 (uint16_t)PF_M4_FALCON_SUBMOTION_FALL_SPECIAL &&
+             directional_submotion <=
+                 (uint16_t)PF_M4_FALCON_SUBMOTION_FALL_SPECIAL_BACKWARD)
+    {
+        neutral_submotion =
+            (uint16_t)PF_M4_FALCON_SUBMOTION_FALL_SPECIAL;
+    }
+    else
+    {
+        return 0;
+    }
 
     if (out_pose == NULL || source_animation_frame_q16 < INT32_C(0) ||
         directional_blend_q16 < INT32_C(0) ||
         directional_blend_q16 > PF_Q16_ONE ||
         directional_target_switched > UINT8_C(1) ||
-        (directional_submotion !=
-             (uint16_t)PF_M4_FALCON_SUBMOTION_FALL_SPECIAL &&
-         directional_submotion !=
-             (uint16_t)PF_M4_FALCON_SUBMOTION_FALL_SPECIAL_FORWARD &&
-         directional_submotion !=
-             (uint16_t)PF_M4_FALCON_SUBMOTION_FALL_SPECIAL_BACKWARD) ||
         !pf_m4_hsd_evaluate_local_pose_q16(
             &pf_m4_falcon_dynamic_hsd_data,
-            (uint16_t)PF_M4_FALCON_SUBMOTION_FALL_SPECIAL,
+            neutral_submotion,
             source_animation_frame_q16,
             neutral))
     {
@@ -1280,6 +1453,170 @@ void pf_m4_falcon_reference_capture_offset_q16(
     {
         *out_y_q16 = pf_m4_falcon_capture_offset_y_q16;
     }
+}
+
+int pf_m4_falcon_reference_capture_constraint_q16(
+    uint16_t holder_submotion,
+    int32_t holder_frame_q16,
+    int8_t holder_facing,
+    uint16_t victim_submotion,
+    int32_t victim_frame_q16,
+    int8_t victim_facing,
+    int32_t *out_x_q16,
+    int32_t *out_y_q16)
+{
+    int32_t holder_origins[PF_M4_HSD_POSE_MAX_JOINTS][3];
+    int32_t victim_origins[PF_M4_HSD_POSE_MAX_JOINTS][3];
+    uint8_t joint_indices[3];
+    int64_t relative_x;
+    int64_t relative_y;
+    const int victim_is_thrown =
+        victim_submotion >=
+            (uint16_t)PF_M4_FALCON_SUBMOTION_THROWN_FORWARD &&
+        victim_submotion <=
+            (uint16_t)PF_M4_FALCON_SUBMOTION_THROWN_DOWN;
+
+    if (out_x_q16 == NULL || out_y_q16 == NULL ||
+        (holder_facing != INT8_C(-1) && holder_facing != INT8_C(1)) ||
+        (victim_facing != INT8_C(-1) && victim_facing != INT8_C(1)) ||
+        pf_m4_falcon_dynamic_hsd_data.copy_target_joint_count != UINT8_C(1))
+    {
+        return 0;
+    }
+    joint_indices[0] =
+        pf_m4_falcon_dynamic_hsd_capture_constraint_joint_indices[0];
+    joint_indices[1] =
+        pf_m4_falcon_dynamic_hsd_capture_constraint_joint_indices[1];
+    joint_indices[2] =
+        pf_m4_falcon_dynamic_hsd_data.copy_target_joint_indices[0];
+    if (
+        !pf_m4_hsd_evaluate_joint_origins_source_q16(
+            &pf_m4_falcon_dynamic_hsd_data,
+            holder_submotion,
+            holder_frame_q16,
+            joint_indices,
+            UINT8_C(3),
+            holder_origins) ||
+        !pf_m4_hsd_evaluate_joint_origins_source_q16(
+            &pf_m4_falcon_dynamic_hsd_data,
+            victim_submotion,
+            victim_frame_q16,
+            joint_indices,
+            UINT8_C(3),
+            victim_origins))
+    {
+        return 0;
+    }
+
+    /* CapturePulledLw and the four Thrown motions constrain the victim XRotN
+     * (source joint 2) to the
+     * holder x11 attachment / TransN2 (source joint 61). Fighter roots already
+     * own the animated TransN reference, so subtract that common source joint
+     * from each evaluated point before reflecting the local X difference once.
+     * The paired action callback owns the facing relation: captures face apart,
+     * while Thrown motions copy the thrower's facing. */
+    if (victim_is_thrown != 0)
+    {
+        /* ftCo_800DE508 reads the constrained XRotN world origin directly,
+         * then adds Fighter::x1A70.z along facing and x1A70.y vertically.
+         * x1A70 is the unscaled base-model root-minus-XRotN offset, so it is
+         * imported separately rather than inferred from the animated victim. */
+        relative_x =
+            (int64_t)holder_facing *
+                ((int64_t)holder_origins[1][0] -
+                 (int64_t)holder_origins[2][0]) +
+            (int64_t)victim_facing *
+                (int64_t)
+                    pf_m4_falcon_dynamic_hsd_capture_root_offset_source_q16[2];
+        relative_y =
+            ((int64_t)holder_origins[1][1] -
+             (int64_t)holder_origins[2][1]) +
+            (int64_t)
+                pf_m4_falcon_dynamic_hsd_capture_root_offset_source_q16[1];
+    }
+    else
+    {
+        if (victim_facing != (int8_t)-holder_facing)
+        {
+            return 0;
+        }
+        relative_x =
+            (int64_t)holder_facing *
+            (((int64_t)holder_origins[1][0] -
+              (int64_t)holder_origins[2][0]) -
+             ((int64_t)victim_origins[0][0] -
+              (int64_t)victim_origins[2][0]));
+        relative_y = INT64_C(0);
+    }
+    if (relative_x < (int64_t)INT32_MIN ||
+        relative_x > (int64_t)INT32_MAX ||
+        relative_y < (int64_t)INT32_MIN ||
+        relative_y > (int64_t)INT32_MAX)
+    {
+        return 0;
+    }
+    *out_x_q16 = pf_m4_falcon_ecb_source_scale_q16(
+        (int32_t)relative_x,
+        pf_m4_falcon_dynamic_hsd_data.source_to_sim_numerator,
+        pf_m4_falcon_dynamic_hsd_data.source_to_sim_denominator);
+    *out_y_q16 = -pf_m4_falcon_ecb_source_scale_q16(
+        (int32_t)relative_y,
+        pf_m4_falcon_dynamic_hsd_capture_world_y_source_to_sim_numerator,
+        pf_m4_falcon_dynamic_hsd_capture_world_y_source_to_sim_denominator);
+    return 1;
+}
+
+int pf_m4_falcon_reference_throw_motions(
+    uint8_t action_state,
+    uint16_t *out_holder_submotion,
+    uint16_t *out_victim_submotion,
+    int32_t *out_animation_rate_q16)
+{
+    const pf_m4_falcon_common_attributes *attributes =
+        pf_m4_falcon_reference_common_attributes();
+    uint16_t holder_submotion;
+    uint16_t victim_submotion;
+    uint32_t throw_index;
+
+    if (out_holder_submotion == NULL || out_victim_submotion == NULL ||
+        out_animation_rate_q16 == NULL || attributes == NULL)
+    {
+        return 0;
+    }
+    switch (action_state)
+    {
+    case (uint8_t)PF_M4_ACTION_THROW_FORWARD:
+        holder_submotion =
+            (uint16_t)PF_M4_FALCON_SUBMOTION_THROW_FORWARD;
+        victim_submotion =
+            (uint16_t)PF_M4_FALCON_SUBMOTION_THROWN_FORWARD;
+        throw_index = UINT32_C(0);
+        break;
+    case (uint8_t)PF_M4_ACTION_THROW_BACK:
+        holder_submotion = (uint16_t)PF_M4_FALCON_SUBMOTION_THROW_BACK;
+        victim_submotion = (uint16_t)PF_M4_FALCON_SUBMOTION_THROWN_BACK;
+        throw_index = UINT32_C(1);
+        break;
+    case (uint8_t)PF_M4_ACTION_THROW_UP:
+        holder_submotion = (uint16_t)PF_M4_FALCON_SUBMOTION_THROW_UP;
+        victim_submotion = (uint16_t)PF_M4_FALCON_SUBMOTION_THROWN_UP;
+        throw_index = UINT32_C(2);
+        break;
+    case (uint8_t)PF_M4_ACTION_THROW_DOWN:
+        holder_submotion = (uint16_t)PF_M4_FALCON_SUBMOTION_THROW_DOWN;
+        victim_submotion = (uint16_t)PF_M4_FALCON_SUBMOTION_THROWN_DOWN;
+        throw_index = UINT32_C(3);
+        break;
+    default:
+        return 0;
+    }
+    *out_holder_submotion = holder_submotion;
+    *out_victim_submotion = victim_submotion;
+    *out_animation_rate_q16 = pf_m4_ssbm_throw_animation_rate_q16(
+        attributes->weight,
+        (attributes->weight_independent_throws_mask &
+         (uint8_t)(UINT8_C(1) << throw_index)) != UINT8_C(0));
+    return *out_animation_rate_q16 > INT32_C(0);
 }
 
 const pf_m4_reference_move *pf_m4_falcon_reference_move(
@@ -1825,6 +2162,10 @@ int pf_m4_falcon_reference_retained_hsd_pose(
     }
     switch ((pf_m4_action_state)action_state)
     {
+    case PF_M4_ACTION_AIR_DODGE:
+        expected_submotion =
+            (uint16_t)PF_M4_FALCON_SUBMOTION_AIR_DODGE;
+        break;
     case PF_M4_ACTION_HITSTUN:
     case PF_M4_ACTION_DAMAGE_LOW_1:
     case PF_M4_ACTION_DAMAGE_LOW_2:
@@ -1869,7 +2210,8 @@ int pf_m4_falcon_reference_retained_hsd_pose(
         return 0;
     }
     *out_frame_q16 =
-        action_state == (uint8_t)PF_M4_ACTION_HITSTUN ||
+        action_state == (uint8_t)PF_M4_ACTION_AIR_DODGE ||
+            action_state == (uint8_t)PF_M4_ACTION_HITSTUN ||
             action_state == (uint8_t)PF_M4_ACTION_DAMAGE_LOW_1 ||
             action_state == (uint8_t)PF_M4_ACTION_DAMAGE_LOW_2 ||
             action_state == (uint8_t)PF_M4_ACTION_DAMAGE_LOW_3 ||

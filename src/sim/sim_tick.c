@@ -1,5 +1,6 @@
 #include "sim_internal.h"
 #include "sim_falcon_frame_data.h"
+#include "sim_ssbm_stage_data.h"
 
 #include <stdint.h>
 #include <string.h>
@@ -241,6 +242,7 @@ static int32_t pf_m4_player_nudge_x_q16(
     uint32_t player_index)
 {
     const pf_m4_fighter_data *fighter = &content->fighter;
+    const uint8_t action_state = world->action_state[player_index];
     const int64_t overlap_distance_q16 =
         INT64_C(2) * fighter->player_push_half_width_q16;
     int32_t nudge_x_q16 = INT32_C(0);
@@ -259,7 +261,12 @@ static int32_t pf_m4_player_nudge_x_q16(
         world->support[player_index] ==
             (uint8_t)PF_M4_SURFACE_REVIVAL_PLATFORM ||
         world->grab_target_slot[player_index] != UINT8_C(0) ||
-        world->grab_owner_slot[player_index] != UINT8_C(0))
+        world->grab_owner_slot[player_index] != UINT8_C(0) ||
+        (content->gameplay_ruleset ==
+             (uint8_t)PF_M4_GAMEPLAY_RULESET_SSBM_NTSC102_UCF084 &&
+         (action_state == (uint8_t)PF_M4_ACTION_ROLL_FORWARD ||
+          action_state == (uint8_t)PF_M4_ACTION_ROLL_BACKWARD ||
+          action_state == (uint8_t)PF_M4_ACTION_SPOT_DODGE)))
     {
         return INT32_C(0);
     }
@@ -267,8 +274,7 @@ static int32_t pf_m4_player_nudge_x_q16(
     /*
      * SSBM ftCommon_8007DD7C accumulates one fixed horizontal nudge for
      * every grounded fighter whose character push radii overlap on the same
-     * (or an adjacent) floor. The current M4 stages expose each disconnected
-     * floor as a distinct support, so equality is the applicable topology.
+     * or an immediately adjacent collision line.
      */
     for (other_index = UINT32_C(0);
          other_index < (uint32_t)world->player_count;
@@ -285,12 +291,39 @@ static int32_t pf_m4_player_nudge_x_q16(
                 (uint8_t)PF_M4_ACTION_ELIMINATED ||
             world->action_state[other_index] ==
                 (uint8_t)PF_M4_ACTION_REVIVAL_PLATFORM ||
-            world->support[other_index] !=
-                world->support[player_index] ||
             world->grab_target_slot[other_index] !=
                 UINT8_C(0))
         {
             continue;
+        }
+
+        if (world->support[other_index] != world->support[player_index])
+        {
+            const pf_m4_ssbm_stage_collision_profile *profile =
+                pf_m4_ssbm_reference_stage_collision(
+                    content->stage.reference_collision_profile);
+            const pf_m4_ssbm_stage_collision_line *line =
+                pf_m4_ssbm_reference_stage_line(
+                    content->stage.reference_collision_profile,
+                    world->support[player_index]);
+            const pf_m4_ssbm_stage_collision_line *other_line =
+                pf_m4_ssbm_reference_stage_line(
+                    content->stage.reference_collision_profile,
+                    world->support[other_index]);
+            int16_t other_line_index;
+
+            if (profile == NULL || line == NULL || other_line == NULL ||
+                other_line < profile->lines ||
+                other_line >= profile->lines + profile->line_count)
+            {
+                continue;
+            }
+            other_line_index = (int16_t)(other_line - profile->lines);
+            if (line->previous_line != other_line_index &&
+                line->next_line != other_line_index)
+            {
+                continue;
+            }
         }
 
         delta_x_q16 =
@@ -507,7 +540,11 @@ static void pf_m4_canonicalize_source_animation_state(
             scratch->source_animation_frame_q16[player_index] = INT32_C(0);
             scratch->source_animation_rate_q16[player_index] = INT32_C(0);
         }
-        if (!pf_m4_action_uses_fall_special_pose(
+        if (pf_m4_effective_action_state(
+                scratch->action_state[player_index],
+                scratch->hitlag_resume_action[player_index]) !=
+                (uint8_t)PF_M4_ACTION_AIRBORNE &&
+            !pf_m4_action_uses_fall_special_pose(
                 pf_m4_effective_action_state(
                     scratch->action_state[player_index],
                     scratch->hitlag_resume_action[player_index])))
@@ -527,6 +564,26 @@ static void pf_m4_canonicalize_source_animation_state(
             scratch->ground_blend_progress_q16[player_index] = INT32_C(0);
         }
     }
+}
+
+static pf_input_frame pf_m4_reference_match_fighter_input(
+    const pf_input_frame *input,
+    uint8_t input_lock_ticks)
+{
+    pf_input_frame effective = *input;
+
+    if (input_lock_ticks != UINT8_C(0))
+    {
+        effective.buttons = UINT64_C(0);
+        effective.main_stick_x = INT16_C(0);
+        effective.main_stick_y = INT16_C(0);
+        effective.secondary_stick_x = INT16_C(0);
+        effective.secondary_stick_y = INT16_C(0);
+        effective.left_trigger = UINT16_C(0);
+        effective.right_trigger = UINT16_C(0);
+        effective.raw_axis_valid_mask = UINT8_C(0);
+    }
+    return effective;
 }
 
 pf_status pf_sim_tick_impl(
@@ -703,11 +760,15 @@ pf_status pf_sim_tick_impl(
                       input_tilt_y_age,
                       world->ucf_pad_buffer_count[player_index])
                 : UINT8_C(0);
+        const pf_input_frame fighter_input =
+            pf_m4_reference_match_fighter_input(
+                &source_input,
+                world->reference_match_input_lock_ticks);
         const pf_input_frame priority_input =
             pf_m4_reference_priority_input(
                 &sim->content,
                 world,
-                &source_input,
+                &fighter_input,
                 player_index);
         pf_input_frame charge_input;
         pf_input_frame reflector_input;
@@ -778,6 +839,18 @@ pf_status pf_sim_tick_impl(
         {
             pf_write_result(world, NULL, out_result);
             return status;
+        }
+        /* Fighter_UpdateInputTimer increments x18ac only while the fighter is
+         * outside hitlag.  Use the action at the start of this update: the
+         * tick that releases hitlag is still paused in Melee because the
+         * hitlag flag is cleared later in the fighter callback pipeline. */
+        if (world->last_hit_sequence[player_index] != UINT32_C(0) &&
+            world->action_state[player_index] !=
+                (uint8_t)PF_M4_ACTION_HITLAG &&
+            scratch->damage_time_since_hit_ticks[player_index] <
+                UINT8_C(254))
+        {
+            ++scratch->damage_time_since_hit_ticks[player_index];
         }
         scratch->previous_buttons[player_index] = source_input.buttons;
         scratch->previous_main_stick_x[player_index] =
@@ -954,6 +1027,8 @@ pf_status pf_sim_tick_impl(
             scratch->short_hop_latched[player_index];
         world->platform_drop_ticks[player_index] =
             scratch->platform_drop_ticks[player_index];
+        world->crouch_pass_pending_ticks[player_index] =
+            scratch->crouch_pass_pending_ticks[player_index];
         world->fast_fall[player_index] =
             scratch->fast_fall[player_index];
         world->facing[player_index] =
@@ -1012,6 +1087,8 @@ pf_status pf_sim_tick_impl(
             scratch->last_hit_tick[player_index];
         world->last_hit_damage_q16[player_index] =
             scratch->last_hit_damage_q16[player_index];
+        world->damage_time_since_hit_ticks[player_index] =
+            scratch->damage_time_since_hit_ticks[player_index];
         world->hitlag_ticks[player_index] =
             scratch->hitlag_ticks[player_index];
         world->hitstun_ticks[player_index] =
@@ -1050,6 +1127,8 @@ pf_status pf_sim_tick_impl(
             scratch->trigger_input_age[player_index];
         world->prone_attack_input_age[player_index] =
             scratch->prone_attack_input_age[player_index];
+        world->up_special_input_age[player_index] =
+            scratch->up_special_input_age[player_index];
         world->powershield[player_index] =
             scratch->powershield[player_index];
         world->guard_dash_grab_window_ticks[player_index] =
@@ -1132,6 +1211,10 @@ pf_status pf_sim_tick_impl(
     world->projectile_state = scratch->projectile_state;
     world->projectile_owner_slot = scratch->projectile_owner_slot;
     world->rng_state = rng_state;
+    if (world->reference_match_input_lock_ticks != UINT8_C(0))
+    {
+        --world->reference_match_input_lock_ticks;
+    }
     ++world->tick;
 
     if (forfeit_mask != UINT64_C(0))

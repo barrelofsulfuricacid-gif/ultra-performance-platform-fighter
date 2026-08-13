@@ -61,10 +61,72 @@ pf_m4_ssbm_common_reference_ground_input(void)
     return &pf_m4_ssbm_ground_input_attribute_data;
 }
 
+int32_t pf_m4_ssbm_throw_animation_rate_q16(
+    uint16_t fighter_weight,
+    int weight_independent)
+{
+    const uint64_t denominator_q30 =
+        (uint64_t)fighter_weight *
+        (uint64_t)(uint32_t)
+            pf_m4_ssbm_ground_input_attribute_data
+                .throw_animation_weight_scale_q30;
+    uint64_t rate_q16;
+
+    if (weight_independent != 0)
+    {
+        return INT32_C(65536);
+    }
+    if (fighter_weight == UINT16_C(0) || denominator_q30 == UINT64_C(0))
+    {
+        return INT32_C(0);
+    }
+    rate_q16 =
+        (UINT64_C(1) << 46U) + denominator_q30 / UINT64_C(2);
+    rate_q16 /= denominator_q30;
+    return rate_q16 <= (uint64_t)INT32_MAX
+               ? (int32_t)rate_q16
+               : INT32_C(0);
+}
+
+uint16_t pf_m4_ssbm_throw_animation_ticks(
+    uint16_t source_frames,
+    uint16_t fighter_weight,
+    int weight_independent)
+{
+    const uint64_t denominator_q30 =
+        (uint64_t)fighter_weight *
+        (uint64_t)(uint32_t)
+            pf_m4_ssbm_ground_input_attribute_data
+                .throw_animation_weight_scale_q30;
+    uint64_t ticks;
+
+    if (weight_independent != 0)
+    {
+        return source_frames;
+    }
+    if (source_frames == UINT16_C(0) || fighter_weight == UINT16_C(0) ||
+        denominator_q30 == UINT64_C(0))
+    {
+        return UINT16_C(0);
+    }
+    ticks = (uint64_t)source_frames * denominator_q30 +
+            ((UINT64_C(1) << 30U) - UINT64_C(1));
+    ticks >>= 30U;
+    return ticks <= (uint64_t)UINT16_MAX
+               ? (uint16_t)ticks
+               : UINT16_C(0);
+}
+
 const pf_m4_ssbm_rebirth_attributes *
 pf_m4_ssbm_common_reference_rebirth(void)
 {
     return &pf_m4_ssbm_rebirth_attribute_data;
+}
+
+const pf_m4_ssbm_match_entry_attributes *
+pf_m4_ssbm_common_reference_match_entry(void)
+{
+    return &pf_m4_ssbm_match_entry_attribute_data;
 }
 
 const pf_m4_ssbm_clank_attributes *

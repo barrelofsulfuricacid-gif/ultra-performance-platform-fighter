@@ -16,6 +16,7 @@ from ssbm_replay_differential import (  # noqa: E402
     PHYSICAL_L,
     classify_source_modifier,
     detect_ucf_dashback,
+    detect_ucf084_cardinal_mismatch,
     diagnostic_execution_reference,
     first_semantic_difference,
     input_trigger,
@@ -30,7 +31,7 @@ EXACT_REFERENCE = {"status": "exact", "failures": []}
 
 def replay_fixture(
     controller_fix: str | None = "UCF",
-    raw_x: int = -101,
+    raw_x: int = -79,
     raw_y: int | None = 0,
 ) -> dict:
     def source_frame(
@@ -44,6 +45,7 @@ def replay_fixture(
                 {
                     "pre": {
                         "joystickX": processed_x,
+                        "joystickY": 0.0,
                         "rawJoystickX": source_raw_x,
                         "rawJoystickY": raw_y,
                     },
@@ -73,13 +75,42 @@ def replay_fixture(
 
 
 class SourceModifierClassifierTests(unittest.TestCase):
+    def test_unsnapped_raw_cardinal_proves_non_target_ucf(self) -> None:
+        replay = replay_fixture(raw_x=-80, raw_y=4)
+        replay["frames"][2]["players"][0]["pre"]["joystickX"] = -0.9875
+        evidence = detect_ucf084_cardinal_mismatch(
+            replay, replay["frames"], 2, 0
+        )
+        self.assertIsNotNone(evidence)
+        assert evidence is not None
+        self.assertEqual(
+            evidence["classification"], "ucf084-cardinal-signature-mismatch"
+        )
+        self.assertEqual(evidence["raw_main"], [-80, 4])
+        self.assertEqual(evidence["ucf084_processed_main"], [-1.0, 0.0])
+        self.assertEqual(
+            classify_source_modifier(
+                replay, replay["frames"], 2, 0, EXACT_REFERENCE
+            )["classification"],
+            "ucf084-cardinal-signature-mismatch",
+        )
+
+    def test_snapped_raw_cardinal_matches_target_ucf(self) -> None:
+        replay = replay_fixture(raw_x=-80, raw_y=4)
+        replay["frames"][2]["players"][0]["pre"].update(
+            {"joystickX": -1.0, "joystickY": 0.0}
+        )
+        self.assertIsNone(
+            detect_ucf084_cardinal_mismatch(replay, replay["frames"], 2, 0)
+        )
+
     def test_exact_ucf_raw_history_signature_is_exercisable(self) -> None:
         replay = replay_fixture()
         evidence = detect_ucf_dashback(replay, replay["frames"], 2, 0)
         self.assertIsNotNone(evidence)
         assert evidence is not None
         self.assertEqual(evidence["classification"], "ucf-raw-history-dashback")
-        self.assertEqual(evidence["raw_delta"], -101)
+        self.assertEqual(evidence["raw_delta"], -79)
         self.assertEqual(evidence["source_action_transition"], [18, 20])
         self.assertIsNone(
             classify_source_modifier(

@@ -179,7 +179,10 @@ typedef enum pf_m4_action_state
     PF_M4_ACTION_FORWARD_STRONG_ATTACK_HIGH = 145,
     PF_M4_ACTION_FORWARD_STRONG_ATTACK_LOW = 146,
     PF_M4_ACTION_FORWARD_STRONG_CHARGE_HIGH = 147,
-    PF_M4_ACTION_FORWARD_STRONG_CHARGE_LOW = 148
+    PF_M4_ACTION_FORWARD_STRONG_CHARGE_LOW = 148,
+    PF_M4_ACTION_MATCH_ENTRY = 149,
+    PF_M4_ACTION_MATCH_ENTRY_START = 150,
+    PF_M4_ACTION_MATCH_ENTRY_END = 151
 } pf_m4_action_state;
 
 typedef enum pf_m4_projectile_state
@@ -1098,6 +1101,11 @@ pf_status pf_m4_make_content_view(
 pf_status pf_m4_inspect(
     const pf_sim *sim,
     pf_m4_inspection *out_inspection);
+
+/* Replace the generic reset pose with the exact two-player SSBM match-entry
+ * lifecycle. This remains separate from pf_sim_reset so focused fixtures and
+ * post-KO revival keep their existing contracts. */
+pf_status pf_m4_start_reference_match(pf_sim *sim);
 
 #ifdef __cplusplus
 }

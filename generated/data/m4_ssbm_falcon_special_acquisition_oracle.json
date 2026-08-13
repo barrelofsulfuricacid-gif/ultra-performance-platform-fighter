@@ -1254,11 +1254,107 @@
         "facing",
         "grounded"
       ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "jump_terminal_edge_neutral_history",
+      "input_runs": [
+        {
+          "input": "0,0,0,0,0,0,1,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 3
+        },
+        {
+          "input": "32767,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 6,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded",
+        "velocity_x_q16",
+        "velocity_y_q16"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "jump_terminal_edge_held_history",
+      "input_runs": [
+        {
+          "input": "0,0,0,0,0,0,1,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "32767,0,0,0,0,0,0,0,0",
+          "ticks": 4
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 6,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded",
+        "velocity_x_q16",
+        "velocity_y_q16"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "dash_turn_origin_early_reverse",
+      "input_runs": [
+        {
+          "input": "-16384,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "-32767,0,0,0,0,0,0,0,0",
+          "ticks": 8
+        },
+        {
+          "input": "32767,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 1
+        }
+      ],
+      "runner_arguments": [],
+      "sample_count": 12,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded",
+        "velocity_x_q16",
+        "velocity_y_q16"
+      ]
     }
   ],
   "domain": "falcon-common-special-acquisition",
   "kind": "native-csv-trace-v1",
-  "production_trace_sha256": "9546194d57f47eb320102b70be475111cead96c975e74af486201f3bf6d67cbb",
+  "production_trace_sha256": "dfdf53934818d7436fa02fc265e3febb129e97f34b1573d0b670cfc66075a6c6",
   "schema": 1,
-  "source_trace_sha256": "9546194d57f47eb320102b70be475111cead96c975e74af486201f3bf6d67cbb"
+  "source_trace_sha256": "c68d3bc9cd830283648f98b210502a471ca0724fc3b5197caea5b71aaa29a07b"
 }

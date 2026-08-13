@@ -569,6 +569,73 @@ def detect_ucf_dashback(
     }
 
 
+def detect_ucf084_cardinal_mismatch(
+    replay: dict[str, Any],
+    frames: dict[int, dict[str, Any]],
+    frame_number: int,
+    player_index: int,
+) -> dict[str, Any] | None:
+    """Detect a recorded processed stick that contradicts UCF 0.84.
+
+    The pinned Pad Buffer + 1.0 Cardinals hook snaps a main-stick primary raw
+    axis at magnitude 80 or greater to exactly +/-1 when the orthogonal raw
+    axis is at most 6, and clears the orthogonal processed axis.  Public SLPs
+    normally identify only the broad ``UCF`` family.  A raw-complete sample
+    that still records the unsnapped processed pair therefore proves that the
+    replay is not an exact observation of our pinned UCF 0.84 target.
+    """
+
+    settings = source_player_settings(replay, player_index)
+    if settings.get("controllerFix") != "UCF":
+        return None
+    source_frame = frames.get(frame_number)
+    sample = None if source_frame is None else player(source_frame, player_index)
+    if sample is None:
+        return None
+    pre = sample["pre"]
+    raw = exact_raw_main(pre)
+    if raw is None:
+        return None
+    raw_x, raw_y = raw
+    processed_x_value = pre.get("joystickX")
+    processed_y_value = pre.get("joystickY")
+    if not isinstance(processed_x_value, (int, float)) or not isinstance(
+        processed_y_value, (int, float)
+    ):
+        return None
+    processed_x = float(processed_x_value)
+    processed_y = float(processed_y_value)
+    expected_x = processed_x
+    expected_y = processed_y
+    snapped_axis: str | None = None
+    if abs(raw_x) >= 80 and abs(raw_y) <= 6:
+        expected_x = -1.0 if raw_x < 0 else 1.0
+        expected_y = 0.0
+        snapped_axis = "x"
+    elif abs(raw_y) >= 80 and abs(raw_x) <= 6:
+        expected_x = 0.0
+        expected_y = -1.0 if raw_y < 0 else 1.0
+        snapped_axis = "y"
+    if snapped_axis is None or (
+        abs(processed_x - expected_x) <= 1e-6
+        and abs(processed_y - expected_y) <= 1e-6
+    ):
+        return None
+    return {
+        "classification": "ucf084-cardinal-signature-mismatch",
+        "source_frame": frame_number,
+        "controller_fix": "UCF",
+        "snapped_axis": snapped_axis,
+        "raw_main": [raw_x, raw_y],
+        "recorded_processed_main": [processed_x, processed_y],
+        "ucf084_processed_main": [expected_x, expected_y],
+        "reason": (
+            "serialized raw/processed main-stick pair contradicts the pinned "
+            "UCF 0.84 1.0-cardinal hook"
+        ),
+    }
+
+
 def classify_source_modifier(
     replay: dict[str, Any],
     frames: dict[int, dict[str, Any]],
@@ -578,6 +645,11 @@ def classify_source_modifier(
 ) -> dict[str, Any] | None:
     """Fail closed only when a detected UCF boundary lacks exact authority."""
 
+    cardinal_mismatch = detect_ucf084_cardinal_mismatch(
+        replay, frames, frame_number, player_index
+    )
+    if cardinal_mismatch is not None:
+        return cardinal_mismatch
     signature = detect_ucf_dashback(replay, frames, frame_number, player_index)
     if signature is None:
         return None
@@ -649,9 +721,7 @@ def input_trigger(value: float) -> int:
     return max(0, min(65534, round(value * 65535.0)))
 
 
-def native_input(
-    pre: dict[str, Any], mirror: int, require_exact_raw_main: bool = False
-) -> str:
+def logical_buttons(pre: dict[str, Any]) -> int:
     physical = int(pre["physicalButtons"])
     buttons = 0
     if physical & (PHYSICAL_X | PHYSICAL_Y):
@@ -662,6 +732,34 @@ def native_input(
         buttons |= PF_SPECIAL
     if physical & (PHYSICAL_START | PHYSICAL_DPAD):
         buttons |= PF_TAUNT
+    return buttons
+
+
+def exact_raw_c(pre: dict[str, Any], mirror: int = 1) -> tuple[int, int] | None:
+    raw_x = pre.get("rawCStickX")
+    raw_y = pre.get("rawCStickY")
+    if (
+        isinstance(raw_x, bool)
+        or not isinstance(raw_x, int)
+        or isinstance(raw_y, bool)
+        or not isinstance(raw_y, int)
+        or not -128 <= raw_x <= 127
+        or not -128 <= raw_y <= 127
+    ):
+        return None
+    if mirror not in (-1, 1):
+        raise ConfigurationError("input mirror must be -1 or +1")
+    mirrored_x = raw_x * mirror
+    if not -128 <= mirrored_x <= 127:
+        return None
+    return mirrored_x, raw_y
+
+
+def native_input(
+    pre: dict[str, Any], mirror: int, require_exact_raw_main: bool = False
+) -> str:
+    physical = int(pre["physicalButtons"])
+    buttons = logical_buttons(pre)
     c_x = float(pre["cStickX"])
     c_y = float(pre["cStickY"])
     left = (

@@ -4955,7 +4955,8 @@ static int run_jump_takeoff_momentum_route(
     pf_sim *sim,
     const pf_m4_content *content,
     uint64_t seed,
-    int16_t takeoff_axis,
+    int16_t held_axis,
+    int16_t terminal_axis,
     int32_t *out_velocity_x)
 {
     pf_m4_inspection inspection;
@@ -5005,7 +5006,10 @@ static int run_jump_takeoff_momentum_route(
     {
         if (!step_duel(
                 sim,
-                takeoff_axis,
+                tick + UINT32_C(1) ==
+                        (uint32_t)content->fighter.jump_squat_ticks
+                    ? terminal_axis
+                    : held_axis,
                 INT16_C(0),
                 PF_INPUT_BUTTON_JUMP,
                 &inspection))
@@ -5290,6 +5294,7 @@ static int run_jump_takeoff_momentum_test(
     int32_t forward_velocity_x;
     int32_t neutral_velocity_x;
     int32_t reverse_velocity_x;
+    int32_t terminal_edge_velocity_x;
 
     if (!initialize_sim(
             &storage,
@@ -5302,17 +5307,20 @@ static int run_jump_takeoff_momentum_test(
             content,
             UINT64_C(0x4a554d50464f52),
             INT16_MAX,
+            INT16_MAX,
             &forward_velocity_x) ||
         !run_jump_takeoff_momentum_route(
             sim,
             content,
             UINT64_C(0x4a554d504e4555),
             INT16_C(0),
+            INT16_C(0),
             &neutral_velocity_x) ||
         !run_jump_takeoff_momentum_route(
             sim,
             content,
             UINT64_C(0x4a554d50524556),
+            INT16_MIN,
             INT16_MIN,
             &reverse_velocity_x))
     {
@@ -5332,6 +5340,23 @@ static int run_jump_takeoff_momentum_test(
             neutral_velocity_x,
             reverse_velocity_x,
             content->fighter.air_acceleration_q16);
+        return 0;
+    }
+    if (!run_jump_takeoff_momentum_route(
+            sim,
+            content,
+            UINT64_C(0x4a554d50454447),
+            INT16_C(0),
+            INT16_MAX,
+            &terminal_edge_velocity_x) ||
+        terminal_edge_velocity_x != neutral_velocity_x)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=jump-takeoff-terminal-input-order"
+            " edge=%" PRId32 " neutral=%" PRId32 "\n",
+            terminal_edge_velocity_x,
+            neutral_velocity_x);
         return 0;
     }
     return 1;
@@ -17047,6 +17072,45 @@ static int run_reference_callback_owner_test(
             " action=%u ticks=%u\n",
             (unsigned int)inspection.players[0].action_state,
             (unsigned int)inspection.players[0].action_ticks);
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0xca130002)),
+            PF_STATUS_OK,
+            "callback-owner-damage-guard-reset"))
+    {
+        return 0;
+    }
+    sim->world.action_state[0] = (uint8_t)PF_M4_ACTION_HITSTUN;
+    sim->world.action_ticks[0] = UINT16_C(13);
+    sim->world.hitstun_ticks[0] = UINT16_C(1);
+    sim->world.source_submotion[0] =
+        (uint16_t)PF_M4_FALCON_SUBMOTION_DAMAGE_NEUTRAL_2;
+    sim->world.source_animation_frame_q16[0] =
+        INT32_C(14) * PF_Q16_ONE;
+    sim->world.source_animation_rate_q16[0] = PF_Q16_ONE;
+    sim->world.shield_held[0] = UINT8_C(0);
+    if (!step_duel_trigger(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD ||
+        inspection.players[0].source_submotion !=
+            (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD_ON ||
+        sim->world.ground_blend_progress_q16[0] != PF_Q16_ONE)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=callback-owner-damage-guard"
+            " action=%u submotion=%u blend=%" PRId32 "\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].source_submotion,
+            sim->world.ground_blend_progress_q16[0]);
         return 0;
     }
 

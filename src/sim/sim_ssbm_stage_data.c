@@ -65,6 +65,36 @@ pf_m4_ssbm_reference_stage_spawn_point(
     return &profile->spawn_points[player_index];
 }
 
+int32_t pf_m4_ssbm_revival_platform_x_q16(
+    uint16_t profile_id,
+    uint8_t player_count,
+    uint8_t player_index,
+    int32_t authored_spawn_spacing_q16)
+{
+    /*
+     * fn_8016719C stores the two-player Battlefield spawn-platform positions
+     * and ftCo_800D4FF4 reuses them for every stock.  These are source-world
+     * X values 12.8 and -40 transformed by the imported 12/115 stage scale.
+     * Keep the table here so movement and snapshot validation share one
+     * allocation-free source of truth.  FD and Stadium join this catalog when
+     * their collision profiles are imported.
+     */
+    if (profile_id == (uint16_t)PF_M4_REFERENCE_STAGE_BATTLEFIELD &&
+        player_count == UINT8_C(2) && player_index < UINT8_C(2))
+    {
+        static const int32_t battlefield_two_player_x_q16[2] = {
+            INT32_C(87533),
+            -INT32_C(273542)};
+
+        return battlefield_two_player_x_q16[player_index];
+    }
+
+    return (
+        (int32_t)(UINT32_C(2) * (uint32_t)player_index + UINT32_C(1)) -
+        (int32_t)player_count) *
+        authored_spawn_spacing_q16;
+}
+
 pf_status pf_m4_reference_stage_geometry_line_count(
     pf_m4_reference_stage stage,
     uint16_t *out_line_count)
@@ -369,6 +399,124 @@ static int64_t pf_m4_ssbm_cross_q16(
     int64_t by_q16)
 {
     return ax_q16 * by_q16 - ay_q16 * bx_q16;
+}
+
+int pf_m4_ssbm_reference_stage_find_floor_point_contact(
+    uint16_t profile_id,
+    int32_t previous_point_x_q16,
+    int32_t previous_point_y_q16,
+    int32_t current_point_x_q16,
+    int32_t current_point_y_q16,
+    uint32_t *out_fraction_q16,
+    int32_t *out_floor_y_q16,
+    uint8_t *out_support)
+{
+    const pf_m4_ssbm_stage_collision_profile *profile =
+        pf_m4_ssbm_reference_stage_collision(profile_id);
+    const int64_t sweep_x_q16 =
+        (int64_t)current_point_x_q16 - previous_point_x_q16;
+    const int64_t sweep_y_q16 =
+        (int64_t)current_point_y_q16 - previous_point_y_q16;
+    uint32_t nearest_fraction_q16 = UINT32_MAX;
+    int32_t nearest_floor_y_q16 = INT32_C(0);
+    uint8_t nearest_support = UINT8_C(0);
+    uint16_t offset;
+
+    if (profile == NULL || out_fraction_q16 == NULL ||
+        out_floor_y_q16 == NULL || out_support == NULL ||
+        sweep_y_q16 <= INT64_C(0))
+    {
+        return 0;
+    }
+    for (offset = UINT16_C(0); offset < profile->floor_count; ++offset)
+    {
+        const uint16_t line_index =
+            (uint16_t)(profile->floor_start + offset);
+        const pf_m4_ssbm_stage_collision_line *line;
+        int64_t line_x_q16;
+        int64_t line_y_q16;
+        int64_t relative_x_q16;
+        int64_t relative_y_q16;
+        int64_t denominator;
+        int64_t sweep_numerator;
+        int64_t line_numerator;
+        uint32_t fraction_q16;
+        int64_t contact_y_q16;
+
+        if (line_index >= profile->line_count || line_index >= UINT8_MAX)
+        {
+            return 0;
+        }
+        line = &profile->lines[line_index];
+        if (line->kind != (uint8_t)PF_M4_SSBM_STAGE_SURFACE_FLOOR ||
+            (line->runtime_flags & UINT32_C(0x00010000)) == UINT32_C(0) ||
+            (line->runtime_flags & UINT32_C(0x00040000)) != UINT32_C(0))
+        {
+            continue;
+        }
+
+        line_x_q16 = (int64_t)line->end_x_q16 - line->start_x_q16;
+        line_y_q16 = (int64_t)line->end_y_q16 - line->start_y_q16;
+        relative_x_q16 =
+            (int64_t)line->start_x_q16 - previous_point_x_q16;
+        relative_y_q16 =
+            (int64_t)line->start_y_q16 - previous_point_y_q16;
+        denominator = pf_m4_ssbm_cross_q16(
+            sweep_x_q16,
+            sweep_y_q16,
+            line_x_q16,
+            line_y_q16);
+        sweep_numerator = pf_m4_ssbm_cross_q16(
+            relative_x_q16,
+            relative_y_q16,
+            line_x_q16,
+            line_y_q16);
+        line_numerator = pf_m4_ssbm_cross_q16(
+            relative_x_q16,
+            relative_y_q16,
+            sweep_x_q16,
+            sweep_y_q16);
+        if (denominator < INT64_C(0))
+        {
+            denominator = -denominator;
+            sweep_numerator = -sweep_numerator;
+            line_numerator = -line_numerator;
+        }
+        if (denominator == INT64_C(0) ||
+            sweep_numerator < INT64_C(0) ||
+            sweep_numerator > denominator ||
+            line_numerator < INT64_C(0) ||
+            line_numerator > denominator)
+        {
+            continue;
+        }
+        fraction_q16 = (uint32_t)pf_m4_collision_ratio_q16(
+            sweep_numerator,
+            denominator);
+        contact_y_q16 =
+            (int64_t)previous_point_y_q16 +
+            (sweep_y_q16 * (int64_t)fraction_q16) / INT64_C(65536);
+        if (contact_y_q16 < (int64_t)INT32_MIN ||
+            contact_y_q16 > (int64_t)INT32_MAX)
+        {
+            return 0;
+        }
+        if (nearest_support == UINT8_C(0) ||
+            fraction_q16 < nearest_fraction_q16)
+        {
+            nearest_fraction_q16 = fraction_q16;
+            nearest_floor_y_q16 = (int32_t)contact_y_q16;
+            nearest_support = (uint8_t)(line_index + UINT16_C(1));
+        }
+    }
+    if (nearest_support == UINT8_C(0))
+    {
+        return 0;
+    }
+    *out_fraction_q16 = nearest_fraction_q16;
+    *out_floor_y_q16 = nearest_floor_y_q16;
+    *out_support = nearest_support;
+    return 1;
 }
 
 int pf_m4_ssbm_reference_stage_find_wall_point_contact(

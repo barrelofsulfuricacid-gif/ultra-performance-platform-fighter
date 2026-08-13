@@ -1,4 +1,6 @@
 #include "sim_internal.h"
+#include "sim_falcon_frame_data.h"
+#include "sim_ssbm_stage_data.h"
 
 #include <limits.h>
 #include <stdalign.h>
@@ -385,6 +387,92 @@ pf_status pf_sim_reset(pf_sim *sim, uint64_t seed)
 
     (void)memset(sim->scratch, 0, sizeof(*sim->scratch));
     sim->has_reset = UINT8_C(1);
+    return PF_STATUS_OK;
+}
+
+pf_status pf_m4_start_reference_match(pf_sim *sim)
+{
+    const pf_m4_ssbm_stage_collision_profile *profile;
+    uint32_t player_index;
+
+    if (!pf_sim_is_valid(sim) || sim->has_reset == UINT8_C(0))
+    {
+        return PF_STATUS_INVALID_STATE;
+    }
+    if (sim->world.tick != UINT64_C(0) ||
+        sim->world.terminated != UINT8_C(0) ||
+        sim->world.truncated != UINT8_C(0) ||
+        sim->world.player_count != UINT8_C(2) ||
+        sim->world.mode != (uint8_t)PF_SIM_MODE_DUEL ||
+        sim->content.gameplay_ruleset !=
+            (uint8_t)PF_M4_GAMEPLAY_RULESET_SSBM_NTSC102_UCF084 ||
+        sim->content.fighter.reference_frame_data_enabled == UINT8_C(0) ||
+        sim->content.stage.reference_collision_profile ==
+            (uint16_t)PF_M4_REFERENCE_STAGE_AUTHORED)
+    {
+        return PF_STATUS_INVALID_STATE;
+    }
+
+    profile = pf_m4_ssbm_reference_stage_collision(
+        sim->content.stage.reference_collision_profile);
+    if (profile == NULL || profile->spawn_point_count < UINT8_C(4))
+    {
+        return PF_STATUS_DETERMINISTIC_FAULT;
+    }
+    for (player_index = UINT32_C(0);
+         player_index < (uint32_t)sim->world.player_count;
+         ++player_index)
+    {
+        if (sim->world.active[player_index] == UINT8_C(0) ||
+            sim->world.action_state[player_index] !=
+                (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
+            sim->world.action_ticks[player_index] != UINT16_C(0) ||
+            sim->world.damage_q16[player_index] != UINT32_C(0) ||
+            sim->world.stocks_remaining[player_index] !=
+                sim->world.stock_count)
+        {
+            return PF_STATUS_INVALID_STATE;
+        }
+    }
+
+    (void)memset(sim->scratch, 0, sizeof(*sim->scratch));
+    sim->world.reference_match_input_lock_ticks =
+        PF_M4_REFERENCE_MATCH_INPUT_LOCK_TICKS;
+    for (player_index = UINT32_C(0);
+         player_index < (uint32_t)sim->world.player_count;
+         ++player_index)
+    {
+        const pf_m4_ssbm_stage_spawn_point *spawn =
+            &profile->spawn_points[player_index + UINT32_C(2)];
+
+        sim->world.position_x_q16[player_index] =
+            spawn->position_x_q16;
+        sim->world.position_y_q16[player_index] =
+            spawn->position_y_q16 -
+            sim->content.fighter.half_height_q16;
+        sim->world.velocity_x_q16[player_index] = INT32_C(0);
+        sim->world.velocity_y_q16[player_index] = INT32_C(0);
+        sim->world.knockback_velocity_x_q16[player_index] = INT32_C(0);
+        sim->world.knockback_velocity_y_q16[player_index] = INT32_C(0);
+        sim->world.ground_knockback_velocity_q16[player_index] =
+            INT32_C(0);
+        sim->world.action_state[player_index] =
+            (uint8_t)PF_M4_ACTION_MATCH_ENTRY;
+        sim->world.action_ticks[player_index] = UINT16_C(0);
+        sim->world.source_submotion[player_index] =
+            (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT;
+        sim->world.source_animation_frame_q16[player_index] = INT32_C(0);
+        sim->world.source_animation_rate_q16[player_index] = INT32_C(0);
+        sim->world.grounded[player_index] = UINT8_C(0);
+        sim->world.support[player_index] =
+            (uint8_t)PF_M4_SURFACE_NONE;
+        sim->world.facing[player_index] =
+            player_index == UINT32_C(0) ? INT8_C(1) : INT8_C(-1);
+        sim->world.dash_direction[player_index] = INT8_C(0);
+        sim->world.fast_fall[player_index] = UINT8_C(0);
+        sim->world.ecb_bottom_lock_ticks[player_index] = UINT8_C(0);
+        sim->world.ecb_locked_bottom_y_q16[player_index] = INT32_C(0);
+    }
     return PF_STATUS_OK;
 }
 

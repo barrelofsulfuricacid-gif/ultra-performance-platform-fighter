@@ -36,6 +36,9 @@ static inline int32_t pf_m4_total_velocity_q16(
 #define PF_SIM_MAX_GRAB_ESCAPE_TICKS UINT16_C(2048)
 #define PF_M4_COMMON_AIR_ENTRY_ECB_LOCK_TICKS UINT8_C(10)
 #define PF_M4_USE_ALL_JUMPS_ECB_LOCK_TICKS UINT8_C(5)
+/* Slippi records pre-frame controller state from frame -123, while Melee's
+ * fighter input callbacks first consume it on FIRST_PLAYABLE frame -39. */
+#define PF_M4_REFERENCE_MATCH_INPUT_LOCK_TICKS UINT8_C(84)
 
 /* StandingTurn reuses the signed dash-direction byte for the source motion's
  * compact callback phase. The sign is facing_after; the magnitude replaces
@@ -43,6 +46,7 @@ static inline int32_t pf_m4_total_velocity_q16(
 #define PF_M4_STANDING_TURN_SMASH_PHASE INT8_C(1)
 #define PF_M4_STANDING_TURN_BASIC_PHASE INT8_C(2)
 #define PF_M4_STANDING_TURN_DASH_ARMED_PHASE INT8_C(3)
+#define PF_M4_STANDING_TURN_TURNED_PHASE INT8_C(4)
 
 /* InitialDash reuses that byte for ftCo_Dash's x4 entry provenance. The
  * sign remains the motion direction, while the magnitude distinguishes an
@@ -63,10 +67,16 @@ static inline int8_t pf_m4_signed_phase_direction(int8_t phase)
 
 static inline int pf_m4_action_is_canonical(uint8_t action_state)
 {
-    return action_state <=
-               (uint8_t)PF_M4_ACTION_FORWARD_STRONG_CHARGE_LOW &&
+    return action_state <= (uint8_t)PF_M4_ACTION_MATCH_ENTRY_END &&
            action_state != (uint8_t)PF_M4_ACTION_RESERVED_71 &&
            action_state != (uint8_t)PF_M4_ACTION_RESERVED_72;
+}
+
+static inline int pf_m4_action_is_match_entry(uint8_t action_state)
+{
+    return action_state == (uint8_t)PF_M4_ACTION_MATCH_ENTRY ||
+           action_state == (uint8_t)PF_M4_ACTION_MATCH_ENTRY_START ||
+           action_state == (uint8_t)PF_M4_ACTION_MATCH_ENTRY_END;
 }
 
 #define PF_M4_TRIGGER_STATE_LEFT_HELD UINT8_C(1)
@@ -176,6 +186,14 @@ static inline int pf_m4_action_uses_fall_special_pose(uint8_t action_state)
            action_state == (uint8_t)PF_M4_ACTION_FALCON_DIVE_FALL;
 }
 
+static inline int pf_m4_action_is_reference_throw(uint8_t action_state)
+{
+    return action_state == (uint8_t)PF_M4_ACTION_THROW_FORWARD ||
+           action_state == (uint8_t)PF_M4_ACTION_THROW_BACK ||
+           action_state == (uint8_t)PF_M4_ACTION_THROW_UP ||
+           action_state == (uint8_t)PF_M4_ACTION_THROW_DOWN;
+}
+
 static inline int pf_m4_action_retains_source_submotion(
     uint8_t action_state,
     uint8_t hitlag_resume_action)
@@ -190,6 +208,8 @@ static inline int pf_m4_action_retains_source_submotion(
         action_state == (uint8_t)PF_M4_ACTION_RUN_TURNAROUND ||
         action_state == (uint8_t)PF_M4_ACTION_CROUCH ||
         action_state == (uint8_t)PF_M4_ACTION_CROUCH_END ||
+        action_state == (uint8_t)PF_M4_ACTION_AIR_DODGE ||
+        action_state == (uint8_t)PF_M4_ACTION_SPECIAL_LANDING ||
         action_state == (uint8_t)PF_M4_ACTION_TAUNT ||
         action_state == (uint8_t)PF_M4_ACTION_SHIELD ||
         action_state == (uint8_t)PF_M4_ACTION_SHIELD_RELEASE ||
@@ -200,10 +220,13 @@ static inline int pf_m4_action_retains_source_submotion(
         action_state == (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN ||
         action_state == (uint8_t)PF_M4_ACTION_TEETER ||
         action_state == (uint8_t)PF_M4_ACTION_REBOUND ||
+        action_state == (uint8_t)PF_M4_ACTION_GRAB ||
+        action_state == (uint8_t)PF_M4_ACTION_DASH_GRAB ||
         action_state == (uint8_t)PF_M4_ACTION_GRAB_HOLD ||
         action_state == (uint8_t)PF_M4_ACTION_PUMMEL ||
         action_state == (uint8_t)PF_M4_ACTION_GRABBED ||
         action_state == (uint8_t)PF_M4_ACTION_GRAB_RELEASE ||
+        pf_m4_action_is_reference_throw(action_state) ||
         pf_m4_action_is_damage(action_state) ||
         pf_m4_action_uses_ledge(action_state) ||
         pf_m4_action_uses_fall_special_pose(action_state) ||
@@ -219,6 +242,9 @@ static inline int pf_m4_action_retains_source_submotion(
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_RUN_TURNAROUND ||
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_CROUCH ||
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_CROUCH_END ||
+        hitlag_resume_action == (uint8_t)PF_M4_ACTION_AIR_DODGE ||
+        hitlag_resume_action ==
+            (uint8_t)PF_M4_ACTION_SPECIAL_LANDING ||
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_TAUNT ||
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_SHIELD ||
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_SHIELD_RELEASE ||
@@ -232,10 +258,13 @@ static inline int pf_m4_action_retains_source_submotion(
             (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN ||
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_TEETER ||
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_REBOUND ||
+        hitlag_resume_action == (uint8_t)PF_M4_ACTION_GRAB ||
+        hitlag_resume_action == (uint8_t)PF_M4_ACTION_DASH_GRAB ||
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_GRAB_HOLD ||
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_PUMMEL ||
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_GRABBED ||
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_GRAB_RELEASE ||
+        pf_m4_action_is_reference_throw(hitlag_resume_action) ||
         pf_m4_action_is_damage(hitlag_resume_action) ||
         pf_m4_action_uses_ledge(hitlag_resume_action) ||
         pf_m4_action_uses_fall_special_pose(hitlag_resume_action) ||
@@ -293,9 +322,16 @@ static inline int pf_m4_action_uses_source_animation_clock(
                hitlag_resume_action) ||
            effective_action == (uint8_t)PF_M4_ACTION_CROUCH ||
            effective_action == (uint8_t)PF_M4_ACTION_CROUCH_END ||
+           effective_action == (uint8_t)PF_M4_ACTION_AIRBORNE ||
+           effective_action == (uint8_t)PF_M4_ACTION_AIR_DODGE ||
+           effective_action ==
+               (uint8_t)PF_M4_ACTION_SPECIAL_LANDING ||
            effective_action == (uint8_t)PF_M4_ACTION_SHIELD_STUN ||
            effective_action ==
                (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN ||
+           effective_action == (uint8_t)PF_M4_ACTION_GRAB_HOLD ||
+           effective_action == (uint8_t)PF_M4_ACTION_GRABBED ||
+           pf_m4_action_is_reference_throw(effective_action) ||
            pf_m4_action_is_damage(effective_action) ||
            pf_m4_action_uses_fall_special_pose(effective_action) ||
            pf_m4_action_uses_direct_hsd_pose(effective_action);
@@ -308,6 +344,44 @@ static inline int32_t pf_m4_multiply_q16(
     return (int32_t)(
         ((int64_t)value_q16 * (int64_t)multiplier_q16) /
         (int64_t)PF_Q16_ONE);
+}
+
+static inline int32_t pf_m4_multiply_q16_nearest(
+    int32_t value_q16,
+    int32_t multiplier_q16)
+{
+    const int64_t product =
+        (int64_t)value_q16 * (int64_t)multiplier_q16;
+
+    return product < INT64_C(0)
+               ? (int32_t)(
+                     -((-product + (int64_t)PF_Q16_ONE / INT64_C(2)) /
+                       (int64_t)PF_Q16_ONE))
+               : (int32_t)(
+                     (product + (int64_t)PF_Q16_ONE / INT64_C(2)) /
+                     (int64_t)PF_Q16_ONE);
+}
+
+/* Quantize one step of a constant positive Q16.32 rate without accumulating
+ * the same sub-Q16 remainder every tick. The phase makes the integer sequence
+ * telescope: any contiguous run differs from the source rate by less than one
+ * Q16.16 unit and requires no per-action state. */
+static inline int32_t pf_m4_q32_rate_step(
+    int64_t rate_q32,
+    uint64_t phase)
+{
+    const uint64_t bounded_phase = phase & UINT64_C(0xFFFF);
+    const int64_t whole_q16 = rate_q32 / INT64_C(65536);
+    const int64_t fraction_q32 = rate_q32 % INT64_C(65536);
+    const int64_t before =
+        ((int64_t)bounded_phase * fraction_q32 + INT64_C(32768)) /
+        INT64_C(65536);
+    const int64_t after =
+        ((int64_t)(bounded_phase + UINT64_C(1)) * fraction_q32 +
+         INT64_C(32768)) /
+        INT64_C(65536);
+
+    return (int32_t)(whole_q16 + after - before);
 }
 
 static inline int32_t pf_m4_axis_q16(int16_t axis)
@@ -471,6 +545,7 @@ typedef struct pf_world_state
     uint8_t truncated;
     uint8_t winner_mask;
     uint8_t shield_recoil_mask;
+    uint8_t reference_match_input_lock_ticks;
     uint64_t previous_buttons[PF_SIM_MAX_PLAYERS];
     int32_t position_x_q16[PF_SIM_MAX_PLAYERS];
     int32_t position_y_q16[PF_SIM_MAX_PLAYERS];
@@ -511,6 +586,7 @@ typedef struct pf_world_state
     uint8_t recovery_available[PF_SIM_MAX_PLAYERS];
     uint8_t short_hop_latched[PF_SIM_MAX_PLAYERS];
     uint8_t platform_drop_ticks[PF_SIM_MAX_PLAYERS];
+    uint8_t crouch_pass_pending_ticks[PF_SIM_MAX_PLAYERS];
     uint8_t ecb_bottom_lock_ticks[PF_SIM_MAX_PLAYERS];
     uint8_t fast_fall[PF_SIM_MAX_PLAYERS];
     int8_t facing[PF_SIM_MAX_PLAYERS];
@@ -541,6 +617,7 @@ typedef struct pf_world_state
     uint32_t last_hit_sequence[PF_SIM_MAX_PLAYERS];
     uint64_t last_hit_tick[PF_SIM_MAX_PLAYERS];
     uint32_t last_hit_damage_q16[PF_SIM_MAX_PLAYERS];
+    uint8_t damage_time_since_hit_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t hitlag_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t hitstun_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t tech_window_ticks[PF_SIM_MAX_PLAYERS];
@@ -563,6 +640,7 @@ typedef struct pf_world_state
     uint8_t shield_held[PF_SIM_MAX_PLAYERS];
     uint8_t trigger_input_age[PF_SIM_MAX_PLAYERS];
     uint8_t prone_attack_input_age[PF_SIM_MAX_PLAYERS];
+    uint8_t up_special_input_age[PF_SIM_MAX_PLAYERS];
     uint8_t powershield[PF_SIM_MAX_PLAYERS];
     uint8_t guard_dash_grab_window_ticks[PF_SIM_MAX_PLAYERS];
     uint8_t tumble[PF_SIM_MAX_PLAYERS];
@@ -637,6 +715,7 @@ typedef struct pf_sim_scratch
     uint8_t recovery_available[PF_SIM_MAX_PLAYERS];
     uint8_t short_hop_latched[PF_SIM_MAX_PLAYERS];
     uint8_t platform_drop_ticks[PF_SIM_MAX_PLAYERS];
+    uint8_t crouch_pass_pending_ticks[PF_SIM_MAX_PLAYERS];
     uint8_t ecb_bottom_lock_ticks[PF_SIM_MAX_PLAYERS];
     uint8_t fast_fall[PF_SIM_MAX_PLAYERS];
     int8_t facing[PF_SIM_MAX_PLAYERS];
@@ -667,6 +746,7 @@ typedef struct pf_sim_scratch
     uint32_t last_hit_sequence[PF_SIM_MAX_PLAYERS];
     uint64_t last_hit_tick[PF_SIM_MAX_PLAYERS];
     uint32_t last_hit_damage_q16[PF_SIM_MAX_PLAYERS];
+    uint8_t damage_time_since_hit_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t hitlag_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t hitstun_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t tech_window_ticks[PF_SIM_MAX_PLAYERS];
@@ -689,6 +769,7 @@ typedef struct pf_sim_scratch
     uint8_t shield_held[PF_SIM_MAX_PLAYERS];
     uint8_t trigger_input_age[PF_SIM_MAX_PLAYERS];
     uint8_t prone_attack_input_age[PF_SIM_MAX_PLAYERS];
+    uint8_t up_special_input_age[PF_SIM_MAX_PLAYERS];
     uint8_t powershield[PF_SIM_MAX_PLAYERS];
     uint8_t guard_dash_grab_window_ticks[PF_SIM_MAX_PLAYERS];
     uint8_t tumble[PF_SIM_MAX_PLAYERS];

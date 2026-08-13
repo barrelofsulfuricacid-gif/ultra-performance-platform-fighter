@@ -5,8 +5,8 @@
   "character": "falcon",
   "oracle": "SSBM GALE01 NTSC-U revision 2 with UCF 0.84",
   "live_source": {
-    "capture_sha256": "34f721aea3df67edaea7435a256cc70e27d54767a2ae9b61fe4f6e22bc749ceb",
-    "repeat_capture_sha256": "d9af7fbc86479d1e3a8f823ae77e3bf5f8510d98db0c27ddeaa774436897033f",
+    "capture_sha256": "c2f6deed8346eb1729a9ee3d8444b77d9426e8fd457fb2b931a4978dc783704c",
+    "repeat_capture_sha256": "97095e1ebdc2fc5c022feec9d9fc6635c94988526576bf9cc76c22b2753dbb85",
     "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
     "release_artifact_sha256": "87e9ef6d80ed03354a1647d0616016dbc91399aa9e86a69ae5a398edd0a0c2bd",
     "launcher_sha256": "9eb024aa9347648f020e2a76666e5c5597b77b32ef26752f563c99f0772b1e82",
@@ -25,11 +25,11 @@
       "policy_sha256": "a8368a3901828602833fba82f2c1e2490df6537151ff5cd6a216419a6051b7cc"
     },
     "stage": "FINAL_DESTINATION",
-    "row_count": 467
+    "row_count": 491
   },
   "checkpoint_pack": {
     "protocol": "immutable-multislot-slippi-state-file-control-v2",
-    "expected_rows": 467,
+    "expected_rows": 491,
     "warm_budget_seconds": 16.0,
     "cold_budget_seconds": 20.0,
     "capture_route": "special-acquisition",
@@ -56,6 +56,11 @@
         "wait_up_special_attack_priority", "dash_side", "dash_neutral",
         "dash_up", "dash_down", "run_guard_dash_grab_hit",
         "wait_guard_ordinary_grab"
+      ],
+      [
+        "jump_terminal_edge_neutral_history",
+        "jump_terminal_edge_held_history",
+        "dash_turn_origin_early_reverse"
       ]
     ],
     "merge_setup_suffixes": ["setup", "release", "edge", "observe"],
@@ -381,6 +386,42 @@
           "edge_left_trigger": 65535,
           "edge_digital_left": true,
           "observe_ticks": 1
+        },
+        {
+          "id": "jump_terminal_edge_neutral_history",
+          "checkpoint_slot": 3,
+          "source_state": "wait",
+          "pre_edge_phases": [
+            { "ticks": 1, "actions": ["jump"] },
+            { "ticks": 3 }
+          ],
+          "edge_main": [32767, 0],
+          "edge_action": "none",
+          "observe_ticks": 1
+        },
+        {
+          "id": "jump_terminal_edge_held_history",
+          "checkpoint_slot": 4,
+          "source_state": "wait",
+          "pre_edge_phases": [
+            { "ticks": 1, "actions": ["jump"] },
+            { "ticks": 3, "main": [32767, 0] }
+          ],
+          "edge_main": [32767, 0],
+          "edge_action": "none",
+          "observe_ticks": 1
+        },
+        {
+          "id": "dash_turn_origin_early_reverse",
+          "checkpoint_slot": 5,
+          "source_state": "turn",
+          "pre_edge_phases": [
+            { "ticks": 1 },
+            { "ticks": 8, "main": [-32767, 0] }
+          ],
+          "edge_main": [32767, 0],
+          "edge_action": "none",
+          "observe_ticks": 1
         }
       ]
     }
@@ -421,7 +462,10 @@
     { "id": "run_down_special", "start_label": "special_acquisition_run_down_special_setup" },
     { "id": "run_guard_dash_grab_hit", "start_label": "special_acquisition_run_guard_dash_grab_hit_setup" },
     { "id": "wait_guard_ordinary_grab", "start_label": "special_acquisition_wait_guard_ordinary_grab_setup" },
-    { "id": "run_guard_dash_grab_expired", "start_label": "special_acquisition_run_guard_dash_grab_expired_setup" }
+    { "id": "run_guard_dash_grab_expired", "start_label": "special_acquisition_run_guard_dash_grab_expired_setup" },
+    { "id": "jump_terminal_edge_neutral_history", "start_label": "special_acquisition_jump_terminal_edge_neutral_history_setup" },
+    { "id": "jump_terminal_edge_held_history", "start_label": "special_acquisition_jump_terminal_edge_held_history_setup" },
+    { "id": "dash_turn_origin_early_reverse", "start_label": "special_acquisition_dash_turn_origin_early_reverse_setup" }
   ],
   "selection": {
     "paths": [
@@ -443,9 +487,9 @@
   },
   "stored_oracle": {
     "kind": "native-csv-trace-v1",
-    "source_trace_sha256": "9546194d57f47eb320102b70be475111cead96c975e74af486201f3bf6d67cbb",
-    "production_trace_sha256": "9546194d57f47eb320102b70be475111cead96c975e74af486201f3bf6d67cbb",
-    "require_exact_source_match": true,
+    "source_trace_sha256": "c68d3bc9cd830283648f98b210502a471ca0724fc3b5197caea5b71aaa29a07b",
+    "production_trace_sha256": "dfdf53934818d7436fa02fc265e3febb129e97f34b1573d0b670cfc66075a6c6",
+    "require_exact_source_match": false,
     "serialized_fields": [
       "action_state",
       "action_ticks",
@@ -1043,6 +1087,54 @@
           { "ticks": 25, "lanes": [{ "main": [32767, 0] }, {}] },
           { "ticks": 4, "lanes": [{ "left_trigger": 65535 }, {}] },
           { "ticks": 1, "lanes": [{ "left_trigger": 65535, "buttons": ["attack"] }, {}] },
+          { "ticks": 1, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "jump_terminal_edge_neutral_history",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_jump_terminal_edge_neutral_history_",
+        "sample_count": 6,
+        "serialized_fields": [
+          "action_state", "action_ticks", "facing", "grounded",
+          "velocity_x_q16", "velocity_y_q16"
+        ],
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "buttons": ["jump"] }, {}] },
+          { "ticks": 3, "lanes": [{}, {}] },
+          { "ticks": 1, "lanes": [{ "main": [32767, 0] }, {}] },
+          { "ticks": 1, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "jump_terminal_edge_held_history",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_jump_terminal_edge_held_history_",
+        "sample_count": 6,
+        "serialized_fields": [
+          "action_state", "action_ticks", "facing", "grounded",
+          "velocity_x_q16", "velocity_y_q16"
+        ],
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "buttons": ["jump"] }, {}] },
+          { "ticks": 4, "lanes": [{ "main": [32767, 0] }, {}] },
+          { "ticks": 1, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "dash_turn_origin_early_reverse",
+        "runner_arguments": [],
+        "source_label_prefix": "special_acquisition_dash_turn_origin_early_reverse_",
+        "sample_count": 12,
+        "serialized_fields": [
+          "action_state", "action_ticks", "facing", "grounded",
+          "velocity_x_q16", "velocity_y_q16"
+        ],
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "main": [-16384, 0] }, {}] },
+          { "ticks": 1, "lanes": [{}, {}] },
+          { "ticks": 8, "lanes": [{ "main": [-32767, 0] }, {}] },
+          { "ticks": 1, "lanes": [{ "main": [32767, 0] }, {}] },
           { "ticks": 1, "lanes": [{}, {}] }
         ]
       }

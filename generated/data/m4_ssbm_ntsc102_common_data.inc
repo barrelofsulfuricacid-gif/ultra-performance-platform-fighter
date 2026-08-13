@@ -208,6 +208,7 @@ pf_m4_ssbm_ground_input_attribute_data = {
     INT32_C(6839),
     INT32_C(23255),
     INT32_C(655),
+    INT32_C(10737418),
     UINT16_C(8192),
     UINT16_C(24575),
     UINT16_C(5898),
@@ -222,8 +223,10 @@ pf_m4_ssbm_ground_input_attribute_data = {
     UINT16_C(4),
     UINT16_C(21626),
     UINT16_C(6),
+    UINT16_C(2),
     UINT16_C(3),
     UINT16_C(18022),
+    UINT16_C(40),
     UINT16_C(20),
     UINT16_C(4),
     UINT16_C(3),
@@ -249,6 +252,14 @@ pf_m4_ssbm_rebirth_attribute_data = {
     UINT16_C(240),
     UINT16_C(120),
     UINT16_C(0),
+};
+
+static const pf_m4_ssbm_match_entry_attributes
+pf_m4_ssbm_match_entry_attribute_data = {
+    UINT16_C(30),
+    UINT16_C(30),
+    UINT16_C(120),
+    UINT16_C(5),
 };
 
 static const pf_m4_ssbm_clank_attributes

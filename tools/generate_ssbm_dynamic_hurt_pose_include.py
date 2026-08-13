@@ -12,7 +12,7 @@ from pathlib import Path
 import re
 from typing import Any
 
-from hsd_figatree import decode_figatree
+from hsd_figatree import FigaTree, decode_figatree
 from hsd_joint_pose import (
     JOBJ_CLASSICAL_SCALE,
     SUPPORTED_TRACK_TYPES,
@@ -68,6 +68,7 @@ def build_payload(
     animation_raw: bytes,
     common_raw: bytes,
     model_raw: bytes,
+    static_pose_payloads: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
     fighter_root = str(manifest["fighter_root"])
     model = read_hsd_archive(model_raw)
@@ -78,6 +79,16 @@ def build_payload(
     raw_point_sets = manifest.get("joint_point_sets", [])
     if not isinstance(raw_point_sets, list):
         raise ValueError("manifest joint_point_sets must be a list")
+    capture_constraint = manifest.get("capture_constraint")
+    if (
+        not isinstance(capture_constraint, dict)
+        or capture_constraint.get("fighter_root_source_joint_index") != 1
+        or capture_constraint.get("model_offset_source_joint_index") != 2
+        or capture_constraint.get("holder_attachment_source_joint_index") != 61
+        or capture_constraint.get("world_y_source_to_sim_numerator") != 11
+        or capture_constraint.get("world_y_source_to_sim_denominator") != 62
+    ):
+        raise ValueError("manifest capture constraint is invalid")
     point_set_specs: list[tuple[str, tuple[int, ...]]] = []
     point_set_ids: set[str] = set()
     for point_set in raw_point_sets:
@@ -146,6 +157,18 @@ def build_payload(
         scale=(model_scale, model_scale, model_scale),
     )
     converted_joint_tuple = tuple(converted_joints)
+    base_matrices = evaluate_joint_matrices(
+        joints,
+        FigaTree(frame_count=1.0, nodes=((),) * len(joints)),
+        0.0,
+    )
+    root_index = int(capture_constraint["fighter_root_source_joint_index"])
+    offset_index = int(capture_constraint["model_offset_source_joint_index"])
+    capture_root_offset_source_q16 = [
+        q16(base_matrices[root_index][axis][3] -
+            base_matrices[offset_index][axis][3])
+        for axis in range(3)
+    ]
 
     joint_rows: list[dict[str, Any]] = []
     for compact_index, source_index in enumerate(required):
@@ -172,6 +195,64 @@ def build_payload(
             }
         )
 
+    static_local_poses: list[dict[str, Any]] = []
+    for pose_spec in manifest.get("static_local_poses", []):
+        pose_id = pose_spec.get("id")
+        pose_payload = static_pose_payloads.get(str(pose_id))
+        if (
+            not isinstance(pose_id, str)
+            or re.fullmatch(r"[a-z][a-z0-9_]*", pose_id) is None
+            or not isinstance(pose_payload, dict)
+            or pose_payload.get("schema") != 1
+            or pose_payload.get("scope") != "ssbm-static-hsd-joint-pose"
+            or pose_payload.get("pose") != pose_id
+            or pose_payload.get("target_parts_count") != len(joints)
+            or not isinstance(pose_payload.get("joints"), list)
+            or len(pose_payload["joints"]) != len(joints) - 1
+        ):
+            raise ValueError("invalid static local pose")
+        by_part = {
+            row.get("target_part_index"): row
+            for row in pose_payload["joints"]
+            if isinstance(row, dict)
+        }
+        pose_rows: list[dict[str, Any]] = []
+        for compact_index, source_index in enumerate(required):
+            if source_index == 0:
+                base = joint_rows[compact_index]
+                pose_rows.append(
+                    {
+                        "rotation": [*base["rotation"], 0],
+                        "scale": list(base["scale"]),
+                        "translation": list(base["translation"]),
+                        "use_quaternion": 0,
+                    }
+                )
+                continue
+            source = by_part.get(source_index)
+            if source is None:
+                raise ValueError(
+                    f"static local pose {pose_id} omits part {source_index}"
+                )
+            for field in ("rotation", "scale", "translation"):
+                values = source.get(field)
+                if not isinstance(values, list) or len(values) != 3:
+                    raise ValueError(f"invalid static local pose {field}")
+            pose_rows.append(
+                {
+                    "rotation": [
+                        rotation_turns_q16(float(value))
+                        for value in source["rotation"]
+                    ] + [0],
+                    "scale": [q16(float(value)) for value in source["scale"]],
+                    "translation": [
+                        q16(float(value)) for value in source["translation"]
+                    ],
+                    "use_quaternion": 0,
+                }
+            )
+        static_local_poses.append({"id": pose_id, "joints": pose_rows})
+
     key_rows: list[dict[str, int]] = []
     track_rows: list[dict[str, int]] = []
     motion_rows: list[dict[str, Any]] = []
@@ -192,10 +273,15 @@ def build_payload(
         tree = decode_figatree(
             fighter_animation_slice(fighter, animation_raw, fighter_root, submotion)
         )
-        if len(tree.nodes) != len(joints):
-            raise ValueError("animation/model joint counts disagree")
+        if len(tree.nodes) > len(joints):
+            raise ValueError("animation has more joints than the fighter model")
         track_offset = len(track_rows)
         for source_index in required:
+            # Common victim motions such as Thrown* legitimately omit the
+            # model's unused trailing joints. HSD leaves those joints at their
+            # base pose; only authored FigaTree nodes contribute tracks.
+            if source_index >= len(tree.nodes):
+                continue
             compact_index = compact_by_source[source_index]
             for track in tree.nodes[source_index]:
                 if track.track_type not in SUPPORTED_TRACK_TYPES:
@@ -387,8 +473,16 @@ def build_payload(
         "model_scale_q16": q16(model_scale),
         "source_to_sim_numerator": numerator,
         "source_to_sim_denominator": denominator,
+        "capture_root_offset_source_q16": capture_root_offset_source_q16,
+        "capture_world_y_source_to_sim_numerator": int(
+            capture_constraint["world_y_source_to_sim_numerator"]
+        ),
+        "capture_world_y_source_to_sim_denominator": int(
+            capture_constraint["world_y_source_to_sim_denominator"]
+        ),
         "axis_sign": axis_sign,
         "joints": joint_rows,
+        "static_local_poses": static_local_poses,
         "motions": motion_rows,
         "wait_animations": wait_animation_rows,
         "compact_motion_count": compact_motion_count,
@@ -434,6 +528,7 @@ def validate_expected(manifest: dict[str, Any], payload: dict[str, Any]) -> str:
         "rotation_joint_count": len(payload["rotation_joint_indices"]),
         "translation_joint_count": len(payload["translation_joint_indices"]),
         "copy_target_joint_count": len(payload["copy_target_joint_indices"]),
+        "static_local_pose_count": len(payload["static_local_poses"]),
     }
     for name, actual in counts.items():
         if expected.get(name) != actual:
@@ -456,6 +551,16 @@ def render(manifest: dict[str, Any], payload: dict[str, Any], digest: str) -> st
     lines = [
         "/* Generated by tools/generate_ssbm_dynamic_hurt_pose_include.py. */",
         f"/* Canonical decoded data SHA-256: {digest} */",
+        "",
+        f"static const int32_t {prefix}_capture_root_offset_source_q16[3] = {{",
+        "    " + ", ".join(
+            c_i32(value) for value in payload["capture_root_offset_source_q16"]
+        ),
+        "};",
+        f"#define {prefix}_capture_world_y_source_to_sim_numerator \\",
+        f"    INT32_C({payload['capture_world_y_source_to_sim_numerator']})",
+        f"#define {prefix}_capture_world_y_source_to_sim_denominator \\",
+        f"    INT32_C({payload['capture_world_y_source_to_sim_denominator']})",
         "",
         f"static const pf_m4_hsd_joint {prefix}_joints[] = {{",
     ]
@@ -545,6 +650,22 @@ def render(manifest: dict[str, Any], payload: dict[str, Any], digest: str) -> st
             f"UINT8_C({row['grabbable']}) }},"
     )
     lines.extend(["};", ""])
+    for pose in payload["static_local_poses"]:
+        lines.append(
+            f"static const pf_m4_hsd_local_pose {prefix}_{pose['id']}_pose[] = {{"
+        )
+        for row in pose["joints"]:
+            lines.append(
+                "    { { "
+                + ", ".join(c_i32(value) for value in row["rotation"])
+                + " }, { "
+                + ", ".join(c_i32(value) for value in row["scale"])
+                + " }, { "
+                + ", ".join(c_i32(value) for value in row["translation"])
+                + f" }}, UINT8_C({row['use_quaternion']}), "
+                "{ UINT8_C(0), UINT8_C(0), UINT8_C(0) } },"
+            )
+        lines.extend(["};", ""])
     for channel in ("rotation", "translation", "copy_target"):
         indices = payload[f"{channel}_joint_indices"]
         lines.extend(
@@ -622,6 +743,19 @@ def main() -> int:
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
     manifest = load_manifest(args.manifest)
+    static_pose_payloads: dict[str, dict[str, Any]] = {}
+    for spec in manifest.get("static_local_poses", []):
+        if not isinstance(spec, dict) or not isinstance(spec.get("path"), str):
+            raise SystemExit("invalid static_local_poses manifest entry")
+        path = args.manifest.parent / spec["path"]
+        raw = path.read_bytes()
+        actual = sha256(raw)
+        if actual != spec.get("sha256"):
+            raise SystemExit(
+                f"unexpected static pose SHA-256: expected={spec.get('sha256')} "
+                f"actual={actual}"
+            )
+        static_pose_payloads[str(spec.get("id"))] = json.loads(raw)
     sources = {
         "fighter_dat": args.fighter_dat.read_bytes(),
         "animation_dat": args.animation_dat.read_bytes(),
@@ -641,6 +775,7 @@ def main() -> int:
         sources["animation_dat"],
         sources["common_dat"],
         sources["model_dat"],
+        static_pose_payloads,
     )
     digest = validate_expected(manifest, payload)
     output = render(manifest, payload, digest)

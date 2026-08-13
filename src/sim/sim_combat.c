@@ -1,4 +1,5 @@
 #include "sim_internal.h"
+
 #include "sim_collision.h"
 #include "sim_falcon_frame_data.h"
 #include "sim_melee.h"
@@ -23,6 +24,264 @@ static inline void pf_m4_reset_ordinary_tilt_ages(
 {
     pf_m4_reset_ordinary_tilt_x_age(scratch, player_index);
     scratch->tilt_y_age[player_index] = UINT8_C(254);
+}
+
+static int32_t pf_m4_lerp_i32_steps(
+    int32_t start,
+    int32_t end,
+    uint16_t step,
+    uint16_t step_count)
+{
+    return (int32_t)(
+        (int64_t)start +
+        (((int64_t)end - (int64_t)start) * (int64_t)step) /
+            (int64_t)step_count);
+}
+
+static pf_status pf_m4_reference_throw_release_sweep(
+    const pf_m4_content *content,
+    const pf_sim_scratch *scratch,
+    uint32_t holder_index,
+    uint32_t target_index,
+    int32_t direct_x_q16,
+    int32_t direct_y_q16,
+    int32_t *out_x_q16,
+    int32_t *out_y_q16)
+{
+    pf_m4_falcon_ecb_pose_q16 holder_ecb;
+    pf_m4_falcon_ecb_pose_q16 current_ecb;
+    pf_m4_falcon_ecb_pose_q16 desired_ecb;
+    int64_t holder_mid_y_q16;
+    int64_t start_y_wide;
+    int32_t start_x_q16;
+    int32_t start_y_q16;
+    int32_t prior_x_q16;
+    int32_t prior_y_q16;
+    uint16_t step_count;
+    uint32_t step;
+    int64_t delta_x_wide;
+    int64_t delta_y_wide;
+
+    if (content == NULL || scratch == NULL || out_x_q16 == NULL ||
+        out_y_q16 == NULL || holder_index >= PF_SIM_MAX_PLAYERS ||
+        target_index >= PF_SIM_MAX_PLAYERS ||
+        content->stage.reference_collision_profile ==
+            (uint16_t)PF_M4_REFERENCE_STAGE_AUTHORED ||
+        !pf_m4_falcon_reference_hsd_ecb_pose(
+            scratch->source_submotion[holder_index],
+            scratch->source_animation_frame_q16[holder_index],
+            scratch->grounded[holder_index] != UINT8_C(0),
+            PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16,
+            &holder_ecb) ||
+        !pf_m4_falcon_reference_hsd_ecb_pose(
+            scratch->source_submotion[target_index],
+            scratch->source_animation_frame_q16[target_index],
+            scratch->grounded[target_index] != UINT8_C(0),
+            PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16,
+            &current_ecb))
+    {
+        return PF_STATUS_DETERMINISTIC_FAULT;
+    }
+    desired_ecb = current_ecb;
+    holder_mid_y_q16 =
+        ((int64_t)holder_ecb.top_y_from_origin_q16 +
+         (int64_t)holder_ecb.bottom_y_from_origin_q16) /
+        INT64_C(2);
+    start_y_wide =
+        (int64_t)scratch->position_y_q16[holder_index] - holder_mid_y_q16;
+    if (start_y_wide < (int64_t)INT32_MIN ||
+        start_y_wide > (int64_t)INT32_MAX)
+    {
+        return PF_STATUS_DETERMINISTIC_FAULT;
+    }
+    start_x_q16 = scratch->position_x_q16[holder_index];
+    start_y_q16 = (int32_t)start_y_wide;
+    delta_x_wide = (int64_t)direct_x_q16 - start_x_q16;
+    delta_y_wide = (int64_t)direct_y_q16 - start_y_q16;
+    if (delta_x_wide < (int64_t)INT32_MIN ||
+        delta_x_wide > (int64_t)INT32_MAX ||
+        delta_y_wide < (int64_t)INT32_MIN ||
+        delta_y_wide > (int64_t)INT32_MAX)
+    {
+        return PF_STATUS_DETERMINISTIC_FAULT;
+    }
+    if (!pf_m4_falcon_reference_collision_sweep_step_count_q16(
+            (int32_t)delta_x_wide,
+            (int32_t)delta_y_wide,
+            &current_ecb,
+            &desired_ecb,
+            &step_count) ||
+        step_count == UINT16_C(0))
+    {
+        return PF_STATUS_DETERMINISTIC_FAULT;
+    }
+
+    prior_x_q16 = start_x_q16;
+    prior_y_q16 =
+        start_y_q16 + content->fighter.half_height_q16 -
+        current_ecb.bottom_y_from_origin_q16;
+    *out_x_q16 = direct_x_q16;
+    *out_y_q16 = direct_y_q16;
+    for (step = UINT32_C(1); step <= (uint32_t)step_count; ++step)
+    {
+        const int32_t body_x_q16 = pf_m4_lerp_i32_steps(
+            start_x_q16,
+            direct_x_q16,
+            (uint16_t)step,
+            step_count);
+        const int32_t body_y_q16 = pf_m4_lerp_i32_steps(
+            start_y_q16,
+            direct_y_q16,
+            (uint16_t)step,
+            step_count);
+        const int32_t bottom_x_q16 = pf_m4_lerp_i32_steps(
+            current_ecb.bottom_x_from_origin_q16,
+            desired_ecb.bottom_x_from_origin_q16,
+            (uint16_t)step,
+            step_count);
+        const int32_t bottom_y_q16 = pf_m4_lerp_i32_steps(
+            current_ecb.bottom_y_from_origin_q16,
+            desired_ecb.bottom_y_from_origin_q16,
+            (uint16_t)step,
+            step_count);
+        const int64_t point_x_wide =
+            (int64_t)body_x_q16 +
+            (int64_t)scratch->facing[target_index] * bottom_x_q16;
+        const int64_t point_y_wide =
+            (int64_t)body_y_q16 + content->fighter.half_height_q16 -
+            bottom_y_q16;
+        uint32_t fraction_q16;
+        int32_t floor_y_q16;
+        uint8_t support;
+
+        if (point_x_wide < (int64_t)INT32_MIN ||
+            point_x_wide > (int64_t)INT32_MAX ||
+            point_y_wide < (int64_t)INT32_MIN ||
+            point_y_wide > (int64_t)INT32_MAX)
+        {
+            return PF_STATUS_DETERMINISTIC_FAULT;
+        }
+        if (pf_m4_ssbm_reference_stage_find_floor_point_contact(
+                content->stage.reference_collision_profile,
+                prior_x_q16,
+                prior_y_q16,
+                (int32_t)point_x_wide,
+                (int32_t)point_y_wide,
+                &fraction_q16,
+                &floor_y_q16,
+                &support))
+        {
+            const int64_t snapped_y_wide =
+                (int64_t)floor_y_q16 - content->fighter.half_height_q16 +
+                bottom_y_q16;
+            (void)fraction_q16;
+            (void)support;
+            if (snapped_y_wide < (int64_t)INT32_MIN ||
+                snapped_y_wide > (int64_t)INT32_MAX)
+            {
+                return PF_STATUS_DETERMINISTIC_FAULT;
+            }
+            *out_x_q16 = body_x_q16;
+            *out_y_q16 = (int32_t)snapped_y_wide;
+            return PF_STATUS_OK;
+        }
+        prior_x_q16 = (int32_t)point_x_wide;
+        prior_y_q16 = (int32_t)point_y_wide;
+    }
+    return PF_STATUS_OK;
+}
+
+static pf_status pf_m4_reference_zero_hitlag_throw_damage_step(
+    const pf_m4_content *content,
+    const pf_world_state *world,
+    pf_sim_scratch *scratch,
+    uint32_t target_index)
+{
+    int64_t next_position_x_q16;
+    int64_t next_position_y_q16;
+
+    if (content == NULL || world == NULL || scratch == NULL ||
+        target_index >= PF_SIM_MAX_PLAYERS)
+    {
+        return PF_STATUS_INVALID_ARGUMENT;
+    }
+
+    /* Throw's release flag is consumed by Throw_Anim before Fighter_procUpdate.
+     * ftCo_800DDDE4 therefore enters Damage early enough for the new DamageFly
+     * physics callback, the global x8c decay, and position integration to all
+     * execute on the release update. Ordinary attack hits are resolved later
+     * by Fighter_ProcessHit and deliberately do not take this extra step. */
+    scratch->grounded[target_index] = UINT8_C(0);
+    scratch->support[target_index] = (uint8_t)PF_M4_SURFACE_NONE;
+    scratch->ground_knockback_velocity_q16[target_index] = INT32_C(0);
+    scratch->hitlag_ticks[target_index] = UINT16_C(0);
+    scratch->hitlag_resume_action[target_index] = UINT8_C(0);
+    pf_m4_set_action_state(
+        world,
+        scratch,
+        target_index,
+        (uint8_t)PF_M4_ACTION_HITSTUN);
+
+    /* The release flag is consumed from the thrower's priority-0 Anim
+     * callback.  A later-created victim has not run its own priority-0
+     * callback yet, so the newly installed DamageFly Anim callback consumes
+     * one frame of mv.co.damage.x0 on this same update.  This decrement is
+     * distinct from the later physics/global-knockback step below. */
+    if (scratch->hitstun_ticks[target_index] > UINT16_C(0))
+    {
+        --scratch->hitstun_ticks[target_index];
+    }
+
+    /* Throw_Anim runs before the priority-3 controller refresh, so Damage's
+     * entry-angle calculation consumes the previously processed main stick.
+     * This is observably different from using the release pre-frame sample. */
+    if (pf_m4_ssbm_apply_di_q16(
+            content->fighter.di_max_angle_radians_q30,
+            world->previous_main_stick_x[target_index],
+            world->previous_main_stick_y[target_index],
+            &scratch->knockback_velocity_x_q16[target_index],
+            &scratch->knockback_velocity_y_q16[target_index]) != PF_STATUS_OK)
+    {
+        return PF_STATUS_DETERMINISTIC_FAULT;
+    }
+
+    /* ftCo_8008DCE0 cleared self velocity. DamageFly's locked-physics branch
+     * applies gravity plus aerial friction (a no-op from zero X), then the
+     * common fighter update shortens the independent knockback vector. */
+    scratch->velocity_x_q16[target_index] = INT32_C(0);
+    scratch->velocity_y_q16[target_index] = content->fighter.gravity_q16;
+    if (scratch->velocity_y_q16[target_index] >
+        content->fighter.fall_speed_q16)
+    {
+        scratch->velocity_y_q16[target_index] =
+            content->fighter.fall_speed_q16;
+    }
+    if (pf_m4_ssbm_decay_air_knockback_q16(
+            content->fighter.air_knockback_decay_q16,
+            &scratch->knockback_velocity_x_q16[target_index],
+            &scratch->knockback_velocity_y_q16[target_index]) != PF_STATUS_OK)
+    {
+        return PF_STATUS_DETERMINISTIC_FAULT;
+    }
+
+    next_position_x_q16 =
+        (int64_t)scratch->position_x_q16[target_index] +
+        (int64_t)scratch->velocity_x_q16[target_index] +
+        (int64_t)scratch->knockback_velocity_x_q16[target_index];
+    next_position_y_q16 =
+        (int64_t)scratch->position_y_q16[target_index] +
+        (int64_t)scratch->velocity_y_q16[target_index] +
+        (int64_t)scratch->knockback_velocity_y_q16[target_index];
+    if (next_position_x_q16 < (int64_t)INT32_MIN ||
+        next_position_x_q16 > (int64_t)INT32_MAX ||
+        next_position_y_q16 < (int64_t)INT32_MIN ||
+        next_position_y_q16 > (int64_t)INT32_MAX)
+    {
+        return PF_STATUS_DETERMINISTIC_FAULT;
+    }
+    scratch->position_x_q16[target_index] = (int32_t)next_position_x_q16;
+    scratch->position_y_q16[target_index] = (int32_t)next_position_y_q16;
+    return PF_STATUS_OK;
 }
 
 static uint32_t pf_m4_saturating_damage(
@@ -474,6 +733,7 @@ typedef struct pf_m4_attack_runtime
     uint16_t hitlag_ticks;
     int16_t shield_damage;
     uint32_t target_hitlag_multiplier_q16;
+    uint32_t knockback_damage_q16;
     pf_m4_melee_knockback_data reference_melee_knockback;
     const pf_m4_melee_knockback_data *melee_knockback;
     int8_t direction;
@@ -612,6 +872,7 @@ static void pf_m4_apply_falcon_reference_effect(
             smash_charge_ticks);
     }
     attack->damage_q16 = damage_q16;
+    attack->knockback_damage_q16 = damage_q16;
     attack->shield_damage = (int16_t)effect->shield_damage;
     attack->hitlag_ticks = pf_m4_melee_hitlag_ticks(
         damage_q16,
@@ -1603,6 +1864,21 @@ static int32_t pf_m4_reference_origin_y_q16(
     return position_y_q16 + fighter->half_height_q16;
 }
 
+static uint16_t pf_m4_reference_move_action_frame(
+    pf_m4_falcon_move_index move_index,
+    uint16_t action_ticks)
+{
+    if (move_index >= PF_M4_FALCON_NEUTRAL_AERIAL &&
+        move_index <= PF_M4_FALCON_DOWN_AERIAL &&
+        action_ticks < UINT16_MAX)
+    {
+        /* The canonical aerial states store zero on displayed frame 1;
+         * imported hit/hurt tracks are indexed by Melee's displayed frame. */
+        return (uint16_t)(action_ticks + UINT16_C(1));
+    }
+    return action_ticks;
+}
+
 static uint8_t pf_m4_reference_hit_spheres_at_world(
     const pf_m4_fighter_data *fighter,
     pf_m4_falcon_move_index move_index,
@@ -1625,7 +1901,7 @@ static uint8_t pf_m4_reference_hit_spheres_at_world(
     }
     source = pf_m4_falcon_reference_hit_spheres_at_frame(
         move_index,
-        action_ticks,
+        pf_m4_reference_move_action_frame(move_index, action_ticks),
         &sphere_count);
     if (source == NULL || sphere_count == UINT8_C(0) ||
         sphere_count > UINT8_C(PF_M4_INSPECTION_HIT_SPHERE_CAPACITY))
@@ -1917,6 +2193,7 @@ int pf_m4_attack_hitbox(
 static int pf_m4_event_is_physical_hit(pf_sim_event_type event_type)
 {
     return event_type == PF_SIM_EVENT_HIT ||
+           event_type == PF_SIM_EVENT_THROW ||
            event_type == PF_SIM_EVENT_ITEM_HIT ||
            event_type == PF_SIM_EVENT_PROJECTILE_HIT;
 }
@@ -2398,6 +2675,10 @@ static const pf_m4_reference_hurt_capsule *pf_m4_reference_hurt_pose(
         (action_state == (uint8_t)PF_M4_ACTION_WALK ||
          action_state == (uint8_t)PF_M4_ACTION_RUN ||
          (action_state == (uint8_t)PF_M4_ACTION_GROUND_IDLE &&
+          (ground_loop_pose != NULL || ground_loop_compact != NULL)) ||
+         (action_state == (uint8_t)PF_M4_ACTION_SHIELD &&
+          source_submotion ==
+              (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD_ON &&
           (ground_loop_pose != NULL || ground_loop_compact != NULL))))
     {
         int evaluated = 0;
@@ -2415,8 +2696,8 @@ static const pf_m4_reference_hurt_capsule *pf_m4_reference_hurt_pose(
             pf_m4_hsd_local_pose pose[PF_M4_HSD_POSE_MAX_JOINTS];
 
             evaluated = data != NULL &&
-                pf_m4_hsd_resolve_compact_pose_q16(
-                    data, source_submotion, source_animation_frame_q16,
+                pf_m4_falcon_resolve_compact_hsd_pose(
+                    source_submotion, source_animation_frame_q16,
                     ground_loop_progress_q16, ground_loop_compact, pose) &&
                 pf_m4_falcon_reference_hsd_hurt_capsules_from_local_pose(
                     pose, dynamic_capsules, out_count);
@@ -2518,7 +2799,7 @@ static const pf_m4_reference_hurt_capsule *pf_m4_reference_hurt_pose(
     }
     return pf_m4_falcon_reference_hurt_capsules_at_frame(
         move_index,
-        action_ticks,
+        pf_m4_reference_move_action_frame(move_index, action_ticks),
         out_count);
 }
 
@@ -2847,8 +3128,15 @@ static int pf_m4_hitbox_overlaps_player_or_shield(
 
 static int pf_m4_hit_sphere_overlaps_reference_pose(
     const pf_m4_fighter_data *fighter,
-    const pf_sim_scratch *scratch,
-    uint32_t target_index,
+    int32_t target_position_x_q16,
+    int32_t target_position_y_q16,
+    uint8_t target_action_state,
+    uint8_t target_hitlag_resume_action,
+    uint16_t target_action_ticks,
+    int8_t target_facing,
+    int8_t target_dash_direction,
+    int32_t previous_attacker_position_y_q16,
+    int32_t attacker_position_y_q16,
     const pf_m4_hit_sphere_inspection *previous_sphere,
     const pf_m4_hit_sphere_inspection *sphere,
     const pf_m4_reference_hurt_capsule *capsules,
@@ -2856,13 +3144,38 @@ static int pf_m4_hit_sphere_overlaps_reference_pose(
     int grabbable_only,
     uint8_t *out_hurtbox_height)
 {
+    const int64_t target_origin_y =
+        (int64_t)pf_m4_reference_origin_y_q16(
+            fighter,
+            target_position_y_q16);
+    const int64_t previous_attacker_origin_y =
+        (int64_t)pf_m4_reference_origin_y_q16(
+            fighter,
+            previous_attacker_position_y_q16);
+    const int64_t attacker_origin_y =
+        (int64_t)pf_m4_reference_origin_y_q16(
+            fighter,
+            attacker_position_y_q16);
+    const int64_t previous_center_y =
+        target_origin_y +
+        (previous_attacker_origin_y - target_origin_y) *
+            (int64_t)fighter->shield_radius_x_q16 /
+            (int64_t)fighter->shield_radius_y_q16 +
+        ((int64_t)previous_sphere->center_y_q16 -
+         previous_attacker_origin_y);
+    const int64_t center_y =
+        target_origin_y +
+        (attacker_origin_y - target_origin_y) *
+            (int64_t)fighter->shield_radius_x_q16 /
+            (int64_t)fighter->shield_radius_y_q16 +
+        ((int64_t)sphere->center_y_q16 - attacker_origin_y);
     const int8_t pose_facing = pf_m4_reference_hurt_pose_facing(
         fighter,
-        scratch->action_state[target_index],
-        scratch->hitlag_resume_action[target_index],
-        scratch->action_ticks[target_index],
-        scratch->facing[target_index],
-        scratch->dash_direction[target_index]);
+        target_action_state,
+        target_hitlag_resume_action,
+        target_action_ticks,
+        target_facing,
+        target_dash_direction);
     uint8_t capsule_index;
 
     for (capsule_index = UINT8_C(0);
@@ -2872,16 +3185,16 @@ static int pf_m4_hit_sphere_overlaps_reference_pose(
         const pf_m4_world_hurt_capsule capsule =
             pf_m4_world_hurt_capsule_from_reference(
                 fighter,
-                scratch->position_x_q16[target_index],
-                scratch->position_y_q16[target_index],
+                target_position_x_q16,
+                target_position_y_q16,
                 pose_facing,
                 &capsules[capsule_index]);
         const pf_m4_collision_capsule3_q16 collision_hit = {
             (int64_t)previous_sphere->center_x_q16,
-            (int64_t)previous_sphere->center_y_q16,
+            previous_center_y,
             (int64_t)previous_sphere->center_z_q16,
             (int64_t)sphere->center_x_q16,
-            (int64_t)sphere->center_y_q16,
+            center_y,
             (int64_t)sphere->center_z_q16,
             (int64_t)sphere->radius_q16};
 
@@ -2907,7 +3220,9 @@ static int pf_m4_hit_sphere_overlaps_reference_pose(
 static int pf_m4_hit_sphere_overlaps_player_with_height(
     const pf_m4_fighter_data *fighter,
     const pf_sim_scratch *scratch,
+    uint32_t attacker_index,
     uint32_t target_index,
+    int32_t previous_attacker_position_y_q16,
     const pf_m4_hit_sphere_inspection *previous_sphere,
     const pf_m4_hit_sphere_inspection *sphere,
     uint8_t *out_hurtbox_height)
@@ -2943,8 +3258,15 @@ static int pf_m4_hit_sphere_overlaps_player_with_height(
     {
         return pf_m4_hit_sphere_overlaps_reference_pose(
             fighter,
-            scratch,
-            target_index,
+            scratch->position_x_q16[target_index],
+            scratch->position_y_q16[target_index],
+            scratch->action_state[target_index],
+            scratch->hitlag_resume_action[target_index],
+            scratch->action_ticks[target_index],
+            scratch->facing[target_index],
+            scratch->dash_direction[target_index],
+            previous_attacker_position_y_q16,
+            scratch->position_y_q16[attacker_index],
             previous_sphere,
             sphere,
             capsules,
@@ -2997,14 +3319,18 @@ static int pf_m4_hit_sphere_overlaps_player_with_height(
 static int pf_m4_hit_sphere_overlaps_player(
     const pf_m4_fighter_data *fighter,
     const pf_sim_scratch *scratch,
+    uint32_t attacker_index,
     uint32_t target_index,
+    int32_t previous_attacker_position_y_q16,
     const pf_m4_hit_sphere_inspection *previous_sphere,
     const pf_m4_hit_sphere_inspection *sphere)
 {
     return pf_m4_hit_sphere_overlaps_player_with_height(
         fighter,
         scratch,
+        attacker_index,
         target_index,
+        previous_attacker_position_y_q16,
         previous_sphere,
         sphere,
         NULL);
@@ -3012,35 +3338,86 @@ static int pf_m4_hit_sphere_overlaps_player(
 
 static int pf_m4_grab_sphere_overlaps_player(
     const pf_m4_fighter_data *fighter,
+    const pf_world_state *world,
     const pf_sim_scratch *scratch,
+    uint32_t attacker_index,
     uint32_t target_index,
+    int32_t previous_attacker_position_y_q16,
     const pf_m4_hit_sphere_inspection *previous_sphere,
-    const pf_m4_hit_sphere_inspection *sphere)
+    const pf_m4_hit_sphere_inspection *sphere,
+    int target_before_step)
 {
+    const int32_t target_position_x_q16 = target_before_step != 0
+        ? world->position_x_q16[target_index]
+        : scratch->position_x_q16[target_index];
+    const int32_t target_position_y_q16 = target_before_step != 0
+        ? world->position_y_q16[target_index]
+        : scratch->position_y_q16[target_index];
+    const uint8_t target_grounded = target_before_step != 0
+        ? world->grounded[target_index]
+        : scratch->grounded[target_index];
+    const uint8_t target_action_state = target_before_step != 0
+        ? world->action_state[target_index]
+        : scratch->action_state[target_index];
+    const uint8_t target_hitlag_resume_action = target_before_step != 0
+        ? world->hitlag_resume_action[target_index]
+        : scratch->hitlag_resume_action[target_index];
+    const uint16_t target_source_submotion = target_before_step != 0
+        ? world->source_submotion[target_index]
+        : scratch->source_submotion[target_index];
+    const int32_t target_source_frame_q16 = target_before_step != 0
+        ? world->source_animation_frame_q16[target_index]
+        : scratch->source_animation_frame_q16[target_index];
+    const uint16_t target_action_ticks = target_before_step != 0
+        ? world->action_ticks[target_index]
+        : scratch->action_ticks[target_index];
+    const int8_t target_facing = target_before_step != 0
+        ? world->facing[target_index]
+        : scratch->facing[target_index];
+    const int8_t target_dash_direction = target_before_step != 0
+        ? world->dash_direction[target_index]
+        : scratch->dash_direction[target_index];
+    const int32_t target_velocity_x_q16 = target_before_step != 0
+        ? pf_m4_total_velocity_q16(
+              world->velocity_x_q16[target_index],
+              world->knockback_velocity_x_q16[target_index])
+        : pf_m4_total_velocity_q16(
+              scratch->velocity_x_q16[target_index],
+              scratch->knockback_velocity_x_q16[target_index]);
+    const int32_t target_velocity_y_q16 = target_before_step != 0
+        ? pf_m4_total_velocity_q16(
+              world->velocity_y_q16[target_index],
+              world->knockback_velocity_y_q16[target_index])
+        : pf_m4_total_velocity_q16(
+              scratch->velocity_y_q16[target_index],
+              scratch->knockback_velocity_y_q16[target_index]);
+    const int32_t target_blend_progress_q16 = target_before_step != 0
+        ? world->ground_blend_progress_q16[target_index]
+        : scratch->ground_blend_progress_q16[target_index];
+    const pf_m4_hsd_compact_pose *target_blend_pose =
+        target_blend_progress_q16 > INT32_C(0)
+            ? (target_before_step != 0
+                   ? &world->ground_blend_pose[target_index]
+                   : &scratch->ground_blend_pose[target_index])
+            : NULL;
     uint8_t capsule_count;
     pf_m4_reference_hurt_capsule
         dynamic_capsules[PF_M4_HSD_POSE_MAX_CAPSULES];
     const pf_m4_reference_hurt_capsule *capsules =
         pf_m4_reference_hurt_pose(
             fighter,
-            scratch->grounded[target_index],
-            scratch->action_state[target_index],
-            scratch->hitlag_resume_action[target_index],
-            scratch->source_submotion[target_index],
-            scratch->source_animation_frame_q16[target_index],
-            scratch->action_ticks[target_index],
-            scratch->facing[target_index],
-            pf_m4_total_velocity_q16(
-                scratch->velocity_x_q16[target_index],
-                scratch->knockback_velocity_x_q16[target_index]),
-            pf_m4_total_velocity_q16(
-                scratch->velocity_y_q16[target_index],
-                scratch->knockback_velocity_y_q16[target_index]),
+            target_grounded,
+            target_action_state,
+            target_hitlag_resume_action,
+            target_source_submotion,
+            target_source_frame_q16,
+            target_action_ticks,
+            target_facing,
+            target_velocity_x_q16,
+            target_velocity_y_q16,
             NULL,
-            scratch->ground_blend_progress_q16[target_index] > INT32_C(0)
-                ? &scratch->ground_blend_pose[target_index]
-                : NULL,
-            scratch->ground_blend_progress_q16[target_index],
+            target_blend_pose,
+            target_blend_progress_q16,
             dynamic_capsules,
             &capsule_count);
 
@@ -3048,8 +3425,15 @@ static int pf_m4_grab_sphere_overlaps_player(
     {
         return pf_m4_hit_sphere_overlaps_reference_pose(
             fighter,
-            scratch,
-            target_index,
+            target_position_x_q16,
+            target_position_y_q16,
+            target_action_state,
+            target_hitlag_resume_action,
+            target_action_ticks,
+            target_facing,
+            target_dash_direction,
+            previous_attacker_position_y_q16,
+            scratch->position_y_q16[attacker_index],
             previous_sphere,
             sphere,
             capsules,
@@ -3057,12 +3441,36 @@ static int pf_m4_grab_sphere_overlaps_player(
             1,
             NULL);
     }
-    return pf_m4_hit_sphere_overlaps_player(
-        fighter,
-        scratch,
-        target_index,
-        previous_sphere,
-        sphere);
+    {
+        const int32_t hurtbox_left =
+            target_position_x_q16 - fighter->half_width_q16;
+        const int32_t hurtbox_right =
+            target_position_x_q16 + fighter->half_width_q16;
+        const int32_t hurtbox_top =
+            target_position_y_q16 - fighter->half_height_q16;
+        const int32_t hurtbox_bottom =
+            target_position_y_q16 + fighter->half_height_q16;
+        const int32_t nearest_x = sphere->center_x_q16 < hurtbox_left
+            ? hurtbox_left
+            : sphere->center_x_q16 > hurtbox_right
+                  ? hurtbox_right
+                  : sphere->center_x_q16;
+        const int32_t nearest_y = sphere->center_y_q16 < hurtbox_top
+            ? hurtbox_top
+            : sphere->center_y_q16 > hurtbox_bottom
+                  ? hurtbox_bottom
+                  : sphere->center_y_q16;
+        const int64_t delta_x =
+            (int64_t)sphere->center_x_q16 - nearest_x;
+        const int64_t delta_y =
+            (int64_t)sphere->center_y_q16 - nearest_y;
+
+        (void)attacker_index;
+        (void)previous_attacker_position_y_q16;
+        (void)previous_sphere;
+        return delta_x * delta_x + delta_y * delta_y <=
+               (int64_t)sphere->radius_q16 * sphere->radius_q16;
+    }
 }
 
 static int pf_m4_hit_sphere_overlaps_shield(
@@ -3835,16 +4243,15 @@ static pf_status pf_m4_apply_hit_reaction(
     {
         const pf_m4_ssbm_damage_response_attributes *damage_response =
             pf_m4_ssbm_common_reference_damage_response();
-        const uint64_t ticks_since_hit =
-            world->tick - scratch->last_hit_tick[target_index];
-
         /* ftCo_Damage_CalcVel replaces both axes inside xFC frames.  Once
          * that window has elapsed it adds opposing components and otherwise
          * preserves whichever same-direction component has greater
-         * magnitude. xF0_ground_kb_vel remains the incoming grounded scalar
-         * and therefore intentionally is not merged here. */
+         * magnitude. Melee's x18ac timer pauses during hitlag, so wall-clock
+         * simulation ticks are not equivalent here. xF0_ground_kb_vel
+         * remains the incoming grounded scalar and therefore intentionally
+         * is not merged here. */
         if (damage_response != NULL &&
-            ticks_since_hit >=
+            scratch->damage_time_since_hit_ticks[target_index] >=
                 damage_response->damage_velocity_replace_window_ticks)
         {
             scratch->knockback_velocity_x_q16[target_index] =
@@ -4011,6 +4418,10 @@ static pf_status pf_m4_apply_hit_reaction(
     scratch->last_hit_tick[target_index] = world->tick;
     scratch->last_hit_damage_q16[target_index] = damage_q16;
     scratch->last_hit_attacker[target_index] = source_player;
+    if (armored == 0)
+    {
+        scratch->damage_time_since_hit_ticks[target_index] = UINT8_C(0);
+    }
     return PF_STATUS_OK;
 }
 
@@ -4242,7 +4653,9 @@ static pf_status pf_m4_resolve_throw_capture_hit(
     }
     effect = pf_m4_falcon_reference_effect_at_frame(
         move_index,
-        scratch->action_ticks[holder_index]);
+        pf_m4_reference_move_action_frame(
+            move_index,
+            scratch->action_ticks[holder_index]));
     if (effect == NULL)
     {
         return PF_STATUS_OK;
@@ -4308,6 +4721,49 @@ static pf_status pf_m4_resolve_throw_capture_hit(
         target_index,
         (uint8_t)PF_M4_ACTION_HITLAG);
     *out_hit = 1;
+    return PF_STATUS_OK;
+}
+
+static pf_status pf_m4_apply_reference_capture_constraint(
+    pf_sim_scratch *scratch,
+    uint32_t holder_index,
+    uint32_t target_index,
+    int constrain_y)
+{
+    int32_t offset_x_q16;
+    int32_t offset_y_q16;
+    int64_t position_x_q16;
+    int64_t position_y_q16;
+
+    if (!pf_m4_falcon_reference_capture_constraint_q16(
+            scratch->source_submotion[holder_index],
+            scratch->source_animation_frame_q16[holder_index],
+            scratch->facing[holder_index],
+            scratch->source_submotion[target_index],
+            scratch->source_animation_frame_q16[target_index],
+            scratch->facing[target_index],
+            &offset_x_q16,
+            &offset_y_q16))
+    {
+        return PF_STATUS_DETERMINISTIC_FAULT;
+    }
+    position_x_q16 =
+        (int64_t)scratch->position_x_q16[holder_index] + offset_x_q16;
+    position_y_q16 =
+        (int64_t)scratch->position_y_q16[holder_index] + offset_y_q16;
+    if (position_x_q16 < (int64_t)INT32_MIN ||
+        position_x_q16 > (int64_t)INT32_MAX ||
+        (constrain_y != 0 &&
+         (position_y_q16 < (int64_t)INT32_MIN ||
+          position_y_q16 > (int64_t)INT32_MAX)))
+    {
+        return PF_STATUS_DETERMINISTIC_FAULT;
+    }
+    scratch->position_x_q16[target_index] = (int32_t)position_x_q16;
+    if (constrain_y != 0)
+    {
+        scratch->position_y_q16[target_index] = (int32_t)position_y_q16;
+    }
     return PF_STATUS_OK;
 }
 
@@ -4414,13 +4870,79 @@ static pf_status pf_m4_resolve_grabs(
             continue;
         }
 
-        scratch->position_x_q16[target_index] =
-            scratch->position_x_q16[holder_index] +
-            (int32_t)scratch->facing[holder_index] *
-                content->fighter.grabbed_offset_x_q16;
-        scratch->position_y_q16[target_index] =
-            scratch->position_y_q16[holder_index] +
-            content->fighter.grabbed_offset_y_q16;
+        if (content->fighter.reference_frame_data_enabled != UINT8_C(0) &&
+            ((holder_action == (uint8_t)PF_M4_ACTION_GRAB_HOLD &&
+              (scratch->source_submotion[target_index] == (uint16_t)
+                   PF_M4_FALCON_SUBMOTION_CAPTURE_PULLED_LOW ||
+               scratch->source_submotion[target_index] == (uint16_t)
+                   PF_M4_FALCON_SUBMOTION_CAPTURE_WAIT_LOW)) ||
+             throw_data != NULL))
+        {
+            if (scratch->source_submotion[holder_index] == (uint16_t)
+                    PF_M4_FALCON_SUBMOTION_CATCH_WAIT &&
+                scratch->source_submotion[target_index] == (uint16_t)
+                    PF_M4_FALCON_SUBMOTION_CAPTURE_PULLED_LOW)
+            {
+                /* Catch's throw-flag callback enters CatchWait before IASA;
+                 * install the paired CaptureWaitLw endpoint after every
+                 * fighter has stepped so player iteration order cannot
+                 * expose one half of the transition. */
+                scratch->source_submotion[target_index] = (uint16_t)
+                    PF_M4_FALCON_SUBMOTION_CAPTURE_WAIT_LOW;
+                scratch->source_animation_frame_q16[target_index] =
+                    INT32_C(0);
+                scratch->source_animation_rate_q16[target_index] =
+                    PF_Q16_ONE;
+                scratch->action_ticks[target_index] = UINT16_C(0);
+            }
+            if (throw_data != NULL)
+            {
+                uint16_t expected_holder_submotion;
+                uint16_t victim_submotion;
+                int32_t animation_rate_q16;
+
+                if (!pf_m4_falcon_reference_throw_motions(
+                        holder_action,
+                        &expected_holder_submotion,
+                        &victim_submotion,
+                        &animation_rate_q16) ||
+                    scratch->source_submotion[holder_index] !=
+                        expected_holder_submotion ||
+                    scratch->source_animation_rate_q16[holder_index] !=
+                        animation_rate_q16)
+                {
+                    return PF_STATUS_DETERMINISTIC_FAULT;
+                }
+                /* Throw/Thrown are installed as one paired transition after
+                 * every fighter has stepped. This mirrors ftCo_800DD398 and
+                 * makes the result independent of player iteration order. */
+                scratch->source_submotion[target_index] = victim_submotion;
+                scratch->source_animation_frame_q16[target_index] =
+                    scratch->source_animation_frame_q16[holder_index];
+                scratch->source_animation_rate_q16[target_index] =
+                    animation_rate_q16;
+                scratch->facing[target_index] =
+                    scratch->facing[holder_index];
+            }
+            if (pf_m4_apply_reference_capture_constraint(
+                    scratch,
+                    holder_index,
+                    target_index,
+                    throw_data != NULL) != PF_STATUS_OK)
+            {
+                return PF_STATUS_DETERMINISTIC_FAULT;
+            }
+        }
+        else
+        {
+            scratch->position_x_q16[target_index] =
+                scratch->position_x_q16[holder_index] +
+                (int32_t)scratch->facing[holder_index] *
+                    content->fighter.grabbed_offset_x_q16;
+            scratch->position_y_q16[target_index] =
+                scratch->position_y_q16[holder_index] +
+                content->fighter.grabbed_offset_y_q16;
+        }
         scratch->velocity_x_q16[target_index] = INT32_C(0);
         scratch->velocity_y_q16[target_index] = INT32_C(0);
         scratch->grounded[target_index] =
@@ -4566,6 +5088,10 @@ static pf_status pf_m4_resolve_grabs(
                     pf_m4_saturating_damage(
                         scratch->damage_q16[target_index],
                         damage_q16);
+                const uint32_t knockback_percent_q16 =
+                    pf_m4_saturating_damage(
+                        (scratch->damage_q16[target_index] >> 16U) << 16U,
+                        damage_q16);
                 int32_t launch_velocity_x;
                 int32_t launch_velocity_y;
                 uint16_t resolved_hitlag_ticks =
@@ -4576,6 +5102,77 @@ static pf_status pf_m4_resolve_grabs(
                 uint8_t damage_level = UINT8_C(0);
                 uint8_t meteor_cancellable = UINT8_C(0);
 
+                if (content->fighter.reference_frame_data_enabled !=
+                    UINT8_C(0))
+                {
+                    int32_t release_offset_x_q16;
+                    int32_t release_offset_y_q16;
+                    int32_t release_frame_q16;
+                    int64_t release_position_x_q16;
+                    int64_t release_position_y_q16;
+                    const int64_t release_frame_wide =
+                        (int64_t)scratch
+                            ->source_animation_frame_q16[holder_index] +
+                        (int64_t)scratch
+                            ->source_animation_rate_q16[holder_index];
+
+                    /* ftCo_800DDDE4 samples the thrower's TransN2 at the
+                     * release-frame pose, adds the victim's base XRotN-to-root
+                     * offset with the pre-Damage facing, and only then removes
+                     * the capture constraint and enters common Damage.  The
+                     * source animation process advances before its Throw Anim
+                     * callback; combat runs before our later pose advance, so
+                     * sample that same next imported frame explicitly. */
+                    if (release_frame_wide < (int64_t)INT32_MIN ||
+                        release_frame_wide > (int64_t)INT32_MAX)
+                    {
+                        return PF_STATUS_DETERMINISTIC_FAULT;
+                    }
+                    release_frame_q16 = (int32_t)release_frame_wide;
+                    if (!pf_m4_falcon_reference_capture_constraint_q16(
+                            scratch->source_submotion[holder_index],
+                            release_frame_q16,
+                            scratch->facing[holder_index],
+                            scratch->source_submotion[target_index],
+                            scratch->source_animation_frame_q16[target_index],
+                            scratch->facing[target_index],
+                            &release_offset_x_q16,
+                            &release_offset_y_q16))
+                    {
+                        return PF_STATUS_DETERMINISTIC_FAULT;
+                    }
+                    release_position_x_q16 =
+                        (int64_t)scratch->position_x_q16[holder_index] +
+                        (int64_t)release_offset_x_q16;
+                    release_position_y_q16 =
+                        (int64_t)scratch->position_y_q16[holder_index] +
+                        (int64_t)release_offset_y_q16;
+                    if (release_position_x_q16 < (int64_t)INT32_MIN ||
+                        release_position_x_q16 > (int64_t)INT32_MAX ||
+                        release_position_y_q16 < (int64_t)INT32_MIN ||
+                        release_position_y_q16 > (int64_t)INT32_MAX)
+                    {
+                        return PF_STATUS_DETERMINISTIC_FAULT;
+                    }
+                    scratch->position_x_q16[target_index] =
+                        (int32_t)release_position_x_q16;
+                    scratch->position_y_q16[target_index] =
+                        (int32_t)release_position_y_q16;
+                    if (pf_m4_reference_throw_release_sweep(
+                            content,
+                            scratch,
+                            holder_index,
+                            target_index,
+                            (int32_t)release_position_x_q16,
+                            (int32_t)release_position_y_q16,
+                            &scratch->position_x_q16[target_index],
+                            &scratch->position_y_q16[target_index]) !=
+                        PF_STATUS_OK)
+                    {
+                        return PF_STATUS_DETERMINISTIC_FAULT;
+                    }
+                }
+
                 if (throw_data->melee_knockback.enabled != UINT8_C(0))
                 {
                     const pf_m4_melee_knockback_result result =
@@ -4583,7 +5180,8 @@ static pf_status pf_m4_resolve_grabs(
                             &throw_data->melee_knockback,
                             content->fighter.knockback_weight,
                             damage_q16,
-                            resulting_damage,
+                            damage_q16,
+                            knockback_percent_q16,
                             scratch->grounded[target_index],
                             UINT8_C(0),
                             UINT8_C(0),
@@ -4640,6 +5238,18 @@ static pf_status pf_m4_resolve_grabs(
                 {
                     return PF_STATUS_DETERMINISTIC_FAULT;
                 }
+                if (content->fighter.reference_frame_data_enabled !=
+                        UINT8_C(0) &&
+                    holder_action == (uint8_t)PF_M4_ACTION_THROW_DOWN)
+                {
+                    /* ftCo_800DD724 passes motion_id == ThrowLw into
+                     * ftCo_800DE7C0. That helper supplies the explicit common
+                     * motion id 0x5A to ftCo_8008DCE0, forcing DamageFlyTop;
+                     * the other three throws pass -1 and use ordinary damage
+                     * motion selection. DI still runs afterward. */
+                    scratch->source_submotion[target_index] =
+                        (uint16_t)PF_M4_FALCON_SUBMOTION_DAMAGE_FLY_TOP;
+                }
                 if (resolved_hitlag_ticks != UINT16_C(0))
                 {
                     scratch->hitlag_ticks[holder_index] =
@@ -4654,26 +5264,49 @@ static pf_status pf_m4_resolve_grabs(
                 }
                 else
                 {
-                    scratch->velocity_x_q16[target_index] =
-                        scratch->knockback_velocity_x_q16[target_index];
-                    scratch->velocity_y_q16[target_index] =
-                        scratch->knockback_velocity_y_q16[target_index];
-                    scratch->knockback_velocity_x_q16[target_index] =
-                        INT32_C(0);
-                    scratch->knockback_velocity_y_q16[target_index] =
-                        INT32_C(0);
-                    scratch->grounded[target_index] = UINT8_C(0);
-                    scratch->support[target_index] =
-                        (uint8_t)PF_M4_SURFACE_NONE;
-                    scratch->hitlag_ticks[target_index] =
-                        UINT16_C(0);
-                    scratch->hitlag_resume_action[target_index] =
-                        UINT8_C(0);
-                    pf_m4_set_action_state(
-                        world,
-                        scratch,
-                        target_index,
-                        (uint8_t)PF_M4_ACTION_HITSTUN);
+                    if (content->fighter.reference_frame_data_enabled !=
+                            UINT8_C(0) &&
+                        target_index > holder_index)
+                    {
+                        if (pf_m4_reference_zero_hitlag_throw_damage_step(
+                                content,
+                                world,
+                                scratch,
+                                target_index) != PF_STATUS_OK)
+                        {
+                            return PF_STATUS_DETERMINISTIC_FAULT;
+                        }
+                    }
+                    else if (content->fighter.reference_frame_data_enabled !=
+                             UINT8_C(0))
+                    {
+                        /* Fighter objects run in player order.  An earlier
+                         * victim already completed its Anim/Phys/Map update
+                         * before the later thrower released it, so DamageFly
+                         * begins on the following update. */
+                    }
+                    else
+                    {
+                        scratch->velocity_x_q16[target_index] =
+                            scratch->knockback_velocity_x_q16[target_index];
+                        scratch->velocity_y_q16[target_index] =
+                            scratch->knockback_velocity_y_q16[target_index];
+                        scratch->knockback_velocity_x_q16[target_index] =
+                            INT32_C(0);
+                        scratch->knockback_velocity_y_q16[target_index] =
+                            INT32_C(0);
+                        scratch->grounded[target_index] = UINT8_C(0);
+                        scratch->support[target_index] =
+                            (uint8_t)PF_M4_SURFACE_NONE;
+                        scratch->hitlag_ticks[target_index] = UINT16_C(0);
+                        scratch->hitlag_resume_action[target_index] =
+                            UINT8_C(0);
+                        pf_m4_set_action_state(
+                            world,
+                            scratch,
+                            target_index,
+                            (uint8_t)PF_M4_ACTION_HITSTUN);
+                    }
                 }
                 if (scratch->attack_stale_registered[holder_index] ==
                     UINT8_C(0))
@@ -4780,6 +5413,8 @@ static pf_status pf_m4_resolve_grabs(
                     UINT16_C(0) ||
                 scratch->ledge_invulnerability_ticks[target_index] !=
                     UINT16_C(0) ||
+                pf_m4_action_is_match_entry(
+                    scratch->action_state[target_index]) ||
                 pf_m4_action_is_recovery_invulnerable(
                     &content->fighter,
                     scratch->action_state[target_index],
@@ -4812,13 +5447,18 @@ static pf_status pf_m4_resolve_grabs(
                             &grab_spheres[sphere_index],
                             previous_grab_spheres,
                             previous_grab_sphere_count);
-
                     if (pf_m4_grab_sphere_overlaps_player(
                             &content->fighter,
+                            world,
                             scratch,
+                            attacker_index,
                             target_index,
+                            previous_sphere == &grab_spheres[sphere_index]
+                                ? scratch->position_y_q16[attacker_index]
+                                : world->position_y_q16[attacker_index],
                             previous_sphere,
-                            &grab_spheres[sphere_index]))
+                            &grab_spheres[sphere_index],
+                            target_index > attacker_index))
                     {
                         overlaps_target = 1;
                         break;
@@ -4840,6 +5480,24 @@ static pf_status pf_m4_resolve_grabs(
             {
                 continue;
             }
+
+            /* Fighter collision resolves in player order. A later target has
+             * not run its physics callback yet, so a grab on the terminal
+             * KneeBend update still owns the pre-step grounded pose. */
+            const uint8_t target_collision_grounded =
+                target_index > attacker_index
+                    ? world->grounded[target_index]
+                    : scratch->grounded[target_index];
+            const int reference_ground_capture =
+                falcon_dive_grab == 0 &&
+                content->fighter.reference_frame_data_enabled != UINT8_C(0) &&
+                scratch->grounded[attacker_index] != UINT8_C(0) &&
+                target_collision_grounded != UINT8_C(0);
+            const uint16_t catch_frame =
+                scratch->action_ticks[attacker_index] != UINT16_C(0)
+                    ? (uint16_t)(scratch->action_ticks[attacker_index] -
+                                 UINT16_C(1))
+                    : UINT16_C(0);
 
             scratch->grab_target_slot[attacker_index] =
                 (uint8_t)(target_index + UINT32_C(1));
@@ -4871,9 +5529,25 @@ static pf_status pf_m4_resolve_grabs(
                 (uint8_t)PF_M4_ACTION_GRABBED);
             scratch->action_ticks[target_index] = UINT16_C(0);
             scratch->source_submotion[attacker_index] =
-                (uint16_t)PF_M4_FALCON_SUBMOTION_CATCH_WAIT;
+                reference_ground_capture != 0
+                    ? (uint16_t)PF_M4_FALCON_SUBMOTION_CATCH
+                    : (uint16_t)PF_M4_FALCON_SUBMOTION_CATCH_WAIT;
             scratch->source_submotion[target_index] =
-                (uint16_t)PF_M4_FALCON_SUBMOTION_CAPTURE_WAIT_HIGH;
+                reference_ground_capture != 0
+                    ? (uint16_t)
+                          PF_M4_FALCON_SUBMOTION_CAPTURE_PULLED_LOW
+                    : (uint16_t)
+                          PF_M4_FALCON_SUBMOTION_CAPTURE_WAIT_HIGH;
+            scratch->source_animation_frame_q16[attacker_index] =
+                reference_ground_capture != 0
+                    ? (int32_t)catch_frame * PF_Q16_ONE
+                    : INT32_C(0);
+            scratch->source_animation_frame_q16[target_index] =
+                reference_ground_capture != 0 ? PF_Q16_ONE : INT32_C(0);
+            scratch->source_animation_rate_q16[attacker_index] =
+                reference_ground_capture != 0 ? PF_Q16_ONE : INT32_C(0);
+            scratch->source_animation_rate_q16[target_index] =
+                reference_ground_capture != 0 ? PF_Q16_ONE : INT32_C(0);
             scratch->charge_ticks[target_index] = UINT16_C(0);
             scratch->smash_charge_ticks[target_index] = UINT16_C(0);
             if (falcon_dive_grab != 0 &&
@@ -4887,17 +5561,43 @@ static pf_status pf_m4_resolve_grabs(
                 scratch->support[attacker_index] =
                     scratch->support[target_index];
             }
-            scratch->position_x_q16[target_index] =
-                falcon_dive_grab != 0
-                    ? scratch->position_x_q16[attacker_index]
-                    : scratch->position_x_q16[attacker_index] +
-                          (int32_t)scratch->facing[attacker_index] *
-                              content->fighter.grabbed_offset_x_q16;
-            scratch->position_y_q16[target_index] =
-                falcon_dive_grab != 0
-                    ? scratch->position_y_q16[attacker_index]
-                    : scratch->position_y_q16[attacker_index] +
-                          content->fighter.grabbed_offset_y_q16;
+            if (reference_ground_capture != 0)
+            {
+                scratch->facing[target_index] =
+                    (int8_t)-scratch->facing[attacker_index];
+                /* A later target still receives its fighter update after the
+                 * grab callback, so frame-one CapturePulled physics constrains
+                 * X on the acquisition row. An earlier target has already run
+                 * and begins constraining on the next update. Ground collision
+                 * owns Y separately in either order. */
+                if (target_index > attacker_index)
+                {
+                    scratch->position_y_q16[target_index] =
+                        world->position_y_q16[target_index];
+                    if (pf_m4_apply_reference_capture_constraint(
+                            scratch,
+                            attacker_index,
+                            target_index,
+                            0) != PF_STATUS_OK)
+                    {
+                        return PF_STATUS_DETERMINISTIC_FAULT;
+                    }
+                }
+            }
+            else
+            {
+                scratch->position_x_q16[target_index] =
+                    falcon_dive_grab != 0
+                        ? scratch->position_x_q16[attacker_index]
+                        : scratch->position_x_q16[attacker_index] +
+                              (int32_t)scratch->facing[attacker_index] *
+                                  content->fighter.grabbed_offset_x_q16;
+                scratch->position_y_q16[target_index] =
+                    falcon_dive_grab != 0
+                        ? scratch->position_y_q16[attacker_index]
+                        : scratch->position_y_q16[attacker_index] +
+                              content->fighter.grabbed_offset_y_q16;
+            }
             scratch->velocity_x_q16[target_index] = INT32_C(0);
             scratch->velocity_y_q16[target_index] = INT32_C(0);
             scratch->knockback_velocity_x_q16[target_index] = INT32_C(0);
@@ -5006,6 +5706,8 @@ static pf_status pf_m4_resolve_item_combat(
                 UINT16_C(0) ||
             scratch->ledge_invulnerability_ticks[target_index] !=
                 UINT16_C(0) ||
+            pf_m4_action_is_match_entry(
+                scratch->action_state[target_index]) ||
             (scratch->item_hit_mask & target_bit) != UINT8_C(0) ||
             scratch->hitlag_ticks[target_index] != UINT16_C(0) ||
             pf_m4_action_is_recovery_invulnerable(
@@ -5239,6 +5941,8 @@ static pf_status pf_m4_resolve_projectile_combat(
                 UINT16_C(0) ||
             scratch->ledge_invulnerability_ticks[target_index] !=
                 UINT16_C(0) ||
+            pf_m4_action_is_match_entry(
+                scratch->action_state[target_index]) ||
             scratch->hitlag_ticks[target_index] != UINT16_C(0) ||
             pf_m4_action_is_recovery_invulnerable(
                 &content->fighter,
@@ -5519,7 +6223,9 @@ static pf_status pf_m4_resolve_falcon_side_special_searches(
                 if (pf_m4_hit_sphere_overlaps_player(
                         &content->fighter,
                         scratch,
+                        attacker_index,
                         target_index,
+                        scratch->position_y_q16[attacker_index],
                         &sphere,
                         &sphere))
                 {
@@ -5626,7 +6332,9 @@ static int pf_m4_select_reference_target_hit(
         player_overlap = pf_m4_hit_sphere_overlaps_player_with_height(
             &content->fighter,
             scratch,
+            attacker_index,
             target_index,
+            previous_attacker_position_y_q16,
             previous_sphere,
             sphere,
             out_hurtbox_height);
@@ -5755,14 +6463,19 @@ pf_status pf_m4_resolve_combat(
         int32_t hitbox_right;
         int32_t hitbox_top;
         int32_t hitbox_bottom;
+        const uint8_t current_action =
+            scratch->action_state[attacker_index];
 
-        if (scratch->active[attacker_index] == UINT8_C(0) ||
-            !pf_m4_attack_hitbox(
+        if (scratch->active[attacker_index] == UINT8_C(0))
+        {
+            continue;
+        }
+        if (!pf_m4_attack_hitbox(
                 content,
                 scratch->position_x_q16[attacker_index],
                 scratch->position_y_q16[attacker_index],
                 scratch->facing[attacker_index],
-                scratch->action_state[attacker_index],
+                current_action,
                 scratch->action_ticks[attacker_index],
                 scratch->source_submotion[attacker_index],
                 &hitbox_left,
@@ -5770,10 +6483,24 @@ pf_status pf_m4_resolve_combat(
                 &hitbox_top,
                 &hitbox_bottom))
         {
+            pf_m4_falcon_move_index inactive_move;
+
+            /* Attack scripts clear their victim records with their hitboxes.
+             * A later create in the same action may hit the same victim again
+             * (Falcon Nair's early and late hits are the canonical case).
+             * HITLAG is represented by a distinct action, so frozen active
+             * hitboxes never pass through this inactive-phase reset. */
+            if (content->fighter.reference_frame_data_enabled != UINT8_C(0) &&
+                pf_m4_falcon_reference_move_for_action(
+                    current_action,
+                    &inactive_move) &&
+                pf_m4_falcon_reference_has_hit_geometry(inactive_move))
+            {
+                scratch->attack_hit_mask[attacker_index] = UINT8_C(0);
+            }
             continue;
         }
-        attacker_action[attacker_index] =
-            scratch->action_state[attacker_index];
+        attacker_action[attacker_index] = current_action;
         if (!pf_m4_attack_for_state(
                 content,
                 attacker_action[attacker_index],
@@ -5870,6 +6597,8 @@ pf_status pf_m4_resolve_combat(
                     UINT16_C(0) ||
                 scratch->ledge_invulnerability_ticks[target_index] !=
                     UINT16_C(0) ||
+                pf_m4_action_is_match_entry(
+                    scratch->action_state[target_index]) ||
                 pf_m4_action_is_recovery_invulnerable(
                     &content->fighter,
                     scratch->action_state[target_index],
@@ -6292,8 +7021,8 @@ pf_status pf_m4_resolve_combat(
                     (uint8_t)(UINT8_C(1) << attacker_index);
                 if ((target_hit_mask[target_index] & bit) != UINT8_C(0))
                 {
-                    attacker_hit[attacker_index] = UINT8_C(1);
-                    if (target_attack[target_index][attacker_index]
+                    if (attacker_hit[attacker_index] == UINT8_C(0) ||
+                        target_attack[target_index][attacker_index]
                             .hitlag_ticks >
                         attacker_attack[attacker_index].hitlag_ticks)
                     {
@@ -6301,6 +7030,7 @@ pf_status pf_m4_resolve_combat(
                             &attacker_attack[attacker_index],
                             &target_attack[target_index][attacker_index]);
                     }
+                    attacker_hit[attacker_index] = UINT8_C(1);
                 }
                 if ((target_shield_hit_mask[target_index] & bit) !=
                     UINT8_C(0))
@@ -6422,6 +7152,13 @@ pf_status pf_m4_resolve_combat(
             resulting_damage = pf_m4_saturating_damage(
                 scratch->damage_q16[target_index],
                 total_damage_q16);
+            /* ftColl uses (s32) x1830_percent plus the current collision
+             * batch's x1838_percentTemp.  Keep displayed damage fractional,
+             * but deliberately truncate the pre-hit percent for knockback. */
+            const uint32_t knockback_percent_q16 =
+                pf_m4_saturating_damage(
+                    (scratch->damage_q16[target_index] >> 16U) << 16U,
+                    total_damage_q16);
 
             for (attacker_index = UINT32_C(0);
                  attacker_index < (uint32_t)world->player_count;
@@ -6473,8 +7210,11 @@ pf_status pf_m4_resolve_combat(
                         pf_m4_melee_knockback_for_state(
                             attack->melee_knockback,
                             content->fighter.knockback_weight,
+                            attack->knockback_damage_q16 != UINT32_C(0)
+                                ? attack->knockback_damage_q16
+                                : attack->damage_q16,
                             attack->damage_q16,
-                            resulting_damage,
+                            knockback_percent_q16,
                             scratch->grounded[target_index],
                             (uint8_t)(
                                 scratch->action_state[target_index] ==
@@ -6501,9 +7241,16 @@ pf_status pf_m4_resolve_combat(
                                          PF_M4_ACTION_DOWN_STRONG_CHARGE)),
                             attack->target_hitlag_multiplier_q16);
 
+                    /* ftColl selects a fighter hit's horizontal damage
+                     * direction from the victim/attacker spatial relation,
+                     * then Damage applies velocity away from the attacker.
+                     * It is intentionally independent of attacker facing:
+                     * crossed-up aerials must launch through the attacker. */
                     candidate_velocity_x =
-                        (int32_t)scratch->facing[attacker_index] *
-                        (int32_t)attack->direction * result.velocity_x_q16;
+                        scratch->position_x_q16[target_index] >
+                                scratch->position_x_q16[attacker_index]
+                            ? result.velocity_x_q16
+                            : -result.velocity_x_q16;
                     candidate_velocity_y = -result.velocity_y_q16;
                     candidate_knockback_q16 = result.knockback_q16;
                     candidate_hitlag_ticks = result.hitlag_ticks;
@@ -6679,7 +7426,8 @@ pf_status pf_m4_resolve_combat(
                 (uint8_t)PF_M4_ACTION_REBOUND)
         {
             attack = attacker_attack[attacker_index];
-            if (attacker_blocked[attacker_index] != UINT8_C(0))
+            if (attacker_blocked[attacker_index] != UINT8_C(0) &&
+                scratch->grounded[attacker_index] != UINT8_C(0))
             {
                 scratch->shield_recoil_x_q16[attacker_index] =
                     -(int32_t)scratch->facing[attacker_index] *

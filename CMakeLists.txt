@@ -379,6 +379,17 @@ if(PF_BUILD_TOOLS)
     endif()
     pf_enable_project_warnings(m4_movement_trace)
     pf_apply_build_mode(m4_movement_trace)
+
+    add_executable(m4_slippi_match_trace src/tools/m4_slippi_match_trace.c)
+    target_link_libraries(m4_slippi_match_trace PRIVATE sim)
+    target_include_directories(m4_slippi_match_trace PRIVATE src/sim)
+    target_compile_features(m4_slippi_match_trace PRIVATE c_std_17)
+    set_target_properties(
+        m4_slippi_match_trace
+        PROPERTIES
+            OUTPUT_NAME pf_m4_slippi_match_trace)
+    pf_enable_project_warnings(m4_slippi_match_trace)
+    pf_apply_build_mode(m4_slippi_match_trace)
 endif()
 
 if(PF_BUILD_BENCHMARKS)

@@ -4169,6 +4169,7 @@ pf_m4_falcon_common_attribute_data = {
     .fast_walk_animation_scaling_q16 = INT32_C(4511),
     .run_animation_scaling_q16 = INT32_C(15934),
     .friction_q16 = INT32_C(547),
+    .friction_q32 = INT64_C(35853639),
     .dash_initial_velocity_q16 = INT32_C(13677),
     .dash_run_acceleration_a_q16 = INT32_C(1026),
     .dash_run_acceleration_b_q16 = INT32_C(68),
@@ -4187,6 +4188,8 @@ pf_m4_falcon_common_attribute_data = {
     .terminal_velocity_q16 = INT32_C(33719),
     .air_mobility_a_q16 = INT32_C(274),
     .air_mobility_b_q16 = INT32_C(137),
+    .air_mobility_a_q32 = INT64_C(17926820),
+    .air_mobility_b_q32 = INT64_C(8963410),
     .max_aerial_horizontal_velocity_q16 = INT32_C(7659),
     .air_friction_q16 = INT32_C(68),
     .fast_fall_terminal_velocity_q16 = INT32_C(40696),
@@ -4197,6 +4200,7 @@ pf_m4_falcon_common_attribute_data = {
     .ledge_jump_vertical_velocity_q16 = INT32_C(38370),
     .wall_jump_horizontal_velocity_q16 = INT32_C(9574),
     .wall_jump_vertical_velocity_q16 = INT32_C(36045),
+    .match_entry_rise_q16 = INT32_C(19151),
     .jump_startup_ticks = UINT16_C(4),
     .number_of_jumps = UINT16_C(2),
     .turn_duration_ticks = UINT16_C(6),
@@ -5749,11 +5753,11 @@ static const pf_m4_reference_hit_effect pf_m4_falcon_hit_effects[] = {
 };
 
 static const pf_m4_reference_throw pf_m4_falcon_throws[] = {
-    { UINT16_C(45), UINT16_C(105), UINT16_C(0), UINT16_C(11), UINT8_C(4), UINT8_C(4), UINT16_C(18), UINT16_C(0) },
-    { UINT16_C(135), UINT16_C(130), UINT16_C(0), UINT16_C(7), UINT8_C(4), UINT8_C(8), UINT16_C(20), UINT16_C(0) },
-    { UINT16_C(85), UINT16_C(105), UINT16_C(0), UINT16_C(17), UINT8_C(3), UINT8_C(8), UINT16_C(15), UINT16_C(0) },
-    { UINT16_C(65), UINT16_C(34), UINT16_C(0), UINT16_C(18), UINT8_C(7), UINT8_C(12), UINT16_C(20), UINT16_C(0) },
-    { UINT16_C(361), UINT16_C(82), UINT16_C(0), UINT16_C(10), UINT8_C(12), UINT8_C(0), UINT16_C(0), UINT16_C(0) },
+    { UINT16_C(45), UINT16_C(105), UINT16_C(0), UINT16_C(45), UINT8_C(4), UINT8_C(0), UINT16_C(18), UINT16_C(0) },
+    { UINT16_C(135), UINT16_C(130), UINT16_C(0), UINT16_C(30), UINT8_C(4), UINT8_C(0), UINT16_C(20), UINT16_C(0) },
+    { UINT16_C(85), UINT16_C(105), UINT16_C(0), UINT16_C(70), UINT8_C(3), UINT8_C(0), UINT16_C(15), UINT16_C(0) },
+    { UINT16_C(65), UINT16_C(34), UINT16_C(0), UINT16_C(75), UINT8_C(7), UINT8_C(0), UINT16_C(20), UINT16_C(0) },
+    { UINT16_C(361), UINT16_C(82), UINT16_C(0), UINT16_C(40), UINT8_C(12), UINT8_C(1), UINT16_C(0), UINT16_C(0) },
 };
 
 static const pf_m4_reference_move pf_m4_falcon_moves[PF_M4_FALCON_MOVE_COUNT] = {

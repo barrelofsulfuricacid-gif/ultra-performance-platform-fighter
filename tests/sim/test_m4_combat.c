@@ -2405,6 +2405,7 @@ static int directional_attack_reaction_matches_effect(
         fighter->knockback_weight,
         attack->damage_q16,
         attack->damage_q16,
+        attack->damage_q16,
         target_grounded,
         UINT8_C(0),
         UINT8_C(0),
@@ -25969,6 +25970,8 @@ static int run_directional_throw_case(
                      PF_SIM_EVENT_NO_PLAYER ||
                  inspection.players[1].damage_q16 !=
                      resulting_damage_q16 ||
+                 inspection.players[1].facing !=
+                     (int8_t)-inspection.players[0].facing ||
                  inspection.players[1].last_hit_valid != UINT8_C(1) ||
                  inspection.players[1].last_hit_attacker != UINT8_C(0))
         {
@@ -26026,6 +26029,8 @@ static int run_directional_throw_case(
             (throw_data->hitlag_ticks != UINT16_C(0)
                  ? expected_resumed_velocity_y
                  : expected_velocity_y) ||
+        inspection.players[1].facing !=
+            (int8_t)-inspection.players[0].facing ||
         inspection.players[0].stale_move_count != UINT8_C(1) ||
         inspection.players[0].stale_move_ids[0] !=
             (uint8_t)expected_action)
@@ -28419,6 +28424,32 @@ static int run_falcon_reference_table_test(void)
                 &capsule))
         {
             return fail("falcon-reference-z-collision-control");
+        }
+    }
+    {
+        const pf_m4_collision_capsule3_q16 replay_grab = {
+            INT64_C(147318), INT64_C(1243354), INT64_C(0),
+            INT64_C(147318), INT64_C(1243354), INT64_C(0),
+            INT64_C(26711)};
+        const pf_m4_collision_capsule3_q16 replay_guard_hurt = {
+            INT64_C(106060), INT64_C(1219809), INT64_C(4817),
+            INT64_C(105014), INT64_C(1233597), -INT64_C(1630),
+            INT64_C(9847)};
+        const pf_m4_collision_sphere3_q16 replay_grab_sphere = {
+            INT64_C(147318), INT64_C(1243354), INT64_C(0),
+            INT64_C(26711)};
+
+        if (pf_m4_collision_sphere_capsule_overlap_q16(
+                &replay_grab_sphere,
+                &replay_guard_hurt))
+        {
+            return fail("falcon-reference-replay-grab-sphere-miss");
+        }
+        if (pf_m4_collision_capsule_capsule_overlap_q16(
+                &replay_grab,
+                &replay_guard_hurt))
+        {
+            return fail("falcon-reference-replay-grab-miss");
         }
     }
     {

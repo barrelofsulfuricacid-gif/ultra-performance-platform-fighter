@@ -112,6 +112,7 @@ typedef struct pf_m4_ssbm_ground_input_attributes
     int32_t grab_release_air_speed_x_q16;
     int32_t grab_release_air_speed_y_q16;
     int32_t throw_animation_weight_scale_q16;
+    int32_t throw_animation_weight_scale_q30;
     uint16_t teeter_turn_axis_threshold;
     uint16_t teeter_walk_axis_threshold;
     uint16_t walk_axis_threshold;
@@ -126,8 +127,10 @@ typedef struct pf_m4_ssbm_ground_input_attributes
     uint16_t escape_tilt_window_ticks;
     uint16_t platform_drop_axis_threshold;
     uint16_t platform_drop_tilt_window_ticks;
+    uint16_t crouch_pass_delay_ticks;
     uint16_t guard_dash_grab_window_ticks;
     uint16_t special_vertical_axis_threshold;
+    uint16_t up_special_repress_interval_ticks;
     uint16_t neutral_special_turn_window_ticks;
     uint16_t initial_dash_early_end_frame;
     uint16_t initial_dash_forward_roll_end_frame;
@@ -154,6 +157,14 @@ typedef struct pf_m4_ssbm_rebirth_attributes
     uint16_t invulnerability_ticks;
     uint16_t reserved;
 } pf_m4_ssbm_rebirth_attributes;
+
+typedef struct pf_m4_ssbm_match_entry_attributes
+{
+    uint16_t ascent_ticks;
+    uint16_t descent_ticks;
+    uint16_t invulnerability_ticks;
+    uint16_t player_delay_stride_ticks;
+} pf_m4_ssbm_match_entry_attributes;
 
 typedef struct pf_m4_ssbm_clank_attributes
 {
@@ -193,8 +204,20 @@ pf_m4_ssbm_common_reference_mash(void);
 const pf_m4_ssbm_ground_input_attributes *
 pf_m4_ssbm_common_reference_ground_input(void);
 
+int32_t pf_m4_ssbm_throw_animation_rate_q16(
+    uint16_t fighter_weight,
+    int weight_independent);
+
+uint16_t pf_m4_ssbm_throw_animation_ticks(
+    uint16_t source_frames,
+    uint16_t fighter_weight,
+    int weight_independent);
+
 const pf_m4_ssbm_rebirth_attributes *
 pf_m4_ssbm_common_reference_rebirth(void);
+
+const pf_m4_ssbm_match_entry_attributes *
+pf_m4_ssbm_common_reference_match_entry(void);
 
 const pf_m4_ssbm_clank_attributes *
 pf_m4_ssbm_common_reference_clank(void);

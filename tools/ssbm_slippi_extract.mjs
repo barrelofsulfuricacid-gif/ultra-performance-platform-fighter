@@ -36,6 +36,8 @@ const MESSAGE_SIZES = 0x35;
 const PRE_FRAME_UPDATE = 0x37;
 const RAW_MAIN_X_OFFSET = 0x3b;
 const RAW_MAIN_Y_OFFSET = 0x40;
+const RAW_C_X_OFFSET = 0x41;
+const RAW_C_Y_OFFSET = 0x42;
 
 function signedByte(value) {
   return value < 0x80 ? value : value - 0x100;
@@ -116,11 +118,21 @@ function exactRawAxesByFrame(filePath) {
         eventBytes > RAW_MAIN_Y_OFFSET
           ? signedByte(bytes[position + RAW_MAIN_Y_OFFSET])
           : null;
+      const rawCX =
+        eventBytes > RAW_C_X_OFFSET
+          ? signedByte(bytes[position + RAW_C_X_OFFSET])
+          : null;
+      const rawCY =
+        eventBytes > RAW_C_Y_OFFSET
+          ? signedByte(bytes[position + RAW_C_Y_OFFSET])
+          : null;
       // Later rollback replacements overwrite the same identity, mirroring
       // SlippiGame.getFrames()'s finalized-frame behavior.
       rows.set(`${frame}:${playerIndex}:${Number(isFollower)}`, {
         rawMainX,
         rawMainY,
+        rawCX,
+        rawCY,
       });
     }
     position += eventBytes;
@@ -135,8 +147,12 @@ function exactRawAxesByFrame(filePath) {
       preFramePayloadBytes,
       rawMainXOffset: RAW_MAIN_X_OFFSET,
       rawMainYOffset: RAW_MAIN_Y_OFFSET,
+      rawCXOffset: RAW_C_X_OFFSET,
+      rawCYOffset: RAW_C_Y_OFFSET,
       exactRawMainX: preFramePayloadBytes >= RAW_MAIN_X_OFFSET,
       exactRawMainY: preFramePayloadBytes >= RAW_MAIN_Y_OFFSET,
+      exactRawCX: preFramePayloadBytes >= RAW_C_X_OFFSET,
+      exactRawCY: preFramePayloadBytes >= RAW_C_Y_OFFSET,
     },
   };
 }
@@ -179,6 +195,8 @@ function compactPlayer(player, frameNumber) {
       physicalRTrigger: pre.physicalRTrigger,
       rawJoystickX: raw?.rawMainX ?? parsedRawX,
       rawJoystickY: raw?.rawMainY ?? null,
+      rawCStickX: raw?.rawCX ?? null,
+      rawCStickY: raw?.rawCY ?? null,
       percent: pre.percent,
     },
     post: {

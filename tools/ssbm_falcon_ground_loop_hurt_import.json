@@ -24,13 +24,23 @@
     { "submotion_index": 7, "c_submotion": "PF_M4_FALCON_SUBMOTION_WALK_SLOW", "compact_blend": true },
     { "submotion_index": 8, "c_submotion": "PF_M4_FALCON_SUBMOTION_WALK_MIDDLE", "compact_blend": true },
     { "submotion_index": 9, "c_submotion": "PF_M4_FALCON_SUBMOTION_WALK_FAST", "compact_blend": true },
+    { "submotion_index": 10, "c_submotion": "PF_M4_FALCON_SUBMOTION_TURN" },
     { "submotion_index": 12, "c_submotion": "PF_M4_FALCON_SUBMOTION_DASH", "compact_blend": true },
     { "submotion_index": 13, "c_submotion": "PF_M4_FALCON_SUBMOTION_RUN", "compact_blend": true },
+    { "submotion_index": 15, "c_submotion": "PF_M4_FALCON_SUBMOTION_LANDING" },
+    { "submotion_index": 20, "c_submotion": "PF_M4_FALCON_SUBMOTION_FALL" },
+    { "submotion_index": 21, "c_submotion": "PF_M4_FALCON_SUBMOTION_FALL_FORWARD" },
+    { "submotion_index": 22, "c_submotion": "PF_M4_FALCON_SUBMOTION_FALL_BACKWARD" },
+    { "submotion_index": 23, "c_submotion": "PF_M4_FALCON_SUBMOTION_FALL_AERIAL" },
+    { "submotion_index": 24, "c_submotion": "PF_M4_FALCON_SUBMOTION_FALL_AERIAL_FORWARD" },
+    { "submotion_index": 25, "c_submotion": "PF_M4_FALCON_SUBMOTION_FALL_AERIAL_BACKWARD" },
     { "submotion_index": 26, "c_submotion": "PF_M4_FALCON_SUBMOTION_FALL_SPECIAL" },
     { "submotion_index": 27, "c_submotion": "PF_M4_FALCON_SUBMOTION_FALL_SPECIAL_FORWARD" },
     { "submotion_index": 28, "c_submotion": "PF_M4_FALCON_SUBMOTION_FALL_SPECIAL_BACKWARD" },
     { "submotion_index": 34, "c_submotion": "PF_M4_FALCON_SUBMOTION_SQUAT_REVERSE" },
+    { "submotion_index": 36, "c_submotion": "PF_M4_FALCON_SUBMOTION_LANDING_FALL_SPECIAL" },
     { "submotion_index": 40, "c_submotion": "PF_M4_FALCON_SUBMOTION_GUARD_SET_OFF" },
+    { "submotion_index": 44, "c_submotion": "PF_M4_FALCON_SUBMOTION_AIR_DODGE" },
     { "submotion_index": 46, "c_submotion": "UINT16_C(46)", "action_frame_offset": 0 },
     { "submotion_index": 47, "c_submotion": "UINT16_C(47)", "action_frame_offset": -1 },
     { "submotion_index": 48, "c_submotion": "UINT16_C(48)", "action_frame_offset": -1 },
@@ -73,8 +83,19 @@
     { "submotion_index": 180, "c_submotion": "PF_M4_FALCON_SUBMOTION_DAMAGE_FLY_TOP", "action_frame_offset": 0 },
     { "submotion_index": 181, "c_submotion": "PF_M4_FALCON_SUBMOTION_DAMAGE_FLY_ROLL", "action_frame_offset": 0 },
     { "submotion_index": 205, "c_submotion": "PF_M4_FALCON_SUBMOTION_FURAFURA" },
-    { "submotion_index": 242, "c_submotion": "UINT16_C(242)", "action_frame_offset": -1 },
+    { "submotion_index": 242, "c_submotion": "PF_M4_FALCON_SUBMOTION_CATCH", "action_frame_offset": -1 },
     { "submotion_index": 243, "c_submotion": "UINT16_C(243)", "action_frame_offset": -1 },
+    { "submotion_index": 244, "c_submotion": "PF_M4_FALCON_SUBMOTION_CATCH_WAIT" },
+    { "submotion_index": 247, "c_submotion": "PF_M4_FALCON_SUBMOTION_THROW_FORWARD" },
+    { "submotion_index": 248, "c_submotion": "PF_M4_FALCON_SUBMOTION_THROW_BACK" },
+    { "submotion_index": 249, "c_submotion": "PF_M4_FALCON_SUBMOTION_THROW_UP" },
+    { "submotion_index": 250, "c_submotion": "PF_M4_FALCON_SUBMOTION_THROW_DOWN" },
+    { "submotion_index": 254, "c_submotion": "PF_M4_FALCON_SUBMOTION_CAPTURE_PULLED_LOW" },
+    { "submotion_index": 255, "c_submotion": "PF_M4_FALCON_SUBMOTION_CAPTURE_WAIT_LOW" },
+    { "submotion_index": 262, "c_submotion": "PF_M4_FALCON_SUBMOTION_THROWN_FORWARD" },
+    { "submotion_index": 263, "c_submotion": "PF_M4_FALCON_SUBMOTION_THROWN_BACK" },
+    { "submotion_index": 264, "c_submotion": "PF_M4_FALCON_SUBMOTION_THROWN_UP" },
+    { "submotion_index": 265, "c_submotion": "PF_M4_FALCON_SUBMOTION_THROWN_DOWN" },
     { "submotion_index": 286, "c_submotion": "PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_FLY" },
     { "submotion_index": 289, "c_submotion": "PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_DOWN_DOWN" },
     { "submotion_index": 291, "c_submotion": "PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_STAND_DOWN" },
@@ -87,6 +108,13 @@
     { "submotion_index": 309, "c_submotion": "PF_M4_FALCON_SUBMOTION_FALCON_DIVE_CATCH" },
     { "submotion_index": 310, "c_submotion": "PF_M4_FALCON_SUBMOTION_FALCON_DIVE_THROW" }
   ],
+  "static_local_poses": [
+    {
+      "id": "guard_target",
+      "path": "data/ssbm_falcon_guard_target_pose.json",
+      "sha256": "da78f31e12c2b5c70b844f6b8e320ca1366c5c42e02f4a08e594d1bc8bf5d7da"
+    }
+  ],
   "wait_animation_table": {
     "expected_weight_total": 100
   },
@@ -94,8 +122,19 @@
     {
       "id": "ecb",
       "source_joint_indices": [39, 47, 25, 14, 8, 4]
+    },
+    {
+      "id": "capture_constraint",
+      "source_joint_indices": [2, 61]
     }
   ],
+  "capture_constraint": {
+    "fighter_root_source_joint_index": 1,
+    "model_offset_source_joint_index": 2,
+    "holder_attachment_source_joint_index": 61,
+    "world_y_source_to_sim_numerator": 11,
+    "world_y_source_to_sim_denominator": 62
+  },
   "blend_copy_target_source_joint_indices": [1],
   "pose_branches": [
     {
@@ -110,19 +149,20 @@
   "expected": {
     "source_joint_count": 63,
     "runtime_part_count": 63,
-    "joint_count": 25,
-    "motion_count": 68,
+    "joint_count": 26,
+    "motion_count": 89,
     "wait_animation_count": 3,
     "compact_motion_count": 6,
-    "track_count": 4511,
-    "key_count": 44881,
+    "track_count": 5815,
+    "key_count": 55515,
     "capsule_count": 11,
     "rotation_joint_count": 19,
     "translation_joint_count": 6,
     "copy_target_joint_count": 1,
-    "joint_point_set_count": 1,
+    "static_local_pose_count": 1,
+    "joint_point_set_count": 2,
     "pose_branch_count": 1,
-    "data_sha256": "4994dfb44a97051627fb557c8f371f047d2e28cd5672c9b4c4a2aa143aa82ad3"
+    "data_sha256": "d036498f50548a5291fa2a43320db42fb7218b5b92c84b6750c2f49386115515"
   },
   "damage_pose_qualification": {
     "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",

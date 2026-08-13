@@ -134,15 +134,16 @@ static inline uint16_t pf_m4_melee_hitlag_ticks(
 static inline pf_m4_melee_knockback_result pf_m4_melee_knockback_for_state(
     const pf_m4_melee_knockback_data *hit,
     uint16_t target_weight,
-    uint32_t damage_q16,
-    uint32_t resulting_damage_q16,
+    uint32_t knockback_damage_q16,
+    uint32_t hitlag_damage_q16,
+    uint32_t knockback_percent_q16,
     uint8_t target_grounded,
     uint8_t target_crouching,
     uint8_t target_smash_charging,
     uint32_t target_hitlag_multiplier_q16)
 {
     const int64_t one_q16 = INT64_C(65536);
-    const uint32_t damage_count = damage_q16 >> 16U;
+    const uint32_t damage_count = knockback_damage_q16 >> 16U;
     const int64_t weight_factor_q16 =
         (INT64_C(200) * one_q16) /
         (INT64_C(100) + (int64_t)target_weight);
@@ -150,7 +151,7 @@ static inline pf_m4_melee_knockback_result pf_m4_melee_knockback_for_state(
         hit->weight_set != UINT16_C(0)
             ? one_q16 +
                   ((int64_t)hit->weight_set * one_q16) / INT64_C(2)
-            : ((int64_t)resulting_damage_q16 *
+            : ((int64_t)knockback_percent_q16 *
                (INT64_C(2) + (int64_t)damage_count)) /
                   INT64_C(20);
     const int64_t weighted_inner_q16 =
@@ -275,7 +276,7 @@ static inline pf_m4_melee_knockback_result pf_m4_melee_knockback_for_state(
         hitstun = UINT32_C(65535);
     }
     result.hitlag_ticks = pf_m4_melee_hitlag_ticks(
-        damage_q16,
+        hitlag_damage_q16,
         target_crouching,
         target_hitlag_multiplier_q16);
     result.hitstun_ticks = (uint16_t)hitstun;
@@ -286,13 +287,14 @@ static inline pf_m4_melee_knockback_result pf_m4_melee_knockback(
     const pf_m4_melee_knockback_data *hit,
     uint16_t target_weight,
     uint32_t damage_q16,
-    uint32_t resulting_damage_q16)
+    uint32_t knockback_percent_q16)
 {
     return pf_m4_melee_knockback_for_state(
         hit,
         target_weight,
         damage_q16,
-        resulting_damage_q16,
+        damage_q16,
+        knockback_percent_q16,
         UINT8_C(0),
         UINT8_C(0),
         UINT8_C(0),

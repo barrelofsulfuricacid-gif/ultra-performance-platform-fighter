@@ -107,8 +107,6 @@ it is never silently promoted to whole-game equivalence.
 
 - Arbitrary mid-match state restoration. Only a naturally stationary `Wait`
   anchor with eight neutral frames is admitted.
-- PAL, teams, unsupported stages, non-profile fighters, platform contact,
-  opponent proximity, damage/stock changes, and unmapped actions.
 - Missing external proof of the exact disc revision. `.slp` setup does not
   encode a disc SHA-256, so a corpus entry without independent provenance is
   `unsupported-reference-configuration`.
@@ -170,6 +168,61 @@ deterministic candidates remained. The ignored report is
 `154ae335f86fa91aa6bbc5fe0bb0a6908d594efd44f0d220bcdba27e238a6e8f`.
 All results retain `diagnostic-unverified-reference`; archive size does not
 replace exact disc and modifier provenance.
+
+### 2,093-replay expansion and modifier classification
+
+The current discovery corpus combines two non-overlapping Falcon archives
+from dataset revision
+`11142d4b86d423716fdd2e9ca565de9bafc9d37e`: the historical 782-file shard
+and a second 1,311-file shard. Their archive SHA-256 values are
+`e7906939235c1841d8abb2e8eb160a7ed84b0d0da35407b5b053b85c5b5f5acb` and
+`60bb7e5cae1e469bdf54d646b60be5a5a77d0942a6c3b6405ba1600b23b2fe87`.
+The extracted corpus contains 2,093 unique files / 7.08 GB; its ignored
+hash-pinned manifest hashes to
+`0e7b2b0805de1b09999b1f3104fb483cb2cbfbf2083864bb2d0d43cda3b6cd62`.
+
+The first full pass found 887 natural anchors and executed 740 diagnostic
+prefixes / 13,441 semantic frames. It recorded 210 passing prefixes, 396
+explicit unsupported source-modifier boundaries, and 134 deterministic
+diagnostic candidates in 1,265.375 seconds. The public replay setup records
+only the broad `UCF` family. A new fail-closed classifier therefore detects
+raw cardinal inputs that should snap under pinned UCF 0.84 but whose recorded
+processed axes do not; those prefixes stop as
+`ucf084-cardinal-signature-mismatch` instead of becoming false simulation
+candidates.
+
+Source analysis of the dominant candidate family found that terminal
+KneeBend changes to Jump in the animation callback before the new update's
+input callback. Jump entry consequently consumes the preceding processed
+horizontal stick, while the newly installed Jump IASA consumes the current
+input later in the same update. Production now feeds its ground-jump entry
+from canonical prior processed X. Two independent six-row live cases prove
+the neutral-history and held-history branches. Their full 491-row common
+special-acquisition pack hashes to
+`c68d3bc9cd830283648f98b210502a471ca0724fc3b5197caea5b71aaa29a07b`
+for source and
+`dfdf53934818d7436fa02fc265e3febb129e97f34b1573d0b670cfc66075a6c6`
+for production; the only difference is one allowed Q16 unit on held Jump
+frame 2.
+
+The second complete pass executed the same 740 prefixes across 15,511 frames,
+raised passes to 254, and reduced deterministic candidates from 134 to 58 in
+1,102.245 seconds. Its ignored report SHA-256 is
+`8792b8f0685912030a72baf0482433836df603971fb183d4103465ca8e46c1ad`.
+The largest remaining 16-prefix cluster exposed a separate decomp-owned split:
+Turn-origin Dash has `mv.co.dash.x4 == 0` and may reverse through the ordinary
+Dash input callback before the early ordinary-Dash window ends. Production
+now retains the existing zero-cost origin bit in that reversal gate. A natural
+12-row live case proves Turn frames 1-7, Dash frames 1-3, then immediate Turn
+frames 1-2 on the reverse edge. A third full-corpus pass is the regression gate
+for that broader diagnostic cluster.
+
+All 2,093 public files remain discovery evidence only. Neither dataset size nor
+repeatability supplies the missing exact disc image and UCF revision. Candidate
+promotion still requires decomp/UCF-source attribution plus the pinned live
+Dolphin and stored-native gates. Twenty focused Python tests cover the worker's
+input packing, modifier classification, provenance rejection, and prefix
+minimization.
 
 Two independent ranked replays exposed one shared input/callback boundary.
 Pinned `ftCo_KneeBend_Anim` changes to Jump before that update's IASA, so a

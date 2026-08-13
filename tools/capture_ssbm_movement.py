@@ -304,6 +304,7 @@ def input_trace(
                     "walk",
                     "wait",
                     "platform_guard",
+                    "platform_wait",
                 }
                 or not isinstance(edge_main, list)
                 or len(edge_main) != 2
@@ -512,22 +513,31 @@ def input_trace(
                 ),
                 fighter_x_override=(
                     -38.8 if source_state == "platform_guard" else (
+                        0.0 if source_state == "platform_wait" else (
                         85.0 if source_state == "teeter" else None
+                        )
                     )
                 ),
                 fighter_y_override=(
                     27.2001 if source_state == "platform_guard" else (
+                        54.4001 if source_state == "platform_wait" else (
                         0.0001 if source_state == "teeter" else None
+                        )
                     )
                 ),
                 fighter_facing_override=(
                     1.0
-                    if source_state in {"teeter", "platform_guard"}
+                    if source_state in {
+                        "teeter",
+                        "platform_guard",
+                        "platform_wait",
+                    }
                     else None
                 ),
                 fighter_position_state_reset=source_state in {
                     "teeter",
                     "platform_guard",
+                    "platform_wait",
                 },
             )
             if pre_source_phases:
@@ -568,6 +578,7 @@ def input_trace(
                             "walk",
                             "wait",
                             "platform_guard",
+                            "platform_wait",
                         },
                     }
                 )
@@ -591,6 +602,11 @@ def input_trace(
                 repeat_unrecorded(f"{prefix}_platform_jump_squat", 5)
                 repeat_unrecorded(f"{prefix}_platform_landing_setup", 100)
                 repeat_unrecorded(f"{prefix}_platform_landing_settle", 30)
+            elif source_state == "platform_wait":
+                # A position-reset Battlefield setup used by generic natural
+                # edge/fall acquisition. Let collision bind the fighter to
+                # the centre platform before any retained input history.
+                repeat_unrecorded(f"{prefix}_platform_settle", 30)
             elif source_state == "teeter":
                 for _ in range(2):
                     trace.append(
@@ -5740,6 +5756,101 @@ def read_jobj_pose(memory_engine: object, jobj: int) -> dict[str, object]:
     }
 
 
+def read_guard_target_joint_tree(memory_engine: object) -> dict[str, object]:
+    """Read the static local-pose tree used by common GuardOn blending.
+
+    ftCo_80091E78 blends the fighter's current joints toward
+    ``((HSD_Joint **) fp->ft_data->x20->x0)[2]``.  Reading that descriptor
+    tree directly keeps predecessor-dependent GuardOn imports independent of
+    whatever live pose happened to enter shield in a particular capture.
+    """
+
+    fighter = read_fighter_address(memory_engine, 0)
+    fighter_data = memory_engine.read_word(fighter + 0x10C)
+    guard_pose_table = memory_engine.read_word(fighter_data + 0x20)
+    joint_roots = memory_engine.read_word(guard_pose_table)
+    root = memory_engine.read_word(joint_roots + 2 * 4)
+    for name, address in (
+        ("fighter_data", fighter_data),
+        ("guard_pose_table", guard_pose_table),
+        ("joint_roots", joint_roots),
+        ("root", root),
+    ):
+        if not 0x80000000 <= address < 0x81800000:
+            raise RuntimeError(
+                f"invalid GuardOn {name} MEM1 pointer: 0x{address:08x}"
+            )
+
+    rows: list[dict[str, object]] = []
+    visited: set[int] = set()
+
+    dynamic_parts_table = memory_engine.read_word(0x804D6540)
+    fighter_dynamic_parts = memory_engine.read_word(dynamic_parts_table + 2 * 4)
+    dynamic_parts = memory_engine.read_word(fighter_dynamic_parts)
+    dynamic_part_count = memory_engine.read_word(fighter_dynamic_parts + 0x04)
+    skipped_parts = {
+        memory_engine.read_byte(dynamic_parts + index * 4)
+        for index in range(dynamic_part_count)
+    }
+    parts_table = memory_engine.read_word(0x804D6544)
+    fighter_parts_table = memory_engine.read_word(parts_table + 2 * 4)
+    parts_count = memory_engine.read_word(fighter_parts_table + 0x08)
+    target_part = 1
+
+    def walk(address: int, parent_index: int) -> None:
+        nonlocal target_part
+        while address != 0:
+            if not 0x80000000 <= address < 0x81800000:
+                raise RuntimeError(
+                    "invalid GuardOn HSD_Joint MEM1 pointer: "
+                    f"0x{address:08x}"
+                )
+            if address in visited or len(rows) >= 256:
+                raise RuntimeError("invalid GuardOn HSD_Joint tree")
+            visited.add(address)
+            snapshot = BigEndianSnapshot.read(memory_engine, address, 0x40)
+            source_index = len(rows)
+            while target_part in skipped_parts:
+                target_part += 1
+            if target_part >= parts_count:
+                raise RuntimeError("GuardOn target exceeds Falcon part table")
+            child = snapshot.u32(address + 0x08)
+            next_sibling = snapshot.u32(address + 0x0C)
+            rows.append(
+                {
+                    "source_index": source_index,
+                    "target_part_index": target_part,
+                    "parent_index": parent_index,
+                    "address": address,
+                    "flags": snapshot.u32(address + 0x04),
+                    "rotation": snapshot.f32_vector(address + 0x14, 3),
+                    "scale": snapshot.f32_vector(address + 0x20, 3),
+                    "translation": snapshot.f32_vector(address + 0x2C, 3),
+                }
+            )
+            target_part += 1
+            if child != 0:
+                walk(child, source_index)
+            address = next_sibling
+
+    walk(root, -1)
+    if len(rows) != 62:
+        raise RuntimeError(
+            f"unexpected GuardOn HSD_Joint count: {len(rows)} (expected 62)"
+        )
+    return {
+        "schema": 1,
+        "fighter_address": fighter,
+        "fighter_data_address": fighter_data,
+        "guard_pose_table_address": guard_pose_table,
+        "joint_roots_address": joint_roots,
+        "guard_target_root_address": root,
+        "parts_count": parts_count,
+        "skipped_part_indices": sorted(skipped_parts),
+        "joints": rows,
+    }
+
+
 def read_hurtbox_memory_probe(memory_engine: object) -> dict[str, object]:
     """Read one fighter's collision-authoritative hurt-capsule pose."""
 
@@ -5894,10 +6005,13 @@ def read_hitbox_memory_probe(memory_engine: object) -> dict[str, object]:
 
 def read_surface_collision_memory_probe(
     memory_engine: object,
+    *,
+    player_index: int = 0,
+    include_capture_constraint_state: bool = False,
 ) -> dict[str, object]:
     """Read the source ECB/environment contact selected by fighter collision."""
 
-    fighter = read_fighter_address(memory_engine, 0)
+    fighter = read_fighter_address(memory_engine, player_index)
     snapshot = BigEndianSnapshot.read(memory_engine, fighter, 0x8AC)
     common = memory_engine.read_word(0x804D6554)
 
@@ -5916,11 +6030,11 @@ def read_surface_collision_memory_probe(
     ]
     ecb_source_closure_indices = (
         0, 1, 2, 3, 4, 6, 7, 8, 12, 13, 14, 18, 19,
-        21, 22, 23, 24, 25, 38, 39, 42, 44, 45, 46, 47,
+        21, 22, 23, 24, 25, 38, 39, 42, 44, 45, 46, 47, 61,
     )
     parts = snapshot.u32(fighter + 0x5E8)
     parts_snapshot = BigEndianSnapshot.read(memory_engine, parts, 0x3F0)
-    return {
+    result: dict[str, object] = {
         "fighter_address": fighter,
         "fighter_costume_id": snapshot.u8(fighter + 0x619),
         "fighter_costume_joint": snapshot.u32(fighter + 0x108),
@@ -6002,6 +6116,41 @@ def read_surface_collision_memory_probe(
             "ceiling": read_surface(0x878),
         },
     }
+    if include_capture_constraint_state:
+        constraint_snapshot = BigEndianSnapshot.read(
+            memory_engine, fighter + 0x2174, 0xB3
+        )
+
+        def read_ecb_at(offset: int) -> dict[str, object]:
+            base = fighter + offset
+            return {
+                name: snapshot.f32_vector(base + component_offset, 2)
+                for name, component_offset in (
+                    ("top", 0x00),
+                    ("bottom", 0x08),
+                    ("right", 0x10),
+                    ("left", 0x18),
+                )
+            }
+
+        result["capture_constraint"] = {
+            "fighter_position": snapshot.f32_vector(fighter + 0xB0, 3),
+            "collision_positions": {
+                "current": snapshot.f32_vector(fighter + 0x6F4, 3),
+                "previous_step": snapshot.f32_vector(fighter + 0x700, 3),
+                "routine_start": snapshot.f32_vector(fighter + 0x70C, 3),
+                "pre_collision": snapshot.f32_vector(fighter + 0x718, 3),
+            },
+            "desired_ecb": read_ecb_at(0x774),
+            "current_ecb": read_ecb_at(0x794),
+            "previous_step_ecb": read_ecb_at(0x7B4),
+            "routine_start_ecb": read_ecb_at(0x7D4),
+            "saved_xrotn_translation": constraint_snapshot.f32_vector(
+                fighter + 0x2174, 3
+            ),
+            "flags_2226_raw": constraint_snapshot.u8(fighter + 0x2226),
+        }
+    return result
 
 
 def read_stage_collision_memory_probe(
@@ -8278,8 +8427,21 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     and not input_was_buffered
                 ):
                     row["surface_collision_memory"] = (
-                        read_surface_collision_memory_probe(memory_engine)
+                        read_surface_collision_memory_probe(
+                            memory_engine,
+                            include_capture_constraint_state=(
+                                args.throw_geometry_only
+                            ),
+                        )
                     )
+                    if args.throw_geometry_only:
+                        row["opponent_surface_collision_memory"] = (
+                            read_surface_collision_memory_probe(
+                                memory_engine,
+                                player_index=1,
+                                include_capture_constraint_state=True,
+                            )
+                        )
             rows.append(row)
 
         missing_conditional_edges = (
@@ -8516,6 +8678,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             ),
             "surface_collision_memory_probe": (
                 {
+                    "schema": 2,
                     "engine_version": importlib.metadata.version(
                         "dolphin-memory-engine"
                     ),
@@ -8530,6 +8693,9 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                         "fighter_costume_id": "fighter+0x619",
                         "fighter_costume_joint": "fighter+0x108",
                         "fighter_parts": "fighter+0x5e8",
+                        "guard_target_joint_tree": (
+                            "((HSD_Joint**)fighter->ft_data->x20->x0)[2]"
+                        ),
                         "ecb_source": "fighter+0x7f4",
                         "ecb_source_joints": "fighter+0x7fc..0x810",
                         "ecb_source_joint_srt_and_matrix": (
@@ -8544,6 +8710,36 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     },
                 }
                 if args.memory_probe_surface
+                else None
+            ),
+            "guard_target_joint_tree": (
+                read_guard_target_joint_tree(memory_engine)
+                if args.memory_probe_surface and memory_engine is not None
+                else None
+            ),
+            "capture_constraint_memory_probe": (
+                {
+                    "schema": 1,
+                    "engine_version": importlib.metadata.version(
+                        "dolphin-memory-engine"
+                    ),
+                    "player_slot_address": "0x80453080",
+                    "players": [0, 1],
+                    "fields": {
+                        "fighter_position": "fighter+0xb0..0xbb",
+                        "collision_positions": "fighter+0x6f4..0x723",
+                        "desired_ecb": "fighter+0x774..0x793",
+                        "current_ecb": "fighter+0x794..0x7b3",
+                        "previous_step_ecb": "fighter+0x7b4..0x7d3",
+                        "routine_start_ecb": "fighter+0x7d4..0x7f3",
+                        "saved_xrotn_translation": "fighter+0x2174..0x217f",
+                        "constraint_flags_raw": "fighter+0x2226",
+                    },
+                    "decomp_revision": (
+                        "9509dc04406fb2028bfab01243841ba4787c0fb7"
+                    ),
+                }
+                if args.memory_probe_surface and args.throw_geometry_only
                 else None
             ),
             "stage_collision_memory": stage_collision_memory,
@@ -8798,6 +8994,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         or args.aerial_attack_landing_only
         or args.airborne_landing_only
         or args.shield_break_orientation_only
+        or args.throw_geometry_only
         or args.special_geometry_only
         or (
             args.oracle_checkpoint_pack
@@ -8813,7 +9010,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "--platform-drop-ecb-only, --airborne-ecb-only, "
             "--aerial-attack-ecb-only, --aerial-attack-landing-only, "
             "--airborne-landing-only, --shield-break-orientation-only, "
-            "--special-geometry-only, or a damage-hit/common-hurt-geometry/"
+            "--throw-geometry-only, --special-geometry-only, or a "
+            "damage-hit/common-hurt-geometry/"
             "special-acquisition checkpoint pack"
         )
     if args.memory_probe_hitbox and not (

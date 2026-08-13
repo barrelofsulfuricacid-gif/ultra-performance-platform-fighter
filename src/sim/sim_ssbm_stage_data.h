@@ -81,6 +81,12 @@ pf_m4_ssbm_reference_stage_spawn_point(
     uint16_t profile_id,
     uint8_t player_index);
 
+int32_t pf_m4_ssbm_revival_platform_x_q16(
+    uint16_t profile_id,
+    uint8_t player_count,
+    uint8_t player_index,
+    int32_t authored_spawn_spacing_q16);
+
 int32_t pf_m4_ssbm_stage_line_y_q16(
     const pf_m4_ssbm_stage_collision_line *line,
     int32_t position_x_q16);
@@ -113,6 +119,16 @@ int pf_m4_ssbm_reference_stage_find_wall_point_contact(
     uint32_t *out_fraction_q16,
     uint8_t *out_support,
     int8_t *out_away_direction);
+
+int pf_m4_ssbm_reference_stage_find_floor_point_contact(
+    uint16_t profile_id,
+    int32_t previous_point_x_q16,
+    int32_t previous_point_y_q16,
+    int32_t current_point_x_q16,
+    int32_t current_point_y_q16,
+    uint32_t *out_fraction_q16,
+    int32_t *out_floor_y_q16,
+    uint8_t *out_support);
 
 int pf_m4_ssbm_stage_support_valid(
     uint16_t profile_id,

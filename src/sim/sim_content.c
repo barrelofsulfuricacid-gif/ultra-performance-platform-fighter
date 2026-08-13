@@ -479,21 +479,26 @@ static int pf_m4_apply_falcon_reference_throw(
         if ((attributes->weight_independent_throws_mask &
              (uint8_t)(UINT8_C(1) << throw_index)) == UINT8_C(0))
         {
-            const uint64_t weight_scale_q16 =
-                (uint64_t)attributes->weight *
-                (uint64_t)(uint32_t)
-                    common->throw_animation_weight_scale_q16;
-
-            release_tick = (uint32_t)(
-                ((uint64_t)release_tick * weight_scale_q16 +
-                 UINT64_C(65535)) >>
-                16U);
-            total_ticks = (uint32_t)(
-                ((uint64_t)total_ticks * weight_scale_q16 +
-                 UINT64_C(65535)) >>
-                16U);
+            release_tick = (uint32_t)pf_m4_ssbm_throw_animation_ticks(
+                (uint16_t)release_tick,
+                attributes->weight,
+                0);
+            total_ticks = (uint32_t)pf_m4_ssbm_throw_animation_ticks(
+                (uint16_t)total_ticks,
+                attributes->weight,
+                0);
         }
     }
+    /* Throw/Thrown enter at animation frame zero and immediately run
+     * ftAnim_8006EBA4. Public action_ticks starts at zero on that already-
+     * advanced row, so script-event and terminal ticks are one less than the
+     * number of animation advances needed from frame zero. */
+    if (release_tick == UINT32_C(0) || total_ticks == UINT32_C(0))
+    {
+        return 0;
+    }
+    --release_tick;
+    --total_ticks;
     if (release_tick == UINT32_C(0) || release_tick >= total_ticks ||
         total_ticks > UINT16_MAX)
     {
@@ -2674,7 +2679,8 @@ static pf_status pf_m4_apply_battlefield_stage(pf_m4_content *content)
     stage->reference_spawn_line = (uint16_t)spawn->support - UINT16_C(1);
     stage->reference_spawn_x_q16 = spawn->position_x_q16;
     stage->revival_platform_start_y_q16 = profile->camera_top_q16;
-    stage->revival_platform_end_y_q16 = INT32_C(2) * PF_Q16_ONE;
+    /* Battlefield's Rebirth target root is source-world Y=80. */
+    stage->revival_platform_end_y_q16 = INT32_C(380532);
     stage->revival_platform_half_width_q16 = INT32_C(2) * PF_Q16_ONE;
     return PF_STATUS_OK;
 }
