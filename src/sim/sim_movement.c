@@ -9,7 +9,6 @@
 #include <stdint.h>
 #include <string.h>
 
-
 static float approach(float value, float target, float amount)
 {
     if (value < target)
@@ -11572,7 +11571,12 @@ pf_status step_player(
         }
         else if (action_state == (uint8_t)PF_M4_ACTION_GRAB_HOLD)
         {
-            if (fighter->reference_frame_data_enabled != UINT8_C(0))
+            const int pummel_return_entered =
+                callback_owner.entered_this_tick != UINT8_C(0) &&
+                previous_action_state == (uint8_t)PF_M4_ACTION_PUMMEL;
+
+            if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
+                pummel_return_entered == 0)
             {
                 if (source_submotion ==
                     (uint16_t)PF_M4_FALCON_SUBMOTION_CATCH)
@@ -11660,7 +11664,8 @@ pf_status step_player(
                 scratch->attack_stale_registered[player_index] =
                     UINT8_C(0);
             }
-            else if (action_ticks < UINT16_C(600))
+            else if (pummel_return_entered == 0 &&
+                     action_ticks < UINT16_C(600))
             {
                 ++action_ticks;
             }
@@ -15006,11 +15011,12 @@ pf_status step_player(
                     action_state == (uint8_t)PF_M4_ACTION_AIRBORNE &&
                     (world->action_state[player_index] ==
                          (uint8_t)PF_M4_ACTION_AIRBORNE ||
-                     source_submotion ==
+                    source_submotion ==
                          (uint16_t)
                              PF_M4_FALCON_SUBMOTION_PLATFORM_DROP))
                 {
-                    if (world->action_state[player_index] ==
+                    if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
+                        world->action_state[player_index] ==
                             (uint8_t)PF_M4_ACTION_AIRBORNE &&
                         !advance_falcon_source_submotion(
                             &source_submotion,

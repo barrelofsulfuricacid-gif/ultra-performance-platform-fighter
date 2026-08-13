@@ -17687,11 +17687,15 @@ static int run_until_reaction_landing(
                 stderr,
                 "m4-combat=diagnostic reaction-landing-tick-fail"
                 " mode=%d tick=%u action=%u/%u"
+                " source=%u frame=%.9g rate=%.9g"
                 " position=(%.9g,%.9g) velocity=(%.9g,%.9g)\n",
                 tech_mode,
                 (unsigned int)tick,
                 (unsigned int)target->action_state,
                 (unsigned int)target->action_ticks,
+                (unsigned int)target->source_submotion,
+                target->source_animation_frame_f32,
+                target->source_animation_rate_f32,
                 target->position_x_f32,
                 target->position_y_f32,
                 target->velocity_x_f32,
@@ -23219,7 +23223,7 @@ static int run_jab_cancel_test(
         close_content->fighter.jab_final_hitlag_ticks !=
             UINT16_C(4) ||
         close_content->fighter.jab_final_damage_f32 !=
-            4.5776367E-05f * 1.0f ||
+            3.0f ||
         close_content->fighter.jab_final_melee_knockback.enabled !=
             UINT8_C(1) ||
         close_content->fighter.jab_final_melee_knockback.angle_degrees !=
@@ -26037,8 +26041,7 @@ static int run_pummel_test(
     uint32_t future_tick;
     uint32_t pummel_events = UINT32_C(0);
 
-    if (content->fighter.pummel_damage_f32 !=
-            4.5776367E-05f * 1.0f ||
+    if (content->fighter.pummel_damage_f32 != 3.0f ||
         content->fighter.pummel_hit_tick != UINT16_C(4) ||
         content->fighter.pummel_total_ticks != UINT16_C(23))
     {
@@ -26046,7 +26049,7 @@ static int run_pummel_test(
     }
     invalid_content.fighter.pummel_hit_tick =
         invalid_content.fighter.pummel_total_ticks;
-    changed_content.fighter.pummel_damage_f32 += UINT32_C(1);
+    changed_content.fighter.pummel_damage_f32 += 1.0f;
     if (!expect_status(
             validate_content(&invalid_content),
             PF_STATUS_INVALID_CONFIG,

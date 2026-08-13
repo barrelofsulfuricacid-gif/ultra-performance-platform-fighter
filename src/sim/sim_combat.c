@@ -4966,16 +4966,18 @@ static pf_status resolve_grabs(
                         release_position_x_f32;
                     scratch->position_y_f32[target_index] =
                         release_position_y_f32;
-                    if (reference_throw_release_sweep(
-                            content,
-                            scratch,
-                            holder_index,
-                            target_index,
-                            release_position_x_f32,
-                            release_position_y_f32,
-                            &scratch->position_x_f32[target_index],
-                            &scratch->position_y_f32[target_index]) !=
-                        PF_STATUS_OK)
+                    if (content->stage.reference_collision_profile !=
+                            (uint16_t)PF_M4_REFERENCE_STAGE_AUTHORED &&
+                        reference_throw_release_sweep(
+                                content,
+                                scratch,
+                                holder_index,
+                                target_index,
+                                release_position_x_f32,
+                                release_position_y_f32,
+                                &scratch->position_x_f32[target_index],
+                                &scratch->position_y_f32[target_index]) !=
+                            PF_STATUS_OK)
                     {
                         return PF_STATUS_DETERMINISTIC_FAULT;
                     }
