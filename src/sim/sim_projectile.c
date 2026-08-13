@@ -3,7 +3,7 @@
 
 #include <limits.h>
 
-static int pf_m4_projectile_checked_add(
+static int projectile_checked_add(
     int32_t left,
     int32_t right,
     int32_t *out_value)
@@ -18,7 +18,7 @@ static int pf_m4_projectile_checked_add(
     return 1;
 }
 
-static int pf_m4_projectile_action_can_fire(
+static int projectile_action_can_fire(
     uint8_t grounded,
     uint8_t action_state)
 {
@@ -34,7 +34,7 @@ static int pf_m4_projectile_action_can_fire(
            action_state == (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP;
 }
 
-static void pf_m4_projectile_clear(pf_sim_scratch *scratch)
+static void projectile_clear(pf_sim_scratch *scratch)
 {
     scratch->projectile_position_x_q16 = INT32_C(0);
     scratch->projectile_position_y_q16 = INT32_C(0);
@@ -46,7 +46,7 @@ static void pf_m4_projectile_clear(pf_sim_scratch *scratch)
     scratch->projectile_owner_slot = UINT8_C(0);
 }
 
-void pf_m4_reset_projectile(pf_sim *sim)
+void reset_projectile(pf_sim *sim)
 {
     if (sim == NULL)
     {
@@ -62,7 +62,7 @@ void pf_m4_reset_projectile(pf_sim *sim)
     sim->world.projectile_owner_slot = UINT8_C(0);
 }
 
-void pf_m4_begin_projectile_tick(
+void begin_projectile_tick(
     const pf_world_state *world,
     pf_sim_scratch *scratch)
 {
@@ -84,8 +84,8 @@ void pf_m4_begin_projectile_tick(
     scratch->projectile_owner_slot = world->projectile_owner_slot;
 }
 
-pf_m4_projectile_input_intent pf_m4_prepare_projectile_input(
-    const pf_m4_content *content,
+projectile_input_intent prepare_projectile_input(
+    const struct content *content,
     const pf_world_state *world,
     const pf_sim_scratch *scratch,
     const pf_input_frame *input,
@@ -132,10 +132,10 @@ pf_m4_projectile_input_intent pf_m4_prepare_projectile_input(
         world->tumble[player_index] != UINT8_C(0) ||
         (scratch->item_state == (uint8_t)PF_M4_ITEM_STATE_HELD &&
          scratch->item_holder_slot == player_slot) ||
-        (!pf_m4_projectile_action_can_fire(
+        (!projectile_action_can_fire(
              world->grounded[player_index],
              world->action_state[player_index]) &&
-         !pf_m4_falcon_reference_special_iasa_active(
+         !falcon_reference_special_iasa_active(
              world->action_state[player_index],
              world->action_ticks[player_index])))
     {
@@ -145,14 +145,14 @@ pf_m4_projectile_input_intent pf_m4_prepare_projectile_input(
     return PF_M4_PROJECTILE_INPUT_FIRE;
 }
 
-pf_status pf_m4_apply_projectile_input(
-    const pf_m4_content *content,
+pf_status apply_projectile_input(
+    const struct content *content,
     const pf_world_state *world,
     pf_sim_scratch *scratch,
     uint32_t player_index,
-    pf_m4_projectile_input_intent intent)
+    projectile_input_intent intent)
 {
-    const pf_m4_projectile_data *projectile;
+    const projectile_data *projectile;
     const uint8_t player_slot = (uint8_t)(player_index + UINT32_C(1));
     const uint8_t fire_action =
         world != NULL && player_index < (uint32_t)world->player_count &&
@@ -187,11 +187,11 @@ pf_status pf_m4_apply_projectile_input(
     offset_x =
         (int32_t)scratch->facing[player_index] *
         projectile->spawn_offset_x_q16;
-    if (!pf_m4_projectile_checked_add(
+    if (!projectile_checked_add(
             scratch->position_x_q16[player_index],
             offset_x,
             &position_x) ||
-        !pf_m4_projectile_checked_add(
+        !projectile_checked_add(
             scratch->position_y_q16[player_index],
             projectile->spawn_offset_y_q16,
             &position_y))
@@ -226,11 +226,11 @@ pf_status pf_m4_apply_projectile_input(
     return PF_STATUS_OK;
 }
 
-pf_status pf_m4_step_projectile(
-    const pf_m4_content *content,
+pf_status step_projectile(
+    const struct content *content,
     pf_sim_scratch *scratch)
 {
-    const pf_m4_projectile_data *projectile;
+    const projectile_data *projectile;
     int32_t next_x;
     int32_t next_y;
 
@@ -241,7 +241,7 @@ pf_status pf_m4_step_projectile(
     projectile = &content->projectile;
     if (projectile->enabled == UINT8_C(0))
     {
-        pf_m4_projectile_clear(scratch);
+        projectile_clear(scratch);
         return PF_STATUS_OK;
     }
     if (scratch->projectile_state ==
@@ -267,14 +267,14 @@ pf_status pf_m4_step_projectile(
     --scratch->projectile_lifetime_ticks;
     if (scratch->projectile_lifetime_ticks == UINT16_C(0))
     {
-        pf_m4_projectile_clear(scratch);
+        projectile_clear(scratch);
         return PF_STATUS_OK;
     }
-    if (!pf_m4_projectile_checked_add(
+    if (!projectile_checked_add(
             scratch->projectile_position_x_q16,
             scratch->projectile_velocity_x_q16,
             &next_x) ||
-        !pf_m4_projectile_checked_add(
+        !projectile_checked_add(
             scratch->projectile_position_y_q16,
             scratch->projectile_velocity_y_q16,
             &next_y))
@@ -292,7 +292,7 @@ pf_status pf_m4_step_projectile(
         next_y - projectile->half_height_q16 >
             content->stage.blast_bottom_q16)
     {
-        pf_m4_projectile_clear(scratch);
+        projectile_clear(scratch);
     }
     return PF_STATUS_OK;
 }

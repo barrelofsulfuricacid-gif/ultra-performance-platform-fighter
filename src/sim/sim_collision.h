@@ -3,15 +3,15 @@
 
 #include <stdint.h>
 
-typedef struct pf_m4_collision_sphere3_q16
+typedef struct collision_sphere3_q16
 {
     int64_t center_x_q16;
     int64_t center_y_q16;
     int64_t center_z_q16;
     int64_t radius_q16;
-} pf_m4_collision_sphere3_q16;
+} collision_sphere3_q16;
 
-typedef struct pf_m4_collision_capsule3_q16
+typedef struct collision_capsule3_q16
 {
     int64_t endpoint_a_x_q16;
     int64_t endpoint_a_y_q16;
@@ -20,9 +20,9 @@ typedef struct pf_m4_collision_capsule3_q16
     int64_t endpoint_b_y_q16;
     int64_t endpoint_b_z_q16;
     int64_t radius_q16;
-} pf_m4_collision_capsule3_q16;
+} collision_capsule3_q16;
 
-static inline int64_t pf_m4_collision_dot3(
+static inline int64_t collision_dot3(
     int64_t left_x,
     int64_t left_y,
     int64_t left_z,
@@ -33,14 +33,14 @@ static inline int64_t pf_m4_collision_dot3(
     return left_x * right_x + left_y * right_y + left_z * right_z;
 }
 
-static inline uint64_t pf_m4_collision_abs_u64(int64_t value)
+static inline uint64_t collision_abs_u64(int64_t value)
 {
     return value < INT64_C(0)
                ? (uint64_t)(-(value + INT64_C(1))) + UINT64_C(1)
                : (uint64_t)value;
 }
 
-static inline int32_t pf_m4_collision_ratio_q16(
+static inline int32_t collision_ratio_q16(
     int64_t numerator,
     int64_t denominator)
 {
@@ -85,9 +85,9 @@ static inline int32_t pf_m4_collision_ratio_q16(
 /* Integer specialization of the executable's point-to-capsule case. The
  * squared predicate avoids floating point and square roots; the only bounded
  * difference from the source is Q16.16 endpoint/projection quantization. */
-static inline int pf_m4_collision_sphere_capsule_overlap_q16(
-    const pf_m4_collision_sphere3_q16 *sphere,
-    const pf_m4_collision_capsule3_q16 *capsule)
+static inline int collision_sphere_capsule_overlap_q16(
+    const collision_sphere3_q16 *sphere,
+    const collision_capsule3_q16 *capsule)
 {
     const int64_t segment_x =
         capsule->endpoint_b_x_q16 - capsule->endpoint_a_x_q16;
@@ -154,9 +154,9 @@ static inline int pf_m4_collision_sphere_capsule_overlap_q16(
  * are reduced to 23 significant bits before the determinant, matching or
  * exceeding the source float precision while keeping every intermediate in
  * portable C17 int64_t. Final contact coordinates remain Q16.16. */
-static inline int pf_m4_collision_capsule_capsule_overlap_q16(
-    const pf_m4_collision_capsule3_q16 *hit,
-    const pf_m4_collision_capsule3_q16 *hurt)
+static inline int collision_capsule_capsule_overlap_q16(
+    const collision_capsule3_q16 *hit,
+    const collision_capsule3_q16 *hurt)
 {
     const int64_t combined_radius = hit->radius_q16 + hurt->radius_q16;
     const int64_t hit_min_x =
@@ -259,41 +259,41 @@ static inline int pf_m4_collision_capsule_capsule_overlap_q16(
         return 0;
     }
 
-    hit_length_squared = pf_m4_collision_dot3(
+    hit_length_squared = collision_dot3(
         hit_x, hit_y, hit_z, hit_x, hit_y, hit_z);
-    segment_dot = pf_m4_collision_dot3(
+    segment_dot = collision_dot3(
         hit_x, hit_y, hit_z, hurt_x, hurt_y, hurt_z);
-    hurt_length_squared = pf_m4_collision_dot3(
+    hurt_length_squared = collision_dot3(
         hurt_x, hurt_y, hurt_z, hurt_x, hurt_y, hurt_z);
-    hit_start_dot = pf_m4_collision_dot3(
+    hit_start_dot = collision_dot3(
         hit_x, hit_y, hit_z, start_x, start_y, start_z);
-    hurt_start_dot = pf_m4_collision_dot3(
+    hurt_start_dot = collision_dot3(
         hurt_x, hurt_y, hurt_z, start_x, start_y, start_z);
 
     if (hit_length_squared == INT64_C(0))
     {
-        const pf_m4_collision_sphere3_q16 sphere = {
+        const collision_sphere3_q16 sphere = {
             hit->endpoint_a_x_q16,
             hit->endpoint_a_y_q16,
             hit->endpoint_a_z_q16,
             hit->radius_q16};
-        return pf_m4_collision_sphere_capsule_overlap_q16(&sphere, hurt);
+        return collision_sphere_capsule_overlap_q16(&sphere, hurt);
     }
     if (hurt_length_squared == INT64_C(0))
     {
-        const pf_m4_collision_sphere3_q16 sphere = {
+        const collision_sphere3_q16 sphere = {
             hurt->endpoint_a_x_q16,
             hurt->endpoint_a_y_q16,
             hurt->endpoint_a_z_q16,
             hurt->radius_q16};
-        return pf_m4_collision_sphere_capsule_overlap_q16(&sphere, hit);
+        return collision_sphere_capsule_overlap_q16(&sphere, hit);
     }
 
-    maximum_dot = pf_m4_collision_abs_u64(hit_length_squared);
+    maximum_dot = collision_abs_u64(hit_length_squared);
 #define PF_M4_COLLISION_ACCUMULATE_MAX(value)                              \
     do                                                                     \
     {                                                                      \
-        const uint64_t candidate = pf_m4_collision_abs_u64(value);         \
+        const uint64_t candidate = collision_abs_u64(value);         \
         if (candidate > maximum_dot)                                       \
         {                                                                  \
             maximum_dot = candidate;                                      \
@@ -317,21 +317,21 @@ static inline int pf_m4_collision_capsule_capsule_overlap_q16(
 
     if (hit_length_squared == INT64_C(0))
     {
-        const pf_m4_collision_sphere3_q16 sphere = {
+        const collision_sphere3_q16 sphere = {
             hit->endpoint_a_x_q16,
             hit->endpoint_a_y_q16,
             hit->endpoint_a_z_q16,
             hit->radius_q16};
-        return pf_m4_collision_sphere_capsule_overlap_q16(&sphere, hurt);
+        return collision_sphere_capsule_overlap_q16(&sphere, hurt);
     }
     if (hurt_length_squared == INT64_C(0))
     {
-        const pf_m4_collision_sphere3_q16 sphere = {
+        const collision_sphere3_q16 sphere = {
             hurt->endpoint_a_x_q16,
             hurt->endpoint_a_y_q16,
             hurt->endpoint_a_z_q16,
             hurt->radius_q16};
-        return pf_m4_collision_sphere_capsule_overlap_q16(&sphere, hit);
+        return collision_sphere_capsule_overlap_q16(&sphere, hit);
     }
 
     denominator =
@@ -402,10 +402,10 @@ static inline int pf_m4_collision_capsule_capsule_overlap_q16(
         }
     }
 
-    hit_parameter_q16 = pf_m4_collision_ratio_q16(
+    hit_parameter_q16 = collision_ratio_q16(
         hit_numerator,
         hit_denominator);
-    hurt_parameter_q16 = pf_m4_collision_ratio_q16(
+    hurt_parameter_q16 = collision_ratio_q16(
         hurt_numerator,
         hurt_denominator);
     hit_closest_x = hit->endpoint_a_x_q16 +

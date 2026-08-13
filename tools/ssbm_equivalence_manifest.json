@@ -4,7 +4,7 @@
   "selection": {
     "shared_paths": [
       "CMakeLists.txt",
-      "generated/data/m4_ssbm_ntsc102_common_data.inc",
+      "generated/data/ssbm_ntsc102_common_data.inc",
       "include/pf/**",
       "src/sim/**",
       "tests/sim/**",

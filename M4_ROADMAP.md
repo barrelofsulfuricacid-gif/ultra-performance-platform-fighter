@@ -30,9 +30,9 @@ separately because a stored pass cannot establish new SSBM truth.
 | Falcon movement and combat | partial | Captured routes include wall/ceiling response, flat-floor missed/neutral/directional techs, both Up/Down prone/getup orientations, grounded player push from both ports/directions, imported Hyrule slope/DownBound/ordinary-ledge response, the exact common-data `x480` down-input ledge rejection boundary, all eight quick/slow ledge options, exact 640/480-frame CliffWait timeout and regrab cooldown, ordinary Jump/Fall airborne animation clocks, Falcon Punch's complete ground/air clocks and qualified air-physics tail, Raptor Boost's five complete fighter routes plus its live-only native Capsule branch, all six Falcon Kick routes, and a source-qualified complete Battlefield collision/environment catalog. Production imports complete Jump/Fall and all five aerial-attack HSD tracks, all 198 ShieldBreakFly/DownD/StandD/Furafura frames, all 25 GuardOn/Guard/GuardOff poses, both 26-frame DownBound tracks, both 70-frame DownWait loops, both neutral getups, both getup attacks, all four prone-orientation/direction roll tracks, and the complete 158-frame CrouchWait ECB cycle. Common acquisition is callback-order exact for SquatWait, SquatRv, Turn, KneeBend, Ottotto, OttottoWait, ordinary air, released Damage/DamageFall, powershield-enabled GuardOff, and the captured Run/RunBrake/locked-TurnRun down-input split. Direct EscapeN is now limited to Wait and callbacks that actually delegate to Wait: fresh shield+down from Walk or crouch enters GuardOn first, while Wait enters SpotDodge immediately. Walk now follows its exact movement tail: a fresh full opposite input is consumed by Dash and enters smash Turn, while a sub-dash opposite tilt falls through to `ft_8008A244` and Wait without a synthetic basic Turn. Run and late-Dash Guard entry retain the imported three-update GuardOn `x24` provenance: fresh A during that window enters dash grab, Wait-origin GuardOn enters ordinary grab, and an expired Run-origin window returns to ordinary grab. InitialDash now also retains source entry provenance at zero state-size cost: ordinary entry maps early A to F-smash and held shield to forward roll through imported PlCo `x48=3`, while Turn-origin entry maps the same displayed Dash frame to Dash Attack and Guard; Taunt is available from every Dash phase. The current 39-case / 491-row pack adds prior-versus-current Jump-entry input ordering and early Turn-origin Dash reversal to the four-direction Walk/Run special, UCF/vanilla reversal, InitialDash, and GuardOn provenance matrix. Source and production hash to `c68d3bc9cd830283648f98b210502a471ca0724fc3b5197caea5b71aaa29a07b` / `dfdf53934818d7436fa02fc265e3febb129e97f34b1573d0b670cfc66075a6c6`; the only difference is one allowed Q16 unit on held Jump frame 2. Early basic Turn now exposes its pending facing to the source special/grab/attack prefix, including main-stick and C-stick smashes, while the rejected-prefix jump control keeps the old facing; all 12 live/native cases hash exactly to `0e9858e16140d8a55727255b009aec89e2176286e008b2cf23867bab38c2ac44`. Full down from ordinary Run enters RunBrake rather than crouch; radial-gate diagonal down continues Run for the edge row, down from RunBrake enters crouch, and the locked Run phase after TurnRun rejects direct down. Released non-tumble Damage delegates to ordinary airborne IASA and accepts fresh digital trigger into AirDodge; released tumbling DamageFly/DamageFall omits EscapeAir and rejects the same edge. DamageFall also follows its dedicated callback table: ordinary A/C-stick aerial attacks are ignored while special and usable aerial jump retain priority, and a qualifying ordinary/UCF wiggle cannot be overwritten by a same-frame aerial. The remaining acquisition coverage includes KneeBend's up-special-only dispatcher before grab/up-smash, diagonal-down arbitration, Turn's missing neutral-B callback, aerial neutral-B's strict recent-opposite turnaround window, all four teeter specials, and GuardOff's complete special/attack/grab branch plus its shared jump/spot-dodge tail and ordinary negative controls. The shared common-air conversion owns the decomp's ten-update previous-bottom ECB lock; aerial attacks no longer use a route-captured bottom table. All 26 ordinary action routes derive collision ECBs from the allocation-free evaluator, with 925 runtime poses covered by the native primitive. A generated submotion flag selects Melee's TransN-stripped or model-root ECB reference space without action-specific branches. A fresh 165-frame natural Falcon Dive miss route passes the identical-input comparator with the documented 640-Q16 position envelope. FallSpecial additionally reproduces the decomp's velocity-selected neutral/forward/back target, switch-update double blend, stable-update single blend, and persistent bottom-lock state. The former Raptor/Falcon Dive/FallSpecial/aerial-attack authored ECB arrays are removed. Wider callback/state coverage stays open. |
 | Common damage response | numeric response and all common damage-motion selectors implemented; represented routes qualified | The six-case live Dolphin trace and generic stored numeric trace pass. Production ports the decomp's pre-launch ground/air, knockback-level, collided-hurtbox-height, strict 70/110-degree DamageFlyTop cone, 100% DamageFlyRoll threshold, and exact HSD-RNG draw. It also imports the slope launch/projection rule, level-three steep-floor reflection, ground-origin ECB lock, landing-entry channel ownership, and the non-tumble floor selector's exact 5.0/0.5 source-speed thresholds. A deterministic four-case/120-row Hyrule line-36 theorem covers both Forward-Tilt launch branches plus actual low-speed jabs that land below 0.5, retain DamageN2 after hitstun release, and either exit on the sourced terminal animation frame or accept Falcon Punch through the released common Wait IASA callback. A separate two-case/68-row theorem closes the airborne release split: ordinary non-tumble Damage accepts fresh L into AirDodge, while DamageFly/DamageFall rejects it and remains tumbling. Its two-case/four-sample stored domain hashes production at `cec3d2b1d9b67ad906bf68b074c8975f6e53bf48cc714650c6498bef7aeba93e`. DamageN2 live pose/ECB evidence includes all six mixed hit-entry rows. Broader attack/stage routes remain open. |
 | Separate knockback velocity and decay | open-air and flat-ground routes qualified | A pinned 64-row late DashAttack route agrees for 15 damage samples on action/frame, grounded/tumble, damage, timers, self velocity, projected knockback, and `xF0_ground_kb_vel` within 0.001 source units. Canonical save/load, replay, Windows, WSL, and sanitizers pass. |
-| Remaining Falcon gaps | not complete | Work through every incomplete row in `docs/product/m4_ssbm_fidelity_audit.md`; do not infer whole-character equivalence from one domain. |
+| Remaining Falcon gaps | not complete | Work through every incomplete row in `docs/product/ssbm_fidelity_audit.md`; do not infer whole-character equivalence from one domain. |
 | Native Battlefield frontend | implemented locally; hands-on gate remains | The SDL target runs the real simulation at fixed 60 Hz, supports 2P Duel and 4P Teams plus 1-8 stocks through the core config contract, renders the complete source-derived 23-line Battlefield catalog and blast-zone inset, and visualizes fighters, crouch, shields, hitboxes, exact 11-capsule source hurt poses, damage, stocks, actions, and a terminal winner/time-limit banner with an `R - REMATCH` cue. SDL's GameCube type now follows its pinned A/X/B/Y positional contract: A attacks, B is special, X/Y jump, Z uses the production grab chord, Start taunts, and analog/digital L/R remain shields. The explicit Mayflash `0079:1843` raw PC path is unchanged. Strict MSVC, WSL, mapping smoke, and existing Battlefield screenshot QA pass. Real-controller input plus completed-result visual confirmation remain in one hands-on pass. |
-| Web acceptance architecture | duplicate probes removed; current replay smoke passes | Four source-grep verifier scripts and duplicated gameplay scenarios are deleted. The compact `web.m4_playtest` gate protects only the real bridge ABI: exact main/C-stick/button/independent-trigger forwarding, Team Lab slot routing, and dynamic shield/hit-sphere packing. A fresh Emscripten build and real headless Chrome run pass the 42,559-byte ABI-5 replay with final SHA-256 `5a7db4a5e899b1af31909f7997dcb1a08226aec79f4f09fab7422fe9602f246f`. Collision-toggle, result/rematch, and replay-navigation/fail-closed import remain honestly named owner-interaction gates instead of being overclaimed from a static DOM dump. |
+| Web acceptance architecture | duplicate probes removed; current replay smoke passes | Four source-grep verifier scripts and duplicated gameplay scenarios are deleted. The compact `web.playtest` gate protects only the real bridge ABI: exact main/C-stick/button/independent-trigger forwarding, Team Lab slot routing, and dynamic shield/hit-sphere packing. A fresh Emscripten build and real headless Chrome run pass the 42,559-byte ABI-5 replay with final SHA-256 `5a7db4a5e899b1af31909f7997dcb1a08226aec79f4f09fab7422fe9602f246f`. Collision-toggle, result/rematch, and replay-navigation/fail-closed import remain honestly named owner-interaction gates instead of being overclaimed from a static DOM dump. |
 | Slippi replay differential | 2,093 downloaded Falcon replays swept twice; continuous watcher active | Two hash-pinned MIT ranked archives at dataset revision `11142d4b86d423716fdd2e9ca565de9bafc9d37e` contribute 782 + 1,311 unique `.slp` files (7.08 GB extracted). The combined manifest hashes to `0e7b2b0805de1b09999b1f3104fb483cb2cbfbf2083864bb2d0d43cda3b6cd62`. The first full run found 887 anchors, executed 740 prefixes / 13,441 semantic frames, recorded 210 passes, 396 unsupported source-modifier boundaries, and 134 deterministic diagnostic candidates in 1,265.375 seconds. A pinned-UCF 1.0-cardinal contradiction filter removed false candidates from public generic-`UCF` files. Source audit then fixed Jump entry to consume the prior processed X before current-input refresh; the second complete run executed the same 740 prefixes across 15,511 frames, raised passes to 254, and reduced candidates to 58 in 1,102.245 seconds. Its ignored report hashes to `8792b8f0685912030a72baf0482433836df603971fb183d4103465ca8e46c1ad`. The remaining largest cluster is 16 early reversals from Turn-origin Dash; its source fix and live 12-row theorem are implemented, but a third full-corpus rerun remains. Public metadata still does not prove the exact disc/UCF revision, so none of these corpus observations are equivalence claims. Twenty focused Python tests plus Windows/WSL movement and stored-domain tests pass. |
 | Character-importer skill | active | The skill records reusable HSD/PlCo import, damage-channel, callback-order, ground-projection, save/load, action-release, physical surface-route, lifecycle, semantic-digest, `StageInfo`/JObj stage-import, per-surface collision routing, previous/current animated-ECB identity, bounded one-way-platform crossing qualification, source-pose matrix-branch guidance, moving-target recurrence, compact source-replay descriptors for wide SRT transitions, target-skeleton switch versus stable-update blend semantics, `Ft_MF_SkipAnim` manual/frozen guard-pose clocks, clean native Wait entry, blend-completion boundaries, HSD-RNG-owned idle variants, action-owned displayed-frame/HSD-frame offsets, callback-phase delegation, natural controller-driven endpoint fixtures, symmetric two-fighter collision-history resets, opponent-owned semantic input edges, and independent live qualification of HSD hurt poses versus runtime-derived ECBs. |
 
@@ -188,7 +188,7 @@ including both Ottotto phases. Numeric response remains qualified separately.
   target, GuardSetOff immediately runs Guard IASA, AttackLw3 targets SquatWait,
   a terminal jab targets Wait, and AttackAir immediately accepts Fall's
   neutral special. Collision/stun cleanup is asserted. Strict Windows MSVC
-  and WSL GCC `m4_movement_test` both pass.
+  and WSL GCC `movement_test` both pass.
 - [x] Causally repin the deterministic replay rather than accepting hash drift.
   Checkpoints through 62 remain identical to the pre-projection build. On
   zero-based input tick 62, P1 is at terminal Forward-Aerial Landing frame 18
@@ -214,7 +214,7 @@ including both Ottotto phases. Numeric response remains qualified separately.
   path and can reach EscapeN from Guard on the next update.
 - [x] Cover the observable split directly: Wait plus fresh shield/down enters
   SpotDodge, while identical input from CrouchStart and Walk enters Shield.
-  Strict Windows MSVC and WSL GCC `sim.m4_movement` both pass.
+  Strict Windows MSVC and WSL GCC `sim.movement` both pass.
 
 ## Completed and source-verified: DamageFall attack callback envelope
 
@@ -230,7 +230,7 @@ including both Ottotto phases. Numeric response remains qualified separately.
 - [x] Cover A-alone and C-stick-alone rejection plus a strict UCF raw-delta
   wiggle combined with A. The first two remain DamageFall/tumbling; the last
   enters ordinary Fall and clears tumble without entering an aerial attack.
-  Strict Windows MSVC and WSL GCC `sim.m4_movement` both pass.
+  Strict Windows MSVC and WSL GCC `sim.movement` both pass.
 
 ## Completed and live-qualified: early basic-Turn interrupt facing
 
@@ -665,7 +665,7 @@ including both Ottotto phases. Numeric response remains qualified separately.
   entries, middle/terminal frames, and every return/restart blend update.
 - [x] Add `tools/verify_ssbm_falcon_wait_lifecycle.sh` for fresh capture,
   source/DAT/RNG verification, dynamic hurt/ECB qualification, generated-data
-  checks, and a focused `sim.m4_ssbm_falcon_wait_idle_lifecycle` native gate.
+  checks, and a focused `sim.ssbm_falcon_wait_idle_lifecycle` native gate.
 
 ## Completed and verified: 20 ordinary-action collision ECB routes
 
@@ -990,13 +990,13 @@ Remaining work is evidence/model work rather than a known code-only fix:
   item-kind behavior, aerial item/tether callbacks, and tournament entry/rule
   choreography before claiming those wider SSBM domains.
 - [x] Remove the duplicated simulation scenarios from production browser
-  startup. `m4_playtest.c` is reduced from roughly 14,000 to 1,100 lines and
-  `pf_web_m4_playtest_install` now receives four real configuration values
+  startup. `playtest.c` is reduced from roughly 14,000 to 1,100 lines and
+  `pf_web_playtest_install` now receives four real configuration values
   instead of four values plus 58 probe statuses. Native simulation suites own
   simulation fidelity; the web gate retains adapter ABI, controller polling,
   mapping, UI, Wasm-load, and real browser interaction checks.
 - [x] Remove the remaining host-compiled gameplay duplication from
-  `tests/web/test_m4_playtest.c`. The adapter test is reduced from 1,337 to 397
+  `tests/web/test_playtest.c`. The adapter test is reduced from 1,337 to 397
   lines and now checks only startup/view packing, exported input endpoints,
   independent trigger edges, hit-geometry presentation, duel/team setup, and
   four-player routing. Falcon move lifecycles, tactics, items, and combat-event
@@ -1209,7 +1209,7 @@ Current DownBound prior-art/source sweep:
   response samples with strict ECB contact comparison. The accelerated pack's
   warm capture took 3.032 seconds and the complete run took 6.065 seconds.
 - The pinned ISO/DAT/JSON toolchain regenerates
-  `m4_falcon_ntsc102_frame_data.inc` byte-identically at
+  `falcon_ntsc102_frame_data.inc` byte-identically at
   `d6e2700a293450bf8f8e5d075881e6284cf09bb56a41e68590a36d779f72004e`;
   its expanded complete-source digest is
   `7b34f2eb4e8edf0c491ea410c27b9790f2127d90a560865c56ebc68bea98c170`.
@@ -1842,7 +1842,7 @@ Execution results:
   routes for every primitive; do not add dedicated tests for emergent
   techniques.
 - [ ] Close every incomplete or partial row in
-  `docs/product/m4_ssbm_fidelity_audit.md`.
+  `docs/product/ssbm_fidelity_audit.md`.
 
 ### Test infrastructure
 
@@ -2081,7 +2081,7 @@ other stage/pushbox topologies.
   `6db927d319942e07d90ba6dd30aad39ad40bb42ab3cc09d498ea2587bfe233bb`;
   use the exact table to remove the approximate crossing delay on source
   frame 32 and enter `Landing` on observed route frame 95.
-- [x] Run the identical inputs through `pf_m4_reference_stage_content` instead
+- [x] Run the identical inputs through `reference_stage_content` instead
   of an authored vertical mimic and compare the selected imported support on
   every grounded source row. The left-platform phase selects source line 2
   (support 3), and the final Pass landing selects main-floor line 1 (support
@@ -2110,7 +2110,7 @@ other stage/pushbox topologies.
 
 ### Validated: reusable native-trace Raptor Boost oracle
 
-- [x] Reuse `pf_m4_movement_trace` directly through the generic
+- [x] Reuse `movement_trace` directly through the generic
   `native-csv-trace-v1` stored schema instead of cloning a Falcon-specific C
   adapter. Manifest input phases expand offline and compress to deterministic
   runs; the verifier parses only declared integer fields.

@@ -58,15 +58,15 @@
   ],
   "selection": {
     "paths": [
-      "generated/data/m4_falcon_ntsc102_frame_data.inc",
-      "generated/data/m4_ssbm_falcon_battlefield_bounce_recontact_oracle.inc",
-      "generated/data/m4_ssbm_ntsc102_battlefield_collision.inc",
+      "generated/data/falcon_ntsc102_frame_data.inc",
+      "generated/data/ssbm_falcon_battlefield_bounce_recontact_oracle.inc",
+      "generated/data/ssbm_ntsc102_battlefield_collision.inc",
       "src/sim/sim_falcon_frame_data.c",
       "src/sim/sim_falcon_frame_data.h",
       "src/sim/sim_movement.c",
       "tests/sim/ssbm_stored_oracle.c",
       "tests/sim/ssbm_stored_oracle.h",
-      "tests/sim/test_m4_combat.c",
+      "tests/sim/test_combat.c",
       "tools/capture_ssbm_movement.py",
       "tools/data/ssbm_falcon_bounce_ecb.json",
       "tools/extract_ssbm_ecb_pose_tracks.py",
@@ -136,15 +136,15 @@
       }
     ],
     "c": {
-      "symbol_prefix": "pf_m4_ssbm_falcon_battlefield_bounce_recontact",
+      "symbol_prefix": "ssbm_falcon_battlefield_bounce_recontact",
       "macro_prefix": "PF_M4_SSBM_FALCON_BATTLEFIELD_BOUNCE_RECONTACT"
     },
     "generator": {
       "script": "tools/generate_ssbm_stored_trace_oracle.py",
-      "output": "generated/data/m4_ssbm_falcon_battlefield_bounce_recontact_oracle.inc"
+      "output": "generated/data/ssbm_falcon_battlefield_bounce_recontact_oracle.inc"
     },
     "runner": {
-      "executable": "m4_combat_test",
+      "executable": "combat_test",
       "arguments": [
         "--ssbm-oracle",
         "falcon-common-battlefield-bounce-recontact"

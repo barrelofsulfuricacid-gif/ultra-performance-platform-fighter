@@ -613,8 +613,8 @@
   ],
   "selection": {
     "paths": [
-      "generated/data/m4_ssbm_ntsc102_common_data.inc",
-      "generated/data/m4_ssbm_falcon_prone_response_oracle.inc",
+      "generated/data/ssbm_ntsc102_common_data.inc",
+      "generated/data/ssbm_falcon_prone_response_oracle.inc",
       "include/pf/m4.h",
       "src/sim/sim_content.c",
       "src/sim/sim_falcon_frame_data.c",
@@ -623,7 +623,7 @@
       "src/sim/sim_snapshot.c",
       "tests/sim/ssbm_stored_oracle.c",
       "tests/sim/ssbm_stored_oracle.h",
-      "tests/sim/test_m4_combat.c",
+      "tests/sim/test_combat.c",
       "tools/capture_ssbm_checkpoint_shards.py",
       "tools/capture_ssbm_movement.py",
       "tools/data/ssbm_falcon_down_bound_ecb.json",
@@ -846,15 +846,15 @@
       }
     ],
     "c": {
-      "symbol_prefix": "pf_m4_ssbm_falcon_prone_response",
+      "symbol_prefix": "ssbm_falcon_prone_response",
       "macro_prefix": "PF_M4_SSBM_FALCON_PRONE_RESPONSE"
     },
     "generator": {
       "script": "tools/generate_ssbm_stored_trace_oracle.py",
-      "output": "generated/data/m4_ssbm_falcon_prone_response_oracle.inc"
+      "output": "generated/data/ssbm_falcon_prone_response_oracle.inc"
     },
     "runner": {
-      "executable": "m4_combat_test",
+      "executable": "combat_test",
       "arguments": ["--ssbm-oracle", "falcon-common-prone-response"]
     }
   }

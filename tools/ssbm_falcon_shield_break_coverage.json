@@ -40,16 +40,16 @@
   },
   "selection": {
     "paths": [
-      "generated/data/m4_falcon_ntsc102_frame_data.inc",
-      "generated/data/m4_ssbm_falcon_ground_loop_hsd.inc",
-      "generated/data/m4_ssbm_falcon_shield_break_oracle.json",
+      "generated/data/falcon_ntsc102_frame_data.inc",
+      "generated/data/ssbm_falcon_ground_loop_hsd.inc",
+      "generated/data/ssbm_falcon_shield_break_oracle.json",
       "src/sim/sim_combat.c",
       "src/sim/sim_falcon_frame_data.c",
       "src/sim/sim_falcon_frame_data.h",
       "src/sim/sim_hsd_pose.h",
       "src/sim/sim_movement.c",
-      "src/tools/m4_movement_trace.c",
-      "tests/sim/test_m4_combat.c",
+      "src/tools/movement_trace.c",
+      "tests/sim/test_combat.c",
       "tools/capture_ssbm_movement.py",
       "tools/compare_ssbm_movement.py",
       "tools/data/ssbm_falcon_shield_break_ecb.json",
@@ -94,10 +94,10 @@
     ],
     "generator": {
       "script": "tools/generate_ssbm_stored_trace_oracle.py",
-      "output": "generated/data/m4_ssbm_falcon_shield_break_oracle.json"
+      "output": "generated/data/ssbm_falcon_shield_break_oracle.json"
     },
     "runner": {
-      "executable": "pf_m4_movement_trace",
+      "executable": "movement_trace",
       "arguments": []
     }
   }

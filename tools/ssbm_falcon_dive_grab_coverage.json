@@ -22,12 +22,12 @@
   },
   "selection": {
     "paths": [
-      "generated/data/m4_ssbm_falcon_dive_grab_oracle.inc",
-      "generated/data/m4_ssbm_falcon_airborne_hurt.inc",
+      "generated/data/ssbm_falcon_dive_grab_oracle.inc",
+      "generated/data/ssbm_falcon_airborne_hurt.inc",
       "src/sim/sim_combat.c",
       "src/sim/sim_falcon_frame_data.c",
       "src/sim/sim_falcon_frame_data.h",
-      "tests/sim/test_m4_combat.c",
+      "tests/sim/test_combat.c",
       "tools/data/ssbm_falcon_airborne_hurt.json",
       "tools/extract_ssbm_hurt_pose_tracks.py",
       "tools/generate_ssbm_hurt_pose_include.py",
@@ -65,7 +65,7 @@
     "expected_pose_count": 186,
     "expected_capsules_per_pose": 11,
     "c": {
-      "symbol_prefix": "pf_m4_ssbm_falcon_dive_grab",
+      "symbol_prefix": "ssbm_falcon_dive_grab",
       "macro_prefix": "PF_M4_SSBM_FALCON_DIVE_GRAB",
       "track_count_expression": "6",
       "actions": {
@@ -91,10 +91,10 @@
     },
     "generator": {
       "script": "tools/generate_ssbm_stored_oracle.py",
-      "output": "generated/data/m4_ssbm_falcon_dive_grab_oracle.inc"
+      "output": "generated/data/ssbm_falcon_dive_grab_oracle.inc"
     },
     "runner": {
-      "executable": "m4_combat_test",
+      "executable": "combat_test",
       "arguments": [
         "--ssbm-oracle",
         "falcon-dive-grab-geometry"

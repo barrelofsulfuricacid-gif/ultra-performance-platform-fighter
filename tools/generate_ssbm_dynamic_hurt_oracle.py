@@ -155,7 +155,7 @@ def main() -> int:
         f"#define {macro_prefix}_CASE_COUNT UINT8_C({len(rendered_cases)})",
         f"#define {macro_prefix}_CAPSULE_COUNT UINT8_C({capsule_count})",
         "",
-        "static const pf_m4_hsd_hurt_oracle_case",
+        "static const hsd_hurt_oracle_case",
         f"{symbol_prefix}_oracle_cases[] = {{",
     ]
     for case, frame_q16, capsules, ecb in rendered_cases:

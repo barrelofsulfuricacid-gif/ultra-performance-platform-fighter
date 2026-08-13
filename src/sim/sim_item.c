@@ -3,7 +3,7 @@
 #include <limits.h>
 #include <stdint.h>
 
-static int32_t pf_m4_item_clamp_speed(int64_t value)
+static int32_t item_clamp_speed(int64_t value)
 {
     if (value > (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16)
     {
@@ -16,7 +16,7 @@ static int32_t pf_m4_item_clamp_speed(int64_t value)
     return (int32_t)value;
 }
 
-static int pf_m4_item_checked_add(
+static int item_checked_add(
     int32_t left,
     int32_t right,
     int32_t *out_value)
@@ -32,8 +32,8 @@ static int pf_m4_item_checked_add(
     return 1;
 }
 
-static int pf_m4_item_player_in_pickup_range(
-    const pf_m4_item_data *item,
+static int item_player_in_pickup_range(
+    const item_data *item,
     int32_t player_x_q16,
     int32_t player_y_q16,
     int32_t item_x_q16,
@@ -50,7 +50,7 @@ static int pf_m4_item_player_in_pickup_range(
            delta_y <= (int64_t)item->pickup_half_height_q16;
 }
 
-static int pf_m4_item_action_can_throw(uint8_t action_state)
+static int item_action_can_throw(uint8_t action_state)
 {
     return action_state == (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
            action_state == (uint8_t)PF_M4_ACTION_WALK ||
@@ -66,8 +66,8 @@ static int pf_m4_item_action_can_throw(uint8_t action_state)
            action_state == (uint8_t)PF_M4_ACTION_ROLL_BACKWARD;
 }
 
-static pf_m4_item_throw_direction pf_m4_item_direction_for_input(
-    const pf_m4_fighter_data *fighter,
+static item_throw_direction item_direction_for_input(
+    const fighter_data *fighter,
     const pf_input_frame *input,
     int8_t facing)
 {
@@ -92,9 +92,9 @@ static pf_m4_item_throw_direction pf_m4_item_direction_for_input(
     return PF_M4_ITEM_THROW_FORWARD;
 }
 
-static const pf_m4_item_velocity *pf_m4_item_velocity_for_direction(
-    const pf_m4_item_data *item,
-    pf_m4_item_throw_direction direction)
+static const item_velocity *item_velocity_for_direction(
+    const item_data *item,
+    item_throw_direction direction)
 {
     if (direction == PF_M4_ITEM_THROW_BACK)
     {
@@ -111,8 +111,8 @@ static const pf_m4_item_velocity *pf_m4_item_velocity_for_direction(
     return &item->forward_throw;
 }
 
-static void pf_m4_item_attach_to_player(
-    const pf_m4_item_data *item,
+static void item_attach_to_player(
+    const item_data *item,
     pf_sim_scratch *scratch,
     uint32_t player_index)
 {
@@ -125,8 +125,8 @@ static void pf_m4_item_attach_to_player(
         item->held_offset_y_q16;
 }
 
-static void pf_m4_item_enter_respawn_wait(
-    const pf_m4_item_data *item,
+static void item_enter_respawn_wait(
+    const item_data *item,
     pf_sim_scratch *scratch)
 {
     scratch->item_state = (uint8_t)PF_M4_ITEM_STATE_RESPAWN_WAIT;
@@ -145,7 +145,7 @@ static void pf_m4_item_enter_respawn_wait(
         (uint8_t)PF_M4_ITEM_THROW_NONE;
 }
 
-void pf_m4_reset_item(pf_sim *sim)
+void reset_item(pf_sim *sim)
 {
     pf_world_state *world;
 
@@ -167,7 +167,7 @@ void pf_m4_reset_item(pf_sim *sim)
     world->item_stale_registered = UINT8_C(0);
 }
 
-void pf_m4_begin_item_tick(
+void begin_item_tick(
     const pf_world_state *world,
     pf_sim_scratch *scratch)
 {
@@ -187,8 +187,8 @@ void pf_m4_begin_item_tick(
     scratch->item_throw_direction = world->item_throw_direction;
 }
 
-pf_m4_item_input_intent pf_m4_prepare_item_input(
-    const pf_m4_content *content,
+item_input_intent prepare_item_input(
+    const struct content *content,
     const pf_world_state *world,
     const pf_sim_scratch *scratch,
     const pf_input_frame *input,
@@ -212,7 +212,7 @@ pf_m4_item_input_intent pf_m4_prepare_item_input(
         (uint8_t)(player_index + UINT32_C(1));
     const uint8_t action_state =
         world->action_state[player_index];
-    pf_m4_item_input_intent intent = PF_M4_ITEM_INPUT_NONE;
+    item_input_intent intent = PF_M4_ITEM_INPUT_NONE;
 
     if (effective_input == NULL)
     {
@@ -228,7 +228,7 @@ pf_m4_item_input_intent pf_m4_prepare_item_input(
     if (scratch->item_state == (uint8_t)PF_M4_ITEM_STATE_HELD &&
         scratch->item_holder_slot == player_slot &&
         (light_pressed != 0 || strong_pressed != 0) &&
-        pf_m4_item_action_can_throw(action_state))
+        item_action_can_throw(action_state))
     {
         if (action_state == (uint8_t)PF_M4_ACTION_ROLL_FORWARD ||
             action_state == (uint8_t)PF_M4_ACTION_ROLL_BACKWARD)
@@ -267,7 +267,7 @@ pf_m4_item_input_intent pf_m4_prepare_item_input(
              action_state !=
                  (uint8_t)PF_M4_ACTION_REVIVAL_PLATFORM &&
              light_pressed != 0 && shield_held != 0 &&
-             pf_m4_item_player_in_pickup_range(
+             item_player_in_pickup_range(
                  &content->item,
                  world->position_x_q16[player_index],
                  world->position_y_q16[player_index],
@@ -291,15 +291,15 @@ pf_m4_item_input_intent pf_m4_prepare_item_input(
     return intent;
 }
 
-pf_status pf_m4_apply_item_input(
-    const pf_m4_content *content,
+pf_status apply_item_input(
+    const struct content *content,
     const pf_world_state *world,
     pf_sim_scratch *scratch,
     const pf_input_frame *input,
     uint32_t player_index,
-    pf_m4_item_input_intent intent)
+    item_input_intent intent)
 {
-    const pf_m4_item_data *item = &content->item;
+    const item_data *item = &content->item;
     const uint8_t player_slot =
         (uint8_t)(player_index + UINT32_C(1));
 
@@ -315,7 +315,7 @@ pf_status pf_m4_apply_item_input(
             scratch->grounded[player_index] == UINT8_C(0) ||
             scratch->action_state[player_index] ==
                 (uint8_t)PF_M4_ACTION_REVIVAL_PLATFORM ||
-            !pf_m4_item_player_in_pickup_range(
+            !item_player_in_pickup_range(
                 item,
                 scratch->position_x_q16[player_index],
                 scratch->position_y_q16[player_index],
@@ -334,7 +334,7 @@ pf_status pf_m4_apply_item_input(
         scratch->item_velocity_x_q16 = INT32_C(0);
         scratch->item_velocity_y_q16 = INT32_C(0);
         scratch->item_lifetime_ticks = item->lifetime_ticks;
-        pf_m4_item_attach_to_player(item, scratch, player_index);
+        item_attach_to_player(item, scratch, player_index);
         if (pf_sim_push_event(
                 scratch,
                 world->tick,
@@ -358,7 +358,7 @@ pf_status pf_m4_apply_item_input(
     {
         return PF_STATUS_DETERMINISTIC_FAULT;
     }
-    pf_m4_item_attach_to_player(item, scratch, player_index);
+    item_attach_to_player(item, scratch, player_index);
     scratch->item_holder_slot = UINT8_C(0);
     scratch->item_source_slot = player_slot;
     scratch->item_hit_mask = UINT8_C(0);
@@ -403,13 +403,13 @@ pf_status pf_m4_apply_item_input(
     }
 
     {
-        const pf_m4_item_throw_direction direction =
-            pf_m4_item_direction_for_input(
+        const item_throw_direction direction =
+            item_direction_for_input(
                 &content->fighter,
                 input,
                 world->facing[player_index]);
-        const pf_m4_item_velocity *throw_velocity =
-            pf_m4_item_velocity_for_direction(item, direction);
+        const item_velocity *throw_velocity =
+            item_velocity_for_direction(item, direction);
         const int64_t momentum_x =
             ((int64_t)scratch->velocity_x_q16[player_index] *
              (int64_t)item->momentum_transfer_q16) /
@@ -421,11 +421,11 @@ pf_status pf_m4_apply_item_input(
 
         scratch->item_state = (uint8_t)PF_M4_ITEM_STATE_AIRBORNE;
         scratch->item_throw_direction = (uint8_t)direction;
-        scratch->item_velocity_x_q16 = pf_m4_item_clamp_speed(
+        scratch->item_velocity_x_q16 = item_clamp_speed(
             (int64_t)world->facing[player_index] *
                 (int64_t)throw_velocity->velocity_x_q16 +
             momentum_x);
-        scratch->item_velocity_y_q16 = pf_m4_item_clamp_speed(
+        scratch->item_velocity_y_q16 = item_clamp_speed(
             (int64_t)throw_velocity->velocity_y_q16 + momentum_y);
 
         if (scratch->grounded[player_index] != UINT8_C(0) ||
@@ -476,12 +476,12 @@ pf_status pf_m4_apply_item_input(
     return PF_STATUS_OK;
 }
 
-pf_status pf_m4_step_item(
-    const pf_m4_content *content,
+pf_status step_item(
+    const struct content *content,
     const pf_world_state *world,
     pf_sim_scratch *scratch)
 {
-    const pf_m4_item_data *item = &content->item;
+    const item_data *item = &content->item;
 
     if (item->enabled == UINT8_C(0))
     {
@@ -518,7 +518,7 @@ pf_status pf_m4_step_item(
         }
         else
         {
-            pf_m4_item_attach_to_player(item, scratch, holder_index);
+            item_attach_to_player(item, scratch, holder_index);
             scratch->item_velocity_x_q16 = INT32_C(0);
             scratch->item_velocity_y_q16 = INT32_C(0);
             return PF_STATUS_OK;
@@ -544,18 +544,18 @@ pf_status pf_m4_step_item(
         int32_t next_x;
         int32_t next_y;
 
-        scratch->item_velocity_y_q16 = pf_m4_item_clamp_speed(
+        scratch->item_velocity_y_q16 = item_clamp_speed(
             (int64_t)scratch->item_velocity_y_q16 +
             (int64_t)item->gravity_q16);
         if (scratch->item_velocity_y_q16 > item->fall_speed_q16)
         {
             scratch->item_velocity_y_q16 = item->fall_speed_q16;
         }
-        if (!pf_m4_item_checked_add(
+        if (!item_checked_add(
                 scratch->item_position_x_q16,
                 scratch->item_velocity_x_q16,
                 &next_x) ||
-            !pf_m4_item_checked_add(
+            !item_checked_add(
                 scratch->item_position_y_q16,
                 scratch->item_velocity_y_q16,
                 &next_y))
@@ -630,7 +630,7 @@ pf_status pf_m4_step_item(
         scratch->item_position_y_q16 < content->stage.blast_top_q16 ||
         scratch->item_position_y_q16 > content->stage.blast_bottom_q16)
     {
-        pf_m4_item_enter_respawn_wait(item, scratch);
+        item_enter_respawn_wait(item, scratch);
     }
     return PF_STATUS_OK;
 }

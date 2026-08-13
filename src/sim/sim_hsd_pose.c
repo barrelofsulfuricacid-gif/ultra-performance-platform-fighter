@@ -10,14 +10,14 @@
 #define PF_HSD_QUARTER_SEGMENTS UINT16_C(64)
 #define PF_HSD_QUARTER_SEGMENT_PHASE UINT16_C(256)
 
-typedef struct pf_m4_hsd_matrix
+typedef struct hsd_matrix
 {
     int32_t value[3][4];
-} pf_m4_hsd_matrix;
+} hsd_matrix;
 
 /* Quarter-wave samples at pi/128. Linear interpolation keeps the only
  * approximation inside the simulation's documented Q16.16 boundary. */
-static const int32_t pf_m4_hsd_sine_quarter_q16[65] = {
+static const int32_t hsd_sine_quarter_q16[65] = {
     INT32_C(0), INT32_C(1608), INT32_C(3216), INT32_C(4821),
     INT32_C(6424), INT32_C(8022), INT32_C(9616), INT32_C(11204),
     INT32_C(12785), INT32_C(14359), INT32_C(15924), INT32_C(17479),
@@ -36,7 +36,7 @@ static const int32_t pf_m4_hsd_sine_quarter_q16[65] = {
     INT32_C(65220), INT32_C(65358), INT32_C(65457), INT32_C(65516),
     INT32_C(65536)};
 
-static int64_t pf_m4_hsd_round_divide(int64_t numerator, int64_t denominator)
+static int64_t hsd_round_divide(int64_t numerator, int64_t denominator)
 {
     if (denominator <= INT64_C(0))
     {
@@ -47,14 +47,14 @@ static int64_t pf_m4_hsd_round_divide(int64_t numerator, int64_t denominator)
                : (numerator + denominator / INT64_C(2)) / denominator;
 }
 
-static int32_t pf_m4_hsd_q16_multiply(int32_t left, int32_t right)
+static int32_t hsd_q16_multiply(int32_t left, int32_t right)
 {
-    return (int32_t)pf_m4_hsd_round_divide(
+    return (int32_t)hsd_round_divide(
         (int64_t)left * (int64_t)right,
         INT64_C(65536));
 }
 
-static int pf_m4_hsd_q16_divide(
+static int hsd_q16_divide(
     int32_t numerator,
     int32_t denominator,
     int32_t *out_value)
@@ -65,7 +65,7 @@ static int pf_m4_hsd_q16_divide(
     {
         return 0;
     }
-    value = pf_m4_hsd_round_divide(
+    value = hsd_round_divide(
         (int64_t)numerator * INT64_C(65536),
         denominator < INT32_C(0)
             ? -(int64_t)denominator
@@ -82,7 +82,7 @@ static int pf_m4_hsd_q16_divide(
     return 1;
 }
 
-static int32_t pf_m4_hsd_sine_q16(int32_t turns_q16)
+static int32_t hsd_sine_q16(int32_t turns_q16)
 {
     const uint16_t phase = (uint16_t)turns_q16;
     const uint16_t quadrant = (uint16_t)(phase >> 14U);
@@ -99,26 +99,26 @@ static int32_t pf_m4_hsd_sine_q16(int32_t turns_q16)
 
     if (index >= PF_HSD_QUARTER_SEGMENTS)
     {
-        value = pf_m4_hsd_sine_quarter_q16[PF_HSD_QUARTER_SEGMENTS];
+        value = hsd_sine_quarter_q16[PF_HSD_QUARTER_SEGMENTS];
     }
     else
     {
-        value = (int32_t)pf_m4_hsd_round_divide(
-            (int64_t)pf_m4_hsd_sine_quarter_q16[index] *
+        value = (int32_t)hsd_round_divide(
+            (int64_t)hsd_sine_quarter_q16[index] *
                     (PF_HSD_QUARTER_SEGMENT_PHASE - fraction) +
-                (int64_t)pf_m4_hsd_sine_quarter_q16[index + UINT16_C(1)] *
+                (int64_t)hsd_sine_quarter_q16[index + UINT16_C(1)] *
                     fraction,
             PF_HSD_QUARTER_SEGMENT_PHASE);
     }
     return quadrant >= UINT16_C(2) ? -value : value;
 }
 
-static int32_t pf_m4_hsd_cosine_q16(int32_t turns_q16)
+static int32_t hsd_cosine_q16(int32_t turns_q16)
 {
-    return pf_m4_hsd_sine_q16(turns_q16 + INT32_C(16384));
+    return hsd_sine_q16(turns_q16 + INT32_C(16384));
 }
 
-static int pf_m4_hsd_normalize_quaternion_q16(int32_t quaternion_q16[4])
+static int hsd_normalize_quaternion_q16(int32_t quaternion_q16[4])
 {
     uint64_t magnitude_squared = UINT64_C(0);
     uint32_t magnitude_q16;
@@ -129,7 +129,7 @@ static int pf_m4_hsd_normalize_quaternion_q16(int32_t quaternion_q16[4])
         const int64_t value = quaternion_q16[component];
         magnitude_squared += (uint64_t)(value * value);
     }
-    magnitude_q16 = pf_m4_u64_sqrt(magnitude_squared);
+    magnitude_q16 = u64_sqrt(magnitude_squared);
     if (magnitude_q16 == UINT32_C(0))
     {
         return 0;
@@ -138,46 +138,46 @@ static int pf_m4_hsd_normalize_quaternion_q16(int32_t quaternion_q16[4])
     {
         const int64_t scaled =
             (int64_t)quaternion_q16[component] * INT64_C(65536);
-        quaternion_q16[component] = (int32_t)pf_m4_hsd_round_divide(
+        quaternion_q16[component] = (int32_t)hsd_round_divide(
             scaled,
             (int64_t)magnitude_q16);
     }
     return 1;
 }
 
-static int pf_m4_hsd_euler_to_quaternion_q16(
+static int hsd_euler_to_quaternion_q16(
     const int32_t rotation_turns_q16[3],
     int32_t out_quaternion_q16[4])
 {
     const int32_t half_x = rotation_turns_q16[0] / INT32_C(2);
     const int32_t half_y = rotation_turns_q16[1] / INT32_C(2);
     const int32_t half_z = rotation_turns_q16[2] / INT32_C(2);
-    const int32_t sx = pf_m4_hsd_sine_q16(half_x);
-    const int32_t sy = pf_m4_hsd_sine_q16(half_y);
-    const int32_t sz = pf_m4_hsd_sine_q16(half_z);
-    const int32_t cx = pf_m4_hsd_cosine_q16(half_x);
-    const int32_t cy = pf_m4_hsd_cosine_q16(half_y);
-    const int32_t cz = pf_m4_hsd_cosine_q16(half_z);
-    const int32_t ss = pf_m4_hsd_q16_multiply(sy, sz);
-    const int32_t cc = pf_m4_hsd_q16_multiply(cy, cz);
+    const int32_t sx = hsd_sine_q16(half_x);
+    const int32_t sy = hsd_sine_q16(half_y);
+    const int32_t sz = hsd_sine_q16(half_z);
+    const int32_t cx = hsd_cosine_q16(half_x);
+    const int32_t cy = hsd_cosine_q16(half_y);
+    const int32_t cz = hsd_cosine_q16(half_z);
+    const int32_t ss = hsd_q16_multiply(sy, sz);
+    const int32_t cc = hsd_q16_multiply(cy, cz);
 
     out_quaternion_q16[0] =
-        pf_m4_hsd_q16_multiply(sx, cc) -
-        pf_m4_hsd_q16_multiply(cx, ss);
+        hsd_q16_multiply(sx, cc) -
+        hsd_q16_multiply(cx, ss);
     out_quaternion_q16[1] =
-        pf_m4_hsd_q16_multiply(cz, pf_m4_hsd_q16_multiply(cx, sy)) +
-        pf_m4_hsd_q16_multiply(sz, pf_m4_hsd_q16_multiply(sx, cy));
+        hsd_q16_multiply(cz, hsd_q16_multiply(cx, sy)) +
+        hsd_q16_multiply(sz, hsd_q16_multiply(sx, cy));
     out_quaternion_q16[2] =
-        pf_m4_hsd_q16_multiply(sz, pf_m4_hsd_q16_multiply(cx, cy)) -
-        pf_m4_hsd_q16_multiply(cz, pf_m4_hsd_q16_multiply(sx, sy));
+        hsd_q16_multiply(sz, hsd_q16_multiply(cx, cy)) -
+        hsd_q16_multiply(cz, hsd_q16_multiply(sx, sy));
     out_quaternion_q16[3] =
-        pf_m4_hsd_q16_multiply(cx, cc) +
-        pf_m4_hsd_q16_multiply(sx, ss);
-    return pf_m4_hsd_normalize_quaternion_q16(out_quaternion_q16);
+        hsd_q16_multiply(cx, cc) +
+        hsd_q16_multiply(sx, ss);
+    return hsd_normalize_quaternion_q16(out_quaternion_q16);
 }
 
-static int pf_m4_hsd_pose_quaternion_q16(
-    const pf_m4_hsd_local_pose *pose,
+static int hsd_pose_quaternion_q16(
+    const hsd_local_pose *pose,
     int32_t out_quaternion_q16[4])
 {
     if (pose->use_quaternion != UINT8_C(0))
@@ -186,14 +186,14 @@ static int pf_m4_hsd_pose_quaternion_q16(
             out_quaternion_q16,
             pose->rotation_q16,
             sizeof(int32_t) * 4U);
-        return pf_m4_hsd_normalize_quaternion_q16(out_quaternion_q16);
+        return hsd_normalize_quaternion_q16(out_quaternion_q16);
     }
-    return pf_m4_hsd_euler_to_quaternion_q16(
+    return hsd_euler_to_quaternion_q16(
         pose->rotation_q16,
         out_quaternion_q16);
 }
 
-static int pf_m4_hsd_slerp_q16(
+static int hsd_slerp_q16(
     const int32_t target_q16[4],
     const int32_t current_q16[4],
     int32_t current_weight_q16,
@@ -213,8 +213,8 @@ static int pf_m4_hsd_slerp_q16(
     }
     (void)memcpy(target, target_q16, sizeof(target));
     (void)memcpy(current, current_q16, sizeof(current));
-    if (!pf_m4_hsd_normalize_quaternion_q16(target) ||
-        !pf_m4_hsd_normalize_quaternion_q16(current))
+    if (!hsd_normalize_quaternion_q16(target) ||
+        !hsd_normalize_quaternion_q16(current))
     {
         return 0;
     }
@@ -222,7 +222,7 @@ static int pf_m4_hsd_slerp_q16(
     {
         dot_sum += (int64_t)target[component] * current[component];
     }
-    dot_q16 = (int32_t)pf_m4_hsd_round_divide(dot_sum, INT64_C(65536));
+    dot_q16 = (int32_t)hsd_round_divide(dot_sum, INT64_C(65536));
     if (dot_q16 < INT32_C(0))
     {
         dot_q16 = -dot_q16;
@@ -241,31 +241,31 @@ static int pf_m4_hsd_slerp_q16(
         for (component = UINT8_C(0); component < UINT8_C(4); ++component)
         {
             out_quaternion_q16[component] =
-                pf_m4_hsd_q16_multiply(target_weight_q16, target[component]) +
-                pf_m4_hsd_q16_multiply(current_weight_q16, current[component]);
+                hsd_q16_multiply(target_weight_q16, target[component]) +
+                hsd_q16_multiply(current_weight_q16, current[component]);
         }
-        return pf_m4_hsd_normalize_quaternion_q16(out_quaternion_q16);
+        return hsd_normalize_quaternion_q16(out_quaternion_q16);
     }
     {
         const int32_t dot_squared_q16 =
-            pf_m4_hsd_q16_multiply(dot_q16, dot_q16);
-        const int32_t sine_theta_q16 = (int32_t)pf_m4_u64_sqrt(
+            hsd_q16_multiply(dot_q16, dot_q16);
+        const int32_t sine_theta_q16 = (int32_t)u64_sqrt(
             (uint64_t)(PF_HSD_Q16_ONE - dot_squared_q16) << 16U);
         const uint16_t theta_turn =
-            pf_m4_fixed_atan2_turn(sine_theta_q16, dot_q16);
-        const int32_t target_sine_q16 = pf_m4_hsd_sine_q16(
-            pf_m4_hsd_q16_multiply(target_weight_q16, theta_turn));
-        const int32_t current_sine_q16 = pf_m4_hsd_sine_q16(
-            pf_m4_hsd_q16_multiply(current_weight_q16, theta_turn));
+            fixed_atan2_turn(sine_theta_q16, dot_q16);
+        const int32_t target_sine_q16 = hsd_sine_q16(
+            hsd_q16_multiply(target_weight_q16, theta_turn));
+        const int32_t current_sine_q16 = hsd_sine_q16(
+            hsd_q16_multiply(current_weight_q16, theta_turn));
         int32_t target_coefficient_q16;
         int32_t current_coefficient_q16;
 
         if (sine_theta_q16 <= INT32_C(0) ||
-            !pf_m4_hsd_q16_divide(
+            !hsd_q16_divide(
                 target_sine_q16,
                 sine_theta_q16,
                 &target_coefficient_q16) ||
-            !pf_m4_hsd_q16_divide(
+            !hsd_q16_divide(
                 current_sine_q16,
                 sine_theta_q16,
                 &current_coefficient_q16))
@@ -275,20 +275,20 @@ static int pf_m4_hsd_slerp_q16(
         for (component = UINT8_C(0); component < UINT8_C(4); ++component)
         {
             out_quaternion_q16[component] =
-                pf_m4_hsd_q16_multiply(
+                hsd_q16_multiply(
                     target_coefficient_q16,
                     target[component]) +
-                pf_m4_hsd_q16_multiply(
+                hsd_q16_multiply(
                     current_coefficient_q16,
                     current[component]);
         }
     }
-    return pf_m4_hsd_normalize_quaternion_q16(out_quaternion_q16);
+    return hsd_normalize_quaternion_q16(out_quaternion_q16);
 }
 
-static int32_t pf_m4_hsd_sample_track_q16(
-    const pf_m4_hsd_track *track,
-    const pf_m4_hsd_key *keys,
+static int32_t hsd_sample_track_q16(
+    const hsd_track *track,
+    const hsd_key *keys,
     int32_t frame_q16)
 {
     const int64_t requested_frame_q16 =
@@ -329,11 +329,11 @@ static int32_t pf_m4_hsd_sample_track_q16(
          key_index < track->key_count;
          ++key_index)
     {
-        const pf_m4_hsd_key *key = &keys[key_index];
+        const hsd_key *key = &keys[key_index];
 
         previous_interpolation = interpolation;
         interpolation = key->interpolation;
-        switch ((pf_m4_hsd_interpolation)interpolation)
+        switch ((hsd_interpolation)interpolation)
         {
             case PF_M4_HSD_INTERPOLATION_CONSTANT:
             case PF_M4_HSD_INTERPOLATION_LINEAR:
@@ -397,7 +397,7 @@ static int32_t pf_m4_hsd_sample_track_q16(
     }
     if (previous_interpolation == PF_M4_HSD_INTERPOLATION_LINEAR)
     {
-        return p0 + (int32_t)pf_m4_hsd_round_divide(
+        return p0 + (int32_t)hsd_round_divide(
                         (int64_t)(p1 - p0) * (int64_t)(frame_q16 - t0),
                         (int64_t)(t1 - t0));
     }
@@ -413,7 +413,7 @@ static int32_t pf_m4_hsd_sample_track_q16(
         int32_t duration_d1_q16;
         int64_t result;
 
-        if (!pf_m4_hsd_q16_divide(
+        if (!hsd_q16_divide(
                 frame_q16 - t0,
                 t1 - t0,
                 &normalized_q16))
@@ -421,9 +421,9 @@ static int32_t pf_m4_hsd_sample_track_q16(
             return p0;
         }
         normalized2_q16 =
-            pf_m4_hsd_q16_multiply(normalized_q16, normalized_q16);
+            hsd_q16_multiply(normalized_q16, normalized_q16);
         normalized3_q16 =
-            pf_m4_hsd_q16_multiply(normalized2_q16, normalized_q16);
+            hsd_q16_multiply(normalized2_q16, normalized_q16);
         h00_q16 = INT32_C(2) * normalized3_q16 -
                   INT32_C(3) * normalized2_q16 + PF_HSD_Q16_ONE;
         h10_q16 = normalized3_q16 - INT32_C(2) * normalized2_q16 +
@@ -431,12 +431,12 @@ static int32_t pf_m4_hsd_sample_track_q16(
         h01_q16 = -INT32_C(2) * normalized3_q16 +
                   INT32_C(3) * normalized2_q16;
         h11_q16 = normalized3_q16 - normalized2_q16;
-        duration_d0_q16 = pf_m4_hsd_q16_multiply(t1 - t0, d0);
-        duration_d1_q16 = pf_m4_hsd_q16_multiply(t1 - t0, d1);
-        result = (int64_t)pf_m4_hsd_q16_multiply(h00_q16, p0) +
-                 (int64_t)pf_m4_hsd_q16_multiply(h10_q16, duration_d0_q16) +
-                 (int64_t)pf_m4_hsd_q16_multiply(h01_q16, p1) +
-                 (int64_t)pf_m4_hsd_q16_multiply(h11_q16, duration_d1_q16);
+        duration_d0_q16 = hsd_q16_multiply(t1 - t0, d0);
+        duration_d1_q16 = hsd_q16_multiply(t1 - t0, d1);
+        result = (int64_t)hsd_q16_multiply(h00_q16, p0) +
+                 (int64_t)hsd_q16_multiply(h10_q16, duration_d0_q16) +
+                 (int64_t)hsd_q16_multiply(h01_q16, p1) +
+                 (int64_t)hsd_q16_multiply(h11_q16, duration_d1_q16);
         return result < (int64_t)INT32_MIN
                    ? INT32_MIN
                    : result > (int64_t)INT32_MAX
@@ -445,10 +445,10 @@ static int32_t pf_m4_hsd_sample_track_q16(
     }
 }
 
-static int pf_m4_hsd_make_local_matrix(
-    const pf_m4_hsd_local_pose *pose,
+static int hsd_make_local_matrix(
+    const hsd_local_pose *pose,
     const int32_t *parent_scale_q16,
-    pf_m4_hsd_matrix *out_matrix)
+    hsd_matrix *out_matrix)
 {
     int32_t basis_q16[3][3];
     int32_t scale_x2;
@@ -482,19 +482,19 @@ static int pf_m4_hsd_make_local_matrix(
         int32_t zz;
         int32_t zw;
 
-        if (!pf_m4_hsd_pose_quaternion_q16(pose, quaternion_q16))
+        if (!hsd_pose_quaternion_q16(pose, quaternion_q16))
         {
             return 0;
         }
-        xx = pf_m4_hsd_q16_multiply(quaternion_q16[0], quaternion_q16[0]);
-        xy = pf_m4_hsd_q16_multiply(quaternion_q16[0], quaternion_q16[1]);
-        xz = pf_m4_hsd_q16_multiply(quaternion_q16[0], quaternion_q16[2]);
-        xw = pf_m4_hsd_q16_multiply(quaternion_q16[0], quaternion_q16[3]);
-        yy = pf_m4_hsd_q16_multiply(quaternion_q16[1], quaternion_q16[1]);
-        yz = pf_m4_hsd_q16_multiply(quaternion_q16[1], quaternion_q16[2]);
-        yw = pf_m4_hsd_q16_multiply(quaternion_q16[1], quaternion_q16[3]);
-        zz = pf_m4_hsd_q16_multiply(quaternion_q16[2], quaternion_q16[2]);
-        zw = pf_m4_hsd_q16_multiply(quaternion_q16[2], quaternion_q16[3]);
+        xx = hsd_q16_multiply(quaternion_q16[0], quaternion_q16[0]);
+        xy = hsd_q16_multiply(quaternion_q16[0], quaternion_q16[1]);
+        xz = hsd_q16_multiply(quaternion_q16[0], quaternion_q16[2]);
+        xw = hsd_q16_multiply(quaternion_q16[0], quaternion_q16[3]);
+        yy = hsd_q16_multiply(quaternion_q16[1], quaternion_q16[1]);
+        yz = hsd_q16_multiply(quaternion_q16[1], quaternion_q16[2]);
+        yw = hsd_q16_multiply(quaternion_q16[1], quaternion_q16[3]);
+        zz = hsd_q16_multiply(quaternion_q16[2], quaternion_q16[2]);
+        zw = hsd_q16_multiply(quaternion_q16[2], quaternion_q16[3]);
         basis_q16[0][0] = PF_HSD_Q16_ONE - INT32_C(2) * (yy + zz);
         basis_q16[0][1] = INT32_C(2) * (xy - zw);
         basis_q16[0][2] = INT32_C(2) * (xz + yw);
@@ -507,46 +507,46 @@ static int pf_m4_hsd_make_local_matrix(
     }
     else
     {
-        const int32_t sin_x = pf_m4_hsd_sine_q16(pose->rotation_q16[0]);
-        const int32_t cos_x = pf_m4_hsd_cosine_q16(pose->rotation_q16[0]);
-        const int32_t sin_y = pf_m4_hsd_sine_q16(pose->rotation_q16[1]);
-        const int32_t cos_y = pf_m4_hsd_cosine_q16(pose->rotation_q16[1]);
-        const int32_t sin_z = pf_m4_hsd_sine_q16(pose->rotation_q16[2]);
-        const int32_t cos_z = pf_m4_hsd_cosine_q16(pose->rotation_q16[2]);
-        const int32_t xy = pf_m4_hsd_q16_multiply(sin_x, sin_y);
-        const int32_t cy = pf_m4_hsd_q16_multiply(cos_x, sin_y);
+        const int32_t sin_x = hsd_sine_q16(pose->rotation_q16[0]);
+        const int32_t cos_x = hsd_cosine_q16(pose->rotation_q16[0]);
+        const int32_t sin_y = hsd_sine_q16(pose->rotation_q16[1]);
+        const int32_t cos_y = hsd_cosine_q16(pose->rotation_q16[1]);
+        const int32_t sin_z = hsd_sine_q16(pose->rotation_q16[2]);
+        const int32_t cos_z = hsd_cosine_q16(pose->rotation_q16[2]);
+        const int32_t xy = hsd_q16_multiply(sin_x, sin_y);
+        const int32_t cy = hsd_q16_multiply(cos_x, sin_y);
 
-        basis_q16[0][0] = pf_m4_hsd_q16_multiply(cos_z, cos_y);
-        basis_q16[1][0] = pf_m4_hsd_q16_multiply(sin_z, cos_y);
+        basis_q16[0][0] = hsd_q16_multiply(cos_z, cos_y);
+        basis_q16[1][0] = hsd_q16_multiply(sin_z, cos_y);
         basis_q16[2][0] = -sin_y;
         basis_q16[0][1] =
-            pf_m4_hsd_q16_multiply(cos_z, xy) -
-            pf_m4_hsd_q16_multiply(cos_x, sin_z);
+            hsd_q16_multiply(cos_z, xy) -
+            hsd_q16_multiply(cos_x, sin_z);
         basis_q16[1][1] =
-            pf_m4_hsd_q16_multiply(sin_z, xy) +
-            pf_m4_hsd_q16_multiply(cos_x, cos_z);
-        basis_q16[2][1] = pf_m4_hsd_q16_multiply(cos_y, sin_x);
+            hsd_q16_multiply(sin_z, xy) +
+            hsd_q16_multiply(cos_x, cos_z);
+        basis_q16[2][1] = hsd_q16_multiply(cos_y, sin_x);
         basis_q16[0][2] =
-            pf_m4_hsd_q16_multiply(cos_z, cy) +
-            pf_m4_hsd_q16_multiply(sin_x, sin_z);
+            hsd_q16_multiply(cos_z, cy) +
+            hsd_q16_multiply(sin_x, sin_z);
         basis_q16[1][2] =
-            pf_m4_hsd_q16_multiply(sin_z, cy) -
-            pf_m4_hsd_q16_multiply(sin_x, cos_z);
-        basis_q16[2][2] = pf_m4_hsd_q16_multiply(cos_y, cos_x);
+            hsd_q16_multiply(sin_z, cy) -
+            hsd_q16_multiply(sin_x, cos_z);
+        basis_q16[2][2] = hsd_q16_multiply(cos_y, cos_x);
     }
     if (parent_scale_q16 != NULL)
     {
 #define PF_HSD_APPLY_SCALE_RATIO(destination, numerator, denominator) \
         do                                                               \
         {                                                                \
-            if (!pf_m4_hsd_q16_divide(                                  \
+            if (!hsd_q16_divide(                                  \
                     parent_scale_q16[(numerator)],                       \
                     parent_scale_q16[(denominator)],                     \
                     &ratio))                                             \
             {                                                            \
                 return 0;                                                \
             }                                                            \
-            (destination) = pf_m4_hsd_q16_multiply((destination), ratio);\
+            (destination) = hsd_q16_multiply((destination), ratio);\
         } while (0)
         PF_HSD_APPLY_SCALE_RATIO(scale_y2, 1, 0);
         PF_HSD_APPLY_SCALE_RATIO(scale_z2, 2, 0);
@@ -557,35 +557,35 @@ static int pf_m4_hsd_make_local_matrix(
 #undef PF_HSD_APPLY_SCALE_RATIO
     }
     out_matrix->value[0][0] =
-        pf_m4_hsd_q16_multiply(scale_x2, basis_q16[0][0]);
+        hsd_q16_multiply(scale_x2, basis_q16[0][0]);
     out_matrix->value[1][0] =
-        pf_m4_hsd_q16_multiply(scale_x1, basis_q16[1][0]);
+        hsd_q16_multiply(scale_x1, basis_q16[1][0]);
     out_matrix->value[2][0] =
-        pf_m4_hsd_q16_multiply(scale_x, basis_q16[2][0]);
+        hsd_q16_multiply(scale_x, basis_q16[2][0]);
     out_matrix->value[0][1] =
-        pf_m4_hsd_q16_multiply(scale_y2, basis_q16[0][1]);
+        hsd_q16_multiply(scale_y2, basis_q16[0][1]);
     out_matrix->value[1][1] =
-        pf_m4_hsd_q16_multiply(scale_y1, basis_q16[1][1]);
+        hsd_q16_multiply(scale_y1, basis_q16[1][1]);
     out_matrix->value[2][1] =
-        pf_m4_hsd_q16_multiply(scale_y, basis_q16[2][1]);
+        hsd_q16_multiply(scale_y, basis_q16[2][1]);
     out_matrix->value[0][2] =
-        pf_m4_hsd_q16_multiply(scale_z2, basis_q16[0][2]);
+        hsd_q16_multiply(scale_z2, basis_q16[0][2]);
     out_matrix->value[1][2] =
-        pf_m4_hsd_q16_multiply(scale_z1, basis_q16[1][2]);
+        hsd_q16_multiply(scale_z1, basis_q16[1][2]);
     out_matrix->value[2][2] =
-        pf_m4_hsd_q16_multiply(scale_z, basis_q16[2][2]);
+        hsd_q16_multiply(scale_z, basis_q16[2][2]);
     out_matrix->value[0][3] = pose->translation_q16[0];
     out_matrix->value[1][3] = pose->translation_q16[1];
     out_matrix->value[2][3] = pose->translation_q16[2];
     return 1;
 }
 
-static int pf_m4_hsd_concat_matrix(
-    const pf_m4_hsd_matrix *left,
-    const pf_m4_hsd_matrix *right,
-    pf_m4_hsd_matrix *out_matrix)
+static int hsd_concat_matrix(
+    const hsd_matrix *left,
+    const hsd_matrix *right,
+    hsd_matrix *out_matrix)
 {
-    pf_m4_hsd_matrix result = {{{INT32_C(0)}}};
+    hsd_matrix result = {{{INT32_C(0)}}};
     uint8_t row;
     uint8_t column;
 
@@ -600,7 +600,7 @@ static int pf_m4_hsd_concat_matrix(
 
             for (inner = UINT8_C(0); inner < UINT8_C(3); ++inner)
             {
-                value += pf_m4_hsd_q16_multiply(
+                value += hsd_q16_multiply(
                     left->value[row][inner],
                     right->value[inner][column]);
             }
@@ -615,8 +615,8 @@ static int pf_m4_hsd_concat_matrix(
     return 1;
 }
 
-static int pf_m4_hsd_transform_point(
-    const pf_m4_hsd_matrix *matrix,
+static int hsd_transform_point(
+    const hsd_matrix *matrix,
     const int32_t point_q16[3],
     int32_t out_point_q16[3])
 {
@@ -629,7 +629,7 @@ static int pf_m4_hsd_transform_point(
 
         for (column = UINT8_C(0); column < UINT8_C(3); ++column)
         {
-            value += pf_m4_hsd_q16_multiply(
+            value += hsd_q16_multiply(
                 matrix->value[row][column],
                 point_q16[column]);
         }
@@ -642,31 +642,31 @@ static int pf_m4_hsd_transform_point(
     return 1;
 }
 
-static int32_t pf_m4_hsd_source_scale_to_sim_q16(
-    const pf_m4_hsd_pose_data *data,
+static int32_t hsd_source_scale_to_sim_q16(
+    const hsd_pose_data *data,
     int32_t value_q16)
 {
-    return (int32_t)pf_m4_hsd_round_divide(
+    return (int32_t)hsd_round_divide(
         (int64_t)value_q16 * (int64_t)data->source_to_sim_numerator,
         (int64_t)data->source_to_sim_denominator);
 }
 
-static int32_t pf_m4_hsd_source_coordinate_to_sim_q16(
-    const pf_m4_hsd_pose_data *data,
+static int32_t hsd_source_coordinate_to_sim_q16(
+    const hsd_pose_data *data,
     int32_t value_q16,
     uint8_t axis)
 {
-    return pf_m4_hsd_source_scale_to_sim_q16(data, value_q16) *
+    return hsd_source_scale_to_sim_q16(data, value_q16) *
            (int32_t)data->axis_sign[axis];
 }
 
-int pf_m4_hsd_evaluate_local_pose_q16(
-    const pf_m4_hsd_pose_data *data,
+int hsd_evaluate_local_pose_q16(
+    const hsd_pose_data *data,
     uint16_t source_submotion,
     int32_t frame_q16,
-    pf_m4_hsd_local_pose out_pose[PF_M4_HSD_POSE_MAX_JOINTS])
+    hsd_local_pose out_pose[PF_M4_HSD_POSE_MAX_JOINTS])
 {
-    const pf_m4_hsd_motion *motion = NULL;
+    const hsd_motion *motion = NULL;
     uint8_t motion_index;
     uint8_t joint_index;
     uint16_t track_index;
@@ -724,8 +724,8 @@ int pf_m4_hsd_evaluate_local_pose_q16(
          track_index < motion->track_offset + motion->track_count;
          ++track_index)
     {
-        const pf_m4_hsd_track *track = &data->tracks[track_index];
-        const pf_m4_hsd_key *keys;
+        const hsd_track *track = &data->tracks[track_index];
+        const hsd_key *keys;
         int32_t value_q16;
         int32_t *destination;
 
@@ -736,7 +736,7 @@ int pf_m4_hsd_evaluate_local_pose_q16(
             return 0;
         }
         keys = &data->keys[track->key_offset];
-        value_q16 = pf_m4_hsd_sample_track_q16(track, keys, frame_q16);
+        value_q16 = hsd_sample_track_q16(track, keys, frame_q16);
         if (track->track_type >= UINT8_C(1) &&
             track->track_type <= UINT8_C(3))
         {
@@ -764,12 +764,12 @@ int pf_m4_hsd_evaluate_local_pose_q16(
     return 1;
 }
 
-int pf_m4_hsd_blend_local_pose_q16(
-    const pf_m4_hsd_pose_data *data,
-    const pf_m4_hsd_local_pose target[PF_M4_HSD_POSE_MAX_JOINTS],
-    const pf_m4_hsd_local_pose current[PF_M4_HSD_POSE_MAX_JOINTS],
+int hsd_blend_local_pose_q16(
+    const hsd_pose_data *data,
+    const hsd_local_pose target[PF_M4_HSD_POSE_MAX_JOINTS],
+    const hsd_local_pose current[PF_M4_HSD_POSE_MAX_JOINTS],
     int32_t current_weight_q16,
-    pf_m4_hsd_local_pose out_pose[PF_M4_HSD_POSE_MAX_JOINTS])
+    hsd_local_pose out_pose[PF_M4_HSD_POSE_MAX_JOINTS])
 {
     uint8_t joint_index;
 
@@ -816,11 +816,11 @@ int pf_m4_hsd_blend_local_pose_q16(
                 sizeof(out_pose[joint_index].rotation_q16));
             out_pose[joint_index].use_quaternion = UINT8_C(0);
         }
-        else if (!pf_m4_hsd_pose_quaternion_q16(
+        else if (!hsd_pose_quaternion_q16(
                      &target[joint_index], target_quaternion_q16) ||
-                 !pf_m4_hsd_pose_quaternion_q16(
+                 !hsd_pose_quaternion_q16(
                      &current[joint_index], current_quaternion_q16) ||
-                 !pf_m4_hsd_slerp_q16(
+                 !hsd_slerp_q16(
                      target_quaternion_q16,
                      current_quaternion_q16,
                      current_weight_q16,
@@ -835,17 +835,17 @@ int pf_m4_hsd_blend_local_pose_q16(
         for (axis = UINT8_C(0); axis < UINT8_C(3); ++axis)
         {
             out_pose[joint_index].translation_q16[axis] =
-                pf_m4_hsd_q16_multiply(
+                hsd_q16_multiply(
                     PF_HSD_Q16_ONE - current_weight_q16,
                     target[joint_index].translation_q16[axis]) +
-                pf_m4_hsd_q16_multiply(
+                hsd_q16_multiply(
                     current_weight_q16,
                     current[joint_index].translation_q16[axis]);
             out_pose[joint_index].scale_q16[axis] =
-                pf_m4_hsd_q16_multiply(
+                hsd_q16_multiply(
                     PF_HSD_Q16_ONE - current_weight_q16,
                     target[joint_index].scale_q16[axis]) +
-                pf_m4_hsd_q16_multiply(
+                hsd_q16_multiply(
                     current_weight_q16,
                     current[joint_index].scale_q16[axis]);
         }
@@ -853,10 +853,10 @@ int pf_m4_hsd_blend_local_pose_q16(
     return 1;
 }
 
-int pf_m4_hsd_pack_compact_pose_q16(
-    const pf_m4_hsd_pose_data *data,
-    const pf_m4_hsd_local_pose pose[PF_M4_HSD_POSE_MAX_JOINTS],
-    pf_m4_hsd_compact_pose *out_compact)
+int hsd_pack_compact_pose_q16(
+    const hsd_pose_data *data,
+    const hsd_local_pose pose[PF_M4_HSD_POSE_MAX_JOINTS],
+    hsd_compact_pose *out_compact)
 {
     uint8_t index;
 
@@ -879,7 +879,7 @@ int pf_m4_hsd_pack_compact_pose_q16(
         uint8_t component;
 
         if (joint_index >= data->joint_count ||
-            !pf_m4_hsd_pose_quaternion_q16(
+            !hsd_pose_quaternion_q16(
                 &pose[joint_index], quaternion_q16))
         {
             return 0;
@@ -893,7 +893,7 @@ int pf_m4_hsd_pack_compact_pose_q16(
         }
         for (component = UINT8_C(0); component < UINT8_C(3); ++component)
         {
-            int64_t value = pf_m4_hsd_round_divide(
+            int64_t value = hsd_round_divide(
                 (int64_t)quaternion_q16[component] * INT64_C(32767),
                 INT64_C(65536));
 
@@ -926,11 +926,11 @@ int pf_m4_hsd_pack_compact_pose_q16(
     return 1;
 }
 
-int pf_m4_hsd_inflate_compact_pose_q16(
-    const pf_m4_hsd_pose_data *data,
-    const pf_m4_hsd_local_pose target[PF_M4_HSD_POSE_MAX_JOINTS],
-    const pf_m4_hsd_compact_pose *compact,
-    pf_m4_hsd_local_pose out_pose[PF_M4_HSD_POSE_MAX_JOINTS])
+int hsd_inflate_compact_pose_q16(
+    const hsd_pose_data *data,
+    const hsd_local_pose *target,
+    const hsd_compact_pose *compact,
+    hsd_local_pose *out_pose)
 {
     uint8_t index;
 
@@ -964,7 +964,7 @@ int pf_m4_hsd_inflate_compact_pose_q16(
         }
         for (component = UINT8_C(0); component < UINT8_C(3); ++component)
         {
-            const int32_t value_q16 = (int32_t)pf_m4_hsd_round_divide(
+            const int32_t value_q16 = (int32_t)hsd_round_divide(
                 (int64_t)compact->rotation_q15[index][component] *
                     INT64_C(65536),
                 INT64_C(32767));
@@ -976,9 +976,9 @@ int pf_m4_hsd_inflate_compact_pose_q16(
         out_pose[joint_index].rotation_q16[3] =
             vector_squared >= (UINT64_C(1) << 32U)
                 ? INT32_C(0)
-                : (int32_t)pf_m4_u64_sqrt(
+                : (int32_t)u64_sqrt(
                       (UINT64_C(1) << 32U) - vector_squared);
-        if (!pf_m4_hsd_normalize_quaternion_q16(
+        if (!hsd_normalize_quaternion_q16(
                 out_pose[joint_index].rotation_q16))
         {
             return 0;
@@ -1003,31 +1003,31 @@ int pf_m4_hsd_inflate_compact_pose_q16(
     return 1;
 }
 
-int pf_m4_hsd_resolve_compact_pose_q16(
-    const pf_m4_hsd_pose_data *data,
+int hsd_resolve_compact_pose_q16(
+    const hsd_pose_data *data,
     uint16_t target_submotion,
     int32_t target_frame_q16,
     int32_t progress_q16,
-    const pf_m4_hsd_compact_pose *compact,
-    pf_m4_hsd_local_pose out_pose[PF_M4_HSD_POSE_MAX_JOINTS])
+    const hsd_compact_pose *compact,
+    hsd_local_pose out_pose[PF_M4_HSD_POSE_MAX_JOINTS])
 {
-    pf_m4_hsd_local_pose target[PF_M4_HSD_POSE_MAX_JOINTS];
+    hsd_local_pose target[PF_M4_HSD_POSE_MAX_JOINTS];
 
     if (data == NULL || compact == NULL || out_pose == NULL ||
-        !pf_m4_hsd_evaluate_local_pose_q16(
+        !hsd_evaluate_local_pose_q16(
             data, target_submotion, target_frame_q16, target))
     {
         return 0;
     }
     if (compact->mode == (uint8_t)PF_M4_HSD_COMPACT_POSE_PACKED)
     {
-        return pf_m4_hsd_inflate_compact_pose_q16(
+        return hsd_inflate_compact_pose_q16(
             data, target, compact, out_pose);
     }
     if (compact->mode == (uint8_t)PF_M4_HSD_COMPACT_POSE_REPLAY)
     {
-        pf_m4_hsd_local_pose current[PF_M4_HSD_POSE_MAX_JOINTS];
-        pf_m4_hsd_local_pose next[PF_M4_HSD_POSE_MAX_JOINTS];
+        hsd_local_pose current[PF_M4_HSD_POSE_MAX_JOINTS];
+        hsd_local_pose next[PF_M4_HSD_POSE_MAX_JOINTS];
         const int32_t step_q16 = compact->replay.target_step_q16;
         const int32_t blend_frames_q16 =
             compact->replay.blend_frames_q16;
@@ -1043,7 +1043,7 @@ int pf_m4_hsd_resolve_compact_pose_q16(
                 (int64_t)compact->replay.target_entry_frame_q16 +
                     (int64_t)(progress_q16 / step_q16 - INT32_C(1)) *
                         step_q16 ||
-            !pf_m4_hsd_evaluate_local_pose_q16(
+            !hsd_evaluate_local_pose_q16(
                 data,
                 compact->replay.source_submotion,
                 compact->replay.source_frame_q16,
@@ -1067,9 +1067,9 @@ int pf_m4_hsd_resolve_compact_pose_q16(
                 compact->replay.target_entry_frame_q16 +
                 (step_progress_q16 / step_q16 - INT32_C(1)) * step_q16;
 
-            if (!pf_m4_hsd_evaluate_local_pose_q16(
+            if (!hsd_evaluate_local_pose_q16(
                     data, target_submotion, step_frame_q16, target) ||
-                !pf_m4_hsd_blend_local_pose_q16(
+                !hsd_blend_local_pose_q16(
                     data, target, current, current_weight_q16, next))
             {
                 return 0;
@@ -1085,10 +1085,10 @@ int pf_m4_hsd_resolve_compact_pose_q16(
     return 0;
 }
 
-static int pf_m4_hsd_evaluate_joint_matrices_from_local_pose(
-    const pf_m4_hsd_pose_data *data,
-    const pf_m4_hsd_local_pose pose[PF_M4_HSD_POSE_MAX_JOINTS],
-    pf_m4_hsd_matrix matrices[PF_M4_HSD_POSE_MAX_JOINTS])
+static int hsd_evaluate_joint_matrices_from_local_pose(
+    const hsd_pose_data *data,
+    const hsd_local_pose pose[PF_M4_HSD_POSE_MAX_JOINTS],
+    hsd_matrix matrices[PF_M4_HSD_POSE_MAX_JOINTS])
 {
     int32_t cumulative_scale_q16[PF_M4_HSD_POSE_MAX_JOINTS][3];
     uint8_t has_cumulative_scale[PF_M4_HSD_POSE_MAX_JOINTS] = {UINT8_C(0)};
@@ -1104,9 +1104,9 @@ static int pf_m4_hsd_evaluate_joint_matrices_from_local_pose(
          joint_index < data->joint_count;
          ++joint_index)
     {
-        const pf_m4_hsd_joint *joint = &data->joints[joint_index];
+        const hsd_joint *joint = &data->joints[joint_index];
         const int parent = joint->parent_index;
-        pf_m4_hsd_matrix local;
+        hsd_matrix local;
         const int32_t *parent_scale =
             parent >= 0 && has_cumulative_scale[parent] != UINT8_C(0)
                 ? cumulative_scale_q16[parent]
@@ -1114,14 +1114,14 @@ static int pf_m4_hsd_evaluate_joint_matrices_from_local_pose(
         uint8_t axis;
 
         if (parent >= (int)joint_index || parent < -1 ||
-            !pf_m4_hsd_make_local_matrix(
+            !hsd_make_local_matrix(
                 &pose[joint_index], parent_scale, &local))
         {
             return 0;
         }
         if (parent >= 0)
         {
-            if (!pf_m4_hsd_concat_matrix(
+            if (!hsd_concat_matrix(
                     &matrices[parent], &local, &matrices[joint_index]))
             {
                 return 0;
@@ -1151,7 +1151,7 @@ static int pf_m4_hsd_evaluate_joint_matrices_from_local_pose(
                 cumulative_scale_q16[joint_index][axis] =
                     parent_scale == NULL
                         ? pose[joint_index].scale_q16[axis]
-                        : pf_m4_hsd_q16_multiply(
+                        : hsd_q16_multiply(
                               pose[joint_index].scale_q16[axis],
                               parent_scale[axis]);
             }
@@ -1160,39 +1160,39 @@ static int pf_m4_hsd_evaluate_joint_matrices_from_local_pose(
     return 1;
 }
 
-int pf_m4_hsd_evaluate_joint_origins_source_q16(
-    const pf_m4_hsd_pose_data *data,
+int hsd_evaluate_joint_origins_source_q16(
+    const hsd_pose_data *data,
     uint16_t source_submotion,
     int32_t frame_q16,
     const uint8_t *joint_indices,
     uint8_t joint_count,
     int32_t out_origins_q16[PF_M4_HSD_POSE_MAX_JOINTS][3])
 {
-    pf_m4_hsd_local_pose pose[PF_M4_HSD_POSE_MAX_JOINTS];
+    hsd_local_pose pose[PF_M4_HSD_POSE_MAX_JOINTS];
 
-    if (!pf_m4_hsd_evaluate_local_pose_q16(
+    if (!hsd_evaluate_local_pose_q16(
             data, source_submotion, frame_q16, pose))
     {
         return 0;
     }
-    return pf_m4_hsd_evaluate_joint_origins_from_local_pose_q16(
+    return hsd_evaluate_joint_origins_from_local_pose_q16(
         data, pose, joint_indices, joint_count, out_origins_q16);
 }
 
-int pf_m4_hsd_evaluate_joint_origins_from_local_pose_q16(
-    const pf_m4_hsd_pose_data *data,
-    const pf_m4_hsd_local_pose pose[PF_M4_HSD_POSE_MAX_JOINTS],
+int hsd_evaluate_joint_origins_from_local_pose_q16(
+    const hsd_pose_data *data,
+    const hsd_local_pose pose[PF_M4_HSD_POSE_MAX_JOINTS],
     const uint8_t *joint_indices,
     uint8_t joint_count,
     int32_t out_origins_q16[PF_M4_HSD_POSE_MAX_JOINTS][3])
 {
-    pf_m4_hsd_matrix matrices[PF_M4_HSD_POSE_MAX_JOINTS];
+    hsd_matrix matrices[PF_M4_HSD_POSE_MAX_JOINTS];
     uint8_t output_index;
 
     if (joint_indices == NULL || out_origins_q16 == NULL ||
         joint_count == UINT8_C(0) ||
         joint_count > PF_M4_HSD_POSE_MAX_JOINTS ||
-        !pf_m4_hsd_evaluate_joint_matrices_from_local_pose(
+        !hsd_evaluate_joint_matrices_from_local_pose(
             data, pose, matrices))
     {
         return 0;
@@ -1214,17 +1214,17 @@ int pf_m4_hsd_evaluate_joint_origins_from_local_pose_q16(
     return 1;
 }
 
-int pf_m4_hsd_evaluate_hurt_pose(
-    const pf_m4_hsd_pose_data *data,
+int hsd_evaluate_hurt_pose(
+    const hsd_pose_data *data,
     uint16_t source_submotion,
     int32_t frame_q16,
-    pf_m4_hsd_evaluated_capsule
+    hsd_evaluated_capsule
         out_capsules[PF_M4_HSD_POSE_MAX_CAPSULES],
     uint8_t *out_count)
 {
-    pf_m4_hsd_local_pose pose[PF_M4_HSD_POSE_MAX_JOINTS];
+    hsd_local_pose pose[PF_M4_HSD_POSE_MAX_JOINTS];
 
-    if (!pf_m4_hsd_evaluate_local_pose_q16(
+    if (!hsd_evaluate_local_pose_q16(
             data, source_submotion, frame_q16, pose))
     {
         if (out_count != NULL)
@@ -1233,18 +1233,18 @@ int pf_m4_hsd_evaluate_hurt_pose(
         }
         return 0;
     }
-    return pf_m4_hsd_evaluate_hurt_pose_from_local_pose(
+    return hsd_evaluate_hurt_pose_from_local_pose(
         data, pose, out_capsules, out_count);
 }
 
-int pf_m4_hsd_evaluate_hurt_pose_from_local_pose(
-    const pf_m4_hsd_pose_data *data,
-    const pf_m4_hsd_local_pose pose[PF_M4_HSD_POSE_MAX_JOINTS],
-    pf_m4_hsd_evaluated_capsule
+int hsd_evaluate_hurt_pose_from_local_pose(
+    const hsd_pose_data *data,
+    const hsd_local_pose pose[PF_M4_HSD_POSE_MAX_JOINTS],
+    hsd_evaluated_capsule
         out_capsules[PF_M4_HSD_POSE_MAX_CAPSULES],
     uint8_t *out_count)
 {
-    pf_m4_hsd_matrix matrices[PF_M4_HSD_POSE_MAX_JOINTS];
+    hsd_matrix matrices[PF_M4_HSD_POSE_MAX_JOINTS];
     uint8_t capsule_index;
 
     if (out_count != NULL)
@@ -1254,7 +1254,7 @@ int pf_m4_hsd_evaluate_hurt_pose_from_local_pose(
     if (data == NULL || out_capsules == NULL || out_count == NULL ||
         data->capsules == NULL || data->capsule_count == UINT8_C(0) ||
         data->capsule_count > PF_M4_HSD_POSE_MAX_CAPSULES ||
-        !pf_m4_hsd_evaluate_joint_matrices_from_local_pose(
+        !hsd_evaluate_joint_matrices_from_local_pose(
             data, pose, matrices))
     {
         return 0;
@@ -1263,20 +1263,20 @@ int pf_m4_hsd_evaluate_hurt_pose_from_local_pose(
          capsule_index < data->capsule_count;
          ++capsule_index)
     {
-        const pf_m4_hsd_hurt_capsule *source =
+        const hsd_hurt_capsule *source =
             &data->capsules[capsule_index];
-        pf_m4_hsd_evaluated_capsule *destination =
+        hsd_evaluated_capsule *destination =
             &out_capsules[capsule_index];
         int32_t endpoint_a_q16[3];
         int32_t endpoint_b_q16[3];
         uint8_t axis;
 
         if (source->joint_index >= data->joint_count ||
-            !pf_m4_hsd_transform_point(
+            !hsd_transform_point(
                 &matrices[source->joint_index],
                 source->offset_a_q16,
                 endpoint_a_q16) ||
-            !pf_m4_hsd_transform_point(
+            !hsd_transform_point(
                 &matrices[source->joint_index],
                 source->offset_b_q16,
                 endpoint_b_q16))
@@ -1286,18 +1286,18 @@ int pf_m4_hsd_evaluate_hurt_pose_from_local_pose(
         for (axis = UINT8_C(0); axis < UINT8_C(3); ++axis)
         {
             destination->endpoint_a_q16[axis] =
-                pf_m4_hsd_source_coordinate_to_sim_q16(
+                hsd_source_coordinate_to_sim_q16(
                     data,
                     endpoint_a_q16[axis],
                     axis);
             destination->endpoint_b_q16[axis] =
-                pf_m4_hsd_source_coordinate_to_sim_q16(
+                hsd_source_coordinate_to_sim_q16(
                     data,
                     endpoint_b_q16[axis],
                     axis);
         }
         destination->radius_q16 =
-            pf_m4_hsd_source_scale_to_sim_q16(
+            hsd_source_scale_to_sim_q16(
                 data,
                 source->radius_q16);
         destination->hurtbox_id = source->hurtbox_id;

@@ -62,7 +62,7 @@ static pf_status pf_validate_inputs(
     return PF_STATUS_OK;
 }
 
-static uint8_t pf_m4_winner_mask_for_team(
+static uint8_t winner_mask_for_team(
     const pf_world_state *world,
     uint8_t team)
 {
@@ -82,7 +82,7 @@ static uint8_t pf_m4_winner_mask_for_team(
     return winner_mask;
 }
 
-static pf_status pf_m4_begin_sudden_death(
+static pf_status begin_sudden_death(
     pf_sim *sim,
     pf_sim_scratch *scratch,
     uint64_t event_tick)
@@ -115,7 +115,7 @@ static pf_status pf_m4_begin_sudden_death(
         const uint16_t respawn_count =
             world->respawn_count[player_index];
 
-        pf_m4_reset_player(sim, player_index, 0);
+        reset_player(sim, player_index, 0);
         world->respawn_count[player_index] = respawn_count;
         world->stocks_remaining[player_index] = UINT8_C(1);
         world->active[player_index] = UINT8_C(0);
@@ -137,8 +137,8 @@ static pf_status pf_m4_begin_sudden_death(
     return PF_STATUS_OK;
 }
 
-static pf_input_frame pf_m4_reference_priority_input(
-    const pf_m4_content *content,
+static pf_input_frame reference_priority_input(
+    const struct content *content,
     const pf_world_state *world,
     const pf_input_frame *input,
     uint32_t player_index)
@@ -167,39 +167,39 @@ static pf_input_frame pf_m4_reference_priority_input(
     return result;
 }
 
-static int pf_m4_abs_raw_axis(int8_t axis)
+static int abs_raw_axis(int8_t axis)
 {
     return axis < INT8_C(0) ? -(int)axis : (int)axis;
 }
 
-static void pf_m4_apply_ucf084_cardinals(pf_input_frame *input)
+static void apply_ucf084_cardinals(pf_input_frame *input)
 {
     const pf_input_raw_pad raw = pf_input_get_raw_pad(input);
 
-    if (pf_m4_abs_raw_axis(raw.main_stick_x) >= 80 &&
-        pf_m4_abs_raw_axis(raw.main_stick_y) <= 6)
+    if (abs_raw_axis(raw.main_stick_x) >= 80 &&
+        abs_raw_axis(raw.main_stick_y) <= 6)
     {
         input->main_stick_x =
             raw.main_stick_x < INT8_C(0) ? INT16_MIN : INT16_MAX;
         input->main_stick_y = INT16_C(0);
     }
-    else if (pf_m4_abs_raw_axis(raw.main_stick_y) >= 80 &&
-             pf_m4_abs_raw_axis(raw.main_stick_x) <= 6)
+    else if (abs_raw_axis(raw.main_stick_y) >= 80 &&
+             abs_raw_axis(raw.main_stick_x) <= 6)
     {
         input->main_stick_x = INT16_C(0);
         input->main_stick_y =
             raw.main_stick_y > INT8_C(0) ? INT16_MIN : INT16_MAX;
     }
 
-    if (pf_m4_abs_raw_axis(raw.secondary_stick_x) >= 80 &&
-        pf_m4_abs_raw_axis(raw.secondary_stick_y) <= 6)
+    if (abs_raw_axis(raw.secondary_stick_x) >= 80 &&
+        abs_raw_axis(raw.secondary_stick_y) <= 6)
     {
         input->secondary_stick_x =
             raw.secondary_stick_x < INT8_C(0) ? INT16_MIN : INT16_MAX;
         input->secondary_stick_y = INT16_C(0);
     }
-    else if (pf_m4_abs_raw_axis(raw.secondary_stick_y) >= 80 &&
-             pf_m4_abs_raw_axis(raw.secondary_stick_x) <= 6)
+    else if (abs_raw_axis(raw.secondary_stick_y) >= 80 &&
+             abs_raw_axis(raw.secondary_stick_x) <= 6)
     {
         input->secondary_stick_x = INT16_C(0);
         input->secondary_stick_y =
@@ -207,7 +207,7 @@ static void pf_m4_apply_ucf084_cardinals(pf_input_frame *input)
     }
 }
 
-static uint8_t pf_m4_ucf084_pad_buffer_count(
+static uint8_t ucf084_pad_buffer_count(
     const pf_input_frame *input,
     pf_input_raw_pad current_raw,
     int8_t raw_main_t2_y,
@@ -219,7 +219,7 @@ static uint8_t pf_m4_ucf084_pad_buffer_count(
     const int down_qualifies =
         (int32_t)input->main_stick_y * INT32_C(64) >=
         INT32_C(39) * INT32_C(32767);
-    const int radial_qualifies = pf_m4_ucf084_adjusted_radial_qualifies(
+    const int radial_qualifies = ucf084_adjusted_radial_qualifies(
         input->main_stick_x,
         input->main_stick_y);
 
@@ -236,12 +236,12 @@ static uint8_t pf_m4_ucf084_pad_buffer_count(
     return UINT8_C(0);
 }
 
-static int32_t pf_m4_player_nudge_x_q16(
-    const pf_m4_content *content,
+static int32_t player_nudge_x_q16(
+    const struct content *content,
     const pf_world_state *world,
     uint32_t player_index)
 {
-    const pf_m4_fighter_data *fighter = &content->fighter;
+    const fighter_data *fighter = &content->fighter;
     const uint8_t action_state = world->action_state[player_index];
     const int64_t overlap_distance_q16 =
         INT64_C(2) * fighter->player_push_half_width_q16;
@@ -299,15 +299,15 @@ static int32_t pf_m4_player_nudge_x_q16(
 
         if (world->support[other_index] != world->support[player_index])
         {
-            const pf_m4_ssbm_stage_collision_profile *profile =
-                pf_m4_ssbm_reference_stage_collision(
+            const ssbm_stage_collision_profile *profile =
+                ssbm_reference_stage_collision(
                     content->stage.reference_collision_profile);
-            const pf_m4_ssbm_stage_collision_line *line =
-                pf_m4_ssbm_reference_stage_line(
+            const ssbm_stage_collision_line *line =
+                ssbm_reference_stage_line(
                     content->stage.reference_collision_profile,
                     world->support[player_index]);
-            const pf_m4_ssbm_stage_collision_line *other_line =
-                pf_m4_ssbm_reference_stage_line(
+            const ssbm_stage_collision_line *other_line =
+                ssbm_reference_stage_line(
                     content->stage.reference_collision_profile,
                     world->support[other_index]);
             int16_t other_line_index;
@@ -350,7 +350,7 @@ static int32_t pf_m4_player_nudge_x_q16(
     return nudge_x_q16;
 }
 
-static pf_status pf_m4_resolve_stock_result(
+static pf_status resolve_stock_result(
     pf_sim *sim,
     pf_sim_scratch *scratch,
     uint64_t event_tick)
@@ -389,7 +389,7 @@ static pf_status pf_m4_resolve_stock_result(
             ++winning_team;
         }
         winner_mask =
-            pf_m4_winner_mask_for_team(world, winning_team);
+            winner_mask_for_team(world, winning_team);
         if (pf_sim_push_event(
                 scratch,
                 event_tick,
@@ -418,7 +418,7 @@ static pf_status pf_m4_resolve_stock_result(
 
     if (world->sudden_death == UINT8_C(0))
     {
-        return pf_m4_begin_sudden_death(
+        return begin_sudden_death(
             sim,
             scratch,
             event_tick);
@@ -434,7 +434,7 @@ static pf_status pf_m4_resolve_stock_result(
             INT32_C(0),
             INT32_C(0),
             (uint16_t)PF_SIM_EVENT_FLAG_SUDDEN_DEATH,
-            (uint16_t)pf_m4_winner_mask_for_team(
+            (uint16_t)winner_mask_for_team(
                 world,
                 world->team[0]),
             NULL) != PF_STATUS_OK)
@@ -443,11 +443,11 @@ static pf_status pf_m4_resolve_stock_result(
     }
     world->terminated = UINT8_C(1);
     world->winner_mask =
-        pf_m4_winner_mask_for_team(world, world->team[0]);
+        winner_mask_for_team(world, world->team[0]);
     return PF_STATUS_OK;
 }
 
-static pf_status pf_m4_emit_action_transitions(
+static pf_status emit_action_transitions(
     const pf_world_state *world,
     pf_sim_scratch *scratch,
     uint64_t event_tick)
@@ -494,8 +494,8 @@ static pf_status pf_m4_emit_action_transitions(
         NULL);
 }
 
-static void pf_m4_canonicalize_source_animation_state(
-    const pf_m4_fighter_data *fighter,
+static void canonicalize_source_animation_state(
+    const fighter_data *fighter,
     const pf_world_state *world,
     pf_sim_scratch *scratch)
 {
@@ -523,29 +523,29 @@ static void pf_m4_canonicalize_source_animation_state(
             continue;
         }
         if ((fighter->reference_frame_data_enabled == UINT8_C(0) &&
-             pf_m4_action_uses_source_animation_clock(
+             action_uses_source_animation_clock(
                  scratch->action_state[player_index],
                  scratch->hitlag_resume_action[player_index])) ||
-            !pf_m4_action_retains_source_submotion(
+            !action_retains_source_submotion(
                 scratch->action_state[player_index],
                 scratch->hitlag_resume_action[player_index]))
         {
             scratch->source_submotion[player_index] =
                 (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT;
         }
-        if (!pf_m4_action_uses_source_animation_clock(
+        if (!action_uses_source_animation_clock(
                 scratch->action_state[player_index],
                 scratch->hitlag_resume_action[player_index]))
         {
             scratch->source_animation_frame_q16[player_index] = INT32_C(0);
             scratch->source_animation_rate_q16[player_index] = INT32_C(0);
         }
-        if (pf_m4_effective_action_state(
+        if (effective_action_state(
                 scratch->action_state[player_index],
                 scratch->hitlag_resume_action[player_index]) !=
                 (uint8_t)PF_M4_ACTION_AIRBORNE &&
-            !pf_m4_action_uses_fall_special_pose(
-                pf_m4_effective_action_state(
+            !action_uses_fall_special_pose(
+                effective_action_state(
                     scratch->action_state[player_index],
                     scratch->hitlag_resume_action[player_index])))
         {
@@ -553,7 +553,7 @@ static void pf_m4_canonicalize_source_animation_state(
             scratch->fall_animation_target_switched[player_index] =
                 UINT8_C(0);
         }
-        if (!pf_m4_action_uses_ground_animation_clock(
+        if (!action_uses_ground_animation_clock(
                 scratch->action_state[player_index],
                 scratch->hitlag_resume_action[player_index]))
         {
@@ -566,7 +566,7 @@ static void pf_m4_canonicalize_source_animation_state(
     }
 }
 
-static pf_input_frame pf_m4_reference_match_fighter_input(
+static pf_input_frame reference_match_fighter_input(
     const pf_input_frame *input,
     uint8_t input_lock_ticks)
 {
@@ -597,7 +597,7 @@ pf_status pf_sim_tick_impl(
     pf_status status;
     uint64_t forfeit_mask = UINT64_C(0);
     uint64_t rng_state;
-    int32_t player_nudge_x_q16[PF_SIM_MAX_PLAYERS] = {INT32_C(0)};
+    int32_t player_nudge_x_q16_value[PF_SIM_MAX_PLAYERS] = {INT32_C(0)};
     uint32_t player_index;
 
     if (out_result == NULL)
@@ -679,14 +679,14 @@ pf_status pf_sim_tick_impl(
             world->shield_recoil_x_q16,
             sizeof(scratch->shield_recoil_x_q16));
     }
-    pf_m4_begin_item_tick(world, scratch);
-    pf_m4_begin_projectile_tick(world, scratch);
+    begin_item_tick(world, scratch);
+    begin_projectile_tick(world, scratch);
     for (player_index = UINT32_C(0);
          player_index < (uint32_t)world->player_count;
          ++player_index)
     {
-        player_nudge_x_q16[player_index] =
-            pf_m4_player_nudge_x_q16(
+        player_nudge_x_q16_value[player_index] =
+            player_nudge_x_q16(
                 &sim->content,
                 world,
                 player_index);
@@ -721,25 +721,25 @@ pf_status pf_sim_tick_impl(
              PF_INPUT_RAW_MAIN_Y_SHIFT) & PF_INPUT_RAW_AXIS_MASK));
         previous_raw.secondary_stick_x = INT8_C(0);
         previous_raw.secondary_stick_y = INT8_C(0);
-        input_tilt_x_age = pf_m4_source_stick_age(
+        input_tilt_x_age = source_stick_age(
             source_input.main_stick_x,
             sim->content.fighter.tilt_axis_threshold,
             previous_tilt_x_direction,
             world->tilt_x_age[player_index],
             &input_tilt_x_direction);
-        input_tilt_y_age = pf_m4_source_stick_age(
+        input_tilt_y_age = source_stick_age(
             source_input.main_stick_y,
             sim->content.fighter.tilt_axis_threshold,
             previous_tilt_y_direction,
             world->tilt_y_age[player_index],
             &input_tilt_y_direction);
-        ucf_tilt_x_age = pf_m4_source_stick_age(
+        ucf_tilt_x_age = source_stick_age(
             source_input.main_stick_x,
             sim->content.fighter.tilt_axis_threshold,
             previous_tilt_x_direction,
             world->ucf_tilt_x_age[player_index],
             &input_tilt_x_direction);
-        ucf_tilt_y_age = pf_m4_source_stick_age(
+        ucf_tilt_y_age = source_stick_age(
             source_input.main_stick_y,
             sim->content.fighter.tilt_axis_threshold,
             previous_tilt_y_direction,
@@ -748,12 +748,12 @@ pf_status pf_sim_tick_impl(
         if (sim->content.gameplay_ruleset ==
             (uint8_t)PF_M4_GAMEPLAY_RULESET_SSBM_NTSC102_UCF084)
         {
-            pf_m4_apply_ucf084_cardinals(&source_input);
+            apply_ucf084_cardinals(&source_input);
         }
         ucf_pad_buffer_count =
             sim->content.gameplay_ruleset ==
                     (uint8_t)PF_M4_GAMEPLAY_RULESET_SSBM_NTSC102_UCF084
-                ? pf_m4_ucf084_pad_buffer_count(
+                ? ucf084_pad_buffer_count(
                       &source_input,
                       current_raw,
                       world->raw_main_t2_y[player_index],
@@ -761,11 +761,11 @@ pf_status pf_sim_tick_impl(
                       world->ucf_pad_buffer_count[player_index])
                 : UINT8_C(0);
         const pf_input_frame fighter_input =
-            pf_m4_reference_match_fighter_input(
+            reference_match_fighter_input(
                 &source_input,
                 world->reference_match_input_lock_ticks);
         const pf_input_frame priority_input =
-            pf_m4_reference_priority_input(
+            reference_priority_input(
                 &sim->content,
                 world,
                 &fighter_input,
@@ -774,28 +774,28 @@ pf_status pf_sim_tick_impl(
         pf_input_frame reflector_input;
         pf_input_frame projectile_input;
         pf_input_frame effective_input;
-        pf_m4_prepare_charge_input(
+        prepare_charge_input(
             &sim->content,
             world,
             &priority_input,
             player_index,
             &charge_input);
-        pf_m4_prepare_reflector_input(
+        prepare_reflector_input(
             &sim->content,
             world,
             &charge_input,
             player_index,
             &reflector_input);
-        const pf_m4_projectile_input_intent projectile_intent =
-            pf_m4_prepare_projectile_input(
+        const projectile_input_intent projectile_intent =
+            prepare_projectile_input(
                 &sim->content,
                 world,
                 scratch,
                 &reflector_input,
                 player_index,
                 &projectile_input);
-        const pf_m4_item_input_intent item_intent =
-            pf_m4_prepare_item_input(
+        const item_input_intent item_intent =
+            prepare_item_input(
                 &sim->content,
                 world,
                 scratch,
@@ -826,14 +826,14 @@ pf_status pf_sim_tick_impl(
             forfeit_mask |= UINT64_C(1) << player_index;
         }
 
-        status = pf_m4_step_player(
+        status = step_player(
             &sim->content,
             world,
             scratch,
             &effective_input,
             &priority_input,
             player_index,
-            player_nudge_x_q16[player_index],
+            player_nudge_x_q16_value[player_index],
             &rng_state);
         if (status != PF_STATUS_OK)
         {
@@ -858,11 +858,11 @@ pf_status pf_sim_tick_impl(
         scratch->previous_main_stick_y[player_index] =
             source_input.main_stick_y;
         scratch->previous_tilt_x_direction[player_index] =
-            pf_m4_source_stick_direction(
+            source_stick_direction(
                 source_input.main_stick_x,
                 sim->content.fighter.tilt_axis_threshold);
         scratch->previous_tilt_y_direction[player_index] =
-            pf_m4_source_stick_direction(
+            source_stick_direction(
                 source_input.main_stick_y,
                 sim->content.fighter.tilt_axis_threshold);
         scratch->ucf_tilt_x_age[player_index] = ucf_tilt_x_age;
@@ -872,10 +872,10 @@ pf_status pf_sim_tick_impl(
         scratch->ucf_pad_buffer_count[player_index] =
             ucf_pad_buffer_count;
         scratch->shield_held[player_index] =
-            pf_m4_input_trigger_state(&sim->content.fighter, &source_input);
+            input_trigger_state(&sim->content.fighter, &source_input);
         if (projectile_intent != PF_M4_PROJECTILE_INPUT_NONE)
         {
-            status = pf_m4_apply_projectile_input(
+            status = apply_projectile_input(
                 &sim->content,
                 world,
                 scratch,
@@ -889,7 +889,7 @@ pf_status pf_sim_tick_impl(
         }
         if (item_intent != PF_M4_ITEM_INPUT_NONE)
         {
-            status = pf_m4_apply_item_input(
+            status = apply_item_input(
                 &sim->content,
                 world,
                 scratch,
@@ -902,17 +902,17 @@ pf_status pf_sim_tick_impl(
                 return status;
             }
         }
-        pf_m4_track_action_transition(world, scratch, player_index);
+        track_action_transition(world, scratch, player_index);
     }
 
-    status = pf_m4_step_item(&sim->content, world, scratch);
+    status = step_item(&sim->content, world, scratch);
     if (status != PF_STATUS_OK)
     {
         pf_write_result(world, NULL, out_result);
         return status;
     }
 
-    status = pf_m4_resolve_combat(
+    status = resolve_combat(
         &sim->content, world, scratch, &rng_state);
     if (status != PF_STATUS_OK)
     {
@@ -920,19 +920,19 @@ pf_status pf_sim_tick_impl(
         return status;
     }
 
-    status = pf_m4_step_projectile(&sim->content, scratch);
+    status = step_projectile(&sim->content, scratch);
     if (status != PF_STATUS_OK)
     {
         pf_write_result(world, NULL, out_result);
         return status;
     }
 
-    pf_m4_canonicalize_source_animation_state(
+    canonicalize_source_animation_state(
         &sim->content.fighter,
         world,
         scratch);
 
-    status = pf_m4_emit_action_transitions(
+    status = emit_action_transitions(
         world,
         scratch,
         world->tick);
@@ -1298,7 +1298,7 @@ pf_status pf_sim_tick_impl(
     }
     if (world->terminated == UINT8_C(0))
     {
-        status = pf_m4_resolve_stock_result(
+        status = resolve_stock_result(
             sim,
             scratch,
             world->tick - UINT64_C(1));

@@ -562,7 +562,7 @@ def render(manifest: dict[str, Any], payload: dict[str, Any], digest: str) -> st
         f"#define {prefix}_capture_world_y_source_to_sim_denominator \\",
         f"    INT32_C({payload['capture_world_y_source_to_sim_denominator']})",
         "",
-        f"static const pf_m4_hsd_joint {prefix}_joints[] = {{",
+        f"static const hsd_joint {prefix}_joints[] = {{",
     ]
     for row in payload["joints"]:
         lines.append(
@@ -572,7 +572,7 @@ def render(manifest: dict[str, Any], payload: dict[str, Any], digest: str) -> st
             f" }}, INT8_C({row['parent_index']}), UINT8_C({int(row['classical_scale'])}), "
             "{ UINT8_C(0), UINT8_C(0) } },"
         )
-    lines.extend(["};", "", f"static const pf_m4_hsd_motion {prefix}_motions[] = {{"])
+    lines.extend(["};", "", f"static const hsd_motion {prefix}_motions[] = {{"])
     for row in payload["motions"]:
         lines.append(
             f"    {{ (uint16_t){row['submotion']}, UINT16_C({row['track_offset']}), "
@@ -614,7 +614,7 @@ def render(manifest: dict[str, Any], payload: dict[str, Any], digest: str) -> st
             "    }",
             "}",
             "",
-            f"static const pf_m4_hsd_wait_animation {prefix}_wait_animations[] = {{",
+            f"static const hsd_wait_animation {prefix}_wait_animations[] = {{",
         ]
     )
     for row in payload["wait_animations"]:
@@ -624,14 +624,14 @@ def render(manifest: dict[str, Any], payload: dict[str, Any], digest: str) -> st
             f"UINT8_C({row['blend_parameter']}), "
             "{ UINT8_C(0), UINT8_C(0), UINT8_C(0) } },"
         )
-    lines.extend(["};", "", f"static const pf_m4_hsd_track {prefix}_tracks[] = {{"])
+    lines.extend(["};", "", f"static const hsd_track {prefix}_tracks[] = {{"])
     for row in payload["tracks"]:
         lines.append(
             f"    {{ UINT16_C({row['key_offset']}), UINT16_C({row['key_count']}), "
             f"INT16_C({row['start_frame']}), UINT8_C({row['joint_index']}), "
             f"UINT8_C({row['track_type']}) }},"
         )
-    lines.extend(["};", "", f"static const pf_m4_hsd_key {prefix}_keys[] = {{"])
+    lines.extend(["};", "", f"static const hsd_key {prefix}_keys[] = {{"])
     for row in payload["keys"]:
         lines.append(
             "    { " + ", ".join(c_i32(row[name]) for name in ("frame", "value", "tangent")) +
@@ -639,7 +639,7 @@ def render(manifest: dict[str, Any], payload: dict[str, Any], digest: str) -> st
             "{ UINT8_C(0), UINT8_C(0), UINT8_C(0) } },"
         )
     lines.extend(
-        ["};", "", f"static const pf_m4_hsd_hurt_capsule {prefix}_capsules[] = {{"]
+        ["};", "", f"static const hsd_hurt_capsule {prefix}_capsules[] = {{"]
     )
     for row in payload["capsules"]:
         lines.append(
@@ -652,7 +652,7 @@ def render(manifest: dict[str, Any], payload: dict[str, Any], digest: str) -> st
     lines.extend(["};", ""])
     for pose in payload["static_local_poses"]:
         lines.append(
-            f"static const pf_m4_hsd_local_pose {prefix}_{pose['id']}_pose[] = {{"
+            f"static const hsd_local_pose {prefix}_{pose['id']}_pose[] = {{"
         )
         for row in pose["joints"]:
             lines.append(
@@ -690,7 +690,7 @@ def render(manifest: dict[str, Any], payload: dict[str, Any], digest: str) -> st
         )
     lines.extend(
         [
-            f"static const pf_m4_hsd_pose_data {prefix}_data = {{",
+            f"static const hsd_pose_data {prefix}_data = {{",
             f"    {prefix}_joints,",
             f"    {prefix}_motions,",
             f"    {prefix}_tracks,",

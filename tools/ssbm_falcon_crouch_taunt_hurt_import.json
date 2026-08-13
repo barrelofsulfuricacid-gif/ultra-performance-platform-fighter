@@ -6,7 +6,7 @@
   "profile_sha256": "67d3f20d79b808c5d193892fd529c7e270fa1f175a8a2f92ee403c8a3e8d0ac7",
   "capture_sha256": "0c40e316047eab2b4922049a80cdc9e9b05a55b16e2299ad4ca64467ac257348",
   "semantic_sha256": "3c72296c3c1558d7df32228892f5b1adec4b4370e72e4d415fdc981cd2aa3ed3",
-  "symbol_prefix": "pf_m4_falcon_crouch_taunt_hurt",
+  "symbol_prefix": "falcon_crouch_taunt_hurt",
   "enum_prefix": "PF_M4_FALCON_CROUCH_TAUNT_HURT",
   "expected_pose_count": 278,
   "expected_unique_pose_count": 278,

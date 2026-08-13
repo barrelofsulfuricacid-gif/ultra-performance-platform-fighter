@@ -2,7 +2,7 @@
 set -euo pipefail
 
 if [[ $# -lt 2 || $# -gt 4 ]]; then
-    echo "usage: $0 /path/to/GALE01.iso /path/to/melee-decomp [output.json] [m4_combat_test]" >&2
+    echo "usage: $0 /path/to/GALE01.iso /path/to/melee-decomp [output.json] [combat_test]" >&2
     exit 2
 fi
 

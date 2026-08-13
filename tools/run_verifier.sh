@@ -119,28 +119,28 @@ pf_record \
     "$pf_artifact_dir/m2_replay"
 pf_record \
     mechanical-oracle \
-    "$PF_REPOSITORY_ROOT/tools/verify_m4_movement.sh" \
-    "$pf_artifact_dir/m4_movement"
+    "$PF_REPOSITORY_ROOT/tools/verify_movement.sh" \
+    "$pf_artifact_dir/movement"
 pf_record \
     m4-combat \
-    "$PF_REPOSITORY_ROOT/tools/verify_m4_combat.sh" \
-    "$pf_artifact_dir/m4_combat"
+    "$PF_REPOSITORY_ROOT/tools/verify_combat.sh" \
+    "$pf_artifact_dir/combat"
 pf_record \
     m4-item \
-    "$PF_REPOSITORY_ROOT/tools/verify_m4_item.sh" \
-    "$pf_artifact_dir/m4_item"
+    "$PF_REPOSITORY_ROOT/tools/verify_item.sh" \
+    "$pf_artifact_dir/item"
 pf_record \
     m4-projectile \
-    "$PF_REPOSITORY_ROOT/tools/verify_m4_projectile.sh" \
-    "$pf_artifact_dir/m4_projectile"
+    "$PF_REPOSITORY_ROOT/tools/verify_projectile.sh" \
+    "$pf_artifact_dir/projectile"
 pf_record \
     m4-reflector \
-    "$PF_REPOSITORY_ROOT/tools/verify_m4_reflector.sh" \
-    "$pf_artifact_dir/m4_reflector"
+    "$PF_REPOSITORY_ROOT/tools/verify_reflector.sh" \
+    "$pf_artifact_dir/reflector"
 pf_record \
     m4-charge \
-    "$PF_REPOSITORY_ROOT/tools/verify_m4_charge.sh" \
-    "$pf_artifact_dir/m4_charge"
+    "$PF_REPOSITORY_ROOT/tools/verify_charge.sh" \
+    "$pf_artifact_dir/charge"
 pf_record \
     m3-regression-qualification \
     "$PF_REPOSITORY_ROOT/tools/verify_m3_performance.sh" \

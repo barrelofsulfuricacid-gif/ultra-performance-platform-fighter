@@ -12,23 +12,23 @@
     ((int32_t)(((int64_t)(numerator) * (int64_t)PF_Q16_ONE) /         \
                (int64_t)(denominator)))
 
-static const uint8_t pf_m4_content_hash_domain[8] = {
+static const uint8_t content_hash_domain[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x4d), UINT8_C(0x34),
     UINT8_C(0x44), UINT8_C(0x41), UINT8_C(0x54), UINT8_C(0x31)};
 
-static uint16_t pf_m4_falcon_reference_hitlag_ticks(uint8_t damage)
+static uint16_t falcon_reference_hitlag_ticks(uint8_t damage)
 {
     return (uint16_t)(damage / UINT8_C(3) + UINT8_C(3));
 }
 
-static int pf_m4_falcon_reference_body_collision_window(
+static int falcon_reference_body_collision_window(
     uint16_t submotion_index,
     uint16_t displayed_frame_bias,
     uint16_t *out_begin_tick,
     uint16_t *out_end_tick)
 {
-    const pf_m4_falcon_body_collision_timing *timing =
-        pf_m4_falcon_reference_body_collision_timing(submotion_index);
+    const falcon_body_collision_timing *timing =
+        falcon_reference_body_collision_timing(submotion_index);
 
     if (timing == NULL || out_begin_tick == NULL || out_end_tick == NULL ||
         timing->state_two_frame == UINT16_MAX ||
@@ -45,154 +45,154 @@ static int pf_m4_falcon_reference_body_collision_window(
     return 1;
 }
 
-static int pf_m4_apply_falcon_reference_common_action_timings(
-    pf_m4_fighter_data *fighter)
+static int apply_falcon_reference_common_action_timings(
+    fighter_data *fighter)
 {
-    const pf_m4_falcon_submotion_data *dash =
-        pf_m4_falcon_reference_submotion(PF_M4_FALCON_SUBMOTION_DASH);
-    const pf_m4_falcon_submotion_data *turn =
-        pf_m4_falcon_reference_submotion(PF_M4_FALCON_SUBMOTION_TURN);
-    const pf_m4_falcon_submotion_data *turn_run =
-        pf_m4_falcon_reference_submotion(PF_M4_FALCON_SUBMOTION_TURN_RUN);
-    const pf_m4_falcon_submotion_data *run_brake =
-        pf_m4_falcon_reference_submotion(PF_M4_FALCON_SUBMOTION_RUN_BRAKE);
-    const pf_m4_falcon_submotion_data *landing =
-        pf_m4_falcon_reference_submotion(PF_M4_FALCON_SUBMOTION_LANDING);
-    const pf_m4_falcon_submotion_data *squat =
-        pf_m4_falcon_reference_submotion(PF_M4_FALCON_SUBMOTION_SQUAT);
-    const pf_m4_falcon_submotion_data *squat_reverse =
-        pf_m4_falcon_reference_submotion(
+    const falcon_submotion_data *dash =
+        falcon_reference_submotion(PF_M4_FALCON_SUBMOTION_DASH);
+    const falcon_submotion_data *turn =
+        falcon_reference_submotion(PF_M4_FALCON_SUBMOTION_TURN);
+    const falcon_submotion_data *turn_run =
+        falcon_reference_submotion(PF_M4_FALCON_SUBMOTION_TURN_RUN);
+    const falcon_submotion_data *run_brake =
+        falcon_reference_submotion(PF_M4_FALCON_SUBMOTION_RUN_BRAKE);
+    const falcon_submotion_data *landing =
+        falcon_reference_submotion(PF_M4_FALCON_SUBMOTION_LANDING);
+    const falcon_submotion_data *squat =
+        falcon_reference_submotion(PF_M4_FALCON_SUBMOTION_SQUAT);
+    const falcon_submotion_data *squat_reverse =
+        falcon_reference_submotion(
             PF_M4_FALCON_SUBMOTION_SQUAT_REVERSE);
-    const pf_m4_falcon_submotion_data *guard_off =
-        pf_m4_falcon_reference_submotion(PF_M4_FALCON_SUBMOTION_GUARD_OFF);
-    const pf_m4_falcon_submotion_data *spot_dodge =
-        pf_m4_falcon_reference_submotion(PF_M4_FALCON_SUBMOTION_SPOT_DODGE);
-    const pf_m4_falcon_submotion_data *roll_forward =
-        pf_m4_falcon_reference_submotion(
+    const falcon_submotion_data *guard_off =
+        falcon_reference_submotion(PF_M4_FALCON_SUBMOTION_GUARD_OFF);
+    const falcon_submotion_data *spot_dodge =
+        falcon_reference_submotion(PF_M4_FALCON_SUBMOTION_SPOT_DODGE);
+    const falcon_submotion_data *roll_forward =
+        falcon_reference_submotion(
             PF_M4_FALCON_SUBMOTION_ROLL_FORWARD);
-    const pf_m4_falcon_submotion_data *roll_backward =
-        pf_m4_falcon_reference_submotion(
+    const falcon_submotion_data *roll_backward =
+        falcon_reference_submotion(
             PF_M4_FALCON_SUBMOTION_ROLL_BACKWARD);
-    const pf_m4_falcon_submotion_data *air_dodge =
-        pf_m4_falcon_reference_submotion(PF_M4_FALCON_SUBMOTION_AIR_DODGE);
-    const pf_m4_falcon_submotion_data *down_bound_back =
-        pf_m4_falcon_reference_submotion(
+    const falcon_submotion_data *air_dodge =
+        falcon_reference_submotion(PF_M4_FALCON_SUBMOTION_AIR_DODGE);
+    const falcon_submotion_data *down_bound_back =
+        falcon_reference_submotion(
             PF_M4_FALCON_SUBMOTION_DOWN_BOUND_BACK);
-    const pf_m4_falcon_submotion_data *down_bound_stomach =
-        pf_m4_falcon_reference_submotion(
+    const falcon_submotion_data *down_bound_stomach =
+        falcon_reference_submotion(
             PF_M4_FALCON_SUBMOTION_DOWN_BOUND_STOMACH);
-    const pf_m4_falcon_air_dodge_attributes *air_dodge_attributes =
-        pf_m4_falcon_reference_air_dodge_attributes();
-    const pf_m4_falcon_submotion_data *getup_neutral =
-        pf_m4_falcon_reference_submotion(
+    const falcon_air_dodge_attributes *air_dodge_attributes =
+        falcon_reference_air_dodge_attributes();
+    const falcon_submotion_data *getup_neutral =
+        falcon_reference_submotion(
             PF_M4_FALCON_SUBMOTION_GETUP_NEUTRAL_BACK);
-    const pf_m4_falcon_submotion_data *getup_attack =
-        pf_m4_falcon_reference_submotion(
+    const falcon_submotion_data *getup_attack =
+        falcon_reference_submotion(
             PF_M4_FALCON_SUBMOTION_GETUP_ATTACK_BACK);
-    const pf_m4_falcon_submotion_data *getup_attack_stomach =
-        pf_m4_falcon_reference_submotion(
+    const falcon_submotion_data *getup_attack_stomach =
+        falcon_reference_submotion(
             PF_M4_FALCON_SUBMOTION_GETUP_ATTACK_STOMACH);
-    const pf_m4_falcon_submotion_data *getup_roll_forward =
-        pf_m4_falcon_reference_submotion(
+    const falcon_submotion_data *getup_roll_forward =
+        falcon_reference_submotion(
             PF_M4_FALCON_SUBMOTION_GETUP_ROLL_FORWARD_BACK);
-    const pf_m4_falcon_submotion_data *getup_roll_backward =
-        pf_m4_falcon_reference_submotion(
+    const falcon_submotion_data *getup_roll_backward =
+        falcon_reference_submotion(
             PF_M4_FALCON_SUBMOTION_GETUP_ROLL_BACKWARD_BACK);
-    const pf_m4_falcon_submotion_data *getup_roll_forward_stomach =
-        pf_m4_falcon_reference_submotion(
+    const falcon_submotion_data *getup_roll_forward_stomach =
+        falcon_reference_submotion(
             PF_M4_FALCON_SUBMOTION_GETUP_ROLL_FORWARD_STOMACH);
-    const pf_m4_falcon_submotion_data *getup_roll_backward_stomach =
-        pf_m4_falcon_reference_submotion(
+    const falcon_submotion_data *getup_roll_backward_stomach =
+        falcon_reference_submotion(
             PF_M4_FALCON_SUBMOTION_GETUP_ROLL_BACKWARD_STOMACH);
-    const pf_m4_falcon_submotion_data *tech_in_place =
-        pf_m4_falcon_reference_submotion(
+    const falcon_submotion_data *tech_in_place =
+        falcon_reference_submotion(
             PF_M4_FALCON_SUBMOTION_TECH_IN_PLACE);
-    const pf_m4_falcon_submotion_data *tech_roll_forward =
-        pf_m4_falcon_reference_submotion(
+    const falcon_submotion_data *tech_roll_forward =
+        falcon_reference_submotion(
             PF_M4_FALCON_SUBMOTION_TECH_ROLL_FORWARD);
-    const pf_m4_falcon_submotion_data *tech_roll_backward =
-        pf_m4_falcon_reference_submotion(
+    const falcon_submotion_data *tech_roll_backward =
+        falcon_reference_submotion(
             PF_M4_FALCON_SUBMOTION_TECH_ROLL_BACKWARD);
-    const pf_m4_falcon_submotion_data *wall_tech =
-        pf_m4_falcon_reference_submotion(
+    const falcon_submotion_data *wall_tech =
+        falcon_reference_submotion(
             PF_M4_FALCON_SUBMOTION_WALL_TECH);
-    const pf_m4_falcon_submotion_data *wall_tech_jump =
-        pf_m4_falcon_reference_submotion(
+    const falcon_submotion_data *wall_tech_jump =
+        falcon_reference_submotion(
             PF_M4_FALCON_SUBMOTION_WALL_TECH_JUMP);
-    const pf_m4_falcon_submotion_data *ceiling_tech =
-        pf_m4_falcon_reference_submotion(
+    const falcon_submotion_data *ceiling_tech =
+        falcon_reference_submotion(
             PF_M4_FALCON_SUBMOTION_CEILING_TECH);
-    const pf_m4_falcon_submotion_data *shield_break_down_up =
-        pf_m4_falcon_reference_submotion(
+    const falcon_submotion_data *shield_break_down_up =
+        falcon_reference_submotion(
             PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_DOWN_UP);
-    const pf_m4_falcon_submotion_data *shield_break_down_down =
-        pf_m4_falcon_reference_submotion(
+    const falcon_submotion_data *shield_break_down_down =
+        falcon_reference_submotion(
             PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_DOWN_DOWN);
-    const pf_m4_falcon_submotion_data *shield_break_stand_up =
-        pf_m4_falcon_reference_submotion(
+    const falcon_submotion_data *shield_break_stand_up =
+        falcon_reference_submotion(
             PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_STAND_UP);
-    const pf_m4_falcon_submotion_data *shield_break_stand_down =
-        pf_m4_falcon_reference_submotion(
+    const falcon_submotion_data *shield_break_stand_down =
+        falcon_reference_submotion(
             PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_STAND_DOWN);
-    const pf_m4_falcon_submotion_data *teeter =
-        pf_m4_falcon_reference_submotion(
+    const falcon_submotion_data *teeter =
+        falcon_reference_submotion(
             PF_M4_FALCON_SUBMOTION_TEETER);
-    const pf_m4_falcon_submotion_data *teeter_wait =
-        pf_m4_falcon_reference_submotion(
+    const falcon_submotion_data *teeter_wait =
+        falcon_reference_submotion(
             PF_M4_FALCON_SUBMOTION_TEETER_WAIT);
-    const pf_m4_falcon_submotion_data *catch_cut =
-        pf_m4_falcon_reference_submotion(
+    const falcon_submotion_data *catch_cut =
+        falcon_reference_submotion(
             PF_M4_FALCON_SUBMOTION_CATCH_CUT);
-    const pf_m4_falcon_submotion_data *capture_cut =
-        pf_m4_falcon_reference_submotion(
+    const falcon_submotion_data *capture_cut =
+        falcon_reference_submotion(
             PF_M4_FALCON_SUBMOTION_CAPTURE_CUT);
-    const pf_m4_falcon_submotion_data *appeal_right =
-        pf_m4_falcon_reference_submotion(
+    const falcon_submotion_data *appeal_right =
+        falcon_reference_submotion(
             PF_M4_FALCON_SUBMOTION_APPEAL_RIGHT);
-    const pf_m4_falcon_submotion_data *appeal_left =
-        pf_m4_falcon_reference_submotion(
+    const falcon_submotion_data *appeal_left =
+        falcon_reference_submotion(
             PF_M4_FALCON_SUBMOTION_APPEAL_LEFT);
-    const pf_m4_falcon_body_collision_timing *getup_neutral_back_collision =
-        pf_m4_falcon_reference_body_collision_timing(
+    const falcon_body_collision_timing *getup_neutral_back_collision =
+        falcon_reference_body_collision_timing(
             PF_M4_FALCON_SUBMOTION_GETUP_NEUTRAL_BACK);
-    const pf_m4_falcon_body_collision_timing *
+    const falcon_body_collision_timing *
         getup_neutral_stomach_collision =
-            pf_m4_falcon_reference_body_collision_timing(
+            falcon_reference_body_collision_timing(
                 PF_M4_FALCON_SUBMOTION_GETUP_NEUTRAL_STOMACH);
-    const pf_m4_falcon_body_collision_timing *getup_attack_back_collision =
-        pf_m4_falcon_reference_body_collision_timing(
+    const falcon_body_collision_timing *getup_attack_back_collision =
+        falcon_reference_body_collision_timing(
             PF_M4_FALCON_SUBMOTION_GETUP_ATTACK_BACK);
-    const pf_m4_falcon_body_collision_timing *
+    const falcon_body_collision_timing *
         getup_attack_stomach_collision =
-            pf_m4_falcon_reference_body_collision_timing(
+            falcon_reference_body_collision_timing(
                 PF_M4_FALCON_SUBMOTION_GETUP_ATTACK_STOMACH);
-    const pf_m4_falcon_body_collision_timing *
+    const falcon_body_collision_timing *
         getup_roll_back_forward_collision =
-            pf_m4_falcon_reference_body_collision_timing(
+            falcon_reference_body_collision_timing(
                 PF_M4_FALCON_SUBMOTION_GETUP_ROLL_FORWARD_BACK);
-    const pf_m4_falcon_body_collision_timing *
+    const falcon_body_collision_timing *
         getup_roll_back_backward_collision =
-            pf_m4_falcon_reference_body_collision_timing(
+            falcon_reference_body_collision_timing(
                 PF_M4_FALCON_SUBMOTION_GETUP_ROLL_BACKWARD_BACK);
-    const pf_m4_falcon_body_collision_timing *
+    const falcon_body_collision_timing *
         getup_roll_stomach_forward_collision =
-            pf_m4_falcon_reference_body_collision_timing(
+            falcon_reference_body_collision_timing(
                 PF_M4_FALCON_SUBMOTION_GETUP_ROLL_FORWARD_STOMACH);
-    const pf_m4_falcon_body_collision_timing *
+    const falcon_body_collision_timing *
         getup_roll_stomach_backward_collision =
-            pf_m4_falcon_reference_body_collision_timing(
+            falcon_reference_body_collision_timing(
                 PF_M4_FALCON_SUBMOTION_GETUP_ROLL_BACKWARD_STOMACH);
-    const pf_m4_falcon_body_collision_timing *tech_in_place_collision =
-        pf_m4_falcon_reference_body_collision_timing(
+    const falcon_body_collision_timing *tech_in_place_collision =
+        falcon_reference_body_collision_timing(
             PF_M4_FALCON_SUBMOTION_TECH_IN_PLACE);
-    const pf_m4_falcon_body_collision_timing *tech_roll_forward_collision =
-        pf_m4_falcon_reference_body_collision_timing(
+    const falcon_body_collision_timing *tech_roll_forward_collision =
+        falcon_reference_body_collision_timing(
             PF_M4_FALCON_SUBMOTION_TECH_ROLL_FORWARD);
-    const pf_m4_falcon_body_collision_timing *tech_roll_backward_collision =
-        pf_m4_falcon_reference_body_collision_timing(
+    const falcon_body_collision_timing *tech_roll_backward_collision =
+        falcon_reference_body_collision_timing(
             PF_M4_FALCON_SUBMOTION_TECH_ROLL_BACKWARD);
-    const pf_m4_falcon_body_collision_timing *ceiling_tech_collision =
-        pf_m4_falcon_reference_body_collision_timing(
+    const falcon_body_collision_timing *ceiling_tech_collision =
+        falcon_reference_body_collision_timing(
             PF_M4_FALCON_SUBMOTION_CEILING_TECH);
     uint16_t spot_dodge_invulnerability_begin_tick;
     uint16_t spot_dodge_invulnerability_end_tick;
@@ -295,17 +295,17 @@ static int pf_m4_apply_falcon_reference_common_action_timings(
         teeter_wait->animation_frame_count == UINT16_C(0) ||
         catch_cut->animation_frame_count == UINT16_C(0) ||
         capture_cut->animation_frame_count == UINT16_C(0) ||
-        !pf_m4_falcon_reference_body_collision_window(
+        !falcon_reference_body_collision_window(
             PF_M4_FALCON_SUBMOTION_SPOT_DODGE,
             UINT16_C(0),
             &spot_dodge_invulnerability_begin_tick,
             &spot_dodge_invulnerability_end_tick) ||
-        !pf_m4_falcon_reference_body_collision_window(
+        !falcon_reference_body_collision_window(
             PF_M4_FALCON_SUBMOTION_ROLL_FORWARD,
             UINT16_C(0),
             &roll_forward_invulnerability_begin_tick,
             &roll_forward_invulnerability_end_tick) ||
-        !pf_m4_falcon_reference_body_collision_window(
+        !falcon_reference_body_collision_window(
             PF_M4_FALCON_SUBMOTION_ROLL_BACKWARD,
             UINT16_C(0),
             &roll_backward_invulnerability_begin_tick,
@@ -316,7 +316,7 @@ static int pf_m4_apply_falcon_reference_common_action_timings(
             roll_backward_invulnerability_end_tick ||
         /* Dolphin exposes EscapeAir displayed frame 1 at M4 action tick 0;
          * ground escapes expose displayed frame 1 at action tick 1. */
-        !pf_m4_falcon_reference_body_collision_window(
+        !falcon_reference_body_collision_window(
             PF_M4_FALCON_SUBMOTION_AIR_DODGE,
             UINT16_C(1),
             &air_dodge_invulnerability_begin_tick,
@@ -409,14 +409,14 @@ static int pf_m4_apply_falcon_reference_common_action_timings(
     return 1;
 }
 
-static int pf_m4_apply_falcon_reference_attack(
-    pf_m4_attack_data *attack,
-    pf_m4_falcon_move_index move_index)
+static int apply_falcon_reference_attack(
+    attack_data *attack,
+    falcon_move_index move_index)
 {
-    const pf_m4_reference_hit_effect *effect =
-        pf_m4_falcon_reference_primary_effect(move_index);
-    const pf_m4_reference_timing timing =
-        pf_m4_falcon_reference_timing(move_index);
+    const reference_hit_effect *effect =
+        falcon_reference_primary_effect(move_index);
+    const reference_timing timing =
+        falcon_reference_timing(move_index);
 
     if (attack == NULL || effect == NULL ||
         timing.active_ticks == UINT16_C(0))
@@ -428,13 +428,13 @@ static int pf_m4_apply_falcon_reference_attack(
     attack->active_ticks = timing.active_ticks;
     attack->recovery_ticks = timing.recovery_ticks;
     attack->hitlag_ticks =
-        pf_m4_falcon_reference_hitlag_ticks(effect->damage);
+        falcon_reference_hitlag_ticks(effect->damage);
     return 1;
 }
 
-static void pf_m4_apply_falcon_reference_knockback(
-    pf_m4_melee_knockback_data *knockback,
-    const pf_m4_reference_hit_effect *effect)
+static void apply_falcon_reference_knockback(
+    melee_knockback_data *knockback,
+    const reference_hit_effect *effect)
 {
     knockback->angle_degrees = effect->angle_degrees;
     knockback->growth = effect->growth;
@@ -443,18 +443,18 @@ static void pf_m4_apply_falcon_reference_knockback(
     knockback->enabled = UINT8_C(1);
 }
 
-static int pf_m4_apply_falcon_reference_throw(
-    pf_m4_throw_data *throw_data,
-    pf_m4_falcon_move_index move_index)
+static int apply_falcon_reference_throw(
+    struct throw_data *throw_data,
+    falcon_move_index move_index)
 {
-    const pf_m4_falcon_common_attributes *attributes =
-        pf_m4_falcon_reference_common_attributes();
-    const pf_m4_ssbm_ground_input_attributes *common =
-        pf_m4_ssbm_common_reference_ground_input();
-    const pf_m4_reference_move *move =
-        pf_m4_falcon_reference_move(move_index);
-    const pf_m4_reference_throw *effect =
-        pf_m4_falcon_reference_throw(move_index);
+    const falcon_common_attributes *attributes =
+        falcon_reference_common_attributes();
+    const ssbm_ground_input_attributes *common =
+        ssbm_common_reference_ground_input();
+    const struct reference_move *move =
+        falcon_reference_move(move_index);
+    const reference_throw *effect =
+        falcon_reference_throw(move_index);
     uint32_t release_tick;
     uint32_t total_ticks;
 
@@ -479,11 +479,11 @@ static int pf_m4_apply_falcon_reference_throw(
         if ((attributes->weight_independent_throws_mask &
              (uint8_t)(UINT8_C(1) << throw_index)) == UINT8_C(0))
         {
-            release_tick = (uint32_t)pf_m4_ssbm_throw_animation_ticks(
+            release_tick = (uint32_t)ssbm_throw_animation_ticks(
                 (uint16_t)release_tick,
                 attributes->weight,
                 0);
-            total_ticks = (uint32_t)pf_m4_ssbm_throw_animation_ticks(
+            total_ticks = (uint32_t)ssbm_throw_animation_ticks(
                 (uint16_t)total_ticks,
                 attributes->weight,
                 0);
@@ -529,13 +529,13 @@ static int pf_m4_apply_falcon_reference_throw(
     return 1;
 }
 
-static int pf_m4_apply_falcon_reference_grabs(
-    pf_m4_fighter_data *fighter)
+static int apply_falcon_reference_grabs(
+    fighter_data *fighter)
 {
-    const pf_m4_reference_timing standing =
-        pf_m4_falcon_reference_timing(PF_M4_FALCON_GRAB);
-    const pf_m4_reference_timing dash =
-        pf_m4_falcon_reference_timing(PF_M4_FALCON_DASH_GRAB);
+    const reference_timing standing =
+        falcon_reference_timing(PF_M4_FALCON_GRAB);
+    const reference_timing dash =
+        falcon_reference_timing(PF_M4_FALCON_DASH_GRAB);
 
     if (fighter == NULL || standing.startup_ticks == UINT16_C(0) ||
         standing.active_ticks == UINT16_C(0) ||
@@ -555,20 +555,20 @@ static int pf_m4_apply_falcon_reference_grabs(
     return 1;
 }
 
-static int pf_m4_apply_falcon_reference_jab(
-    pf_m4_fighter_data *fighter)
+static int apply_falcon_reference_jab(
+    fighter_data *fighter)
 {
-    const pf_m4_reference_hit_effect *jab_effect =
-        pf_m4_falcon_reference_primary_effect(PF_M4_FALCON_JAB1);
-    const pf_m4_reference_hit_effect *jab_final_effect =
-        pf_m4_falcon_reference_primary_effect(PF_M4_FALCON_JAB2);
-    pf_m4_attack_data jab = {0};
-    pf_m4_attack_data jab_final = {0};
+    const reference_hit_effect *jab_effect =
+        falcon_reference_primary_effect(PF_M4_FALCON_JAB1);
+    const reference_hit_effect *jab_final_effect =
+        falcon_reference_primary_effect(PF_M4_FALCON_JAB2);
+    attack_data jab = {0};
+    attack_data jab_final = {0};
 
-    if (!pf_m4_apply_falcon_reference_attack(
+    if (!apply_falcon_reference_attack(
         &jab,
         PF_M4_FALCON_JAB1) ||
-        !pf_m4_apply_falcon_reference_attack(
+        !apply_falcon_reference_attack(
         &jab_final,
         PF_M4_FALCON_JAB2) ||
         jab_effect == NULL || jab_final_effect == NULL)
@@ -582,7 +582,7 @@ static int pf_m4_apply_falcon_reference_jab(
     fighter->jab_hitlag_ticks = jab.hitlag_ticks;
     fighter->jab_combo_input_begin_tick =
         jab.startup_ticks + jab.active_ticks;
-    pf_m4_apply_falcon_reference_knockback(
+    apply_falcon_reference_knockback(
         &fighter->jab_melee_knockback,
         jab_effect);
     fighter->jab_final_damage_q16 = jab_final.damage_q16;
@@ -590,68 +590,68 @@ static int pf_m4_apply_falcon_reference_jab(
     fighter->jab_final_active_ticks = jab_final.active_ticks;
     fighter->jab_final_recovery_ticks = jab_final.recovery_ticks;
     fighter->jab_final_hitlag_ticks = jab_final.hitlag_ticks;
-    pf_m4_apply_falcon_reference_knockback(
+    apply_falcon_reference_knockback(
         &fighter->jab_final_melee_knockback,
         jab_final_effect);
     return 1;
 }
 
-static int pf_m4_apply_falcon_reference_defaults(
-    pf_m4_fighter_data *fighter)
+static int apply_falcon_reference_defaults(
+    fighter_data *fighter)
 {
-    const pf_m4_reference_move *neutral_aerial =
-        pf_m4_falcon_reference_move(PF_M4_FALCON_NEUTRAL_AERIAL);
-    const pf_m4_reference_move *forward_aerial =
-        pf_m4_falcon_reference_move(PF_M4_FALCON_FORWARD_AERIAL);
-    const pf_m4_reference_move *back_aerial =
-        pf_m4_falcon_reference_move(PF_M4_FALCON_BACK_AERIAL);
-    const pf_m4_reference_move *up_aerial =
-        pf_m4_falcon_reference_move(PF_M4_FALCON_UP_AERIAL);
-    const pf_m4_reference_move *down_aerial =
-        pf_m4_falcon_reference_move(PF_M4_FALCON_DOWN_AERIAL);
-    const pf_m4_reference_move *pummel =
-        pf_m4_falcon_reference_move(PF_M4_FALCON_PUMMEL);
-    pf_m4_attack_data dash_attack = {0};
-    pf_m4_attack_data neutral_aerial_attack = {0};
+    const struct reference_move *neutral_aerial =
+        falcon_reference_move(PF_M4_FALCON_NEUTRAL_AERIAL);
+    const struct reference_move *forward_aerial =
+        falcon_reference_move(PF_M4_FALCON_FORWARD_AERIAL);
+    const struct reference_move *back_aerial =
+        falcon_reference_move(PF_M4_FALCON_BACK_AERIAL);
+    const struct reference_move *up_aerial =
+        falcon_reference_move(PF_M4_FALCON_UP_AERIAL);
+    const struct reference_move *down_aerial =
+        falcon_reference_move(PF_M4_FALCON_DOWN_AERIAL);
+    const struct reference_move *pummel =
+        falcon_reference_move(PF_M4_FALCON_PUMMEL);
+    attack_data dash_attack = {0};
+    attack_data neutral_aerial_attack = {0};
 
     if (fighter == NULL || neutral_aerial == NULL ||
         forward_aerial == NULL || back_aerial == NULL ||
         up_aerial == NULL || down_aerial == NULL || pummel == NULL ||
-        !pf_m4_apply_falcon_reference_jab(fighter) ||
-        !pf_m4_apply_falcon_reference_attack(
+        !apply_falcon_reference_jab(fighter) ||
+        !apply_falcon_reference_attack(
             &dash_attack,
             PF_M4_FALCON_DASH_ATTACK) ||
-        !pf_m4_apply_falcon_reference_attack(
+        !apply_falcon_reference_attack(
             &fighter->up_attack,
             PF_M4_FALCON_UP_TILT) ||
-        !pf_m4_apply_falcon_reference_attack(
+        !apply_falcon_reference_attack(
             &fighter->down_attack,
             PF_M4_FALCON_DOWN_TILT) ||
-        !pf_m4_apply_falcon_reference_attack(
+        !apply_falcon_reference_attack(
             &fighter->forward_attack,
             PF_M4_FALCON_FORWARD_TILT) ||
-        !pf_m4_apply_falcon_reference_attack(
+        !apply_falcon_reference_attack(
             &fighter->forward_strong_attack,
             PF_M4_FALCON_FORWARD_SMASH) ||
-        !pf_m4_apply_falcon_reference_attack(
+        !apply_falcon_reference_attack(
             &fighter->up_strong_attack,
             PF_M4_FALCON_UP_SMASH) ||
-        !pf_m4_apply_falcon_reference_attack(
+        !apply_falcon_reference_attack(
             &fighter->down_strong_attack,
             PF_M4_FALCON_DOWN_SMASH) ||
-        !pf_m4_apply_falcon_reference_attack(
+        !apply_falcon_reference_attack(
             &fighter->forward_aerial,
             PF_M4_FALCON_FORWARD_AERIAL) ||
-        !pf_m4_apply_falcon_reference_attack(
+        !apply_falcon_reference_attack(
             &fighter->back_aerial,
             PF_M4_FALCON_BACK_AERIAL) ||
-        !pf_m4_apply_falcon_reference_attack(
+        !apply_falcon_reference_attack(
             &fighter->up_aerial,
             PF_M4_FALCON_UP_AERIAL) ||
-        !pf_m4_apply_falcon_reference_attack(
+        !apply_falcon_reference_attack(
             &fighter->down_aerial,
             PF_M4_FALCON_DOWN_AERIAL) ||
-        !pf_m4_apply_falcon_reference_attack(
+        !apply_falcon_reference_attack(
             &neutral_aerial_attack,
             PF_M4_FALCON_NEUTRAL_AERIAL))
     {
@@ -678,10 +678,10 @@ static int pf_m4_apply_falcon_reference_defaults(
     fighter->down_aerial_landing_lag_ticks = down_aerial->landing_lag;
 
     {
-        const pf_m4_reference_hit_effect *pummel_effect =
-            pf_m4_falcon_reference_primary_effect(PF_M4_FALCON_PUMMEL);
-        const pf_m4_reference_hit_phase *pummel_phase =
-            pf_m4_falcon_reference_phase(
+        const reference_hit_effect *pummel_effect =
+            falcon_reference_primary_effect(PF_M4_FALCON_PUMMEL);
+        const reference_hit_phase *pummel_phase =
+            falcon_reference_phase(
                 PF_M4_FALCON_PUMMEL,
                 UINT16_C(0));
 
@@ -693,19 +693,19 @@ static int pf_m4_apply_falcon_reference_defaults(
             (uint32_t)pummel_effect->damage * UINT32_C(65536);
         fighter->pummel_hit_tick = pummel_phase->first_frame;
         fighter->pummel_total_ticks = pummel->total_frames;
-        pf_m4_falcon_reference_capture_offset_q16(
+        falcon_reference_capture_offset_q16(
             &fighter->grabbed_offset_x_q16,
             &fighter->grabbed_offset_y_q16);
     }
     return 1;
 }
 
-static void pf_m4_hash_u8(pf_sha256 *hash, uint8_t value)
+static void hash_u8(pf_sha256 *hash, uint8_t value)
 {
     pf_sha256_update(hash, &value, sizeof(value));
 }
 
-static void pf_m4_hash_u16(pf_sha256 *hash, uint16_t value)
+static void hash_u16(pf_sha256 *hash, uint16_t value)
 {
     uint8_t bytes[2];
 
@@ -714,7 +714,7 @@ static void pf_m4_hash_u16(pf_sha256 *hash, uint16_t value)
     pf_sha256_update(hash, bytes, sizeof(bytes));
 }
 
-static void pf_m4_hash_u32(pf_sha256 *hash, uint32_t value)
+static void hash_u32(pf_sha256 *hash, uint32_t value)
 {
     uint8_t bytes[4];
 
@@ -725,23 +725,23 @@ static void pf_m4_hash_u32(pf_sha256 *hash, uint32_t value)
     pf_sha256_update(hash, bytes, sizeof(bytes));
 }
 
-static void pf_m4_hash_i32(pf_sha256 *hash, int32_t value)
+static void hash_i32(pf_sha256 *hash, int32_t value)
 {
-    pf_m4_hash_u32(hash, (uint32_t)value);
+    hash_u32(hash, (uint32_t)value);
 }
 
-static void pf_m4_hash_getup_roll_timing(
+static void hash_getup_roll_timing(
     pf_sha256 *hash,
-    const pf_m4_getup_roll_timing *timing)
+    const getup_roll_timing *timing)
 {
-    pf_m4_hash_u8(hash, timing->movement_begin_tick);
-    pf_m4_hash_u8(hash, timing->invulnerability_begin_tick);
-    pf_m4_hash_u8(hash, timing->invulnerability_end_tick);
-    pf_m4_hash_u8(hash, timing->reserved);
+    hash_u8(hash, timing->movement_begin_tick);
+    hash_u8(hash, timing->invulnerability_begin_tick);
+    hash_u8(hash, timing->invulnerability_end_tick);
+    hash_u8(hash, timing->reserved);
 }
 
-static int pf_m4_getup_roll_timing_is_valid(
-    const pf_m4_getup_roll_timing *timing,
+static int getup_roll_timing_is_valid(
+    const getup_roll_timing *timing,
     uint16_t total_ticks)
 {
     return timing->movement_begin_tick != UINT16_C(0) &&
@@ -753,7 +753,7 @@ static int pf_m4_getup_roll_timing_is_valid(
            timing->reserved == UINT16_C(0);
 }
 
-static int pf_m4_velocity_animation_scaling_is_valid(int32_t scaling_q16)
+static int velocity_animation_scaling_is_valid(int32_t scaling_q16)
 {
     return scaling_q16 > INT32_C(0) &&
            (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16 *
@@ -761,50 +761,50 @@ static int pf_m4_velocity_animation_scaling_is_valid(int32_t scaling_q16)
                (int64_t)INT32_MAX * (int64_t)scaling_q16;
 }
 
-static void pf_m4_hash_throw(
+static void hash_throw(
     pf_sha256 *hash,
-    const pf_m4_throw_data *throw_data)
+    const struct throw_data *throw_data)
 {
-    pf_m4_hash_u32(hash, throw_data->damage_q16);
-    pf_m4_hash_i32(hash, throw_data->base_velocity_x_q16);
-    pf_m4_hash_i32(hash, throw_data->base_velocity_y_q16);
-    pf_m4_hash_i32(hash, throw_data->velocity_growth_x_q16);
-    pf_m4_hash_i32(hash, throw_data->velocity_growth_y_q16);
-    pf_m4_hash_u16(hash, throw_data->release_tick);
-    pf_m4_hash_u16(hash, throw_data->recovery_ticks);
-    pf_m4_hash_u16(hash, throw_data->hitlag_ticks);
-    pf_m4_hash_u16(hash, throw_data->reserved);
-    pf_m4_hash_u16(
+    hash_u32(hash, throw_data->damage_q16);
+    hash_i32(hash, throw_data->base_velocity_x_q16);
+    hash_i32(hash, throw_data->base_velocity_y_q16);
+    hash_i32(hash, throw_data->velocity_growth_x_q16);
+    hash_i32(hash, throw_data->velocity_growth_y_q16);
+    hash_u16(hash, throw_data->release_tick);
+    hash_u16(hash, throw_data->recovery_ticks);
+    hash_u16(hash, throw_data->hitlag_ticks);
+    hash_u16(hash, throw_data->reserved);
+    hash_u16(
         hash, throw_data->melee_knockback.angle_degrees);
-    pf_m4_hash_u16(hash, throw_data->melee_knockback.growth);
-    pf_m4_hash_u16(hash, throw_data->melee_knockback.weight_set);
-    pf_m4_hash_u16(hash, throw_data->melee_knockback.base);
-    pf_m4_hash_u8(hash, throw_data->melee_knockback.enabled);
-    pf_m4_hash_u8(hash, throw_data->melee_knockback.reserved[0]);
-    pf_m4_hash_u8(hash, throw_data->melee_knockback.reserved[1]);
-    pf_m4_hash_u8(hash, throw_data->melee_knockback.reserved[2]);
+    hash_u16(hash, throw_data->melee_knockback.growth);
+    hash_u16(hash, throw_data->melee_knockback.weight_set);
+    hash_u16(hash, throw_data->melee_knockback.base);
+    hash_u8(hash, throw_data->melee_knockback.enabled);
+    hash_u8(hash, throw_data->melee_knockback.reserved[0]);
+    hash_u8(hash, throw_data->melee_knockback.reserved[1]);
+    hash_u8(hash, throw_data->melee_knockback.reserved[2]);
 }
 
-static void pf_m4_hash_attack(
+static void hash_attack(
     pf_sha256 *hash,
-    const pf_m4_attack_data *attack)
+    const attack_data *attack)
 {
-    pf_m4_hash_i32(hash, attack->hitbox_offset_x_q16);
-    pf_m4_hash_i32(hash, attack->hitbox_offset_y_q16);
-    pf_m4_hash_i32(hash, attack->hitbox_half_width_q16);
-    pf_m4_hash_i32(hash, attack->hitbox_half_height_q16);
-    pf_m4_hash_u32(hash, attack->damage_q16);
-    pf_m4_hash_i32(hash, attack->base_knockback_x_q16);
-    pf_m4_hash_i32(hash, attack->base_knockback_y_q16);
-    pf_m4_hash_i32(hash, attack->knockback_growth_q16);
-    pf_m4_hash_u16(hash, attack->startup_ticks);
-    pf_m4_hash_u16(hash, attack->active_ticks);
-    pf_m4_hash_u16(hash, attack->recovery_ticks);
-    pf_m4_hash_u16(hash, attack->hitlag_ticks);
+    hash_i32(hash, attack->hitbox_offset_x_q16);
+    hash_i32(hash, attack->hitbox_offset_y_q16);
+    hash_i32(hash, attack->hitbox_half_width_q16);
+    hash_i32(hash, attack->hitbox_half_height_q16);
+    hash_u32(hash, attack->damage_q16);
+    hash_i32(hash, attack->base_knockback_x_q16);
+    hash_i32(hash, attack->base_knockback_y_q16);
+    hash_i32(hash, attack->knockback_growth_q16);
+    hash_u16(hash, attack->startup_ticks);
+    hash_u16(hash, attack->active_ticks);
+    hash_u16(hash, attack->recovery_ticks);
+    hash_u16(hash, attack->hitlag_ticks);
 }
 
-static int pf_m4_attack_data_is_valid(
-    const pf_m4_attack_data *attack,
+static int attack_data_is_valid(
+    const attack_data *attack,
     int32_t maximum_extent_q16)
 {
     const int64_t maximum_knockback_x =
@@ -850,8 +850,8 @@ static int pf_m4_attack_data_is_valid(
                UINT32_C(600);
 }
 
-static int pf_m4_charged_attack_damage_is_valid(
-    const pf_m4_attack_data *attack,
+static int charged_attack_damage_is_valid(
+    const attack_data *attack,
     uint32_t bonus_q16)
 {
     const uint64_t charged_damage =
@@ -862,8 +862,8 @@ static int pf_m4_charged_attack_damage_is_valid(
            (uint64_t)UINT32_C(50) * UINT64_C(65536);
 }
 
-static int pf_m4_throw_data_is_valid(
-    const pf_m4_throw_data *throw_data)
+static int throw_data_is_valid(
+    const struct throw_data *throw_data)
 {
     const int64_t maximum_velocity_x =
         (int64_t)throw_data->base_velocity_x_q16 +
@@ -940,534 +940,534 @@ static int pf_m4_throw_data_is_valid(
            throw_data->reserved == UINT16_C(0);
 }
 
-static void pf_m4_hash_fighter(
+static void hash_fighter(
     pf_sha256 *hash,
-    const pf_m4_fighter_data *fighter)
+    const fighter_data *fighter)
 {
     pf_sha256_update(
         hash,
-        pf_m4_falcon_reference_complete_source_sha256(),
+        falcon_reference_complete_source_sha256(),
         (size_t)32);
     pf_sha256_update(
         hash,
-        pf_m4_falcon_reference_geometry_sha256(),
+        falcon_reference_geometry_sha256(),
         (size_t)32);
     uint32_t stale_index;
 
-    pf_m4_hash_u16(hash, fighter->schema_version);
-    pf_m4_hash_u8(hash, fighter->reference_frame_data_enabled);
-    pf_m4_hash_i32(hash, fighter->half_width_q16);
-    pf_m4_hash_i32(hash, fighter->half_height_q16);
-    pf_m4_hash_i32(hash, fighter->player_push_half_width_q16);
-    pf_m4_hash_i32(hash, fighter->player_push_speed_q16);
-    pf_m4_hash_i32(hash, fighter->weight_q16);
-    pf_m4_hash_i32(hash, fighter->ground_acceleration_q16);
-    pf_m4_hash_i32(hash, fighter->turn_acceleration_q16);
-    pf_m4_hash_i32(hash, fighter->traction_q16);
-    pf_m4_hash_i32(hash, fighter->walk_speed_q16);
-    pf_m4_hash_i32(hash, fighter->run_speed_q16);
-    pf_m4_hash_i32(hash, fighter->initial_dash_speed_q16);
-    pf_m4_hash_i32(hash, fighter->walk_initial_velocity_q16);
-    pf_m4_hash_i32(hash, fighter->walk_acceleration_q16);
-    pf_m4_hash_i32(hash, fighter->slow_walk_animation_scaling_q16);
-    pf_m4_hash_i32(hash, fighter->middle_walk_animation_scaling_q16);
-    pf_m4_hash_i32(hash, fighter->fast_walk_animation_scaling_q16);
-    pf_m4_hash_i32(hash, fighter->run_animation_scaling_q16);
-    pf_m4_hash_u16(hash, fighter->walk_middle_speed_ratio_q16);
-    pf_m4_hash_u16(hash, fighter->walk_fast_speed_ratio_q16);
-    pf_m4_hash_i32(hash, fighter->dash_run_base_acceleration_q16);
-    pf_m4_hash_i32(hash, fighter->ground_max_horizontal_speed_q16);
-    pf_m4_hash_i32(hash, fighter->walk_acceleration_taper_q16);
-    pf_m4_hash_i32(hash, fighter->run_acceleration_taper_q16);
-    pf_m4_hash_i32(hash, fighter->teeter_snap_distance_q16);
-    pf_m4_hash_i32(hash, fighter->crouch_step_speed_q16);
-    pf_m4_hash_i32(hash, fighter->air_acceleration_q16);
-    pf_m4_hash_i32(hash, fighter->air_base_acceleration_q16);
-    pf_m4_hash_i32(hash, fighter->air_friction_q16);
-    pf_m4_hash_i32(hash, fighter->air_max_horizontal_speed_q16);
-    pf_m4_hash_i32(hash, fighter->air_speed_q16);
-    pf_m4_hash_i32(hash, fighter->jump_horizontal_input_speed_q16);
-    pf_m4_hash_i32(
+    hash_u16(hash, fighter->schema_version);
+    hash_u8(hash, fighter->reference_frame_data_enabled);
+    hash_i32(hash, fighter->half_width_q16);
+    hash_i32(hash, fighter->half_height_q16);
+    hash_i32(hash, fighter->player_push_half_width_q16);
+    hash_i32(hash, fighter->player_push_speed_q16);
+    hash_i32(hash, fighter->weight_q16);
+    hash_i32(hash, fighter->ground_acceleration_q16);
+    hash_i32(hash, fighter->turn_acceleration_q16);
+    hash_i32(hash, fighter->traction_q16);
+    hash_i32(hash, fighter->walk_speed_q16);
+    hash_i32(hash, fighter->run_speed_q16);
+    hash_i32(hash, fighter->initial_dash_speed_q16);
+    hash_i32(hash, fighter->walk_initial_velocity_q16);
+    hash_i32(hash, fighter->walk_acceleration_q16);
+    hash_i32(hash, fighter->slow_walk_animation_scaling_q16);
+    hash_i32(hash, fighter->middle_walk_animation_scaling_q16);
+    hash_i32(hash, fighter->fast_walk_animation_scaling_q16);
+    hash_i32(hash, fighter->run_animation_scaling_q16);
+    hash_u16(hash, fighter->walk_middle_speed_ratio_q16);
+    hash_u16(hash, fighter->walk_fast_speed_ratio_q16);
+    hash_i32(hash, fighter->dash_run_base_acceleration_q16);
+    hash_i32(hash, fighter->ground_max_horizontal_speed_q16);
+    hash_i32(hash, fighter->walk_acceleration_taper_q16);
+    hash_i32(hash, fighter->run_acceleration_taper_q16);
+    hash_i32(hash, fighter->teeter_snap_distance_q16);
+    hash_i32(hash, fighter->crouch_step_speed_q16);
+    hash_i32(hash, fighter->air_acceleration_q16);
+    hash_i32(hash, fighter->air_base_acceleration_q16);
+    hash_i32(hash, fighter->air_friction_q16);
+    hash_i32(hash, fighter->air_max_horizontal_speed_q16);
+    hash_i32(hash, fighter->air_speed_q16);
+    hash_i32(hash, fighter->jump_horizontal_input_speed_q16);
+    hash_i32(
         hash,
         fighter->jump_horizontal_momentum_multiplier_q16);
-    pf_m4_hash_i32(hash, fighter->jump_horizontal_max_speed_q16);
-    pf_m4_hash_i32(hash, fighter->gravity_q16);
-    pf_m4_hash_i32(hash, fighter->fall_speed_q16);
-    pf_m4_hash_i32(hash, fighter->fast_fall_speed_q16);
-    pf_m4_hash_i32(hash, fighter->full_hop_speed_q16);
-    pf_m4_hash_i32(hash, fighter->short_hop_speed_q16);
-    pf_m4_hash_i32(hash, fighter->double_jump_speed_q16);
-    pf_m4_hash_i32(hash, fighter->double_jump_horizontal_speed_q16);
-    pf_m4_hash_i32(hash, fighter->platform_drop_nudge_q16);
-    pf_m4_hash_i32(hash, fighter->platform_drop_speed_y_q16);
-    pf_m4_hash_i32(hash, fighter->ledge_jump_speed_x_q16);
-    pf_m4_hash_i32(hash, fighter->ledge_jump_speed_y_q16);
-    pf_m4_hash_i32(hash, fighter->ledge_roll_distance_q16);
-    pf_m4_hash_i32(hash, fighter->drop_cancel_snap_distance_q16);
-    pf_m4_hash_i32(hash, fighter->air_dodge_speed_x_q16);
-    pf_m4_hash_i32(hash, fighter->air_dodge_speed_y_q16);
-    pf_m4_hash_i32(hash, fighter->air_dodge_decay_q16);
-    pf_m4_hash_i32(hash, fighter->fall_special_mobility_q16);
-    pf_m4_hash_i32(
+    hash_i32(hash, fighter->jump_horizontal_max_speed_q16);
+    hash_i32(hash, fighter->gravity_q16);
+    hash_i32(hash, fighter->fall_speed_q16);
+    hash_i32(hash, fighter->fast_fall_speed_q16);
+    hash_i32(hash, fighter->full_hop_speed_q16);
+    hash_i32(hash, fighter->short_hop_speed_q16);
+    hash_i32(hash, fighter->double_jump_speed_q16);
+    hash_i32(hash, fighter->double_jump_horizontal_speed_q16);
+    hash_i32(hash, fighter->platform_drop_nudge_q16);
+    hash_i32(hash, fighter->platform_drop_speed_y_q16);
+    hash_i32(hash, fighter->ledge_jump_speed_x_q16);
+    hash_i32(hash, fighter->ledge_jump_speed_y_q16);
+    hash_i32(hash, fighter->ledge_roll_distance_q16);
+    hash_i32(hash, fighter->drop_cancel_snap_distance_q16);
+    hash_i32(hash, fighter->air_dodge_speed_x_q16);
+    hash_i32(hash, fighter->air_dodge_speed_y_q16);
+    hash_i32(hash, fighter->air_dodge_decay_q16);
+    hash_i32(hash, fighter->fall_special_mobility_q16);
+    hash_i32(
         hash,
         fighter->shield_break_launch_speed_q16);
-    pf_m4_hash_i32(hash, fighter->dash_attack_speed_q16);
-    pf_m4_hash_i32(
+    hash_i32(hash, fighter->dash_attack_speed_q16);
+    hash_i32(
         hash,
         fighter->dash_attack_hitbox_offset_x_q16);
-    pf_m4_hash_i32(
+    hash_i32(
         hash,
         fighter->dash_attack_hitbox_offset_y_q16);
-    pf_m4_hash_i32(
+    hash_i32(
         hash,
         fighter->dash_attack_hitbox_half_width_q16);
-    pf_m4_hash_i32(
+    hash_i32(
         hash,
         fighter->dash_attack_hitbox_half_height_q16);
-    pf_m4_hash_u32(hash, fighter->dash_attack_damage_q16);
-    pf_m4_hash_i32(
+    hash_u32(hash, fighter->dash_attack_damage_q16);
+    hash_i32(
         hash,
         fighter->dash_attack_base_knockback_x_q16);
-    pf_m4_hash_i32(
+    hash_i32(
         hash,
         fighter->dash_attack_base_knockback_y_q16);
-    pf_m4_hash_i32(
+    hash_i32(
         hash,
         fighter->dash_attack_knockback_growth_q16);
-    pf_m4_hash_i32(hash, fighter->jab_hitbox_offset_x_q16);
-    pf_m4_hash_i32(hash, fighter->jab_hitbox_offset_y_q16);
-    pf_m4_hash_i32(hash, fighter->jab_hitbox_half_width_q16);
-    pf_m4_hash_i32(hash, fighter->jab_hitbox_half_height_q16);
-    pf_m4_hash_u32(hash, fighter->jab_damage_q16);
-    pf_m4_hash_i32(hash, fighter->jab_base_knockback_x_q16);
-    pf_m4_hash_i32(hash, fighter->jab_base_knockback_y_q16);
-    pf_m4_hash_i32(hash, fighter->jab_knockback_growth_q16);
-    pf_m4_hash_u16(hash, fighter->jab_melee_knockback.angle_degrees);
-    pf_m4_hash_u16(hash, fighter->jab_melee_knockback.growth);
-    pf_m4_hash_u16(hash, fighter->jab_melee_knockback.weight_set);
-    pf_m4_hash_u16(hash, fighter->jab_melee_knockback.base);
-    pf_m4_hash_u8(hash, fighter->jab_melee_knockback.enabled);
-    pf_m4_hash_u8(hash, fighter->jab_melee_knockback.reserved[0]);
-    pf_m4_hash_u8(hash, fighter->jab_melee_knockback.reserved[1]);
-    pf_m4_hash_u8(hash, fighter->jab_melee_knockback.reserved[2]);
-    pf_m4_hash_i32(hash, fighter->jab_final_hitbox_offset_x_q16);
-    pf_m4_hash_i32(hash, fighter->jab_final_hitbox_offset_y_q16);
-    pf_m4_hash_i32(hash, fighter->jab_final_hitbox_half_width_q16);
-    pf_m4_hash_i32(hash, fighter->jab_final_hitbox_half_height_q16);
-    pf_m4_hash_u32(hash, fighter->jab_final_damage_q16);
-    pf_m4_hash_i32(hash, fighter->jab_final_base_knockback_x_q16);
-    pf_m4_hash_i32(hash, fighter->jab_final_base_knockback_y_q16);
-    pf_m4_hash_i32(hash, fighter->jab_final_knockback_growth_q16);
-    pf_m4_hash_u16(hash, fighter->jab_final_melee_knockback.angle_degrees);
-    pf_m4_hash_u16(hash, fighter->jab_final_melee_knockback.growth);
-    pf_m4_hash_u16(hash, fighter->jab_final_melee_knockback.weight_set);
-    pf_m4_hash_u16(hash, fighter->jab_final_melee_knockback.base);
-    pf_m4_hash_u8(hash, fighter->jab_final_melee_knockback.enabled);
-    pf_m4_hash_u8(hash, fighter->jab_final_melee_knockback.reserved[0]);
-    pf_m4_hash_u8(hash, fighter->jab_final_melee_knockback.reserved[1]);
-    pf_m4_hash_u8(hash, fighter->jab_final_melee_knockback.reserved[2]);
-    pf_m4_hash_attack(hash, &fighter->up_attack);
-    pf_m4_hash_attack(hash, &fighter->down_attack);
-    pf_m4_hash_attack(hash, &fighter->forward_attack);
-    pf_m4_hash_attack(hash, &fighter->forward_strong_attack);
-    pf_m4_hash_attack(hash, &fighter->up_strong_attack);
-    pf_m4_hash_attack(hash, &fighter->down_strong_attack);
-    pf_m4_hash_u32(hash, fighter->smash_charge_damage_bonus_q16);
-    pf_m4_hash_u16(hash, fighter->smash_charge_max_ticks);
-    pf_m4_hash_u16(hash, fighter->smash_charge_reserved);
-    pf_m4_hash_attack(hash, &fighter->forward_aerial);
-    pf_m4_hash_attack(hash, &fighter->back_aerial);
-    pf_m4_hash_attack(hash, &fighter->up_aerial);
-    pf_m4_hash_attack(hash, &fighter->down_aerial);
-    pf_m4_hash_attack(hash, &fighter->ledge_attack);
-    pf_m4_hash_u32(hash, fighter->reset_max_damage_q16);
-    pf_m4_hash_i32(hash, fighter->reset_bound_speed_q16);
-    pf_m4_hash_i32(hash, fighter->strong_hitbox_offset_x_q16);
-    pf_m4_hash_i32(hash, fighter->strong_hitbox_offset_y_q16);
-    pf_m4_hash_i32(hash, fighter->strong_hitbox_half_width_q16);
-    pf_m4_hash_i32(hash, fighter->strong_hitbox_half_height_q16);
-    pf_m4_hash_u32(hash, fighter->strong_damage_q16);
-    pf_m4_hash_i32(hash, fighter->strong_base_knockback_x_q16);
-    pf_m4_hash_i32(hash, fighter->strong_base_knockback_y_q16);
-    pf_m4_hash_i32(hash, fighter->strong_knockback_growth_q16);
-    pf_m4_hash_i32(hash, fighter->aerial_hitbox_offset_x_q16);
-    pf_m4_hash_i32(hash, fighter->aerial_hitbox_offset_y_q16);
-    pf_m4_hash_i32(hash, fighter->aerial_hitbox_half_width_q16);
-    pf_m4_hash_i32(hash, fighter->aerial_hitbox_half_height_q16);
-    pf_m4_hash_u32(hash, fighter->aerial_damage_q16);
-    pf_m4_hash_i32(hash, fighter->aerial_base_knockback_x_q16);
-    pf_m4_hash_i32(hash, fighter->aerial_base_knockback_y_q16);
-    pf_m4_hash_i32(hash, fighter->aerial_knockback_growth_q16);
-    pf_m4_hash_i32(hash, fighter->hitstun_velocity_per_tick_q16);
-    pf_m4_hash_i32(hash, fighter->v_cancel_velocity_scale_q16);
-    pf_m4_hash_u16(hash, fighter->knockback_weight);
-    pf_m4_hash_u16(hash, fighter->knockback_reserved);
-    pf_m4_hash_u32(hash, fighter->crouch_cancel_max_damage_q16);
-    pf_m4_hash_i32(hash, fighter->crouch_cancel_velocity_scale_q16);
-    pf_m4_hash_i32(hash, fighter->crouch_cancel_hitstun_scale_q16);
-    pf_m4_hash_i32(hash, fighter->di_max_angle_radians_q30);
-    pf_m4_hash_i32(hash, fighter->ground_knockback_decay_scale_q16);
-    pf_m4_hash_i32(hash, fighter->air_knockback_decay_q16);
-    pf_m4_hash_i32(hash, fighter->sdi_distance_x_q16);
-    pf_m4_hash_i32(hash, fighter->sdi_distance_y_q16);
-    pf_m4_hash_i32(hash, fighter->asdi_distance_x_q16);
-    pf_m4_hash_i32(hash, fighter->asdi_distance_y_q16);
-    pf_m4_hash_i32(hash, fighter->shield_sdi_scale_q16);
-    pf_m4_hash_i32(hash, fighter->tech_roll_speed_q16);
-    pf_m4_hash_i32(hash, fighter->wall_tech_speed_q16);
-    pf_m4_hash_i32(hash, fighter->wall_tech_jump_speed_x_q16);
-    pf_m4_hash_i32(hash, fighter->wall_tech_jump_speed_y_q16);
-    pf_m4_hash_i32(hash, fighter->wall_jump_speed_x_q16);
-    pf_m4_hash_i32(hash, fighter->wall_jump_speed_y_q16);
-    pf_m4_hash_i32(hash, fighter->ceiling_tech_speed_q16);
-    pf_m4_hash_i32(hash, fighter->surface_collision_threshold_x_q16);
-    pf_m4_hash_i32(hash, fighter->surface_collision_threshold_y_q16);
-    pf_m4_hash_i32(hash, fighter->surface_bounce_multiplier_q16);
-    pf_m4_hash_i32(hash, fighter->forward_roll_speed_q16);
-    pf_m4_hash_i32(hash, fighter->backward_roll_speed_q16);
-    pf_m4_hash_i32(
+    hash_i32(hash, fighter->jab_hitbox_offset_x_q16);
+    hash_i32(hash, fighter->jab_hitbox_offset_y_q16);
+    hash_i32(hash, fighter->jab_hitbox_half_width_q16);
+    hash_i32(hash, fighter->jab_hitbox_half_height_q16);
+    hash_u32(hash, fighter->jab_damage_q16);
+    hash_i32(hash, fighter->jab_base_knockback_x_q16);
+    hash_i32(hash, fighter->jab_base_knockback_y_q16);
+    hash_i32(hash, fighter->jab_knockback_growth_q16);
+    hash_u16(hash, fighter->jab_melee_knockback.angle_degrees);
+    hash_u16(hash, fighter->jab_melee_knockback.growth);
+    hash_u16(hash, fighter->jab_melee_knockback.weight_set);
+    hash_u16(hash, fighter->jab_melee_knockback.base);
+    hash_u8(hash, fighter->jab_melee_knockback.enabled);
+    hash_u8(hash, fighter->jab_melee_knockback.reserved[0]);
+    hash_u8(hash, fighter->jab_melee_knockback.reserved[1]);
+    hash_u8(hash, fighter->jab_melee_knockback.reserved[2]);
+    hash_i32(hash, fighter->jab_final_hitbox_offset_x_q16);
+    hash_i32(hash, fighter->jab_final_hitbox_offset_y_q16);
+    hash_i32(hash, fighter->jab_final_hitbox_half_width_q16);
+    hash_i32(hash, fighter->jab_final_hitbox_half_height_q16);
+    hash_u32(hash, fighter->jab_final_damage_q16);
+    hash_i32(hash, fighter->jab_final_base_knockback_x_q16);
+    hash_i32(hash, fighter->jab_final_base_knockback_y_q16);
+    hash_i32(hash, fighter->jab_final_knockback_growth_q16);
+    hash_u16(hash, fighter->jab_final_melee_knockback.angle_degrees);
+    hash_u16(hash, fighter->jab_final_melee_knockback.growth);
+    hash_u16(hash, fighter->jab_final_melee_knockback.weight_set);
+    hash_u16(hash, fighter->jab_final_melee_knockback.base);
+    hash_u8(hash, fighter->jab_final_melee_knockback.enabled);
+    hash_u8(hash, fighter->jab_final_melee_knockback.reserved[0]);
+    hash_u8(hash, fighter->jab_final_melee_knockback.reserved[1]);
+    hash_u8(hash, fighter->jab_final_melee_knockback.reserved[2]);
+    hash_attack(hash, &fighter->up_attack);
+    hash_attack(hash, &fighter->down_attack);
+    hash_attack(hash, &fighter->forward_attack);
+    hash_attack(hash, &fighter->forward_strong_attack);
+    hash_attack(hash, &fighter->up_strong_attack);
+    hash_attack(hash, &fighter->down_strong_attack);
+    hash_u32(hash, fighter->smash_charge_damage_bonus_q16);
+    hash_u16(hash, fighter->smash_charge_max_ticks);
+    hash_u16(hash, fighter->smash_charge_reserved);
+    hash_attack(hash, &fighter->forward_aerial);
+    hash_attack(hash, &fighter->back_aerial);
+    hash_attack(hash, &fighter->up_aerial);
+    hash_attack(hash, &fighter->down_aerial);
+    hash_attack(hash, &fighter->ledge_attack);
+    hash_u32(hash, fighter->reset_max_damage_q16);
+    hash_i32(hash, fighter->reset_bound_speed_q16);
+    hash_i32(hash, fighter->strong_hitbox_offset_x_q16);
+    hash_i32(hash, fighter->strong_hitbox_offset_y_q16);
+    hash_i32(hash, fighter->strong_hitbox_half_width_q16);
+    hash_i32(hash, fighter->strong_hitbox_half_height_q16);
+    hash_u32(hash, fighter->strong_damage_q16);
+    hash_i32(hash, fighter->strong_base_knockback_x_q16);
+    hash_i32(hash, fighter->strong_base_knockback_y_q16);
+    hash_i32(hash, fighter->strong_knockback_growth_q16);
+    hash_i32(hash, fighter->aerial_hitbox_offset_x_q16);
+    hash_i32(hash, fighter->aerial_hitbox_offset_y_q16);
+    hash_i32(hash, fighter->aerial_hitbox_half_width_q16);
+    hash_i32(hash, fighter->aerial_hitbox_half_height_q16);
+    hash_u32(hash, fighter->aerial_damage_q16);
+    hash_i32(hash, fighter->aerial_base_knockback_x_q16);
+    hash_i32(hash, fighter->aerial_base_knockback_y_q16);
+    hash_i32(hash, fighter->aerial_knockback_growth_q16);
+    hash_i32(hash, fighter->hitstun_velocity_per_tick_q16);
+    hash_i32(hash, fighter->v_cancel_velocity_scale_q16);
+    hash_u16(hash, fighter->knockback_weight);
+    hash_u16(hash, fighter->knockback_reserved);
+    hash_u32(hash, fighter->crouch_cancel_max_damage_q16);
+    hash_i32(hash, fighter->crouch_cancel_velocity_scale_q16);
+    hash_i32(hash, fighter->crouch_cancel_hitstun_scale_q16);
+    hash_i32(hash, fighter->di_max_angle_radians_q30);
+    hash_i32(hash, fighter->ground_knockback_decay_scale_q16);
+    hash_i32(hash, fighter->air_knockback_decay_q16);
+    hash_i32(hash, fighter->sdi_distance_x_q16);
+    hash_i32(hash, fighter->sdi_distance_y_q16);
+    hash_i32(hash, fighter->asdi_distance_x_q16);
+    hash_i32(hash, fighter->asdi_distance_y_q16);
+    hash_i32(hash, fighter->shield_sdi_scale_q16);
+    hash_i32(hash, fighter->tech_roll_speed_q16);
+    hash_i32(hash, fighter->wall_tech_speed_q16);
+    hash_i32(hash, fighter->wall_tech_jump_speed_x_q16);
+    hash_i32(hash, fighter->wall_tech_jump_speed_y_q16);
+    hash_i32(hash, fighter->wall_jump_speed_x_q16);
+    hash_i32(hash, fighter->wall_jump_speed_y_q16);
+    hash_i32(hash, fighter->ceiling_tech_speed_q16);
+    hash_i32(hash, fighter->surface_collision_threshold_x_q16);
+    hash_i32(hash, fighter->surface_collision_threshold_y_q16);
+    hash_i32(hash, fighter->surface_bounce_multiplier_q16);
+    hash_i32(hash, fighter->forward_roll_speed_q16);
+    hash_i32(hash, fighter->backward_roll_speed_q16);
+    hash_i32(
         hash,
         fighter->getup_attack_hitbox_offset_x_q16);
-    pf_m4_hash_i32(
+    hash_i32(
         hash,
         fighter->getup_attack_hitbox_offset_y_q16);
-    pf_m4_hash_i32(
+    hash_i32(
         hash,
         fighter->getup_attack_hitbox_half_width_q16);
-    pf_m4_hash_i32(
+    hash_i32(
         hash,
         fighter->getup_attack_hitbox_half_height_q16);
-    pf_m4_hash_u32(hash, fighter->getup_attack_damage_q16);
-    pf_m4_hash_i32(
+    hash_u32(hash, fighter->getup_attack_damage_q16);
+    hash_i32(
         hash,
         fighter->getup_attack_base_knockback_x_q16);
-    pf_m4_hash_i32(
+    hash_i32(
         hash,
         fighter->getup_attack_base_knockback_y_q16);
-    pf_m4_hash_i32(
+    hash_i32(
         hash,
         fighter->getup_attack_knockback_growth_q16);
-    pf_m4_hash_u32(hash, fighter->shield_health_q16);
-    pf_m4_hash_u32(hash, fighter->shield_reset_health_q16);
-    pf_m4_hash_u32(hash, fighter->shield_hold_depletion_q16);
-    pf_m4_hash_u32(
+    hash_u32(hash, fighter->shield_health_q16);
+    hash_u32(hash, fighter->shield_reset_health_q16);
+    hash_u32(hash, fighter->shield_hold_depletion_q16);
+    hash_u32(
         hash,
         fighter->light_shield_hold_depletion_q16);
-    pf_m4_hash_u32(hash, fighter->shield_regeneration_q16);
-    pf_m4_hash_u32(
+    hash_u32(hash, fighter->shield_regeneration_q16);
+    hash_u32(
         hash,
         fighter->light_shield_damage_multiplier_q16);
-    pf_m4_hash_u32(
+    hash_u32(
         hash,
         fighter->dense_shield_damage_multiplier_q16);
-    pf_m4_hash_i32(
+    hash_i32(
         hash,
         fighter->light_shield_stun_damage_multiplier_q16);
-    pf_m4_hash_i32(
+    hash_i32(
         hash,
         fighter->dense_shield_stun_damage_multiplier_q16);
-    pf_m4_hash_i32(hash, fighter->shield_stun_base_q16);
-    pf_m4_hash_i32(
+    hash_i32(hash, fighter->shield_stun_base_q16);
+    hash_i32(
         hash,
         fighter->shield_defender_pushback_stun_scale_q16);
-    pf_m4_hash_i32(
+    hash_i32(
         hash,
         fighter->shield_defender_pushback_normal_scale_q16);
-    pf_m4_hash_i32(
+    hash_i32(
         hash,
         fighter->shield_defender_pushback_max_q16);
-    pf_m4_hash_i32(
+    hash_i32(
         hash,
         fighter->shield_attacker_pushback_damage_q16);
-    pf_m4_hash_i32(
+    hash_i32(
         hash,
         fighter->shield_attacker_pushback_base_q16);
-    pf_m4_hash_i32(
+    hash_i32(
         hash,
         fighter->shield_attacker_pushback_air_decay_q16);
-    pf_m4_hash_i32(
+    hash_i32(
         hash,
         fighter->shield_attacker_pushback_ground_friction_scale_q16);
-    pf_m4_hash_i32(hash, fighter->shield_radius_x_q16);
-    pf_m4_hash_i32(hash, fighter->shield_radius_y_q16);
-    pf_m4_hash_i32(
+    hash_i32(hash, fighter->shield_radius_x_q16);
+    hash_i32(hash, fighter->shield_radius_y_q16);
+    hash_i32(
         hash,
         fighter->shield_minimum_size_scale_q16);
-    pf_m4_hash_i32(
+    hash_i32(
         hash,
         fighter->dense_shield_size_scale_q16);
-    pf_m4_hash_i32(hash, fighter->shield_center_forward_q16);
-    pf_m4_hash_i32(hash, fighter->shield_center_up_q16);
-    pf_m4_hash_i32(hash, fighter->shield_animation_scale_x_q16);
-    pf_m4_hash_i32(hash, fighter->shield_animation_scale_y_q16);
-    pf_m4_hash_i32(hash, fighter->grabbox_offset_x_q16);
-    pf_m4_hash_i32(hash, fighter->grabbox_offset_y_q16);
-    pf_m4_hash_i32(hash, fighter->grabbox_half_width_q16);
-    pf_m4_hash_i32(hash, fighter->grabbox_half_height_q16);
-    pf_m4_hash_i32(hash, fighter->grabbed_offset_x_q16);
-    pf_m4_hash_i32(hash, fighter->grabbed_offset_y_q16);
-    pf_m4_hash_i32(hash, fighter->grab_escape_damage_ticks_q16);
-    pf_m4_hash_u32(hash, fighter->pummel_damage_q16);
-    pf_m4_hash_u16(hash, fighter->pummel_hit_tick);
-    pf_m4_hash_u16(hash, fighter->pummel_total_ticks);
-    pf_m4_hash_throw(hash, &fighter->forward_throw);
-    pf_m4_hash_throw(hash, &fighter->back_throw);
-    pf_m4_hash_throw(hash, &fighter->up_throw);
-    pf_m4_hash_throw(hash, &fighter->down_throw);
-    pf_m4_hash_u16(hash, fighter->jump_squat_ticks);
-    pf_m4_hash_u16(hash, fighter->double_jump_cancel_ticks);
-    pf_m4_hash_u16(
+    hash_i32(hash, fighter->shield_center_forward_q16);
+    hash_i32(hash, fighter->shield_center_up_q16);
+    hash_i32(hash, fighter->shield_animation_scale_x_q16);
+    hash_i32(hash, fighter->shield_animation_scale_y_q16);
+    hash_i32(hash, fighter->grabbox_offset_x_q16);
+    hash_i32(hash, fighter->grabbox_offset_y_q16);
+    hash_i32(hash, fighter->grabbox_half_width_q16);
+    hash_i32(hash, fighter->grabbox_half_height_q16);
+    hash_i32(hash, fighter->grabbed_offset_x_q16);
+    hash_i32(hash, fighter->grabbed_offset_y_q16);
+    hash_i32(hash, fighter->grab_escape_damage_ticks_q16);
+    hash_u32(hash, fighter->pummel_damage_q16);
+    hash_u16(hash, fighter->pummel_hit_tick);
+    hash_u16(hash, fighter->pummel_total_ticks);
+    hash_throw(hash, &fighter->forward_throw);
+    hash_throw(hash, &fighter->back_throw);
+    hash_throw(hash, &fighter->up_throw);
+    hash_throw(hash, &fighter->down_throw);
+    hash_u16(hash, fighter->jump_squat_ticks);
+    hash_u16(hash, fighter->double_jump_cancel_ticks);
+    hash_u16(
         hash,
         fighter->double_jump_armor_max_hitstun_ticks);
-    pf_m4_hash_u16(hash, fighter->initial_dash_ticks);
-    pf_m4_hash_u16(hash, fighter->dash_run_transition_ticks);
-    pf_m4_hash_u16(hash, fighter->standing_turn_ticks);
-    pf_m4_hash_u16(hash, fighter->standing_turn_facing_tick);
-    pf_m4_hash_u16(hash, fighter->dash_input_window_ticks);
-    pf_m4_hash_u16(hash, fighter->teeter_ticks);
-    pf_m4_hash_u16(hash, fighter->teeter_turn_axis_threshold);
-    pf_m4_hash_u16(hash, fighter->teeter_walk_axis_threshold);
-    pf_m4_hash_u16(hash, fighter->walk_axis_threshold);
-    pf_m4_hash_u16(hash, fighter->crouch_step_ticks);
-    pf_m4_hash_u16(hash, fighter->taunt_ticks);
-    pf_m4_hash_u16(
+    hash_u16(hash, fighter->initial_dash_ticks);
+    hash_u16(hash, fighter->dash_run_transition_ticks);
+    hash_u16(hash, fighter->standing_turn_ticks);
+    hash_u16(hash, fighter->standing_turn_facing_tick);
+    hash_u16(hash, fighter->dash_input_window_ticks);
+    hash_u16(hash, fighter->teeter_ticks);
+    hash_u16(hash, fighter->teeter_turn_axis_threshold);
+    hash_u16(hash, fighter->teeter_walk_axis_threshold);
+    hash_u16(hash, fighter->walk_axis_threshold);
+    hash_u16(hash, fighter->crouch_step_ticks);
+    hash_u16(hash, fighter->taunt_ticks);
+    hash_u16(
         hash,
         fighter->forward_smash_input_window_ticks);
-    pf_m4_hash_u16(hash, fighter->landing_ticks);
-    pf_m4_hash_u16(hash, fighter->landing_interruptible_tick);
-    pf_m4_hash_u16(hash, fighter->platform_drop_ticks);
-    pf_m4_hash_u16(hash, fighter->platform_drop_startup_ticks);
-    pf_m4_hash_u16(hash, fighter->air_dodge_ticks);
-    pf_m4_hash_u16(
+    hash_u16(hash, fighter->landing_ticks);
+    hash_u16(hash, fighter->landing_interruptible_tick);
+    hash_u16(hash, fighter->platform_drop_ticks);
+    hash_u16(hash, fighter->platform_drop_startup_ticks);
+    hash_u16(hash, fighter->air_dodge_ticks);
+    hash_u16(
         hash,
         fighter->air_dodge_invulnerability_begin_tick);
-    pf_m4_hash_u16(
+    hash_u16(
         hash,
         fighter->air_dodge_invulnerability_end_tick);
-    pf_m4_hash_u16(
+    hash_u16(
         hash,
         fighter->air_dodge_ordinary_physics_begin_tick);
-    pf_m4_hash_u16(hash, fighter->ledge_invulnerability_ticks);
-    pf_m4_hash_u16(hash, fighter->ledge_regrab_lockout_ticks);
-    pf_m4_hash_u16(hash, fighter->ledge_transition_ticks);
-    pf_m4_hash_u16(hash, fighter->ledge_roll_ticks);
-    pf_m4_hash_u16(hash, fighter->ledge_roll_movement_ticks);
-    pf_m4_hash_u16(hash, fighter->ledge_roll_invulnerability_ticks);
-    pf_m4_hash_u16(hash, fighter->ledge_attack_invulnerability_ticks);
-    pf_m4_hash_u16(hash, fighter->special_landing_ticks);
-    pf_m4_hash_u16(hash, fighter->run_turnaround_ticks);
-    pf_m4_hash_u16(hash, fighter->run_brake_ticks);
-    pf_m4_hash_u16(hash, fighter->axis_dead_zone);
-    pf_m4_hash_u16(hash, fighter->dash_axis_threshold);
-    pf_m4_hash_u16(hash, fighter->run_turnaround_axis_threshold);
-    pf_m4_hash_u16(hash, fighter->run_continue_axis_threshold);
-    pf_m4_hash_u16(hash, fighter->run_turnaround_lockout_ticks);
-    pf_m4_hash_u16(hash, fighter->tilt_axis_threshold);
-    pf_m4_hash_u16(hash, fighter->tap_jump_axis_threshold);
-    pf_m4_hash_u16(hash, fighter->tap_jump_input_window_ticks);
-    pf_m4_hash_u16(hash, fighter->fast_fall_axis_threshold);
-    pf_m4_hash_u16(hash, fighter->fast_fall_input_window_ticks);
-    pf_m4_hash_u16(hash, fighter->air_dodge_dead_zone);
-    pf_m4_hash_u16(hash, fighter->crouch_axis_threshold);
-    pf_m4_hash_u16(hash, fighter->shield_drop_axis_threshold);
-    pf_m4_hash_u16(hash, fighter->dash_attack_startup_ticks);
-    pf_m4_hash_u16(hash, fighter->dash_attack_active_ticks);
-    pf_m4_hash_u16(hash, fighter->dash_attack_recovery_ticks);
-    pf_m4_hash_u16(hash, fighter->dash_attack_hitlag_ticks);
-    pf_m4_hash_u16(
+    hash_u16(hash, fighter->ledge_invulnerability_ticks);
+    hash_u16(hash, fighter->ledge_regrab_lockout_ticks);
+    hash_u16(hash, fighter->ledge_transition_ticks);
+    hash_u16(hash, fighter->ledge_roll_ticks);
+    hash_u16(hash, fighter->ledge_roll_movement_ticks);
+    hash_u16(hash, fighter->ledge_roll_invulnerability_ticks);
+    hash_u16(hash, fighter->ledge_attack_invulnerability_ticks);
+    hash_u16(hash, fighter->special_landing_ticks);
+    hash_u16(hash, fighter->run_turnaround_ticks);
+    hash_u16(hash, fighter->run_brake_ticks);
+    hash_u16(hash, fighter->axis_dead_zone);
+    hash_u16(hash, fighter->dash_axis_threshold);
+    hash_u16(hash, fighter->run_turnaround_axis_threshold);
+    hash_u16(hash, fighter->run_continue_axis_threshold);
+    hash_u16(hash, fighter->run_turnaround_lockout_ticks);
+    hash_u16(hash, fighter->tilt_axis_threshold);
+    hash_u16(hash, fighter->tap_jump_axis_threshold);
+    hash_u16(hash, fighter->tap_jump_input_window_ticks);
+    hash_u16(hash, fighter->fast_fall_axis_threshold);
+    hash_u16(hash, fighter->fast_fall_input_window_ticks);
+    hash_u16(hash, fighter->air_dodge_dead_zone);
+    hash_u16(hash, fighter->crouch_axis_threshold);
+    hash_u16(hash, fighter->shield_drop_axis_threshold);
+    hash_u16(hash, fighter->dash_attack_startup_ticks);
+    hash_u16(hash, fighter->dash_attack_active_ticks);
+    hash_u16(hash, fighter->dash_attack_recovery_ticks);
+    hash_u16(hash, fighter->dash_attack_hitlag_ticks);
+    hash_u16(
         hash,
         fighter->boost_grab_cancel_begin_tick);
-    pf_m4_hash_u16(
+    hash_u16(
         hash,
         fighter->boost_grab_cancel_end_tick);
-    pf_m4_hash_u16(hash, fighter->jab_startup_ticks);
-    pf_m4_hash_u16(hash, fighter->jab_active_ticks);
-    pf_m4_hash_u16(hash, fighter->jab_recovery_ticks);
-    pf_m4_hash_u16(hash, fighter->jab_hitlag_ticks);
-    pf_m4_hash_u16(hash, fighter->jab_combo_input_begin_tick);
-    pf_m4_hash_u16(hash, fighter->jab_combo_input_end_tick);
-    pf_m4_hash_u16(hash, fighter->jab_final_startup_ticks);
-    pf_m4_hash_u16(hash, fighter->jab_final_active_ticks);
-    pf_m4_hash_u16(hash, fighter->jab_final_recovery_ticks);
-    pf_m4_hash_u16(hash, fighter->jab_final_hitlag_ticks);
-    pf_m4_hash_u16(hash, fighter->reset_max_hitstun_ticks);
-    pf_m4_hash_u16(hash, fighter->reset_bound_ticks);
-    pf_m4_hash_u16(hash, fighter->reset_forced_getup_ticks);
-    pf_m4_hash_u16(hash, fighter->strong_startup_ticks);
-    pf_m4_hash_u16(hash, fighter->strong_active_ticks);
-    pf_m4_hash_u16(hash, fighter->strong_recovery_ticks);
-    pf_m4_hash_u16(hash, fighter->strong_hitlag_ticks);
-    pf_m4_hash_u16(hash, fighter->aerial_startup_ticks);
-    pf_m4_hash_u16(hash, fighter->aerial_active_ticks);
-    pf_m4_hash_u16(hash, fighter->aerial_recovery_ticks);
-    pf_m4_hash_u16(hash, fighter->aerial_hitlag_ticks);
-    pf_m4_hash_u16(
+    hash_u16(hash, fighter->jab_startup_ticks);
+    hash_u16(hash, fighter->jab_active_ticks);
+    hash_u16(hash, fighter->jab_recovery_ticks);
+    hash_u16(hash, fighter->jab_hitlag_ticks);
+    hash_u16(hash, fighter->jab_combo_input_begin_tick);
+    hash_u16(hash, fighter->jab_combo_input_end_tick);
+    hash_u16(hash, fighter->jab_final_startup_ticks);
+    hash_u16(hash, fighter->jab_final_active_ticks);
+    hash_u16(hash, fighter->jab_final_recovery_ticks);
+    hash_u16(hash, fighter->jab_final_hitlag_ticks);
+    hash_u16(hash, fighter->reset_max_hitstun_ticks);
+    hash_u16(hash, fighter->reset_bound_ticks);
+    hash_u16(hash, fighter->reset_forced_getup_ticks);
+    hash_u16(hash, fighter->strong_startup_ticks);
+    hash_u16(hash, fighter->strong_active_ticks);
+    hash_u16(hash, fighter->strong_recovery_ticks);
+    hash_u16(hash, fighter->strong_hitlag_ticks);
+    hash_u16(hash, fighter->aerial_startup_ticks);
+    hash_u16(hash, fighter->aerial_active_ticks);
+    hash_u16(hash, fighter->aerial_recovery_ticks);
+    hash_u16(hash, fighter->aerial_hitlag_ticks);
+    hash_u16(
         hash,
         fighter->aerial_landing_lag_begin_tick);
-    pf_m4_hash_u16(
+    hash_u16(
         hash,
         fighter->aerial_landing_lag_end_tick);
-    pf_m4_hash_u16(hash, fighter->aerial_landing_lag_ticks);
-    pf_m4_hash_u16(hash, fighter->forward_aerial_landing_lag_ticks);
-    pf_m4_hash_u16(hash, fighter->back_aerial_landing_lag_ticks);
-    pf_m4_hash_u16(hash, fighter->up_aerial_landing_lag_ticks);
-    pf_m4_hash_u16(hash, fighter->down_aerial_landing_lag_ticks);
-    pf_m4_hash_u16(
+    hash_u16(hash, fighter->aerial_landing_lag_ticks);
+    hash_u16(hash, fighter->forward_aerial_landing_lag_ticks);
+    hash_u16(hash, fighter->back_aerial_landing_lag_ticks);
+    hash_u16(hash, fighter->up_aerial_landing_lag_ticks);
+    hash_u16(hash, fighter->down_aerial_landing_lag_ticks);
+    hash_u16(
         hash,
         fighter->strong_aerial_landing_lag_ticks);
-    pf_m4_hash_u16(hash, fighter->l_cancel_window_ticks);
-    pf_m4_hash_u16(hash, fighter->l_cancel_divisor);
-    pf_m4_hash_u16(hash, fighter->v_cancel_window_ticks);
-    pf_m4_hash_u16(hash, fighter->sdi_stick_threshold);
-    pf_m4_hash_u16(hash, fighter->sdi_stick_window_ticks);
-    pf_m4_hash_u16(
+    hash_u16(hash, fighter->l_cancel_window_ticks);
+    hash_u16(hash, fighter->l_cancel_divisor);
+    hash_u16(hash, fighter->v_cancel_window_ticks);
+    hash_u16(hash, fighter->sdi_stick_threshold);
+    hash_u16(hash, fighter->sdi_stick_window_ticks);
+    hash_u16(
         hash,
         fighter->light_shield_trigger_threshold);
-    pf_m4_hash_u16(hash, fighter->digital_trigger_threshold);
-    pf_m4_hash_u16(hash, fighter->tumble_hitstun_threshold_ticks);
-    pf_m4_hash_u16(hash, fighter->tech_window_ticks);
-    pf_m4_hash_u16(hash, fighter->tech_lockout_ticks);
-    pf_m4_hash_u16(hash, fighter->tech_roll_axis_threshold);
-    pf_m4_hash_u16(hash, fighter->tech_in_place_ticks);
-    pf_m4_hash_u16(hash, fighter->tech_roll_ticks);
-    pf_m4_hash_u16(hash, fighter->tech_invulnerability_ticks);
-    pf_m4_hash_u16(hash, fighter->wall_tech_stall_ticks);
-    pf_m4_hash_u16(hash, fighter->wall_tech_invulnerability_ticks);
-    pf_m4_hash_u16(hash, fighter->wall_tech_ticks);
-    pf_m4_hash_u16(hash, fighter->wall_tech_jump_ticks);
-    pf_m4_hash_u16(
+    hash_u16(hash, fighter->digital_trigger_threshold);
+    hash_u16(hash, fighter->tumble_hitstun_threshold_ticks);
+    hash_u16(hash, fighter->tech_window_ticks);
+    hash_u16(hash, fighter->tech_lockout_ticks);
+    hash_u16(hash, fighter->tech_roll_axis_threshold);
+    hash_u16(hash, fighter->tech_in_place_ticks);
+    hash_u16(hash, fighter->tech_roll_ticks);
+    hash_u16(hash, fighter->tech_invulnerability_ticks);
+    hash_u16(hash, fighter->wall_tech_stall_ticks);
+    hash_u16(hash, fighter->wall_tech_invulnerability_ticks);
+    hash_u16(hash, fighter->wall_tech_ticks);
+    hash_u16(hash, fighter->wall_tech_jump_ticks);
+    hash_u16(
         hash,
         fighter->surface_bounce_invulnerability_ticks);
-    pf_m4_hash_u16(
+    hash_u16(
         hash,
         fighter->surface_bounce_collision_lockout_ticks);
-    pf_m4_hash_u16(hash, fighter->wall_jump_ticks);
-    pf_m4_hash_u16(hash, fighter->wall_jump_invulnerability_ticks);
-    pf_m4_hash_u16(hash, fighter->ceiling_tech_control_tick);
-    pf_m4_hash_u16(hash, fighter->ceiling_tech_ticks);
-    pf_m4_hash_u16(hash, fighter->knockdown_ticks);
-    pf_m4_hash_u16(hash, fighter->down_wait_ticks);
-    pf_m4_hash_i32(hash, fighter->down_horizontal_angle_tan_q16);
-    pf_m4_hash_u16(hash, fighter->down_up_axis_threshold);
-    pf_m4_hash_u16(hash, fighter->down_horizontal_axis_threshold);
-    pf_m4_hash_u16(hash, fighter->down_attack_input_window_ticks);
-    pf_m4_hash_u16(hash, fighter->down_c_up_axis_threshold);
-    pf_m4_hash_u16(hash, fighter->getup_neutral_ticks);
-    pf_m4_hash_u16(
+    hash_u16(hash, fighter->wall_jump_ticks);
+    hash_u16(hash, fighter->wall_jump_invulnerability_ticks);
+    hash_u16(hash, fighter->ceiling_tech_control_tick);
+    hash_u16(hash, fighter->ceiling_tech_ticks);
+    hash_u16(hash, fighter->knockdown_ticks);
+    hash_u16(hash, fighter->down_wait_ticks);
+    hash_i32(hash, fighter->down_horizontal_angle_tan_q16);
+    hash_u16(hash, fighter->down_up_axis_threshold);
+    hash_u16(hash, fighter->down_horizontal_axis_threshold);
+    hash_u16(hash, fighter->down_attack_input_window_ticks);
+    hash_u16(hash, fighter->down_c_up_axis_threshold);
+    hash_u16(hash, fighter->getup_neutral_ticks);
+    hash_u16(
         hash,
         fighter->getup_neutral_invulnerability_ticks);
-    pf_m4_hash_u16(hash, fighter->getup_roll_ticks);
-    pf_m4_hash_getup_roll_timing(
+    hash_u16(hash, fighter->getup_roll_ticks);
+    hash_getup_roll_timing(
         hash,
         &fighter->getup_roll_back_forward);
-    pf_m4_hash_getup_roll_timing(
+    hash_getup_roll_timing(
         hash,
         &fighter->getup_roll_back_backward);
-    pf_m4_hash_getup_roll_timing(
+    hash_getup_roll_timing(
         hash,
         &fighter->getup_roll_stomach_forward);
-    pf_m4_hash_getup_roll_timing(
+    hash_getup_roll_timing(
         hash,
         &fighter->getup_roll_stomach_backward);
-    pf_m4_hash_u16(hash, fighter->getup_attack_ticks);
-    pf_m4_hash_u16(
+    hash_u16(hash, fighter->getup_attack_ticks);
+    hash_u16(
         hash,
         fighter->getup_attack_back_invulnerability_ticks);
-    pf_m4_hash_u16(
+    hash_u16(
         hash,
         fighter->getup_attack_stomach_invulnerability_ticks);
-    pf_m4_hash_u16(
+    hash_u16(
         hash,
         fighter->getup_attack_front_active_begin_tick);
-    pf_m4_hash_u16(
+    hash_u16(
         hash,
         fighter->getup_attack_front_active_end_tick);
-    pf_m4_hash_u16(
+    hash_u16(
         hash,
         fighter->getup_attack_back_active_begin_tick);
-    pf_m4_hash_u16(
+    hash_u16(
         hash,
         fighter->getup_attack_back_active_end_tick);
-    pf_m4_hash_u16(hash, fighter->getup_attack_hitlag_ticks);
-    pf_m4_hash_u16(hash, fighter->forward_roll_ticks);
-    pf_m4_hash_u16(hash, fighter->backward_roll_ticks);
-    pf_m4_hash_u16(hash, fighter->roll_movement_begin_tick);
-    pf_m4_hash_u16(hash, fighter->roll_movement_end_tick);
-    pf_m4_hash_u16(
+    hash_u16(hash, fighter->getup_attack_hitlag_ticks);
+    hash_u16(hash, fighter->forward_roll_ticks);
+    hash_u16(hash, fighter->backward_roll_ticks);
+    hash_u16(hash, fighter->roll_movement_begin_tick);
+    hash_u16(hash, fighter->roll_movement_end_tick);
+    hash_u16(
         hash,
         fighter->roll_invulnerability_begin_tick);
-    pf_m4_hash_u16(
+    hash_u16(
         hash,
         fighter->roll_invulnerability_end_tick);
-    pf_m4_hash_u16(hash, fighter->spot_dodge_ticks);
-    pf_m4_hash_u16(
+    hash_u16(hash, fighter->spot_dodge_ticks);
+    hash_u16(
         hash,
         fighter->spot_dodge_invulnerability_begin_tick);
-    pf_m4_hash_u16(
+    hash_u16(
         hash,
         fighter->spot_dodge_invulnerability_end_tick);
-    pf_m4_hash_u16(hash, fighter->shield_minimum_hold_ticks);
-    pf_m4_hash_u16(hash, fighter->shield_release_ticks);
-    pf_m4_hash_u16(hash, fighter->powershield_window_ticks);
-    pf_m4_hash_u16(
+    hash_u16(hash, fighter->shield_minimum_hold_ticks);
+    hash_u16(hash, fighter->shield_release_ticks);
+    hash_u16(hash, fighter->powershield_window_ticks);
+    hash_u16(
         hash,
         fighter->powershield_cancel_delay_ticks);
-    pf_m4_hash_u16(hash, fighter->shield_break_stun_ticks);
-    pf_m4_hash_u16(
+    hash_u16(hash, fighter->shield_break_stun_ticks);
+    hash_u16(
         hash,
         fighter->shield_break_minimum_stun_ticks);
-    pf_m4_hash_u16(hash, fighter->shield_break_down_ticks);
-    pf_m4_hash_u16(hash, fighter->shield_break_stand_ticks);
-    pf_m4_hash_u16(
+    hash_u16(hash, fighter->shield_break_down_ticks);
+    hash_u16(hash, fighter->shield_break_stand_ticks);
+    hash_u16(
         hash,
         fighter->shield_break_mash_reduction_ticks);
-    pf_m4_hash_u16(hash, fighter->mash_stick_axis_threshold);
-    pf_m4_hash_u16(
+    hash_u16(hash, fighter->mash_stick_axis_threshold);
+    hash_u16(
         hash,
         fighter->shield_break_stun_tick_decrement);
-    pf_m4_hash_u16(hash, fighter->grab_startup_ticks);
-    pf_m4_hash_u16(hash, fighter->grab_active_ticks);
-    pf_m4_hash_u16(hash, fighter->grab_recovery_ticks);
-    pf_m4_hash_u16(hash, fighter->dash_grab_startup_ticks);
-    pf_m4_hash_u16(hash, fighter->dash_grab_active_ticks);
-    pf_m4_hash_u16(hash, fighter->dash_grab_recovery_ticks);
-    pf_m4_hash_u16(hash, fighter->grab_escape_base_ticks);
-    pf_m4_hash_u16(hash, fighter->grab_escape_max_ticks);
-    pf_m4_hash_u16(hash, fighter->grab_mash_reduction_ticks);
-    pf_m4_hash_u16(hash, fighter->grab_escape_tick_decrement);
-    pf_m4_hash_u16(hash, fighter->grab_release_ticks);
-    pf_m4_hash_i32(hash, fighter->grab_release_speed_x_q16);
-    pf_m4_hash_i32(hash, fighter->grab_release_air_speed_x_q16);
-    pf_m4_hash_i32(hash, fighter->grab_release_air_speed_y_q16);
-    pf_m4_hash_u8(hash, fighter->air_jump_count);
-    pf_m4_hash_u8(
+    hash_u16(hash, fighter->grab_startup_ticks);
+    hash_u16(hash, fighter->grab_active_ticks);
+    hash_u16(hash, fighter->grab_recovery_ticks);
+    hash_u16(hash, fighter->dash_grab_startup_ticks);
+    hash_u16(hash, fighter->dash_grab_active_ticks);
+    hash_u16(hash, fighter->dash_grab_recovery_ticks);
+    hash_u16(hash, fighter->grab_escape_base_ticks);
+    hash_u16(hash, fighter->grab_escape_max_ticks);
+    hash_u16(hash, fighter->grab_mash_reduction_ticks);
+    hash_u16(hash, fighter->grab_escape_tick_decrement);
+    hash_u16(hash, fighter->grab_release_ticks);
+    hash_i32(hash, fighter->grab_release_speed_x_q16);
+    hash_i32(hash, fighter->grab_release_air_speed_x_q16);
+    hash_i32(hash, fighter->grab_release_air_speed_y_q16);
+    hash_u8(hash, fighter->air_jump_count);
+    hash_u8(
         hash,
         fighter->powershield_cancel_enabled);
-    pf_m4_hash_u8(hash, fighter->wall_jump_enabled);
+    hash_u8(hash, fighter->wall_jump_enabled);
     for (stale_index = UINT32_C(0);
          stale_index <
              (uint32_t)PF_SIM_STALE_MOVE_QUEUE_CAPACITY;
          ++stale_index)
     {
-        pf_m4_hash_u16(
+        hash_u16(
             hash,
             fighter->stale_move_slot_reduction_q16[stale_index]);
     }
-    pf_m4_hash_u16(hash, fighter->crouch_start_ticks);
-    pf_m4_hash_u16(hash, fighter->crouch_end_ticks);
-    pf_m4_hash_u16(hash, fighter->crouch_release_axis_threshold);
+    hash_u16(hash, fighter->crouch_start_ticks);
+    hash_u16(hash, fighter->crouch_end_ticks);
+    hash_u16(hash, fighter->crouch_release_axis_threshold);
 }
 
-static void pf_m4_hash_stage(
+static void hash_stage(
     pf_sha256 *hash,
-    const pf_m4_stage_data *stage)
+    const stage_data *stage)
 {
-    const pf_m4_ssbm_stage_collision_profile *reference_stage =
-        pf_m4_ssbm_reference_stage_collision(
+    const ssbm_stage_collision_profile *reference_stage =
+        ssbm_reference_stage_collision(
             stage->reference_collision_profile);
 
-    pf_m4_hash_u16(hash, stage->schema_version);
-    pf_m4_hash_u16(hash, stage->reference_collision_profile);
+    hash_u16(hash, stage->schema_version);
+    hash_u16(hash, stage->reference_collision_profile);
     if (reference_stage != NULL)
     {
         pf_sha256_update(
@@ -1475,156 +1475,156 @@ static void pf_m4_hash_stage(
             reference_stage->source_sha256,
             (size_t)32);
     }
-    pf_m4_hash_i32(hash, stage->floor_left_q16);
-    pf_m4_hash_i32(hash, stage->floor_right_q16);
-    pf_m4_hash_i32(hash, stage->floor_y_q16);
-    pf_m4_hash_i32(hash, stage->platform_center_x_q16);
-    pf_m4_hash_i32(hash, stage->platform_y_q16);
-    pf_m4_hash_i32(hash, stage->platform_half_width_q16);
-    pf_m4_hash_i32(hash, stage->platform_motion_amplitude_q16);
-    pf_m4_hash_i32(hash, stage->solid_left_q16);
-    pf_m4_hash_i32(hash, stage->solid_right_q16);
-    pf_m4_hash_i32(hash, stage->solid_top_q16);
-    pf_m4_hash_i32(hash, stage->solid_bottom_q16);
-    pf_m4_hash_i32(hash, stage->blast_left_q16);
-    pf_m4_hash_i32(hash, stage->blast_right_q16);
-    pf_m4_hash_i32(hash, stage->blast_top_q16);
-    pf_m4_hash_i32(hash, stage->blast_bottom_q16);
-    pf_m4_hash_i32(hash, stage->spawn_spacing_q16);
-    pf_m4_hash_u16(hash, stage->platform_motion_period_ticks);
-    pf_m4_hash_u16(hash, stage->reference_spawn_line);
-    pf_m4_hash_i32(hash, stage->reference_spawn_x_q16);
-    pf_m4_hash_i32(hash, stage->revival_platform_start_y_q16);
-    pf_m4_hash_i32(hash, stage->revival_platform_end_y_q16);
-    pf_m4_hash_i32(hash, stage->revival_platform_half_width_q16);
-    pf_m4_hash_u16(hash, stage->revival_platform_descent_ticks);
-    pf_m4_hash_u16(hash, stage->revival_platform_hold_ticks);
-    pf_m4_hash_i32(hash, stage->upper_platform_center_x_q16);
-    pf_m4_hash_i32(hash, stage->upper_platform_y_q16);
-    pf_m4_hash_i32(hash, stage->upper_platform_half_width_q16);
+    hash_i32(hash, stage->floor_left_q16);
+    hash_i32(hash, stage->floor_right_q16);
+    hash_i32(hash, stage->floor_y_q16);
+    hash_i32(hash, stage->platform_center_x_q16);
+    hash_i32(hash, stage->platform_y_q16);
+    hash_i32(hash, stage->platform_half_width_q16);
+    hash_i32(hash, stage->platform_motion_amplitude_q16);
+    hash_i32(hash, stage->solid_left_q16);
+    hash_i32(hash, stage->solid_right_q16);
+    hash_i32(hash, stage->solid_top_q16);
+    hash_i32(hash, stage->solid_bottom_q16);
+    hash_i32(hash, stage->blast_left_q16);
+    hash_i32(hash, stage->blast_right_q16);
+    hash_i32(hash, stage->blast_top_q16);
+    hash_i32(hash, stage->blast_bottom_q16);
+    hash_i32(hash, stage->spawn_spacing_q16);
+    hash_u16(hash, stage->platform_motion_period_ticks);
+    hash_u16(hash, stage->reference_spawn_line);
+    hash_i32(hash, stage->reference_spawn_x_q16);
+    hash_i32(hash, stage->revival_platform_start_y_q16);
+    hash_i32(hash, stage->revival_platform_end_y_q16);
+    hash_i32(hash, stage->revival_platform_half_width_q16);
+    hash_u16(hash, stage->revival_platform_descent_ticks);
+    hash_u16(hash, stage->revival_platform_hold_ticks);
+    hash_i32(hash, stage->upper_platform_center_x_q16);
+    hash_i32(hash, stage->upper_platform_y_q16);
+    hash_i32(hash, stage->upper_platform_half_width_q16);
 }
 
-static void pf_m4_hash_item(
+static void hash_item(
     pf_sha256 *hash,
-    const pf_m4_item_data *item)
+    const item_data *item)
 {
-    pf_m4_hash_u16(hash, item->schema_version);
-    pf_m4_hash_u8(hash, item->enabled);
-    pf_m4_hash_i32(hash, item->half_width_q16);
-    pf_m4_hash_i32(hash, item->half_height_q16);
-    pf_m4_hash_i32(hash, item->spawn_x_q16);
-    pf_m4_hash_i32(hash, item->spawn_y_q16);
-    pf_m4_hash_i32(hash, item->pickup_half_width_q16);
-    pf_m4_hash_i32(hash, item->pickup_half_height_q16);
-    pf_m4_hash_i32(hash, item->held_offset_x_q16);
-    pf_m4_hash_i32(hash, item->held_offset_y_q16);
-    pf_m4_hash_i32(hash, item->gravity_q16);
-    pf_m4_hash_i32(hash, item->fall_speed_q16);
-    pf_m4_hash_i32(hash, item->drop_velocity_y_q16);
-    pf_m4_hash_i32(hash, item->forward_throw.velocity_x_q16);
-    pf_m4_hash_i32(hash, item->forward_throw.velocity_y_q16);
-    pf_m4_hash_i32(hash, item->back_throw.velocity_x_q16);
-    pf_m4_hash_i32(hash, item->back_throw.velocity_y_q16);
-    pf_m4_hash_i32(hash, item->up_throw.velocity_x_q16);
-    pf_m4_hash_i32(hash, item->up_throw.velocity_y_q16);
-    pf_m4_hash_i32(hash, item->down_throw.velocity_x_q16);
-    pf_m4_hash_i32(hash, item->down_throw.velocity_y_q16);
-    pf_m4_hash_i32(hash, item->momentum_transfer_q16);
-    pf_m4_hash_i32(hash, item->hitbox_half_width_q16);
-    pf_m4_hash_i32(hash, item->hitbox_half_height_q16);
-    pf_m4_hash_u32(hash, item->damage_q16);
-    pf_m4_hash_i32(hash, item->base_knockback_x_q16);
-    pf_m4_hash_i32(hash, item->base_knockback_y_q16);
-    pf_m4_hash_i32(hash, item->knockback_growth_q16);
-    pf_m4_hash_i32(hash, item->hit_bounce_velocity_y_q16);
-    pf_m4_hash_i32(hash, item->dash_throw_speed_q16);
-    pf_m4_hash_u16(hash, item->throw_recovery_ticks);
-    pf_m4_hash_u16(hash, item->dash_throw_recovery_ticks);
-    pf_m4_hash_u16(hash, item->glide_toss_begin_tick);
-    pf_m4_hash_u16(hash, item->glide_toss_end_tick);
-    pf_m4_hash_u16(hash, item->pickup_lockout_ticks);
-    pf_m4_hash_u16(hash, item->lifetime_ticks);
-    pf_m4_hash_u16(hash, item->respawn_ticks);
-    pf_m4_hash_u16(hash, item->hitlag_ticks);
+    hash_u16(hash, item->schema_version);
+    hash_u8(hash, item->enabled);
+    hash_i32(hash, item->half_width_q16);
+    hash_i32(hash, item->half_height_q16);
+    hash_i32(hash, item->spawn_x_q16);
+    hash_i32(hash, item->spawn_y_q16);
+    hash_i32(hash, item->pickup_half_width_q16);
+    hash_i32(hash, item->pickup_half_height_q16);
+    hash_i32(hash, item->held_offset_x_q16);
+    hash_i32(hash, item->held_offset_y_q16);
+    hash_i32(hash, item->gravity_q16);
+    hash_i32(hash, item->fall_speed_q16);
+    hash_i32(hash, item->drop_velocity_y_q16);
+    hash_i32(hash, item->forward_throw.velocity_x_q16);
+    hash_i32(hash, item->forward_throw.velocity_y_q16);
+    hash_i32(hash, item->back_throw.velocity_x_q16);
+    hash_i32(hash, item->back_throw.velocity_y_q16);
+    hash_i32(hash, item->up_throw.velocity_x_q16);
+    hash_i32(hash, item->up_throw.velocity_y_q16);
+    hash_i32(hash, item->down_throw.velocity_x_q16);
+    hash_i32(hash, item->down_throw.velocity_y_q16);
+    hash_i32(hash, item->momentum_transfer_q16);
+    hash_i32(hash, item->hitbox_half_width_q16);
+    hash_i32(hash, item->hitbox_half_height_q16);
+    hash_u32(hash, item->damage_q16);
+    hash_i32(hash, item->base_knockback_x_q16);
+    hash_i32(hash, item->base_knockback_y_q16);
+    hash_i32(hash, item->knockback_growth_q16);
+    hash_i32(hash, item->hit_bounce_velocity_y_q16);
+    hash_i32(hash, item->dash_throw_speed_q16);
+    hash_u16(hash, item->throw_recovery_ticks);
+    hash_u16(hash, item->dash_throw_recovery_ticks);
+    hash_u16(hash, item->glide_toss_begin_tick);
+    hash_u16(hash, item->glide_toss_end_tick);
+    hash_u16(hash, item->pickup_lockout_ticks);
+    hash_u16(hash, item->lifetime_ticks);
+    hash_u16(hash, item->respawn_ticks);
+    hash_u16(hash, item->hitlag_ticks);
 }
 
-static void pf_m4_hash_projectile(
+static void hash_projectile(
     pf_sha256 *hash,
-    const pf_m4_projectile_data *projectile)
+    const projectile_data *projectile)
 {
-    pf_m4_hash_u16(hash, projectile->schema_version);
-    pf_m4_hash_u8(hash, projectile->enabled);
-    pf_m4_hash_i32(hash, projectile->half_width_q16);
-    pf_m4_hash_i32(hash, projectile->half_height_q16);
-    pf_m4_hash_i32(hash, projectile->spawn_offset_x_q16);
-    pf_m4_hash_i32(hash, projectile->spawn_offset_y_q16);
-    pf_m4_hash_i32(hash, projectile->speed_q16);
-    pf_m4_hash_u32(hash, projectile->damage_q16);
-    pf_m4_hash_i32(hash, projectile->base_knockback_x_q16);
-    pf_m4_hash_i32(hash, projectile->base_knockback_y_q16);
-    pf_m4_hash_i32(hash, projectile->knockback_growth_q16);
-    pf_m4_hash_u16(hash, projectile->lifetime_ticks);
-    pf_m4_hash_u16(hash, projectile->fire_recovery_ticks);
-    pf_m4_hash_u16(hash, projectile->hitlag_ticks);
-    pf_m4_hash_u16(hash, projectile->powershield_reflect_window_ticks);
+    hash_u16(hash, projectile->schema_version);
+    hash_u8(hash, projectile->enabled);
+    hash_i32(hash, projectile->half_width_q16);
+    hash_i32(hash, projectile->half_height_q16);
+    hash_i32(hash, projectile->spawn_offset_x_q16);
+    hash_i32(hash, projectile->spawn_offset_y_q16);
+    hash_i32(hash, projectile->speed_q16);
+    hash_u32(hash, projectile->damage_q16);
+    hash_i32(hash, projectile->base_knockback_x_q16);
+    hash_i32(hash, projectile->base_knockback_y_q16);
+    hash_i32(hash, projectile->knockback_growth_q16);
+    hash_u16(hash, projectile->lifetime_ticks);
+    hash_u16(hash, projectile->fire_recovery_ticks);
+    hash_u16(hash, projectile->hitlag_ticks);
+    hash_u16(hash, projectile->powershield_reflect_window_ticks);
 }
 
-static void pf_m4_hash_reflector(
+static void hash_reflector(
     pf_sha256 *hash,
-    const pf_m4_reflector_data *reflector)
+    const reflector_data *reflector)
 {
-    pf_m4_hash_u16(hash, reflector->schema_version);
-    pf_m4_hash_u8(hash, reflector->enabled);
-    pf_m4_hash_i32(hash, reflector->hitbox_offset_x_q16);
-    pf_m4_hash_i32(hash, reflector->hitbox_offset_y_q16);
-    pf_m4_hash_i32(hash, reflector->hitbox_half_width_q16);
-    pf_m4_hash_i32(hash, reflector->hitbox_half_height_q16);
-    pf_m4_hash_u32(hash, reflector->damage_q16);
-    pf_m4_hash_i32(hash, reflector->base_knockback_x_q16);
-    pf_m4_hash_i32(hash, reflector->base_knockback_y_q16);
-    pf_m4_hash_i32(hash, reflector->knockback_growth_q16);
-    pf_m4_hash_u16(hash, reflector->startup_ticks);
-    pf_m4_hash_u16(hash, reflector->active_ticks);
-    pf_m4_hash_u16(hash, reflector->recovery_ticks);
-    pf_m4_hash_u16(hash, reflector->hitlag_ticks);
+    hash_u16(hash, reflector->schema_version);
+    hash_u8(hash, reflector->enabled);
+    hash_i32(hash, reflector->hitbox_offset_x_q16);
+    hash_i32(hash, reflector->hitbox_offset_y_q16);
+    hash_i32(hash, reflector->hitbox_half_width_q16);
+    hash_i32(hash, reflector->hitbox_half_height_q16);
+    hash_u32(hash, reflector->damage_q16);
+    hash_i32(hash, reflector->base_knockback_x_q16);
+    hash_i32(hash, reflector->base_knockback_y_q16);
+    hash_i32(hash, reflector->knockback_growth_q16);
+    hash_u16(hash, reflector->startup_ticks);
+    hash_u16(hash, reflector->active_ticks);
+    hash_u16(hash, reflector->recovery_ticks);
+    hash_u16(hash, reflector->hitlag_ticks);
 }
 
-static void pf_m4_hash_charge(
+static void hash_charge(
     pf_sha256 *hash,
-    const pf_m4_charge_data *charge)
+    const charge_data *charge)
 {
-    pf_m4_hash_u16(hash, charge->schema_version);
-    pf_m4_hash_u8(hash, charge->enabled);
-    pf_m4_hash_i32(hash, charge->hitbox_offset_x_q16);
-    pf_m4_hash_i32(hash, charge->hitbox_offset_y_q16);
-    pf_m4_hash_i32(hash, charge->hitbox_half_width_q16);
-    pf_m4_hash_i32(hash, charge->hitbox_half_height_q16);
-    pf_m4_hash_u32(hash, charge->base_damage_q16);
-    pf_m4_hash_u32(hash, charge->bonus_damage_q16);
-    pf_m4_hash_i32(hash, charge->base_knockback_x_q16);
-    pf_m4_hash_i32(hash, charge->base_knockback_y_q16);
-    pf_m4_hash_i32(hash, charge->knockback_growth_q16);
-    pf_m4_hash_u16(hash, charge->max_charge_ticks);
-    pf_m4_hash_u16(hash, charge->store_animation_ticks);
-    pf_m4_hash_u16(hash, charge->release_startup_ticks);
-    pf_m4_hash_u16(hash, charge->release_active_ticks);
-    pf_m4_hash_u16(hash, charge->release_recovery_ticks);
-    pf_m4_hash_u16(hash, charge->release_hitlag_ticks);
+    hash_u16(hash, charge->schema_version);
+    hash_u8(hash, charge->enabled);
+    hash_i32(hash, charge->hitbox_offset_x_q16);
+    hash_i32(hash, charge->hitbox_offset_y_q16);
+    hash_i32(hash, charge->hitbox_half_width_q16);
+    hash_i32(hash, charge->hitbox_half_height_q16);
+    hash_u32(hash, charge->base_damage_q16);
+    hash_u32(hash, charge->bonus_damage_q16);
+    hash_i32(hash, charge->base_knockback_x_q16);
+    hash_i32(hash, charge->base_knockback_y_q16);
+    hash_i32(hash, charge->knockback_growth_q16);
+    hash_u16(hash, charge->max_charge_ticks);
+    hash_u16(hash, charge->store_animation_ticks);
+    hash_u16(hash, charge->release_startup_ticks);
+    hash_u16(hash, charge->release_active_ticks);
+    hash_u16(hash, charge->release_recovery_ticks);
+    hash_u16(hash, charge->release_hitlag_ticks);
 }
 
-static void pf_m4_hash_recovery(
+static void hash_recovery(
     pf_sha256 *hash,
-    const pf_m4_recovery_data *recovery)
+    const recovery_data *recovery)
 {
-    pf_m4_hash_u16(hash, recovery->schema_version);
-    pf_m4_hash_u8(hash, recovery->enabled);
-    pf_m4_hash_i32(hash, recovery->horizontal_speed_q16);
-    pf_m4_hash_i32(hash, recovery->vertical_speed_q16);
-    pf_m4_hash_u16(hash, recovery->ascent_ticks);
+    hash_u16(hash, recovery->schema_version);
+    hash_u8(hash, recovery->enabled);
+    hash_i32(hash, recovery->horizontal_speed_q16);
+    hash_i32(hash, recovery->vertical_speed_q16);
+    hash_u16(hash, recovery->ascent_ticks);
 }
 
-static void pf_m4_content_hash(
-    const pf_m4_content *content,
+static void content_hash(
+    const struct content *content,
     uint8_t digest[32])
 {
     pf_sha256 hash;
@@ -1632,28 +1632,28 @@ static void pf_m4_content_hash(
     pf_sha256_init(&hash);
     pf_sha256_update(
         &hash,
-        pf_m4_content_hash_domain,
-        sizeof(pf_m4_content_hash_domain));
-    pf_m4_hash_u16(&hash, content->schema_version);
-    pf_m4_hash_u8(&hash, content->fighter_count);
-    pf_m4_hash_u8(&hash, content->stage_count);
-    pf_m4_hash_u8(&hash, content->item_count);
-    pf_m4_hash_u8(&hash, content->projectile_count);
-    pf_m4_hash_u8(&hash, content->reflector_count);
-    pf_m4_hash_u8(&hash, content->charge_count);
-    pf_m4_hash_u8(&hash, content->recovery_count);
-    pf_m4_hash_u8(&hash, content->gameplay_ruleset);
-    pf_m4_hash_fighter(&hash, &content->fighter);
-    pf_m4_hash_stage(&hash, &content->stage);
-    pf_m4_hash_item(&hash, &content->item);
-    pf_m4_hash_projectile(&hash, &content->projectile);
-    pf_m4_hash_reflector(&hash, &content->reflector);
-    pf_m4_hash_charge(&hash, &content->charge);
-    pf_m4_hash_recovery(&hash, &content->recovery);
+        content_hash_domain,
+        sizeof(content_hash_domain));
+    hash_u16(&hash, content->schema_version);
+    hash_u8(&hash, content->fighter_count);
+    hash_u8(&hash, content->stage_count);
+    hash_u8(&hash, content->item_count);
+    hash_u8(&hash, content->projectile_count);
+    hash_u8(&hash, content->reflector_count);
+    hash_u8(&hash, content->charge_count);
+    hash_u8(&hash, content->recovery_count);
+    hash_u8(&hash, content->gameplay_ruleset);
+    hash_fighter(&hash, &content->fighter);
+    hash_stage(&hash, &content->stage);
+    hash_item(&hash, &content->item);
+    hash_projectile(&hash, &content->projectile);
+    hash_reflector(&hash, &content->reflector);
+    hash_charge(&hash, &content->charge);
+    hash_recovery(&hash, &content->recovery);
     pf_sha256_finish(&hash, digest);
 }
 
-static int pf_m4_hash_equal(
+static int hash_equal(
     const uint8_t left[32],
     const uint8_t right[32])
 {
@@ -1669,8 +1669,8 @@ static int pf_m4_hash_equal(
     return difference == UINT8_C(0);
 }
 
-const pf_m4_getup_roll_timing *pf_m4_getup_roll_timing_for(
-    const pf_m4_fighter_data *fighter,
+const getup_roll_timing *getup_roll_timing_for(
+    const fighter_data *fighter,
     uint8_t prone_orientation,
     int8_t roll_direction,
     int8_t facing)
@@ -1698,7 +1698,7 @@ const pf_m4_getup_roll_timing *pf_m4_getup_roll_timing_for(
     return NULL;
 }
 
-uint16_t pf_m4_getup_roll_submotion_for(
+uint16_t getup_roll_submotion_for(
     uint8_t prone_orientation,
     int8_t roll_direction,
     int8_t facing)
@@ -1730,8 +1730,8 @@ uint16_t pf_m4_getup_roll_submotion_for(
     return UINT16_MAX;
 }
 
-uint16_t pf_m4_getup_attack_invulnerability_ticks_for(
-    const pf_m4_fighter_data *fighter,
+uint16_t getup_attack_invulnerability_ticks_for(
+    const fighter_data *fighter,
     uint8_t prone_orientation)
 {
     if (fighter == NULL)
@@ -1749,41 +1749,41 @@ uint16_t pf_m4_getup_attack_invulnerability_ticks_for(
     return UINT16_C(0);
 }
 
-pf_status pf_m4_default_content(pf_m4_content *out_content)
+pf_status default_content(struct content *out_content)
 {
-    const pf_m4_falcon_common_attributes *falcon_attributes;
-    const pf_m4_falcon_air_dodge_attributes *air_dodge_attributes;
-    const pf_m4_ssbm_damage_response_attributes *damage_response;
-    const pf_m4_ssbm_surface_response_attributes *surface_response;
-    const pf_m4_ssbm_ledge_response_attributes *ledge_response;
-    const pf_m4_ssbm_mash_attributes *mash;
-    const pf_m4_ssbm_ground_input_attributes *ground_input;
-    const pf_m4_ssbm_rebirth_attributes *rebirth;
-    const pf_m4_melee_stale_move_data *stale_move_data;
-    const pf_m4_falcon_smash_charge_attributes *smash_charge;
-    pf_m4_fighter_data *fighter;
-    pf_m4_stage_data *stage;
-    pf_m4_item_data *item;
-    pf_m4_projectile_data *projectile;
-    pf_m4_reflector_data *reflector;
-    pf_m4_charge_data *charge;
-    pf_m4_recovery_data *recovery;
+    const falcon_common_attributes *falcon_attributes;
+    const falcon_air_dodge_attributes *air_dodge_attributes;
+    const ssbm_damage_response_attributes *damage_response;
+    const ssbm_surface_response_attributes *surface_response;
+    const ssbm_ledge_response_attributes *ledge_response;
+    const ssbm_mash_attributes *mash;
+    const ssbm_ground_input_attributes *ground_input;
+    const ssbm_rebirth_attributes *rebirth;
+    const melee_stale_move_data *stale_move_data;
+    const falcon_smash_charge_attributes *smash_charge;
+    fighter_data *fighter;
+    stage_data *stage;
+    item_data *item;
+    projectile_data *projectile;
+    reflector_data *reflector;
+    charge_data *charge;
+    recovery_data *recovery;
 
     if (out_content == NULL)
     {
         return PF_STATUS_INVALID_ARGUMENT;
     }
 
-    falcon_attributes = pf_m4_falcon_reference_common_attributes();
-    air_dodge_attributes = pf_m4_falcon_reference_air_dodge_attributes();
-    damage_response = pf_m4_ssbm_common_reference_damage_response();
-    surface_response = pf_m4_ssbm_common_reference_surface_response();
-    ledge_response = pf_m4_ssbm_common_reference_ledge_response();
-    mash = pf_m4_ssbm_common_reference_mash();
-    ground_input = pf_m4_ssbm_common_reference_ground_input();
-    rebirth = pf_m4_ssbm_common_reference_rebirth();
-    stale_move_data = pf_m4_falcon_reference_stale_move_data();
-    smash_charge = pf_m4_falcon_reference_smash_charge_attributes();
+    falcon_attributes = falcon_reference_common_attributes();
+    air_dodge_attributes = falcon_reference_air_dodge_attributes();
+    damage_response = ssbm_common_reference_damage_response();
+    surface_response = ssbm_common_reference_surface_response();
+    ledge_response = ssbm_common_reference_ledge_response();
+    mash = ssbm_common_reference_mash();
+    ground_input = ssbm_common_reference_ground_input();
+    rebirth = ssbm_common_reference_rebirth();
+    stale_move_data = falcon_reference_stale_move_data();
+    smash_charge = falcon_reference_smash_charge_attributes();
     if (falcon_attributes == NULL || air_dodge_attributes == NULL ||
         damage_response == NULL || surface_response == NULL ||
         ledge_response == NULL || mash == NULL || ground_input == NULL ||
@@ -2252,16 +2252,16 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->grabbed_offset_x_q16 = PF_Q16_RATIO(3, 5);
     fighter->grabbed_offset_y_q16 = INT32_C(0);
     fighter->grab_escape_damage_ticks_q16 = PF_Q16_RATIO(1, 10);
-    if (!pf_m4_apply_falcon_reference_throw(
+    if (!apply_falcon_reference_throw(
             &fighter->forward_throw,
             PF_M4_FALCON_FORWARD_THROW) ||
-        !pf_m4_apply_falcon_reference_throw(
+        !apply_falcon_reference_throw(
             &fighter->back_throw,
             PF_M4_FALCON_BACK_THROW) ||
-        !pf_m4_apply_falcon_reference_throw(
+        !apply_falcon_reference_throw(
             &fighter->up_throw,
             PF_M4_FALCON_UP_THROW) ||
-        !pf_m4_apply_falcon_reference_throw(
+        !apply_falcon_reference_throw(
             &fighter->down_throw,
             PF_M4_FALCON_DOWN_THROW))
     {
@@ -2397,7 +2397,7 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->mash_stick_axis_threshold = mash->stick_axis_threshold;
     fighter->shield_break_stun_tick_decrement =
         mash->furafura_tick_decrement;
-    if (!pf_m4_apply_falcon_reference_grabs(fighter))
+    if (!apply_falcon_reference_grabs(fighter))
     {
         return PF_STATUS_DETERMINISTIC_FAULT;
     }
@@ -2425,11 +2425,11 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
         stale_move_data->slot_reduction_q16,
         sizeof(fighter->stale_move_slot_reduction_q16));
     fighter->crouch_release_axis_threshold = UINT16_C(20479);
-    if (!pf_m4_apply_falcon_reference_common_action_timings(fighter))
+    if (!apply_falcon_reference_common_action_timings(fighter))
     {
         return PF_STATUS_DETERMINISTIC_FAULT;
     }
-    if (!pf_m4_apply_falcon_reference_defaults(fighter))
+    if (!apply_falcon_reference_defaults(fighter))
     {
         return PF_STATUS_DETERMINISTIC_FAULT;
     }
@@ -2581,16 +2581,16 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     return PF_STATUS_OK;
 }
 
-static int32_t pf_m4_stage_line_center_x_q16(
-    const pf_m4_ssbm_stage_collision_line *line)
+static int32_t stage_line_center_x_q16(
+    const ssbm_stage_collision_line *line)
 {
     return (int32_t)(
         ((int64_t)line->start_x_q16 + (int64_t)line->end_x_q16) /
         INT64_C(2));
 }
 
-static int32_t pf_m4_stage_line_half_width_q16(
-    const pf_m4_ssbm_stage_collision_line *line)
+static int32_t stage_line_half_width_q16(
+    const ssbm_stage_collision_line *line)
 {
     const int64_t width =
         line->end_x_q16 >= line->start_x_q16
@@ -2600,18 +2600,18 @@ static int32_t pf_m4_stage_line_half_width_q16(
     return (int32_t)(width / INT64_C(2));
 }
 
-static pf_status pf_m4_apply_battlefield_stage(pf_m4_content *content)
+static pf_status apply_battlefield_stage(struct content *content)
 {
-    const pf_m4_ssbm_stage_collision_profile *profile =
-        pf_m4_ssbm_reference_stage_collision(
+    const ssbm_stage_collision_profile *profile =
+        ssbm_reference_stage_collision(
             (uint16_t)PF_M4_REFERENCE_STAGE_BATTLEFIELD);
-    const pf_m4_ssbm_stage_spawn_point *spawn;
-    const pf_m4_ssbm_stage_collision_line *left_edge;
-    const pf_m4_ssbm_stage_collision_line *main_floor;
-    const pf_m4_ssbm_stage_collision_line *side_platform;
-    const pf_m4_ssbm_stage_collision_line *top_platform;
-    const pf_m4_ssbm_stage_collision_line *right_edge;
-    pf_m4_stage_data *stage;
+    const ssbm_stage_spawn_point *spawn;
+    const ssbm_stage_collision_line *left_edge;
+    const ssbm_stage_collision_line *main_floor;
+    const ssbm_stage_collision_line *side_platform;
+    const ssbm_stage_collision_line *top_platform;
+    const ssbm_stage_collision_line *right_edge;
+    stage_data *stage;
 
     if (profile == NULL || profile->line_count != UINT16_C(23) ||
         profile->floor_start != UINT16_C(0) ||
@@ -2648,24 +2648,24 @@ static pf_status pf_m4_apply_battlefield_stage(pf_m4_content *content)
         right_edge->start_x_q16 > right_edge->end_x_q16
             ? right_edge->start_x_q16
             : right_edge->end_x_q16;
-    stage->floor_y_q16 = pf_m4_ssbm_stage_line_y_q16(
+    stage->floor_y_q16 = ssbm_stage_line_y_q16(
         main_floor,
-        pf_m4_stage_line_center_x_q16(main_floor));
+        stage_line_center_x_q16(main_floor));
     stage->platform_center_x_q16 =
-        pf_m4_stage_line_center_x_q16(top_platform);
-    stage->platform_y_q16 = pf_m4_ssbm_stage_line_y_q16(
+        stage_line_center_x_q16(top_platform);
+    stage->platform_y_q16 = ssbm_stage_line_y_q16(
         top_platform,
         stage->platform_center_x_q16);
     stage->platform_half_width_q16 =
-        pf_m4_stage_line_half_width_q16(top_platform);
+        stage_line_half_width_q16(top_platform);
     stage->platform_motion_amplitude_q16 = INT32_C(0);
     stage->upper_platform_center_x_q16 =
-        pf_m4_stage_line_center_x_q16(side_platform);
-    stage->upper_platform_y_q16 = pf_m4_ssbm_stage_line_y_q16(
+        stage_line_center_x_q16(side_platform);
+    stage->upper_platform_y_q16 = ssbm_stage_line_y_q16(
         side_platform,
         stage->upper_platform_center_x_q16);
     stage->upper_platform_half_width_q16 =
-        pf_m4_stage_line_half_width_q16(side_platform);
+        stage_line_half_width_q16(side_platform);
     stage->solid_left_q16 = -PF_Q16_ONE;
     stage->solid_right_q16 = PF_Q16_ONE;
     stage->solid_top_q16 = stage->floor_y_q16 - INT32_C(3) * PF_Q16_ONE;
@@ -2685,9 +2685,9 @@ static pf_status pf_m4_apply_battlefield_stage(pf_m4_content *content)
     return PF_STATUS_OK;
 }
 
-pf_status pf_m4_reference_stage_content(
-    pf_m4_reference_stage reference_stage,
-    pf_m4_content *out_content)
+pf_status reference_stage_content(
+    enum reference_stage reference_stage,
+    struct content *out_content)
 {
     pf_status status;
 
@@ -2695,7 +2695,7 @@ pf_status pf_m4_reference_stage_content(
     {
         return PF_STATUS_INVALID_ARGUMENT;
     }
-    status = pf_m4_default_content(out_content);
+    status = default_content(out_content);
     if (status != PF_STATUS_OK ||
         reference_stage == PF_M4_REFERENCE_STAGE_AUTHORED)
     {
@@ -2705,25 +2705,25 @@ pf_status pf_m4_reference_stage_content(
     {
         return PF_STATUS_INVALID_CONFIG;
     }
-    status = pf_m4_apply_battlefield_stage(out_content);
+    status = apply_battlefield_stage(out_content);
     if (status != PF_STATUS_OK)
     {
         return status;
     }
-    return pf_m4_validate_content(out_content);
+    return validate_content(out_content);
 }
 
-pf_status pf_m4_validate_content(const pf_m4_content *content)
+pf_status validate_content(const struct content *content)
 {
-    const pf_m4_fighter_data *fighter;
-    const pf_m4_stage_data *stage;
-    const pf_m4_ssbm_stage_collision_profile *reference_stage;
-    const pf_m4_ssbm_stage_collision_line *reference_spawn_line;
-    const pf_m4_item_data *item;
-    const pf_m4_projectile_data *projectile;
-    const pf_m4_reflector_data *reflector;
-    const pf_m4_charge_data *charge;
-    const pf_m4_recovery_data *recovery;
+    const fighter_data *fighter;
+    const stage_data *stage;
+    const ssbm_stage_collision_profile *reference_stage;
+    const ssbm_stage_collision_line *reference_spawn_line;
+    const item_data *item;
+    const projectile_data *projectile;
+    const reflector_data *reflector;
+    const charge_data *charge;
+    const recovery_data *recovery;
     const int32_t maximum_coordinate_q16 =
         INT32_C(4096) * PF_Q16_ONE;
     const int32_t maximum_fighter_extent_q16 =
@@ -2846,26 +2846,26 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
     {
         return PF_STATUS_INVALID_CONFIG;
     }
-    if (!pf_m4_throw_data_is_valid(&fighter->forward_throw) ||
-        !pf_m4_throw_data_is_valid(&fighter->back_throw) ||
-        !pf_m4_throw_data_is_valid(&fighter->up_throw) ||
-        !pf_m4_throw_data_is_valid(&fighter->down_throw) ||
-        !pf_m4_attack_data_is_valid(
+    if (!throw_data_is_valid(&fighter->forward_throw) ||
+        !throw_data_is_valid(&fighter->back_throw) ||
+        !throw_data_is_valid(&fighter->up_throw) ||
+        !throw_data_is_valid(&fighter->down_throw) ||
+        !attack_data_is_valid(
             &fighter->up_attack,
             maximum_fighter_extent_q16) ||
-        !pf_m4_attack_data_is_valid(
+        !attack_data_is_valid(
             &fighter->down_attack,
             maximum_fighter_extent_q16) ||
-        !pf_m4_attack_data_is_valid(
+        !attack_data_is_valid(
             &fighter->forward_attack,
             maximum_fighter_extent_q16) ||
-        !pf_m4_attack_data_is_valid(
+        !attack_data_is_valid(
             &fighter->forward_strong_attack,
             maximum_fighter_extent_q16) ||
-        !pf_m4_attack_data_is_valid(
+        !attack_data_is_valid(
             &fighter->up_strong_attack,
             maximum_fighter_extent_q16) ||
-        !pf_m4_attack_data_is_valid(
+        !attack_data_is_valid(
             &fighter->down_strong_attack,
             maximum_fighter_extent_q16) ||
         fighter->smash_charge_damage_bonus_q16 == UINT32_C(0) ||
@@ -2873,28 +2873,28 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
             (uint32_t)PF_Q16_ONE ||
         fighter->smash_charge_max_ticks == UINT16_C(0) ||
         fighter->smash_charge_max_ticks > UINT16_C(600) ||
-        !pf_m4_charged_attack_damage_is_valid(
+        !charged_attack_damage_is_valid(
             &fighter->forward_strong_attack,
             fighter->smash_charge_damage_bonus_q16) ||
-        !pf_m4_charged_attack_damage_is_valid(
+        !charged_attack_damage_is_valid(
             &fighter->up_strong_attack,
             fighter->smash_charge_damage_bonus_q16) ||
-        !pf_m4_charged_attack_damage_is_valid(
+        !charged_attack_damage_is_valid(
             &fighter->down_strong_attack,
             fighter->smash_charge_damage_bonus_q16) ||
-        !pf_m4_attack_data_is_valid(
+        !attack_data_is_valid(
             &fighter->forward_aerial,
             maximum_fighter_extent_q16) ||
-        !pf_m4_attack_data_is_valid(
+        !attack_data_is_valid(
             &fighter->back_aerial,
             maximum_fighter_extent_q16) ||
-        !pf_m4_attack_data_is_valid(
+        !attack_data_is_valid(
             &fighter->up_aerial,
             maximum_fighter_extent_q16) ||
-        !pf_m4_attack_data_is_valid(
+        !attack_data_is_valid(
             &fighter->down_aerial,
             maximum_fighter_extent_q16) ||
-        !pf_m4_attack_data_is_valid(
+        !attack_data_is_valid(
             &fighter->ledge_attack,
             maximum_fighter_extent_q16))
     {
@@ -2987,13 +2987,13 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->initial_dash_speed_q16 <= INT32_C(0) ||
         fighter->walk_initial_velocity_q16 <= INT32_C(0) ||
         fighter->walk_acceleration_q16 <= INT32_C(0) ||
-        !pf_m4_velocity_animation_scaling_is_valid(
+        !velocity_animation_scaling_is_valid(
             fighter->slow_walk_animation_scaling_q16) ||
-        !pf_m4_velocity_animation_scaling_is_valid(
+        !velocity_animation_scaling_is_valid(
             fighter->middle_walk_animation_scaling_q16) ||
-        !pf_m4_velocity_animation_scaling_is_valid(
+        !velocity_animation_scaling_is_valid(
             fighter->fast_walk_animation_scaling_q16) ||
-        !pf_m4_velocity_animation_scaling_is_valid(
+        !velocity_animation_scaling_is_valid(
             fighter->run_animation_scaling_q16) ||
         fighter->walk_middle_speed_ratio_q16 == UINT16_C(0) ||
         fighter->walk_middle_speed_ratio_q16 >=
@@ -3738,16 +3738,16 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
             fighter->getup_neutral_ticks ||
         fighter->getup_roll_ticks == UINT16_C(0) ||
         fighter->getup_roll_ticks > UINT16_C(240) ||
-        !pf_m4_getup_roll_timing_is_valid(
+        !getup_roll_timing_is_valid(
             &fighter->getup_roll_back_forward,
             fighter->getup_roll_ticks) ||
-        !pf_m4_getup_roll_timing_is_valid(
+        !getup_roll_timing_is_valid(
             &fighter->getup_roll_back_backward,
             fighter->getup_roll_ticks) ||
-        !pf_m4_getup_roll_timing_is_valid(
+        !getup_roll_timing_is_valid(
             &fighter->getup_roll_stomach_forward,
             fighter->getup_roll_ticks) ||
-        !pf_m4_getup_roll_timing_is_valid(
+        !getup_roll_timing_is_valid(
             &fighter->getup_roll_stomach_backward,
             fighter->getup_roll_ticks) ||
         fighter->getup_attack_ticks == UINT16_C(0) ||
@@ -3901,7 +3901,7 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
     }
 
     stage = &content->stage;
-    reference_stage = pf_m4_ssbm_reference_stage_collision(
+    reference_stage = ssbm_reference_stage_collision(
         stage->reference_collision_profile);
     reference_spawn_line = NULL;
     if (stage->reference_collision_profile ==
@@ -3924,7 +3924,7 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
             &reference_stage->lines[stage->reference_spawn_line];
         if (reference_spawn_line->kind !=
                 (uint8_t)PF_M4_SSBM_STAGE_SURFACE_FLOOR ||
-            pf_m4_ssbm_stage_support_valid(
+            ssbm_stage_support_valid(
                 stage->reference_collision_profile,
                 (uint8_t)(stage->reference_spawn_line + UINT16_C(1)),
                 UINT8_C(1)) == 0)
@@ -3948,10 +3948,10 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
                      (uint32_t)reference_stage->spawn_point_count;
                  ++reference_spawn_index)
             {
-                const pf_m4_ssbm_stage_spawn_point *spawn =
+                const ssbm_stage_spawn_point *spawn =
                     &reference_stage->spawn_points[reference_spawn_index];
-                const pf_m4_ssbm_stage_collision_line *spawn_line =
-                    pf_m4_ssbm_reference_stage_line(
+                const ssbm_stage_collision_line *spawn_line =
+                    ssbm_reference_stage_line(
                         stage->reference_collision_profile,
                         spawn->support);
                 const int32_t spawn_left =
@@ -4369,8 +4369,8 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
     return PF_STATUS_OK;
 }
 
-pf_status pf_m4_make_content_view(
-    const pf_m4_content *content,
+pf_status make_content_view(
+    const struct content *content,
     pf_content_view *out_view)
 {
     pf_status status;
@@ -4381,7 +4381,7 @@ pf_status pf_m4_make_content_view(
     }
     (void)memset(out_view, 0, sizeof(*out_view));
 
-    status = pf_m4_validate_content(content);
+    status = validate_content(content);
     if (status != PF_STATUS_OK)
     {
         return status;
@@ -4391,16 +4391,16 @@ pf_status pf_m4_make_content_view(
     out_view->schema_version = PF_SIM_CONTENT_SCHEMA_VERSION;
     out_view->bytes = content;
     out_view->byte_count = sizeof(*content);
-    pf_m4_content_hash(content, out_view->content_hash.bytes);
+    content_hash(content, out_view->content_hash.bytes);
     return PF_STATUS_OK;
 }
 
-pf_status pf_m4_content_from_view(
+pf_status content_from_view(
     const pf_content_view *view,
-    pf_m4_content *out_content)
+    struct content *out_content)
 {
     pf_content_view canonical_view;
-    pf_m4_content candidate;
+    struct content candidate;
     pf_status status;
 
     if (view == NULL || out_content == NULL)
@@ -4409,21 +4409,21 @@ pf_status pf_m4_content_from_view(
     }
     if (view->byte_count == (size_t)0)
     {
-        return pf_m4_default_content(out_content);
+        return default_content(out_content);
     }
     if (view->bytes == NULL ||
-        view->byte_count != sizeof(pf_m4_content))
+        view->byte_count != sizeof(struct content))
     {
         return PF_STATUS_INVALID_CONFIG;
     }
 
     (void)memcpy(&candidate, view->bytes, sizeof(candidate));
-    status = pf_m4_make_content_view(&candidate, &canonical_view);
+    status = make_content_view(&candidate, &canonical_view);
     if (status != PF_STATUS_OK)
     {
         return status;
     }
-    if (!pf_m4_hash_equal(
+    if (!hash_equal(
             canonical_view.content_hash.bytes,
             view->content_hash.bytes))
     {

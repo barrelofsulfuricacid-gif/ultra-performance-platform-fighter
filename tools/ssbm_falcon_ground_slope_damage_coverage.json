@@ -115,9 +115,9 @@
   ],
   "selection": {
     "paths": [
-      "generated/data/m4_ssbm_falcon_ground_slope_damage_oracle.inc",
-      "generated/data/m4_ssbm_ntsc102_common_data.inc",
-      "generated/data/m4_ssbm_ntsc102_hyrule_collision.inc",
+      "generated/data/ssbm_falcon_ground_slope_damage_oracle.inc",
+      "generated/data/ssbm_ntsc102_common_data.inc",
+      "generated/data/ssbm_ntsc102_hyrule_collision.inc",
       "include/pf/m4.h",
       "src/sim/sim_combat.c",
       "src/sim/sim_movement.c",
@@ -129,7 +129,7 @@
       "src/sim/sim_ssbm_stage_data.h",
       "tests/sim/ssbm_stored_oracle.c",
       "tests/sim/ssbm_stored_oracle.h",
-      "tests/sim/test_m4_combat.c",
+      "tests/sim/test_combat.c",
       "tools/capture_ssbm_movement.py",
       "tools/data/ssbm_ntsc102_hyrule_collision.json",
       "tools/generate_ssbm_stored_trace_oracle.py",
@@ -204,15 +204,15 @@
       "position_drift_per_tick_q16": 32
     },
     "c": {
-      "symbol_prefix": "pf_m4_ssbm_falcon_ground_slope_damage",
+      "symbol_prefix": "ssbm_falcon_ground_slope_damage",
       "macro_prefix": "PF_M4_SSBM_FALCON_GROUND_SLOPE_DAMAGE"
     },
     "generator": {
       "script": "tools/generate_ssbm_stored_trace_oracle.py",
-      "output": "generated/data/m4_ssbm_falcon_ground_slope_damage_oracle.inc"
+      "output": "generated/data/ssbm_falcon_ground_slope_damage_oracle.inc"
     },
     "runner": {
-      "executable": "m4_combat_test",
+      "executable": "combat_test",
       "arguments": ["--ssbm-oracle", "falcon-common-ground-slope-damage"]
     }
   }

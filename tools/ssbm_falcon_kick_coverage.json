@@ -27,16 +27,16 @@
   },
   "selection": {
     "paths": [
-      "generated/data/m4_falcon_ntsc102_frame_data.inc",
-      "generated/data/m4_ssbm_falcon_kick_oracle.json",
+      "generated/data/falcon_ntsc102_frame_data.inc",
+      "generated/data/ssbm_falcon_kick_oracle.json",
       "src/sim/sim_falcon_frame_data.c",
       "src/sim/sim_falcon_frame_data.h",
       "src/sim/sim_movement.c",
-      "src/tools/m4_movement_trace.c",
+      "src/tools/movement_trace.c",
       "tools/compare_ssbm_movement.py",
       "tools/generate_ssbm_stored_trace_oracle.py",
       "tools/ssbm_falcon_kick_coverage.json",
-      "tools/verify_m4_falcon_kick.sh",
+      "tools/verify_falcon_kick.sh",
       "tools/verify_ssbm_falcon_kick.py"
     ]
   },
@@ -154,10 +154,10 @@
     ],
     "generator": {
       "script": "tools/generate_ssbm_stored_trace_oracle.py",
-      "output": "generated/data/m4_ssbm_falcon_kick_oracle.json"
+      "output": "generated/data/ssbm_falcon_kick_oracle.json"
     },
     "runner": {
-      "executable": "pf_m4_movement_trace",
+      "executable": "movement_trace",
       "arguments": []
     }
   }

@@ -172,13 +172,13 @@ inspector rather than checking files alone.
 Run the focused native M4 contracts without a browser:
 
 ```sh
-./tools/verify_m4_movement.sh
-./tools/verify_m4_falcon_punch.sh
-./tools/verify_m4_combat.sh
-./tools/verify_m4_match.sh
+./tools/verify_movement.sh
+./tools/verify_falcon_punch.sh
+./tools/verify_combat.sh
+./tools/verify_match.sh
 ```
 
-The `web.m4_playtest` CTest owns the native browser-bridge ABI. After building
+The `web.playtest` CTest owns the native browser-bridge ABI. After building
 the generated HTML/Wasm with `./tools/workflow.sh web`, run the real browser
 boundary once with `./tools/verify_web_smoke.sh`.
 

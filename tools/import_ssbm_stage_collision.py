@@ -248,7 +248,7 @@ def render_inc(source: dict[str, Any], symbol: str) -> str:
         "    " + ", ".join(f"UINT8_C(0x{byte:02x})" for byte in digest),
         "};",
         "",
-        f"static const pf_m4_ssbm_stage_collision_line {symbol}_lines[] = {{",
+        f"static const ssbm_stage_collision_line {symbol}_lines[] = {{",
     ]
     for expected_index, line in enumerate(lines):
         if line.get("index") != expected_index:
@@ -311,7 +311,7 @@ def render_inc(source: dict[str, Any], symbol: str) -> str:
         raise ValueError("invalid compact stage spawn points")
     if spawn_points:
         rendered.append(
-            f"static const pf_m4_ssbm_stage_spawn_point {symbol}_spawn_points[] = {{"
+            f"static const ssbm_stage_spawn_point {symbol}_spawn_points[] = {{"
         )
         for expected_index, point in enumerate(spawn_points):
             if not isinstance(point, dict) or point.get("index") != expected_index:
@@ -360,7 +360,7 @@ def render_inc(source: dict[str, Any], symbol: str) -> str:
     blast_zone = transformed_bounds("blast_zone")
     rendered.extend(
         [
-            f"static const pf_m4_ssbm_stage_collision_profile {symbol}_profile = {{",
+            f"static const ssbm_stage_collision_profile {symbol}_profile = {{",
             f"    {symbol}_lines,",
             f"    UINT16_C({len(lines)}),",
             "    " + ", ".join(range_values[:4]) + ",",

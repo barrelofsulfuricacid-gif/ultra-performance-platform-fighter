@@ -24,9 +24,9 @@
   },
   "selection": {
     "paths": [
-      "generated/data/m4_ssbm_falcon_ground_loop_hsd.inc",
-      "generated/data/m4_ssbm_falcon_wait_hsd_oracle.inc",
-      "generated/data/m4_ssbm_falcon_wait_transition_hsd_oracle.inc",
+      "generated/data/ssbm_falcon_ground_loop_hsd.inc",
+      "generated/data/ssbm_falcon_wait_hsd_oracle.inc",
+      "generated/data/ssbm_falcon_wait_transition_hsd_oracle.inc",
       "include/pf/sim.h",
       "src/sim/sim_combat.c",
       "src/sim/sim_falcon_frame_data.h",
@@ -36,7 +36,7 @@
       "src/sim/sim_movement.c",
       "src/sim/sim_snapshot.c",
       "src/sim/sim_tick.c",
-      "tests/sim/test_m4_combat.c",
+      "tests/sim/test_combat.c",
       "tools/capture_ssbm_movement.py",
       "tools/generate_ssbm_dynamic_hurt_oracle.py",
       "tools/generate_ssbm_dynamic_hurt_pose_include.py",

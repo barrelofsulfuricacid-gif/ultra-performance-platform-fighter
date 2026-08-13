@@ -55,12 +55,12 @@
   ],
   "selection": {
     "paths": [
-      "generated/data/m4_ssbm_ucf084_tumble_input_oracle.json",
+      "generated/data/ssbm_ucf084_tumble_input_oracle.json",
       "src/sim/sim_combat.c",
       "src/sim/sim_internal.h",
       "src/sim/sim_movement.c",
       "src/sim/sim_tick.c",
-      "src/tools/m4_movement_trace.c",
+      "src/tools/movement_trace.c",
       "tools/capture_ssbm_movement.py",
       "tools/generate_ssbm_stored_trace_oracle.py",
       "tools/ssbm_live_trace.py",
@@ -80,7 +80,7 @@
       {"id":"tumble_raw_delta_75_reject","runner_arguments":["--ucf-tumble"],"source_label_prefix":"surface_response_tumble_raw_delta_75_reject_","sample_count":3,"input_phases":[{"ticks":1,"lanes":[{"raw_main":[0,0]},{}]},{"ticks":1,"lanes":[{"main":[25804,0],"raw_main":[63,0]},{}]},{"ticks":1,"lanes":[{"main":[30719,0],"raw_main":[75,0]},{}]}]},
       {"id":"tumble_raw_delta_76_accept","runner_arguments":["--ucf-tumble"],"source_label_prefix":"surface_response_tumble_raw_delta_76_accept_","sample_count":3,"input_phases":[{"ticks":1,"lanes":[{"raw_main":[0,0]},{}]},{"ticks":1,"lanes":[{"main":[25804,0],"raw_main":[63,0]},{}]},{"ticks":1,"lanes":[{"main":[31129,0],"raw_main":[76,0]},{}]}]}
     ],
-    "generator": {"script":"tools/generate_ssbm_stored_trace_oracle.py","output":"generated/data/m4_ssbm_ucf084_tumble_input_oracle.json"},
-    "runner": {"executable":"pf_m4_movement_trace","arguments":[]}
+    "generator": {"script":"tools/generate_ssbm_stored_trace_oracle.py","output":"generated/data/ssbm_ucf084_tumble_input_oracle.json"},
+    "runner": {"executable":"movement_trace","arguments":[]}
   }
 }

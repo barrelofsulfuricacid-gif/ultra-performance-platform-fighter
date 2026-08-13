@@ -188,8 +188,8 @@ static pf_bench_storage pf_benchmark_storage[PF_BENCH_STORAGE_COUNT];
 static pf_sim *pf_duel_sim;
 static pf_sim *pf_restore_sim;
 static pf_sim *pf_team_sim;
-static pf_sim *pf_m4_duel_sim;
-static pf_sim *pf_m4_maximum_sim;
+static pf_sim *duel_sim;
+static pf_sim *maximum_sim;
 static pf_sim *pf_replay_initial_sim;
 static pf_sim *pf_replay_source_sim;
 static pf_sim *pf_replay_target_sim;
@@ -205,10 +205,10 @@ static pf_state_hash pf_replay_hashes[PF_BENCH_REPLAY_HASH_COUNT];
 static uint8_t pf_replay_bytes[PF_BENCH_REPLAY_CAPACITY];
 static size_t pf_replay_size;
 static uint64_t pf_state_bytes;
-static pf_m4_content pf_benchmark_m4_duel_content;
-static pf_m4_content pf_benchmark_m4_maximum_content;
-static pf_content_view pf_benchmark_m4_duel_view;
-static pf_content_view pf_benchmark_m4_maximum_view;
+static struct content pf_benchmark_duel_content;
+static struct content pf_benchmark_maximum_content;
+static pf_content_view pf_benchmark_duel_view;
+static pf_content_view pf_benchmark_maximum_view;
 
 _Static_assert(
     PF_BENCH_REPLAY_INPUT_COUNT ==
@@ -293,15 +293,15 @@ static pf_content_view make_content(void)
     return content;
 }
 
-static int make_m4_benchmark_content(
-    pf_m4_content *content,
+static int make_benchmark_content(
+    struct content *content,
     pf_content_view *view,
     int maximum_entities,
     char error[PF_BENCHMARK_ERROR_CAPACITY])
 {
     pf_status status;
 
-    status = pf_m4_default_content(content);
+    status = default_content(content);
     if (status != PF_STATUS_OK)
     {
         set_error(error, "default M4 content", status);
@@ -341,7 +341,7 @@ static int make_m4_benchmark_content(
         content->stage.platform_motion_amplitude_q16 = INT32_C(0);
     }
 
-    status = pf_m4_make_content_view(content, view);
+    status = make_content_view(content, view);
     if (status != PF_STATUS_OK)
     {
         set_error(error, "make M4 content view", status);
@@ -454,7 +454,7 @@ static void make_inputs(
     }
 }
 
-static void make_m4_representative_inputs(
+static void make_representative_inputs(
     pf_input_frame inputs[PF_SIM_MAX_PLAYERS],
     uint64_t tick)
 {
@@ -520,7 +520,7 @@ static void make_m4_representative_inputs(
     }
 }
 
-static void make_m4_maximum_inputs(
+static void make_maximum_inputs(
     pf_input_frame inputs[PF_SIM_MAX_PLAYERS],
     uint64_t tick)
 {
@@ -694,7 +694,7 @@ static int run_tick_case(
         error);
 }
 
-static int run_m4_tick_case(
+static int run_match_tick_case(
     pf_sim *sim,
     uint64_t seed,
     uint8_t player_count,
@@ -740,11 +740,11 @@ static int run_m4_tick_case(
         }
         if (maximum_entities != 0)
         {
-            make_m4_maximum_inputs(inputs, cycle_tick);
+            make_maximum_inputs(inputs, cycle_tick);
         }
         else
         {
-            make_m4_representative_inputs(inputs, cycle_tick);
+            make_representative_inputs(inputs, cycle_tick);
         }
         status = pf_sim_tick(
             sim,
@@ -769,12 +769,12 @@ static int run_m4_tick_case(
         error);
 }
 
-static int validate_m4_maximum_workload(
+static int validate_maximum_workload(
     char error[PF_BENCHMARK_ERROR_CAPACITY])
 {
     pf_input_frame inputs[PF_SIM_MAX_PLAYERS];
     pf_tick_result result;
-    pf_m4_inspection inspection;
+    struct inspection inspection;
     uint64_t tick;
     uint32_t maximum_hurtboxes = UINT32_C(0);
     uint32_t maximum_fighter_hitboxes = UINT32_C(0);
@@ -784,7 +784,7 @@ static int validate_m4_maximum_workload(
     int saw_projectile_hitbox = 0;
     int saw_item_projectile_overlap = 0;
     pf_status status = pf_sim_reset(
-        pf_m4_maximum_sim,
+        maximum_sim,
         pf_benchmark_descriptors[PF_BENCH_MAXIMUM_COMBAT_ENTITIES].seed);
 
     if (status != PF_STATUS_OK)
@@ -801,9 +801,9 @@ static int validate_m4_maximum_workload(
         uint32_t fighter_hitboxes = UINT32_C(0);
         uint32_t attack_entities;
 
-        make_m4_maximum_inputs(inputs, tick);
+        make_maximum_inputs(inputs, tick);
         status = pf_sim_tick(
-            pf_m4_maximum_sim,
+            maximum_sim,
             inputs,
             (size_t)PF_SIM_MAX_PLAYERS,
             &result);
@@ -812,7 +812,7 @@ static int validate_m4_maximum_workload(
             set_error(error, "run maximum-combat preflight", status);
             return 0;
         }
-        status = pf_m4_inspect(pf_m4_maximum_sim, &inspection);
+        status = inspect(maximum_sim, &inspection);
         if (status != PF_STATUS_OK)
         {
             set_error(error, "inspect maximum-combat preflight", status);
@@ -891,19 +891,19 @@ static int validate_m4_maximum_workload(
     return 1;
 }
 
-static int validate_m4_representative_workload(
+static int validate_representative_workload(
     char error[PF_BENCHMARK_ERROR_CAPACITY])
 {
     pf_input_frame inputs[PF_SIM_MAX_PLAYERS];
     pf_tick_result result;
-    pf_m4_inspection inspection;
+    struct inspection inspection;
     uint64_t tick;
     uint32_t combat_events = UINT32_C(0);
     int saw_fighter_hitbox = 0;
     int saw_projectile = 0;
     int saw_shield = 0;
     pf_status status = pf_sim_reset(
-        pf_m4_duel_sim,
+        duel_sim,
         pf_benchmark_descriptors[PF_BENCH_REPRESENTATIVE_1V1].seed);
 
     if (status != PF_STATUS_OK)
@@ -918,9 +918,9 @@ static int validate_m4_representative_workload(
         uint32_t event_index;
         uint32_t player_index;
 
-        make_m4_representative_inputs(inputs, tick);
+        make_representative_inputs(inputs, tick);
         status = pf_sim_tick(
-            pf_m4_duel_sim,
+            duel_sim,
             inputs,
             (size_t)2,
             &result);
@@ -934,7 +934,7 @@ static int validate_m4_representative_workload(
                 pf_status_name(status));
             return 0;
         }
-        status = pf_m4_inspect(pf_m4_duel_sim, &inspection);
+        status = inspect(duel_sim, &inspection);
         if (status != PF_STATUS_OK)
         {
             set_error(error, "inspect representative-M4 preflight", status);
@@ -1007,8 +1007,8 @@ static int run_representative_1v1(
     pf_benchmark_sample *sample,
     char error[PF_BENCHMARK_ERROR_CAPACITY])
 {
-    return run_m4_tick_case(
-        pf_m4_duel_sim,
+    return run_match_tick_case(
+        duel_sim,
         pf_benchmark_descriptors[PF_BENCH_REPRESENTATIVE_1V1].seed,
         UINT8_C(2),
         0,
@@ -1022,8 +1022,8 @@ static int run_maximum_combat_entities(
     pf_benchmark_sample *sample,
     char error[PF_BENCHMARK_ERROR_CAPACITY])
 {
-    return run_m4_tick_case(
-        pf_m4_maximum_sim,
+    return run_match_tick_case(
+        maximum_sim,
         pf_benchmark_descriptors[PF_BENCH_MAXIMUM_COMBAT_ENTITIES].seed,
         PF_SIM_MAX_PLAYERS,
         1,
@@ -1572,14 +1572,14 @@ static int initialize_benchmark_worlds(
     size_t action_index;
 
     pf_state_bytes = UINT64_C(0);
-    if (!make_m4_benchmark_content(
-            &pf_benchmark_m4_duel_content,
-            &pf_benchmark_m4_duel_view,
+    if (!make_benchmark_content(
+            &pf_benchmark_duel_content,
+            &pf_benchmark_duel_view,
             0,
             error) ||
-        !make_m4_benchmark_content(
-            &pf_benchmark_m4_maximum_content,
-            &pf_benchmark_m4_maximum_view,
+        !make_benchmark_content(
+            &pf_benchmark_maximum_content,
+            &pf_benchmark_maximum_view,
             1,
             error) ||
         !initialize_sim(
@@ -1626,17 +1626,17 @@ static int initialize_benchmark_worlds(
             error) ||
         !initialize_sim(
             (size_t)70,
-            &pf_benchmark_m4_duel_view,
+            &pf_benchmark_duel_view,
             UINT8_C(2),
             PF_SIM_MODE_DUEL,
-            &pf_m4_duel_sim,
+            &duel_sim,
             error) ||
         !initialize_sim(
             (size_t)71,
-            &pf_benchmark_m4_maximum_view,
+            &pf_benchmark_maximum_view,
             PF_SIM_MAX_PLAYERS,
             PF_SIM_MODE_TEAMS,
-            &pf_m4_maximum_sim,
+            &maximum_sim,
             error))
     {
         return 0;
@@ -1683,8 +1683,8 @@ static int initialize_benchmark_worlds(
     }
 
     if (!prepare_snapshot(error) || !prepare_replay(error) ||
-        !validate_m4_representative_workload(error) ||
-        !validate_m4_maximum_workload(error))
+        !validate_representative_workload(error) ||
+        !validate_maximum_workload(error))
     {
         return 0;
     }

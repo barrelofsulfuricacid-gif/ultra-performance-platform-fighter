@@ -519,8 +519,8 @@ static int pf_replay_action_transition_event_valid(
 
         if (player_index < (uint32_t)player_count)
         {
-            if (!pf_m4_action_is_canonical(previous_action) ||
-                !pf_m4_action_is_canonical(next_action) ||
+            if (!action_is_canonical(previous_action) ||
+                !action_is_canonical(next_action) ||
                 changed !=
                     ((event->detail &
                       (uint16_t)(UINT16_C(1) << player_index)) !=

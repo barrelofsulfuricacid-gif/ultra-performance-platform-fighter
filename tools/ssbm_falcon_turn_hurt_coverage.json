@@ -53,8 +53,8 @@
   "pose_tracks": [],
   "selection": {
     "paths": [
-      "generated/data/m4_ssbm_falcon_turn_hurt.inc",
-      "generated/data/m4_ssbm_falcon_turn_hurt_oracle.inc",
+      "generated/data/ssbm_falcon_turn_hurt.inc",
+      "generated/data/ssbm_falcon_turn_hurt_oracle.inc",
       "src/sim/sim_combat.c",
       "src/sim/sim_falcon_frame_data.c",
       "src/sim/sim_internal.h",
@@ -98,7 +98,7 @@
     "expected_pose_count": 33,
     "expected_capsules_per_pose": 11,
     "c": {
-      "symbol_prefix": "pf_m4_ssbm_falcon_turn_hurt",
+      "symbol_prefix": "ssbm_falcon_turn_hurt",
       "macro_prefix": "PF_M4_SSBM_FALCON_TURN_HURT",
       "track_count_expression": "2",
       "actions": {
@@ -113,10 +113,10 @@
     },
     "generator": {
       "script": "tools/generate_ssbm_stored_oracle.py",
-      "output": "generated/data/m4_ssbm_falcon_turn_hurt_oracle.inc"
+      "output": "generated/data/ssbm_falcon_turn_hurt_oracle.inc"
     },
     "runner": {
-      "executable": "m4_combat_test",
+      "executable": "combat_test",
       "arguments": ["--ssbm-oracle", "falcon-turn-hurt"]
     },
     "cases": [

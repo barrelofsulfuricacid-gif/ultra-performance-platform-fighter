@@ -61,12 +61,12 @@
   ],
   "selection": {
     "paths": [
-      "generated/data/m4_ssbm_ucf084_hitlag_input_oracle.json",
+      "generated/data/ssbm_ucf084_hitlag_input_oracle.json",
       "src/sim/sim_combat.c",
       "src/sim/sim_internal.h",
       "src/sim/sim_movement.c",
       "src/sim/sim_tick.c",
-      "src/tools/m4_movement_trace.c",
+      "src/tools/movement_trace.c",
       "tools/capture_ssbm_movement.py",
       "tools/generate_ssbm_stored_trace_oracle.py",
       "tools/ssbm_live_trace.py",
@@ -91,7 +91,7 @@
       {"id":"shield_sdi_raw_delta_62_reject","runner_arguments":["--ucf-shield-sdi-hitlag"],"source_label_prefix":"damage_response_shield_sdi_raw_delta_62_reject_","sample_count":4,"input_phases":[{"ticks":1,"lanes":[{"left_trigger":65535,"raw_main":[0,0]},{}]},{"ticks":1,"lanes":[{"left_trigger":65535,"main":[18022,0],"raw_main":[44,0]},{}]},{"ticks":1,"lanes":[{"left_trigger":65535,"main":[25394,0],"raw_main":[62,0]},{}]},{"ticks":1,"lanes":[{"left_trigger":65535,"raw_main":[0,0]},{}]}]},
       {"id":"shield_sdi_raw_delta_63_accept","runner_arguments":["--ucf-shield-sdi-hitlag"],"source_label_prefix":"damage_response_shield_sdi_raw_delta_63_accept_","sample_count":4,"input_phases":[{"ticks":1,"lanes":[{"left_trigger":65535,"raw_main":[0,0]},{}]},{"ticks":1,"lanes":[{"left_trigger":65535,"main":[18022,0],"raw_main":[44,0]},{}]},{"ticks":1,"lanes":[{"left_trigger":65535,"main":[25804,0],"raw_main":[63,0]},{}]},{"ticks":1,"lanes":[{"left_trigger":65535,"raw_main":[0,0]},{}]}]}
     ],
-    "generator": {"script":"tools/generate_ssbm_stored_trace_oracle.py","output":"generated/data/m4_ssbm_ucf084_hitlag_input_oracle.json"},
-    "runner": {"executable":"pf_m4_movement_trace","arguments":[]}
+    "generator": {"script":"tools/generate_ssbm_stored_trace_oracle.py","output":"generated/data/ssbm_ucf084_hitlag_input_oracle.json"},
+    "runner": {"executable":"movement_trace","arguments":[]}
   }
 }

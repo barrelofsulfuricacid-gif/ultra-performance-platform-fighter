@@ -249,7 +249,7 @@ raw X, mask `3`, and deterministic prefix minimization.
 ```powershell
 python tools/ssbm_replay_differential.py bootstrap
 python tools/ssbm_replay_differential.py run `
-  --runner build/windows-msvc-release/pf_m4_movement_trace.exe
+  --runner build/windows-msvc-release/movement_trace.exe
 python -m unittest tests/tools/test_ssbm_replay_differential.py
 ```
 
@@ -276,7 +276,7 @@ does not repeatedly launch the native runner while the corpus is unchanged:
 
 ```powershell
 python tools/ssbm_replay_differential.py watch `
-  --runner build/windows-msvc-release/pf_m4_movement_trace.exe `
+  --runner build/windows-msvc-release/movement_trace.exe `
   --interval-seconds 30 `
   --extract-workers 8
 ```

@@ -102,8 +102,8 @@
   },
   "selection": {
     "paths": [
-      "generated/data/m4_ssbm_ucf084_cardinal_input_oracle.json",
-      "src/tools/m4_movement_trace.c",
+      "generated/data/ssbm_ucf084_cardinal_input_oracle.json",
+      "src/tools/movement_trace.c",
       "tools/compare_ssbm_movement.py",
       "tools/generate_ssbm_stored_trace_oracle.py",
       "tools/ssbm_natural_movement_domain.py",
@@ -143,10 +143,10 @@
     ],
     "generator": {
       "script": "tools/generate_ssbm_stored_trace_oracle.py",
-      "output": "generated/data/m4_ssbm_ucf084_cardinal_input_oracle.json"
+      "output": "generated/data/ssbm_ucf084_cardinal_input_oracle.json"
     },
     "runner": {
-      "executable": "pf_m4_movement_trace",
+      "executable": "movement_trace",
       "arguments": []
     }
   }

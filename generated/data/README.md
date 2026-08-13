@@ -7,11 +7,11 @@ version, and content hash.
 Release, web, and headless products consume these packs; developer-only
 runtime workbook import remains an explicit diagnostic path.
 
-`m4_falcon_ntsc102_frame_data.inc` is the owner-authorized numeric exception:
+`falcon_ntsc102_frame_data.inc` is the owner-authorized numeric exception:
 Falcon's complete 50-slot NTSC 1.02 attack schema converted by
 `tools/import_ssbm_falcon_frame_data.py`. Its pinned source hashes and tool
 revisions are recorded in
-`docs/product/m4_falcon_ntsc102_data_provenance.md`; no extracted DAT or
+`docs/product/falcon_ntsc102_data_provenance.md`; no extracted DAT or
 hitbox-geometry dump is tracked. Regeneration takes the geometry-free
 frame-data JSON, the original DAT JSON, and the owner-extracted raw `PlCa.dat`,
 `PlCaAJ.dat`, and `PlCo.dat`. The DAT JSON preserves throw-release commands;
@@ -24,7 +24,7 @@ of the mid-high and mid-low forward-smash angle slots; the importer rejects
 any other absent row. Production Falcon-counterpart code indexes this generated table rather than
 duplicating numeric move constants in hand-authored defaults.
 
-`m4_falcon_ntsc102_hit_geometry.inc` is the executable-qualified spatial
+`falcon_ntsc102_hit_geometry.inc` is the executable-qualified spatial
 companion for all 26 concrete ordinary Falcon action slots before pummel,
 including Jab 3, the rapid-jab phases, every forward-tilt angle, the three real
 forward-smash angles, all aerials, and standing/dash grab. It also covers three
@@ -47,7 +47,7 @@ only converted numeric tables are tracked. The importer rejects mismatched
 disc, capture, extractor, or decomp provenance and cross-checks every captured
 sphere's effect against the complete frame-data table.
 
-`m4_ssbm_falcon_ledge_hurt.inc` is the bounded common-action companion for
+`ssbm_falcon_ledge_hurt.inc` is the bounded common-action companion for
 Falcon's quick/slow ledge climb, roll, attack, and two-phase jump poses. The
 character-independent `tools/generate_ssbm_hurt_pose_include.py` consumes a
 hash-pinned canonical hurt-pose profile plus the small character binding in
@@ -59,7 +59,7 @@ and one nearby miss placement. The physical routes remain supplemental
 checkpoint projections, so they do not duplicate capsules or lengthen the
 default ledge trace pack.
 
-`m4_ssbm_falcon_guard_hurt.inc` is the same generic bounded-pose format for
+`ssbm_falcon_guard_hurt.inc` is the same generic bounded-pose format for
 Falcon's eight manually blended `GuardOn` updates, frozen `Guard` terminal
 pose, and ordinary 16-frame `GuardOff` motion. The hash-pinned import manifest
 binds 25 poses / 275 capsules; the companion generated Falcon frame-data table
@@ -69,14 +69,14 @@ parsing or new rollback state. `GuardSetOff` is intentionally excluded from
 this bounded table because its shield-stun callback supplies a dynamic
 animation rate; the shared HSD source below owns that motion instead.
 
-`m4_ssbm_falcon_airborne_hurt.inc` is the same generic format for Falcon's
+`ssbm_falcon_airborne_hurt.inc` is the same generic format for Falcon's
 complete JumpF, JumpB, JumpAerialF, JumpAerialB, Fall, and FallAerial tracks.
 `tools/ssbm_falcon_airborne_hurt_import.json` pins the canonical 186-pose
 profile and generator counts; the Falcon Dive stored domain reuses this table
 for its frame-20 physical hit/miss theorem instead of retaining a partial
 JumpF-specific copy.
 
-`m4_ssbm_falcon_ground_loop_hsd.inc` is the compact source-data form for
+`ssbm_falcon_ground_loop_hsd.inc` is the compact source-data form for
 velocity-driven WalkSlow/Middle/Fast and Run poses, Wait lifecycle, Raptor
 Boost, Falcon Dive, common FallSpecial, dynamically rated GuardSetOff, the
 animated ShieldBreakFly/DownD/StandD/Furafura hurt poses, and all qualified
@@ -102,11 +102,11 @@ hurt capsules are evaluated from those retained HSD motions. Their collision ECB
 remain compact live-source tracks because Melee's runtime animation/collision
 callbacks do not reduce to the raw selector-joint matrices on this route. The
 companion
-`m4_ssbm_falcon_ground_loop_hsd_oracle.inc` contains eight gait observations;
-`m4_ssbm_falcon_wait_hsd_oracle.inc` adds three direct base-Wait observations;
-`m4_ssbm_falcon_wait_transition_hsd_oracle.inc` adds all six natural
+`ssbm_falcon_ground_loop_hsd_oracle.inc` contains eight gait observations;
+`ssbm_falcon_wait_hsd_oracle.inc` adds three direct base-Wait observations;
+`ssbm_falcon_wait_transition_hsd_oracle.inc` adds all six natural
 SquatRv-to-Wait blend observations;
-`m4_ssbm_falcon_guard_setoff_hsd_oracle.inc` adds nine pressure-derived
+`ssbm_falcon_guard_setoff_hsd_oracle.inc` adds nine pressure-derived
 GuardSetOff observations. Neither duplicates production pose tables. The live
 source verifier independently compares the DAT evaluator against two
 manifest-pinned Dolphin captures, checks all ten SquatRv poses and base Wait
@@ -118,14 +118,14 @@ independent natural shield-depletion captures. Those six GuardSetOff captures
 also pass the identical-input native runner for 99 frames each, including 36
 direct source-animation clock comparisons.
 
-`m4_ssbm_falcon_turn_hurt.inc` contains the 11 `Turn` and 22 `TurnRun`
+`ssbm_falcon_turn_hurt.inc` contains the 11 `Turn` and 22 `TurnRun`
 source poses, including TurnRun frame zero. Its import manifest pins both an
 accelerated and a no-fast-forward control capture with identical semantics.
-`m4_ssbm_falcon_turn_hurt_oracle.inc` is test-only metadata for a separate
+`ssbm_falcon_turn_hurt_oracle.inc` is test-only metadata for a separate
 stored domain; it hashes the production accessor and four robust overlap/
 separation cases without copying capsules into the test binary.
 
-`m4_ssbm_falcon_common_hurt_oracle.inc` is test-only generated metadata for the
+`ssbm_falcon_common_hurt_oracle.inc` is test-only generated metadata for the
 fast stored-equivalence lane. Its single authored source is
 `tools/ssbm_falcon_common_hurt_coverage.json`; the generic generator validates
 the action/frame spans, simulator identifier bindings, source-frame phase,
@@ -136,7 +136,7 @@ specific. It contains no second copy of hurt capsules. A thin Falcon adapter
 lets the shared C runner hash every production hurt-pose table through the same
 accessor, so a stale or modified production table fails the pinned digest.
 
-`m4_ssbm_falcon_punch_oracle.inc` is test-only generated metadata for the
+`ssbm_falcon_punch_oracle.inc` is test-only generated metadata for the
 generic numeric stored-equivalence runner. Its manifest binds two hash-pinned
 live captures to three projections: the complete ground route, the complete
 air action clock, and the air physics tail reanchored immediately before source
@@ -145,21 +145,21 @@ did not qualify out of the regression claim. The generated include contains
 inputs, field masks, case bounds, and digests; it does not duplicate Falcon
 Punch physics or frame data.
 
-`m4_ssbm_falcon_raptor_boost_oracle.json` is test-only execution metadata for
+`ssbm_falcon_raptor_boost_oracle.json` is test-only execution metadata for
 the generic native-CSV stored-equivalence path. Its sole authored input is
 `tools/ssbm_falcon_raptor_boost_coverage.json`. It compresses identical-input
 phases for five already-live-qualified routes and records exact per-case fields
 plus sparse per-field row exclusions; it contains no Falcon behavior or copied
-frame data. The root verifier reuses the production `pf_m4_movement_trace`
+frame data. The root verifier reuses the production `movement_trace`
 binary and hashes its declared columns in manifest order.
 
-`m4_ssbm_falcon_kick_oracle.json` uses that same generic native-CSV path for
+`ssbm_falcon_kick_oracle.json` uses that same generic native-CSV path for
 six already-live-qualified Falcon Kick routes. Its manifest binds 399 source
 samples, exact route inputs, qualified columns, and the sparse hitlag/wall
 field masks to hash-pinned Final Destination and Hyrule captures. It adds no
 second runner and contains no Falcon Kick implementation logic.
 
-`m4_ssbm_falcon_shield_break_oracle.json` uses the same generic native-CSV path
+`ssbm_falcon_shield_break_oracle.json` uses the same generic native-CSV path
 for one 500-sample passive-depletion route. Its manifest binds the exact
 digital-trigger phases and production columns to two live-qualified controls.
 The production frame-data include separately owns Falcon's 198 immutable
@@ -167,11 +167,11 @@ ShieldBreakFly/DownD/StandD/Furafura ECB poses; this oracle stores inputs,
 masks, and digests only. Furafura's 100-frame collision/pose loop advances on
 the source animation cursor, independently of its mash-reducible daze timer.
 
-`m4_ssbm_ntsc102_hyrule_collision.inc` is the immutable production stage
+`ssbm_ntsc102_hyrule_collision.inc` is the immutable production stage
 catalog generated from the reviewed Hyrule MapCollData subset. Its authored
 JSON preserves source joint-local vertices and transform provenance; the
 generated catalog stores runtime world-space lines, normals, endpoints, and
-ledge flags. `m4_ssbm_falcon_slope_ledge_response_oracle.inc` is the test-only
+ledge flags. `ssbm_falcon_slope_ledge_response_oracle.inc` is the test-only
 two-case numeric trace for slope landing, DownBound endpoint departure, Fall,
 and ordinary ledge catch. Both are regenerated and digest-checked by the
 manifest-selected equivalence lane.

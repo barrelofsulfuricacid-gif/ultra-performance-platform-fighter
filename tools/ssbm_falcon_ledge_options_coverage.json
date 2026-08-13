@@ -543,14 +543,14 @@
   ],
   "selection": {
     "paths": [
-      "generated/data/m4_falcon_ntsc102_frame_data.inc",
-      "generated/data/m4_ssbm_ntsc102_common_data.inc",
-      "generated/data/m4_ssbm_falcon_ledge_options_oracle.inc",
+      "generated/data/falcon_ntsc102_frame_data.inc",
+      "generated/data/ssbm_ntsc102_common_data.inc",
+      "generated/data/ssbm_falcon_ledge_options_oracle.inc",
       "src/sim/sim_falcon_frame_data.c",
       "src/sim/sim_falcon_frame_data.h",
       "src/sim/sim_movement.c",
       "src/sim/sim_ssbm_common_data.h",
-      "tests/sim/test_m4_combat.c",
+      "tests/sim/test_combat.c",
       "tools/capture_ssbm_checkpoint_shards.py",
       "tools/capture_ssbm_falcon_ledge_options.sh",
       "tools/capture_ssbm_movement.py",
@@ -770,15 +770,15 @@
       }
     ],
     "c": {
-      "symbol_prefix": "pf_m4_ssbm_falcon_ledge_options",
+      "symbol_prefix": "ssbm_falcon_ledge_options",
       "macro_prefix": "PF_M4_SSBM_FALCON_LEDGE_OPTIONS"
     },
     "generator": {
       "script": "tools/generate_ssbm_stored_trace_oracle.py",
-      "output": "generated/data/m4_ssbm_falcon_ledge_options_oracle.inc"
+      "output": "generated/data/ssbm_falcon_ledge_options_oracle.inc"
     },
     "runner": {
-      "executable": "m4_combat_test",
+      "executable": "combat_test",
       "arguments": ["--ssbm-oracle", "falcon-common-ledge-options"]
     }
   }

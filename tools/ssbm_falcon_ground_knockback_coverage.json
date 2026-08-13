@@ -27,8 +27,8 @@
   ],
   "selection": {
     "paths": [
-      "generated/data/m4_ssbm_ntsc102_common_data.inc",
-      "generated/data/m4_ssbm_falcon_ground_knockback_oracle.inc",
+      "generated/data/ssbm_ntsc102_common_data.inc",
+      "generated/data/ssbm_falcon_ground_knockback_oracle.inc",
       "include/pf/m4.h",
       "src/sim/sim_combat.c",
       "src/sim/sim_melee.h",
@@ -37,7 +37,7 @@
       "src/sim/sim_ssbm_common_data.h",
       "tests/sim/ssbm_stored_oracle.c",
       "tests/sim/ssbm_stored_oracle.h",
-      "tests/sim/test_m4_combat.c",
+      "tests/sim/test_combat.c",
       "tools/generate_ssbm_stored_trace_oracle.py",
       "tools/import_ssbm_common_data.py",
       "tools/ssbm_falcon_ground_knockback_coverage.json",
@@ -54,15 +54,15 @@
       { "id": "late_dash_attack_flat" }
     ],
     "c": {
-      "symbol_prefix": "pf_m4_ssbm_falcon_ground_knockback",
+      "symbol_prefix": "ssbm_falcon_ground_knockback",
       "macro_prefix": "PF_M4_SSBM_FALCON_GROUND_KNOCKBACK"
     },
     "generator": {
       "script": "tools/generate_ssbm_stored_trace_oracle.py",
-      "output": "generated/data/m4_ssbm_falcon_ground_knockback_oracle.inc"
+      "output": "generated/data/ssbm_falcon_ground_knockback_oracle.inc"
     },
     "runner": {
-      "executable": "m4_combat_test",
+      "executable": "combat_test",
       "arguments": ["--ssbm-oracle", "falcon-common-ground-knockback"]
     }
   }

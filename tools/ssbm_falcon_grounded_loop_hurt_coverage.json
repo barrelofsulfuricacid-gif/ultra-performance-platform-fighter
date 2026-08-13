@@ -105,11 +105,11 @@
       "src/sim/sim_internal.h",
       "src/sim/sim_movement.c",
       "src/sim/sim_snapshot.c",
-      "tests/sim/test_m4_combat.c",
-      "generated/data/m4_ssbm_falcon_crouch_taunt_hurt.inc",
-      "generated/data/m4_ssbm_falcon_ground_loop_hsd.inc",
-      "generated/data/m4_ssbm_falcon_ground_loop_hsd_oracle.inc",
-      "generated/data/m4_ssbm_falcon_grounded_loop_hurt_oracle.inc",
+      "tests/sim/test_combat.c",
+      "generated/data/ssbm_falcon_crouch_taunt_hurt.inc",
+      "generated/data/ssbm_falcon_ground_loop_hsd.inc",
+      "generated/data/ssbm_falcon_ground_loop_hsd_oracle.inc",
+      "generated/data/ssbm_falcon_grounded_loop_hurt_oracle.inc",
       "tools/capture_ssbm_movement.py",
       "tools/capture_ssbm_checkpoint_shards.py",
       "tools/data/ssbm_falcon_ground_loop_ecb.json",
@@ -164,7 +164,7 @@
     "expected_pose_count": 278,
     "expected_capsules_per_pose": 11,
     "c": {
-      "symbol_prefix": "pf_m4_ssbm_falcon_grounded_loop_hurt",
+      "symbol_prefix": "ssbm_falcon_grounded_loop_hurt",
       "macro_prefix": "PF_M4_SSBM_FALCON_GROUNDED_LOOP_HURT",
       "track_count_expression": "3",
       "actions": {
@@ -181,10 +181,10 @@
     },
     "generator": {
       "script": "tools/generate_ssbm_stored_oracle.py",
-      "output": "generated/data/m4_ssbm_falcon_grounded_loop_hurt_oracle.inc"
+      "output": "generated/data/ssbm_falcon_grounded_loop_hurt_oracle.inc"
     },
     "runner": {
-      "executable": "m4_combat_test",
+      "executable": "combat_test",
       "arguments": ["--ssbm-oracle", "falcon-grounded-loop-hurt"]
     },
     "cases": [

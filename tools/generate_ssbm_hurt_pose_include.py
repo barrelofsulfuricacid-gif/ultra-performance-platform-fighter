@@ -206,7 +206,7 @@ def generate(manifest: dict[str, Any], profile: dict[str, Any]) -> str:
             f"    {enum_prefix}_COUNT = {len(declared_tracks)}",
             "};",
             "",
-            "static const pf_m4_reference_hurt_move",
+            "static const reference_hurt_move",
             f"{symbol_prefix}_moves[{enum_prefix}_COUNT] = {{",
         ]
     )
@@ -218,7 +218,7 @@ def generate(manifest: dict[str, Any], profile: dict[str, Any]) -> str:
         [
             "};",
             "",
-            "static const pf_m4_reference_hurt_frame",
+            "static const reference_hurt_frame",
             f"{symbol_prefix}_frames[] = {{",
         ]
     )
@@ -230,7 +230,7 @@ def generate(manifest: dict[str, Any], profile: dict[str, Any]) -> str:
         [
             "};",
             "",
-            "static const pf_m4_reference_hurt_capsule",
+            "static const reference_hurt_capsule",
             f"{symbol_prefix}_capsules[] = {{",
         ]
     )

@@ -19,7 +19,7 @@ static inline int pf_sim_vertical_coordinate_is_within_arena(
            coordinate_q16 <= arena_extent_q16;
 }
 
-static inline int32_t pf_m4_total_velocity_q16(
+static inline int32_t total_velocity_q16(
     int32_t self_velocity_q16,
     int32_t knockback_velocity_q16)
 {
@@ -54,7 +54,7 @@ static inline int32_t pf_m4_total_velocity_q16(
 #define PF_M4_INITIAL_DASH_ORDINARY_PHASE INT8_C(1)
 #define PF_M4_INITIAL_DASH_TURN_PHASE INT8_C(2)
 
-static inline int8_t pf_m4_signed_phase_direction(int8_t phase)
+static inline int8_t signed_phase_direction(int8_t phase)
 {
     return phase < INT8_C(0)
                ? INT8_C(-1)
@@ -65,14 +65,14 @@ static inline int8_t pf_m4_signed_phase_direction(int8_t phase)
 #define PF_M4_UCF084_SHIELD_DROP_C_UPPER_AXIS UINT16_C(22937)
 #define PF_M4_UCF084_SHIELD_DROP_MAIN_UPPER_AXIS UINT16_C(26214)
 
-static inline int pf_m4_action_is_canonical(uint8_t action_state)
+static inline int action_is_canonical(uint8_t action_state)
 {
     return action_state <= (uint8_t)PF_M4_ACTION_MATCH_ENTRY_END &&
            action_state != (uint8_t)PF_M4_ACTION_RESERVED_71 &&
            action_state != (uint8_t)PF_M4_ACTION_RESERVED_72;
 }
 
-static inline int pf_m4_action_is_match_entry(uint8_t action_state)
+static inline int action_is_match_entry(uint8_t action_state)
 {
     return action_state == (uint8_t)PF_M4_ACTION_MATCH_ENTRY ||
            action_state == (uint8_t)PF_M4_ACTION_MATCH_ENTRY_START ||
@@ -87,20 +87,20 @@ static inline int pf_m4_action_is_match_entry(uint8_t action_state)
 #define PF_M4_TRIGGER_STATE_DENSE_MASK UINT8_C(12)
 #define PF_M4_TRIGGER_STATE_MASK UINT8_C(15)
 
-static inline int pf_m4_action_is_ground_damage(uint8_t action_state)
+static inline int action_is_ground_damage(uint8_t action_state)
 {
     return action_state == (uint8_t)PF_M4_ACTION_DAMAGE_LOW_1 ||
            action_state == (uint8_t)PF_M4_ACTION_DAMAGE_LOW_2 ||
            action_state == (uint8_t)PF_M4_ACTION_DAMAGE_LOW_3;
 }
 
-static inline int pf_m4_action_is_damage(uint8_t action_state)
+static inline int action_is_damage(uint8_t action_state)
 {
     return action_state == (uint8_t)PF_M4_ACTION_HITSTUN ||
-           pf_m4_action_is_ground_damage(action_state);
+           action_is_ground_damage(action_state);
 }
 
-static inline int pf_m4_action_uses_ledge(uint8_t action_state)
+static inline int action_uses_ledge(uint8_t action_state)
 {
     return action_state == (uint8_t)PF_M4_ACTION_LEDGE_CATCH ||
            action_state == (uint8_t)PF_M4_ACTION_LEDGE_HANG ||
@@ -110,7 +110,7 @@ static inline int pf_m4_action_uses_ledge(uint8_t action_state)
            action_state == (uint8_t)PF_M4_ACTION_LEDGE_JUMP;
 }
 
-static inline int pf_m4_action_is_reference_jab_extension(
+static inline int action_is_reference_jab_extension(
     uint8_t action_state)
 {
     return action_state == (uint8_t)PF_M4_ACTION_JAB_THIRD ||
@@ -119,14 +119,14 @@ static inline int pf_m4_action_is_reference_jab_extension(
            action_state == (uint8_t)PF_M4_ACTION_RAPID_JAB_END;
 }
 
-static inline int pf_m4_action_is_reference_jab_chain(uint8_t action_state)
+static inline int action_is_reference_jab_chain(uint8_t action_state)
 {
     return action_state == (uint8_t)PF_M4_ACTION_GROUND_ATTACK ||
            action_state == (uint8_t)PF_M4_ACTION_JAB_FINAL ||
-           pf_m4_action_is_reference_jab_extension(action_state);
+           action_is_reference_jab_extension(action_state);
 }
 
-static inline int pf_m4_action_is_reference_angled_normal(
+static inline int action_is_reference_angled_normal(
     uint8_t action_state)
 {
     return action_state == (uint8_t)PF_M4_ACTION_FORWARD_ATTACK_HIGH ||
@@ -141,7 +141,7 @@ static inline int pf_m4_action_is_reference_angled_normal(
                (uint8_t)PF_M4_ACTION_FORWARD_STRONG_ATTACK_LOW;
 }
 
-static inline int pf_m4_action_is_forward_smash_release(uint8_t action_state)
+static inline int action_is_forward_smash_release(uint8_t action_state)
 {
     return action_state ==
                (uint8_t)PF_M4_ACTION_FORWARD_STRONG_ATTACK ||
@@ -151,14 +151,14 @@ static inline int pf_m4_action_is_forward_smash_release(uint8_t action_state)
                (uint8_t)PF_M4_ACTION_FORWARD_STRONG_ATTACK_LOW;
 }
 
-static inline int pf_m4_action_is_smash_release(uint8_t action_state)
+static inline int action_is_smash_release(uint8_t action_state)
 {
-    return pf_m4_action_is_forward_smash_release(action_state) ||
+    return action_is_forward_smash_release(action_state) ||
            action_state == (uint8_t)PF_M4_ACTION_UP_STRONG_ATTACK ||
            action_state == (uint8_t)PF_M4_ACTION_DOWN_STRONG_ATTACK;
 }
 
-static inline int pf_m4_action_uses_direct_hsd_pose(uint8_t action_state)
+static inline int action_uses_direct_hsd_pose(uint8_t action_state)
 {
     return action_state ==
                (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_START_GROUND ||
@@ -176,7 +176,7 @@ static inline int pf_m4_action_uses_direct_hsd_pose(uint8_t action_state)
            action_state == (uint8_t)PF_M4_ACTION_FALCON_DIVE_THROW;
 }
 
-static inline int pf_m4_action_uses_fall_special_pose(uint8_t action_state)
+static inline int action_uses_fall_special_pose(uint8_t action_state)
 {
     return action_state == (uint8_t)PF_M4_ACTION_FALL_SPECIAL ||
            action_state ==
@@ -186,7 +186,7 @@ static inline int pf_m4_action_uses_fall_special_pose(uint8_t action_state)
            action_state == (uint8_t)PF_M4_ACTION_FALCON_DIVE_FALL;
 }
 
-static inline int pf_m4_action_is_reference_throw(uint8_t action_state)
+static inline int action_is_reference_throw(uint8_t action_state)
 {
     return action_state == (uint8_t)PF_M4_ACTION_THROW_FORWARD ||
            action_state == (uint8_t)PF_M4_ACTION_THROW_BACK ||
@@ -194,7 +194,7 @@ static inline int pf_m4_action_is_reference_throw(uint8_t action_state)
            action_state == (uint8_t)PF_M4_ACTION_THROW_DOWN;
 }
 
-static inline int pf_m4_action_retains_source_submotion(
+static inline int action_retains_source_submotion(
     uint8_t action_state,
     uint8_t hitlag_resume_action)
 {
@@ -226,11 +226,11 @@ static inline int pf_m4_action_retains_source_submotion(
         action_state == (uint8_t)PF_M4_ACTION_PUMMEL ||
         action_state == (uint8_t)PF_M4_ACTION_GRABBED ||
         action_state == (uint8_t)PF_M4_ACTION_GRAB_RELEASE ||
-        pf_m4_action_is_reference_throw(action_state) ||
-        pf_m4_action_is_damage(action_state) ||
-        pf_m4_action_uses_ledge(action_state) ||
-        pf_m4_action_uses_fall_special_pose(action_state) ||
-        pf_m4_action_uses_direct_hsd_pose(action_state);
+        action_is_reference_throw(action_state) ||
+        action_is_damage(action_state) ||
+        action_uses_ledge(action_state) ||
+        action_uses_fall_special_pose(action_state) ||
+        action_uses_direct_hsd_pose(action_state);
     const int resume_owns_submotion =
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_WALK ||
@@ -264,18 +264,18 @@ static inline int pf_m4_action_retains_source_submotion(
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_PUMMEL ||
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_GRABBED ||
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_GRAB_RELEASE ||
-        pf_m4_action_is_reference_throw(hitlag_resume_action) ||
-        pf_m4_action_is_damage(hitlag_resume_action) ||
-        pf_m4_action_uses_ledge(hitlag_resume_action) ||
-        pf_m4_action_uses_fall_special_pose(hitlag_resume_action) ||
-        pf_m4_action_uses_direct_hsd_pose(hitlag_resume_action);
+        action_is_reference_throw(hitlag_resume_action) ||
+        action_is_damage(hitlag_resume_action) ||
+        action_uses_ledge(hitlag_resume_action) ||
+        action_uses_fall_special_pose(hitlag_resume_action) ||
+        action_uses_direct_hsd_pose(hitlag_resume_action);
 
     return action_owns_submotion ||
            (action_state == (uint8_t)PF_M4_ACTION_HITLAG &&
            resume_owns_submotion);
 }
 
-static inline uint8_t pf_m4_effective_action_state(
+static inline uint8_t effective_action_state(
     uint8_t action_state,
     uint8_t hitlag_resume_action)
 {
@@ -284,11 +284,11 @@ static inline uint8_t pf_m4_effective_action_state(
                : action_state;
 }
 
-static inline int pf_m4_action_uses_velocity_animation_clock(
+static inline int action_uses_velocity_animation_clock(
     uint8_t action_state,
     uint8_t hitlag_resume_action)
 {
-    const uint8_t effective_action = pf_m4_effective_action_state(
+    const uint8_t effective_action = effective_action_state(
         action_state,
         hitlag_resume_action);
 
@@ -296,28 +296,28 @@ static inline int pf_m4_action_uses_velocity_animation_clock(
            effective_action == (uint8_t)PF_M4_ACTION_RUN;
 }
 
-static inline int pf_m4_action_uses_ground_animation_clock(
+static inline int action_uses_ground_animation_clock(
     uint8_t action_state,
     uint8_t hitlag_resume_action)
 {
-    return pf_m4_effective_action_state(
+    return effective_action_state(
                action_state,
                hitlag_resume_action) ==
                (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
-           pf_m4_action_uses_velocity_animation_clock(
+           action_uses_velocity_animation_clock(
                action_state,
                hitlag_resume_action);
 }
 
-static inline int pf_m4_action_uses_source_animation_clock(
+static inline int action_uses_source_animation_clock(
     uint8_t action_state,
     uint8_t hitlag_resume_action)
 {
-    const uint8_t effective_action = pf_m4_effective_action_state(
+    const uint8_t effective_action = effective_action_state(
         action_state,
         hitlag_resume_action);
 
-    return pf_m4_action_uses_ground_animation_clock(
+    return action_uses_ground_animation_clock(
                action_state,
                hitlag_resume_action) ||
            effective_action == (uint8_t)PF_M4_ACTION_CROUCH ||
@@ -331,13 +331,13 @@ static inline int pf_m4_action_uses_source_animation_clock(
                (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN ||
            effective_action == (uint8_t)PF_M4_ACTION_GRAB_HOLD ||
            effective_action == (uint8_t)PF_M4_ACTION_GRABBED ||
-           pf_m4_action_is_reference_throw(effective_action) ||
-           pf_m4_action_is_damage(effective_action) ||
-           pf_m4_action_uses_fall_special_pose(effective_action) ||
-           pf_m4_action_uses_direct_hsd_pose(effective_action);
+           action_is_reference_throw(effective_action) ||
+           action_is_damage(effective_action) ||
+           action_uses_fall_special_pose(effective_action) ||
+           action_uses_direct_hsd_pose(effective_action);
 }
 
-static inline int32_t pf_m4_multiply_q16(
+static inline int32_t multiply_q16(
     int32_t value_q16,
     int32_t multiplier_q16)
 {
@@ -346,7 +346,7 @@ static inline int32_t pf_m4_multiply_q16(
         (int64_t)PF_Q16_ONE);
 }
 
-static inline int32_t pf_m4_multiply_q16_nearest(
+static inline int32_t multiply_q16_nearest(
     int32_t value_q16,
     int32_t multiplier_q16)
 {
@@ -366,7 +366,7 @@ static inline int32_t pf_m4_multiply_q16_nearest(
  * the same sub-Q16 remainder every tick. The phase makes the integer sequence
  * telescope: any contiguous run differs from the source rate by less than one
  * Q16.16 unit and requires no per-action state. */
-static inline int32_t pf_m4_q32_rate_step(
+static inline int32_t q32_rate_step(
     int64_t rate_q32,
     uint64_t phase)
 {
@@ -384,7 +384,7 @@ static inline int32_t pf_m4_q32_rate_step(
     return (int32_t)(whole_q16 + after - before);
 }
 
-static inline int32_t pf_m4_axis_q16(int16_t axis)
+static inline int32_t axis_q16(int16_t axis)
 {
     const int64_t denominator =
         axis < INT16_C(0) ? INT64_C(32768) : INT64_C(32767);
@@ -399,7 +399,7 @@ static inline int32_t pf_m4_axis_q16(int16_t axis)
                      denominator);
 }
 
-static inline int8_t pf_m4_source_stick_direction(
+static inline int8_t source_stick_direction(
     int16_t axis,
     uint16_t threshold)
 {
@@ -408,14 +408,14 @@ static inline int8_t pf_m4_source_stick_direction(
                : (axis <= -(int16_t)threshold ? INT8_C(-1) : INT8_C(0));
 }
 
-static inline uint8_t pf_m4_source_stick_age(
+static inline uint8_t source_stick_age(
     int16_t axis,
     uint16_t threshold,
     int8_t previous_direction,
     uint8_t previous_age,
     int8_t *out_direction)
 {
-    const int8_t direction = pf_m4_source_stick_direction(axis, threshold);
+    const int8_t direction = source_stick_direction(axis, threshold);
 
     *out_direction = direction;
     if (direction == INT8_C(0))
@@ -438,7 +438,7 @@ static inline uint8_t pf_m4_source_stick_age(
  * symmetric nearest rounding, then apply the source's +1 nonzero/+2 zero
  * result. Using ceil directly is wrong when a positive Q15 encoding lies a
  * fraction above its source grid point (for example, encoded 0.5). */
-static inline int pf_m4_ucf084_adjusted_axis(int16_t axis)
+static inline int ucf084_adjusted_axis(int16_t axis)
 {
     const int32_t value = (int32_t)axis;
     const int32_t magnitude = value < INT32_C(0) ? -value : value;
@@ -455,25 +455,25 @@ static inline int pf_m4_ucf084_adjusted_axis(int16_t axis)
     return (int)(source_grid_magnitude + INT32_C(1));
 }
 
-static inline int pf_m4_ucf084_adjusted_radial_sq(
+static inline int ucf084_adjusted_radial_sq(
     int16_t stick_x,
     int16_t stick_y)
 {
-    const int adjusted_x = pf_m4_ucf084_adjusted_axis(stick_x);
-    const int adjusted_y = pf_m4_ucf084_adjusted_axis(stick_y);
+    const int adjusted_x = ucf084_adjusted_axis(stick_x);
+    const int adjusted_y = ucf084_adjusted_axis(stick_y);
 
     return adjusted_x * adjusted_x + adjusted_y * adjusted_y;
 }
 
-static inline int pf_m4_ucf084_adjusted_radial_qualifies(
+static inline int ucf084_adjusted_radial_qualifies(
     int16_t stick_x,
     int16_t stick_y)
 {
-    return pf_m4_ucf084_adjusted_radial_sq(stick_x, stick_y) > 80 * 80;
+    return ucf084_adjusted_radial_sq(stick_x, stick_y) > 80 * 80;
 }
 
-static inline uint8_t pf_m4_input_trigger_state(
-    const pf_m4_fighter_data *fighter,
+static inline uint8_t input_trigger_state(
+    const fighter_data *fighter,
     const pf_input_frame *input)
 {
     uint8_t state = UINT8_C(0);
@@ -560,7 +560,7 @@ typedef struct pf_world_state
     int32_t fall_animation_blend_q16[PF_SIM_MAX_PLAYERS];
     uint8_t fall_animation_target_switched[PF_SIM_MAX_PLAYERS];
     int32_t ecb_locked_bottom_y_q16[PF_SIM_MAX_PLAYERS];
-    pf_m4_hsd_compact_pose ground_blend_pose[PF_SIM_MAX_PLAYERS];
+    hsd_compact_pose ground_blend_pose[PF_SIM_MAX_PLAYERS];
     int32_t ground_blend_progress_q16[PF_SIM_MAX_PLAYERS];
     uint16_t respawn_count[PF_SIM_MAX_PLAYERS];
     uint16_t respawn_ticks[PF_SIM_MAX_PLAYERS];
@@ -690,7 +690,7 @@ typedef struct pf_sim_scratch
     int32_t fall_animation_blend_q16[PF_SIM_MAX_PLAYERS];
     uint8_t fall_animation_target_switched[PF_SIM_MAX_PLAYERS];
     int32_t ecb_locked_bottom_y_q16[PF_SIM_MAX_PLAYERS];
-    pf_m4_hsd_compact_pose ground_blend_pose[PF_SIM_MAX_PLAYERS];
+    hsd_compact_pose ground_blend_pose[PF_SIM_MAX_PLAYERS];
     int32_t ground_blend_progress_q16[PF_SIM_MAX_PLAYERS];
     uint16_t respawn_count[PF_SIM_MAX_PLAYERS];
     uint16_t respawn_ticks[PF_SIM_MAX_PLAYERS];
@@ -809,7 +809,7 @@ typedef struct pf_sim_scratch
     int32_t shield_recoil_x_q16[PF_SIM_MAX_PLAYERS];
 } pf_sim_scratch;
 
-static inline void pf_m4_track_action_transition(
+static inline void track_action_transition(
     const pf_world_state *world,
     pf_sim_scratch *scratch,
     uint32_t player_index)
@@ -832,14 +832,14 @@ static inline void pf_m4_track_action_transition(
     }
 }
 
-static inline void pf_m4_set_action_state(
+static inline void set_action_state(
     const pf_world_state *world,
     pf_sim_scratch *scratch,
     uint32_t player_index,
     uint8_t action_state)
 {
     scratch->action_state[player_index] = action_state;
-    pf_m4_track_action_transition(world, scratch, player_index);
+    track_action_transition(world, scratch, player_index);
 }
 
 struct pf_sim
@@ -848,11 +848,11 @@ struct pf_sim
     pf_sim_scratch *scratch;
     uint8_t has_reset;
     uint8_t reserved[7];
-    pf_m4_content content;
+    struct content content;
     pf_world_state world;
 };
 
-typedef enum pf_m4_item_input_intent
+typedef enum item_input_intent
 {
     PF_M4_ITEM_INPUT_NONE = 0,
     PF_M4_ITEM_INPUT_PICKUP = 1,
@@ -861,22 +861,22 @@ typedef enum pf_m4_item_input_intent
     PF_M4_ITEM_INPUT_GLIDE_TOSS = 4,
     PF_M4_ITEM_INPUT_JUMP_CANCEL_THROW = 5,
     PF_M4_ITEM_INPUT_DASH_THROW = 6
-} pf_m4_item_input_intent;
+} item_input_intent;
 
-typedef enum pf_m4_projectile_input_intent
+typedef enum projectile_input_intent
 {
     PF_M4_PROJECTILE_INPUT_NONE = 0,
     PF_M4_PROJECTILE_INPUT_FIRE = 1
-} pf_m4_projectile_input_intent;
+} projectile_input_intent;
 
-void pf_m4_prepare_reflector_input(
-    const pf_m4_content *content,
+void prepare_reflector_input(
+    const struct content *content,
     const pf_world_state *world,
     const pf_input_frame *input,
     uint32_t player_index,
     pf_input_frame *effective_input);
-void pf_m4_prepare_charge_input(
-    const pf_m4_content *content,
+void prepare_charge_input(
+    const struct content *content,
     const pf_world_state *world,
     const pf_input_frame *input,
     uint32_t player_index,
@@ -913,60 +913,60 @@ pf_status pf_sim_push_event(
     uint16_t flags,
     uint16_t detail,
     uint32_t *out_sequence);
-pf_status pf_m4_content_from_view(
+pf_status content_from_view(
     const pf_content_view *view,
-    pf_m4_content *out_content);
-int32_t pf_m4_platform_center_x_q16(
-    const pf_m4_stage_data *stage,
+    struct content *out_content);
+int32_t platform_center_x_q16(
+    const stage_data *stage,
     uint64_t tick);
-void pf_m4_reset_player(
+void reset_player(
     pf_sim *sim,
     uint32_t player_index,
     int count_respawn);
-void pf_m4_reset_item(pf_sim *sim);
-void pf_m4_reset_projectile(pf_sim *sim);
-void pf_m4_begin_item_tick(
+void reset_item(pf_sim *sim);
+void reset_projectile(pf_sim *sim);
+void begin_item_tick(
     const pf_world_state *world,
     pf_sim_scratch *scratch);
-pf_m4_item_input_intent pf_m4_prepare_item_input(
-    const pf_m4_content *content,
+item_input_intent prepare_item_input(
+    const struct content *content,
     const pf_world_state *world,
     const pf_sim_scratch *scratch,
     const pf_input_frame *input,
     uint32_t player_index,
     pf_input_frame *effective_input);
-pf_status pf_m4_apply_item_input(
-    const pf_m4_content *content,
+pf_status apply_item_input(
+    const struct content *content,
     const pf_world_state *world,
     pf_sim_scratch *scratch,
     const pf_input_frame *input,
     uint32_t player_index,
-    pf_m4_item_input_intent intent);
-pf_status pf_m4_step_item(
-    const pf_m4_content *content,
+    item_input_intent intent);
+pf_status step_item(
+    const struct content *content,
     const pf_world_state *world,
     pf_sim_scratch *scratch);
-void pf_m4_begin_projectile_tick(
+void begin_projectile_tick(
     const pf_world_state *world,
     pf_sim_scratch *scratch);
-pf_m4_projectile_input_intent pf_m4_prepare_projectile_input(
-    const pf_m4_content *content,
+projectile_input_intent prepare_projectile_input(
+    const struct content *content,
     const pf_world_state *world,
     const pf_sim_scratch *scratch,
     const pf_input_frame *input,
     uint32_t player_index,
     pf_input_frame *effective_input);
-pf_status pf_m4_apply_projectile_input(
-    const pf_m4_content *content,
+pf_status apply_projectile_input(
+    const struct content *content,
     const pf_world_state *world,
     pf_sim_scratch *scratch,
     uint32_t player_index,
-    pf_m4_projectile_input_intent intent);
-pf_status pf_m4_step_projectile(
-    const pf_m4_content *content,
+    projectile_input_intent intent);
+pf_status step_projectile(
+    const struct content *content,
     pf_sim_scratch *scratch);
-pf_status pf_m4_step_player(
-    const pf_m4_content *content,
+pf_status step_player(
+    const struct content *content,
     const pf_world_state *world,
     pf_sim_scratch *scratch,
     const pf_input_frame *input,
@@ -974,31 +974,31 @@ pf_status pf_m4_step_player(
     uint32_t player_index,
     int32_t player_nudge_x_q16,
     uint64_t *rng_state);
-pf_status pf_m4_resolve_combat(
-    const pf_m4_content *content,
+pf_status resolve_combat(
+    const struct content *content,
     const pf_world_state *world,
     pf_sim_scratch *scratch,
     uint64_t *rng_state);
-uint8_t pf_m4_stale_move_id_for_action(uint8_t action_state);
-uint32_t pf_m4_stale_move_multiplier_q16(
-    const pf_m4_fighter_data *fighter,
+uint8_t stale_move_id_for_action(uint8_t action_state);
+uint32_t stale_move_multiplier_q16(
+    const fighter_data *fighter,
     const uint8_t stale_move_ids[PF_SIM_STALE_MOVE_QUEUE_CAPACITY],
     uint8_t stale_move_count,
     uint8_t move_id);
-const pf_m4_getup_roll_timing *pf_m4_getup_roll_timing_for(
-    const pf_m4_fighter_data *fighter,
+const getup_roll_timing *getup_roll_timing_for(
+    const fighter_data *fighter,
     uint8_t prone_orientation,
     int8_t roll_direction,
     int8_t facing);
-uint16_t pf_m4_getup_roll_submotion_for(
+uint16_t getup_roll_submotion_for(
     uint8_t prone_orientation,
     int8_t roll_direction,
     int8_t facing);
-uint16_t pf_m4_getup_attack_invulnerability_ticks_for(
-    const pf_m4_fighter_data *fighter,
+uint16_t getup_attack_invulnerability_ticks_for(
+    const fighter_data *fighter,
     uint8_t prone_orientation);
-int pf_m4_attack_hitbox(
-    const pf_m4_content *content,
+int attack_hitbox(
+    const struct content *content,
     int32_t position_x_q16,
     int32_t position_y_q16,
     int8_t facing,
@@ -1009,8 +1009,8 @@ int pf_m4_attack_hitbox(
     int32_t *out_right_q16,
     int32_t *out_top_q16,
     int32_t *out_bottom_q16);
-int pf_m4_grabbox(
-    const pf_m4_content *content,
+int grabbox(
+    const struct content *content,
     int32_t position_x_q16,
     int32_t position_y_q16,
     int8_t facing,
@@ -1020,17 +1020,17 @@ int pf_m4_grabbox(
     int32_t *out_right_q16,
     int32_t *out_top_q16,
     int32_t *out_bottom_q16);
-uint8_t pf_m4_attack_hit_spheres(
-    const pf_m4_content *content,
+uint8_t attack_hit_spheres(
+    const struct content *content,
     int32_t position_x_q16,
     int32_t position_y_q16,
     int8_t facing,
     uint8_t action_state,
     uint16_t action_ticks,
-    pf_m4_hit_sphere_inspection
+    hit_sphere_inspection
         out_spheres[PF_M4_INSPECTION_HIT_SPHERE_CAPACITY]);
-uint8_t pf_m4_reference_world_hurt_capsules(
-    const pf_m4_fighter_data *fighter,
+uint8_t reference_world_hurt_capsules(
+    const fighter_data *fighter,
     int32_t position_x_q16,
     int32_t position_y_q16,
     int8_t facing,
@@ -1043,11 +1043,11 @@ uint8_t pf_m4_reference_world_hurt_capsules(
     uint16_t action_ticks,
     int32_t total_velocity_x_q16,
     int32_t total_velocity_y_q16,
-    const pf_m4_hsd_local_pose *ground_loop_pose,
-    pf_m4_hurt_capsule_inspection
+    const hsd_local_pose *ground_loop_pose,
+    hurt_capsule_inspection
         out_capsules[PF_M4_INSPECTION_HURT_CAPSULE_CAPACITY]);
-int pf_m4_shield_box(
-    const pf_m4_fighter_data *fighter,
+int shield_box(
+    const fighter_data *fighter,
     int32_t position_x_q16,
     int32_t position_y_q16,
     uint8_t action_state,
@@ -1061,7 +1061,7 @@ int pf_m4_shield_box(
     int32_t *out_right_q16,
     int32_t *out_top_q16,
     int32_t *out_bottom_q16);
-void pf_m4_shield_tilt_axes(
+void shield_tilt_axes(
     uint16_t angle_turn,
     uint16_t magnitude,
     int8_t facing,

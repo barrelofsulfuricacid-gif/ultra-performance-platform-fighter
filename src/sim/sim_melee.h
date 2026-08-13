@@ -7,7 +7,7 @@
 #include <limits.h>
 #include <stdint.h>
 
-typedef struct pf_m4_melee_knockback_result
+typedef struct melee_knockback_result
 {
     int32_t velocity_x_q16;
     int32_t velocity_y_q16;
@@ -18,10 +18,10 @@ typedef struct pf_m4_melee_knockback_result
     uint8_t damage_level;
     uint8_t meteor_cancellable;
     uint8_t reserved;
-} pf_m4_melee_knockback_result;
+} melee_knockback_result;
 
 /* Q2.30 sin(0..90 degrees), indexed by the integer hitbox angle. */
-static const int32_t pf_m4_melee_sin_q30[91] = {
+static const int32_t melee_sin_q30[91] = {
     INT32_C(0), INT32_C(18739379), INT32_C(37473049), INT32_C(56195305),
     INT32_C(74900443), INT32_C(93582766), INT32_C(112236583), INT32_C(130856211),
     INT32_C(149435979), INT32_C(167970228), INT32_C(186453311), INT32_C(204879599),
@@ -47,7 +47,7 @@ static const int32_t pf_m4_melee_sin_q30[91] = {
     INT32_C(1073087729), INT32_C(1073578288), INT32_C(1073741824)
 };
 
-static inline int32_t pf_m4_melee_sin_degrees_q30(uint16_t angle)
+static inline int32_t melee_sin_degrees_q30(uint16_t angle)
 {
     const uint16_t normalized = (uint16_t)(angle % UINT16_C(360));
     const uint16_t quadrant = (uint16_t)(normalized / UINT16_C(90));
@@ -56,17 +56,17 @@ static inline int32_t pf_m4_melee_sin_degrees_q30(uint16_t angle)
     switch (quadrant)
     {
         case UINT16_C(0):
-            return pf_m4_melee_sin_q30[offset];
+            return melee_sin_q30[offset];
         case UINT16_C(1):
-            return pf_m4_melee_sin_q30[UINT16_C(90) - offset];
+            return melee_sin_q30[UINT16_C(90) - offset];
         case UINT16_C(2):
-            return -pf_m4_melee_sin_q30[offset];
+            return -melee_sin_q30[offset];
         default:
-            return -pf_m4_melee_sin_q30[UINT16_C(90) - offset];
+            return -melee_sin_q30[UINT16_C(90) - offset];
     }
 }
 
-static inline int32_t pf_m4_melee_sin_degrees_q16_q30(
+static inline int32_t melee_sin_degrees_q16_q30(
     int32_t angle_degrees_q16)
 {
     const int32_t full_turn_q16 = INT32_C(360) * INT32_C(65536);
@@ -87,8 +87,8 @@ static inline int32_t pf_m4_melee_sin_degrees_q16_q30(
             ? UINT16_C(0)
             : (uint16_t)(whole_degrees + UINT16_C(1));
     fraction_q16 = (uint32_t)normalized_q16 & UINT32_C(0xFFFF);
-    lower_q30 = pf_m4_melee_sin_degrees_q30(whole_degrees);
-    upper_q30 = pf_m4_melee_sin_degrees_q30(next_degrees);
+    lower_q30 = melee_sin_degrees_q30(whole_degrees);
+    upper_q30 = melee_sin_degrees_q30(next_degrees);
     return (int32_t)(
         (int64_t)lower_q30 +
         (((int64_t)upper_q30 - (int64_t)lower_q30) *
@@ -96,13 +96,13 @@ static inline int32_t pf_m4_melee_sin_degrees_q16_q30(
          16U));
 }
 
-static inline uint16_t pf_m4_melee_hitlag_ticks(
+static inline uint16_t melee_hitlag_ticks(
     uint32_t damage_q16,
     uint8_t target_crouching,
     uint32_t hitlag_multiplier_q16)
 {
-    const pf_m4_ssbm_damage_response_attributes *common =
-        pf_m4_ssbm_common_reference_damage_response();
+    const ssbm_damage_response_attributes *common =
+        ssbm_common_reference_damage_response();
     const uint32_t damage_count = damage_q16 >> 16U;
     uint32_t hitlag;
 
@@ -131,8 +131,8 @@ static inline uint16_t pf_m4_melee_hitlag_ticks(
     return (uint16_t)hitlag;
 }
 
-static inline pf_m4_melee_knockback_result pf_m4_melee_knockback_for_state(
-    const pf_m4_melee_knockback_data *hit,
+static inline melee_knockback_result melee_knockback_for_state(
+    const melee_knockback_data *hit,
     uint16_t target_weight,
     uint32_t knockback_damage_q16,
     uint32_t hitlag_damage_q16,
@@ -163,14 +163,14 @@ static inline pf_m4_melee_knockback_result pf_m4_melee_knockback_for_state(
         (int64_t)hit->base * one_q16 +
         ((int64_t)hit->growth * base_term_q16) / INT64_C(100);
     int64_t launch_q16;
-    const pf_m4_ssbm_damage_response_attributes *common =
-        pf_m4_ssbm_common_reference_damage_response();
+    const ssbm_damage_response_attributes *common =
+        ssbm_common_reference_damage_response();
     int32_t launch_angle_degrees_q16 =
         (int32_t)hit->angle_degrees * INT32_C(65536);
     int32_t scaled_knockback_q16;
     int32_t sin_q30;
     int32_t cos_q30;
-    pf_m4_melee_knockback_result result;
+    melee_knockback_result result;
     uint32_t hitstun;
 
     if (knockback_q16 > INT64_C(2500) * one_q16)
@@ -222,8 +222,8 @@ static inline pf_m4_melee_knockback_result pf_m4_melee_knockback_for_state(
         }
     }
     sin_q30 =
-        pf_m4_melee_sin_degrees_q16_q30(launch_angle_degrees_q16);
-    cos_q30 = pf_m4_melee_sin_degrees_q16_q30(
+        melee_sin_degrees_q16_q30(launch_angle_degrees_q16);
+    cos_q30 = melee_sin_degrees_q16_q30(
         launch_angle_degrees_q16 + INT32_C(90) * INT32_C(65536));
     launch_q16 = (knockback_q16 * INT64_C(3)) / INT64_C(100);
     result.velocity_x_q16 = (int32_t)(
@@ -275,7 +275,7 @@ static inline pf_m4_melee_knockback_result pf_m4_melee_knockback_for_state(
     {
         hitstun = UINT32_C(65535);
     }
-    result.hitlag_ticks = pf_m4_melee_hitlag_ticks(
+    result.hitlag_ticks = melee_hitlag_ticks(
         hitlag_damage_q16,
         target_crouching,
         target_hitlag_multiplier_q16);
@@ -283,13 +283,13 @@ static inline pf_m4_melee_knockback_result pf_m4_melee_knockback_for_state(
     return result;
 }
 
-static inline pf_m4_melee_knockback_result pf_m4_melee_knockback(
-    const pf_m4_melee_knockback_data *hit,
+static inline melee_knockback_result melee_knockback(
+    const melee_knockback_data *hit,
     uint16_t target_weight,
     uint32_t damage_q16,
     uint32_t knockback_percent_q16)
 {
-    return pf_m4_melee_knockback_for_state(
+    return melee_knockback_for_state(
         hit,
         target_weight,
         damage_q16,

@@ -151,11 +151,11 @@
   },
   "selection": {
     "paths": [
-      "generated/data/m4_ssbm_ucf084_shield_input_oracle.json",
+      "generated/data/ssbm_ucf084_shield_input_oracle.json",
       "src/sim/sim_internal.h",
       "src/sim/sim_movement.c",
       "src/sim/sim_tick.c",
-      "src/tools/m4_movement_trace.c",
+      "src/tools/movement_trace.c",
       "tests/tools/test_ssbm_ucf_input_trace.py",
       "tools/capture_ssbm_checkpoint_shards.py",
       "tools/capture_ssbm_movement.py",
@@ -261,10 +261,10 @@
     ],
     "generator": {
       "script": "tools/generate_ssbm_stored_trace_oracle.py",
-      "output": "generated/data/m4_ssbm_ucf084_shield_input_oracle.json"
+      "output": "generated/data/ssbm_ucf084_shield_input_oracle.json"
     },
     "runner": {
-      "executable": "pf_m4_movement_trace",
+      "executable": "movement_trace",
       "arguments": []
     }
   }

@@ -239,10 +239,10 @@
   ],
   "selection": {
     "paths": [
-      "generated/data/m4_ssbm_falcon_guardoff_acquisition_oracle.json",
+      "generated/data/ssbm_falcon_guardoff_acquisition_oracle.json",
       "src/sim/sim_movement.c",
-      "src/tools/m4_movement_trace.c",
-      "tests/sim/test_m4_combat.c",
+      "src/tools/movement_trace.c",
+      "tests/sim/test_combat.c",
       "tools/bootstrap_ssbm_checkpoint_oracle.sh",
       "tools/capture_ssbm_movement.py",
       "tools/compare_ssbm_movement.py",
@@ -471,10 +471,10 @@
     ],
     "generator": {
       "script": "tools/generate_ssbm_stored_trace_oracle.py",
-      "output": "generated/data/m4_ssbm_falcon_guardoff_acquisition_oracle.json"
+      "output": "generated/data/ssbm_falcon_guardoff_acquisition_oracle.json"
     },
     "runner": {
-      "executable": "pf_m4_movement_trace",
+      "executable": "movement_trace",
       "arguments": []
     }
   }

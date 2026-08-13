@@ -259,27 +259,27 @@ function(pf_add_smoke_product target product_name render_probe)
             "${CMAKE_CURRENT_SOURCE_DIR}/src/web_client/web_adapter.js")
         set(pf_web_shell
             "${CMAKE_CURRENT_SOURCE_DIR}/src/web_client/shell.html")
-        set(pf_m4_technique_registry
-            "${CMAKE_CURRENT_SOURCE_DIR}/docs/product/m4_advanced_technique_registry.md")
-        set(pf_m4_owner_checklist
-            "${CMAKE_CURRENT_BINARY_DIR}/generated/m4_owner_checklist.js")
-        set(pf_m4_owner_evidence
-            "${CMAKE_CURRENT_SOURCE_DIR}/src/web_client/m4_owner_evidence.js")
+        set(technique_registry
+            "${CMAKE_CURRENT_SOURCE_DIR}/docs/product/advanced_technique_registry.md")
+        set(owner_checklist
+            "${CMAKE_CURRENT_BINARY_DIR}/generated/owner_checklist.js")
+        set(owner_evidence
+            "${CMAKE_CURRENT_SOURCE_DIR}/src/web_client/owner_evidence.js")
         set_property(
             DIRECTORY
             APPEND
-            PROPERTY CMAKE_CONFIGURE_DEPENDS "${pf_m4_technique_registry}")
-        pf_generate_m4_owner_checklist(
-            "${pf_m4_technique_registry}"
-            "${pf_m4_owner_checklist}")
+            PROPERTY CMAKE_CONFIGURE_DEPENDS "${technique_registry}")
+        pf_generate_owner_checklist(
+            "${technique_registry}"
+            "${owner_checklist}")
         target_compile_definitions(${target} PRIVATE PF_PRODUCT_BROWSER=1)
         target_link_options(
             ${target}
             PRIVATE
                 "-sASSERTIONS=1"
-                "-sEXPORTED_FUNCTIONS=_main,_malloc,_free,_pf_web_replay_import,_pf_web_m4_playtest_step,_pf_web_m4_playtest_step_special,_pf_web_m4_playtest_step_dual_trigger_special,_pf_web_m4_playtest_reset,_pf_web_m4_playtest_refresh,_pf_web_m4_playtest_configure_duel,_pf_web_m4_playtest_set_team_lab"
-                "--pre-js=${pf_m4_owner_checklist}"
-                "--pre-js=${pf_m4_owner_evidence}"
+                "-sEXPORTED_FUNCTIONS=_main,_malloc,_free,_pf_web_replay_import,_pf_web_playtest_step,_pf_web_playtest_step_special,_pf_web_playtest_step_dual_trigger_special,_pf_web_playtest_reset,_pf_web_playtest_refresh,_pf_web_playtest_configure_duel,_pf_web_playtest_set_team_lab"
+                "--pre-js=${owner_checklist}"
+                "--pre-js=${owner_evidence}"
                 "--js-library=${pf_web_adapter}"
                 "--shell-file=${pf_web_shell}")
         set_property(
@@ -288,9 +288,9 @@ function(pf_add_smoke_product target product_name render_probe)
             PROPERTY LINK_DEPENDS
                 "${pf_web_adapter}"
                 "${pf_web_shell}"
-                "${pf_m4_owner_checklist}"
-                "${pf_m4_owner_evidence}"
-                "${pf_m4_technique_registry}")
+                "${owner_checklist}"
+                "${owner_evidence}"
+                "${technique_registry}")
         set_target_properties(${target} PROPERTIES SUFFIX ".html")
     else()
         target_compile_definitions(${target} PRIVATE PF_PRODUCT_BROWSER=0)
@@ -311,7 +311,7 @@ if(PF_BUILD_NATIVE_CLIENT)
         add_executable(
             native_client
             src/native_client/main.c
-            src/native_client/m4_native_playtest.c)
+            src/native_client/native_playtest.c)
         target_link_libraries(
             native_client
             PRIVATE
@@ -345,7 +345,7 @@ if(PF_BUILD_WEB_CLIENT)
             web_client
             PRIVATE
                 src/checkpoint/m2_replay_fixture.c
-                src/web_client/m4_playtest.c
+                src/web_client/playtest.c
                 src/web_client/replay_checkpoint.c)
         target_include_directories(
             web_client
@@ -363,33 +363,33 @@ if(PF_BUILD_TOOLS)
     pf_add_smoke_product(tools "tools" 0)
     set_target_properties(tools PROPERTIES OUTPUT_NAME pf_tools)
 
-    add_executable(m4_movement_trace src/tools/m4_movement_trace.c)
-    target_link_libraries(m4_movement_trace PRIVATE sim)
-    target_include_directories(m4_movement_trace PRIVATE src/sim)
-    target_compile_features(m4_movement_trace PRIVATE c_std_17)
+    add_executable(movement_trace src/tools/movement_trace.c)
+    target_link_libraries(movement_trace PRIVATE sim)
+    target_include_directories(movement_trace PRIVATE src/sim)
+    target_compile_features(movement_trace PRIVATE c_std_17)
     set_target_properties(
-        m4_movement_trace
+        movement_trace
         PROPERTIES
             C_EXTENSIONS OFF
-            OUTPUT_NAME pf_m4_movement_trace)
+            OUTPUT_NAME movement_trace)
     if(MSVC)
         target_compile_definitions(
-            m4_movement_trace
+            movement_trace
             PRIVATE _CRT_SECURE_NO_WARNINGS)
     endif()
-    pf_enable_project_warnings(m4_movement_trace)
-    pf_apply_build_mode(m4_movement_trace)
+    pf_enable_project_warnings(movement_trace)
+    pf_apply_build_mode(movement_trace)
 
-    add_executable(m4_slippi_match_trace src/tools/m4_slippi_match_trace.c)
-    target_link_libraries(m4_slippi_match_trace PRIVATE sim)
-    target_include_directories(m4_slippi_match_trace PRIVATE src/sim)
-    target_compile_features(m4_slippi_match_trace PRIVATE c_std_17)
+    add_executable(slippi_match_trace src/tools/slippi_match_trace.c)
+    target_link_libraries(slippi_match_trace PRIVATE sim)
+    target_include_directories(slippi_match_trace PRIVATE src/sim)
+    target_compile_features(slippi_match_trace PRIVATE c_std_17)
     set_target_properties(
-        m4_slippi_match_trace
+        slippi_match_trace
         PROPERTIES
-            OUTPUT_NAME pf_m4_slippi_match_trace)
-    pf_enable_project_warnings(m4_slippi_match_trace)
-    pf_apply_build_mode(m4_slippi_match_trace)
+            OUTPUT_NAME slippi_match_trace)
+    pf_enable_project_warnings(slippi_match_trace)
+    pf_apply_build_mode(slippi_match_trace)
 endif()
 
 if(PF_BUILD_BENCHMARKS)
@@ -496,14 +496,14 @@ endif()
 
 if(BUILD_TESTING)
     add_test(
-        NAME docs.m4_technique_registry
+        NAME docs.technique_registry
         COMMAND
             "${CMAKE_COMMAND}"
-            "-DPF_M4_TECHNIQUE_REGISTRY=${CMAKE_CURRENT_SOURCE_DIR}/docs/product/m4_advanced_technique_registry.md"
+            "-DPF_M4_TECHNIQUE_REGISTRY=${CMAKE_CURRENT_SOURCE_DIR}/docs/product/advanced_technique_registry.md"
             -P
             "${CMAKE_CURRENT_SOURCE_DIR}/cmake/VerifyM4TechniqueRegistry.cmake")
     set_tests_properties(
-        docs.m4_technique_registry
+        docs.technique_registry
         PROPERTIES PASS_REGULAR_EXPRESSION
                    "m4-technique-registry=pass rows=61")
 
@@ -569,178 +569,178 @@ if(BUILD_TESTING)
                        "sim-snapshot=pass bytes=1787 hash_algorithm=sha256")
 
     add_executable(
-        m4_hsd_transition_test
-        tests/sim/test_m4_hsd_transition.c)
-    target_link_libraries(m4_hsd_transition_test PRIVATE sim)
+        hsd_transition_test
+        tests/sim/test_hsd_transition.c)
+    target_link_libraries(hsd_transition_test PRIVATE sim)
     target_include_directories(
-        m4_hsd_transition_test
+        hsd_transition_test
         PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/sim")
-    target_compile_features(m4_hsd_transition_test PRIVATE c_std_17)
+    target_compile_features(hsd_transition_test PRIVATE c_std_17)
     set_target_properties(
-        m4_hsd_transition_test
+        hsd_transition_test
         PROPERTIES C_EXTENSIONS OFF)
-    pf_enable_project_warnings(m4_hsd_transition_test)
-    pf_apply_build_mode(m4_hsd_transition_test)
+    pf_enable_project_warnings(hsd_transition_test)
+    pf_apply_build_mode(hsd_transition_test)
 
-    add_test(NAME sim.m4_hsd_transition COMMAND m4_hsd_transition_test)
+    add_test(NAME sim.hsd_transition COMMAND hsd_transition_test)
     set_tests_properties(
-        sim.m4_hsd_transition
+        sim.hsd_transition
         PROPERTIES PASS_REGULAR_EXPRESSION
                    "m4-hsd-transition=pass cases=27 production_cases=5")
 
-    add_executable(m4_movement_test tests/sim/test_m4_movement.c)
-    target_link_libraries(m4_movement_test PRIVATE sim)
-    target_compile_features(m4_movement_test PRIVATE c_std_17)
-    set_target_properties(m4_movement_test PROPERTIES C_EXTENSIONS OFF)
-    pf_enable_project_warnings(m4_movement_test)
-    pf_apply_build_mode(m4_movement_test)
+    add_executable(movement_test tests/sim/test_movement.c)
+    target_link_libraries(movement_test PRIVATE sim)
+    target_compile_features(movement_test PRIVATE c_std_17)
+    set_target_properties(movement_test PROPERTIES C_EXTENSIONS OFF)
+    pf_enable_project_warnings(movement_test)
+    pf_apply_build_mode(movement_test)
 
-    add_test(NAME sim.m4_movement COMMAND m4_movement_test)
+    add_test(NAME sim.movement COMMAND movement_test)
     set_tests_properties(
-        sim.m4_movement
+        sim.movement
         PROPERTIES PASS_REGULAR_EXPRESSION
                    "m4-movement=pass content_schema=78 deterministic_ticks=20000 movement_core=pass tap_jump=1 jump_takeoff_momentum=1 player_push=1 teeter_cancel=1 taunt_cancel=1 double_jump_cancel=skipped vector_ascent=1 ledge_roll=1 emergent_technique_tests=skipped")
 
     add_executable(
-        m4_combat_test
-        tests/sim/test_m4_combat.c
+        combat_test
+        tests/sim/test_combat.c
         tests/sim/ssbm_stored_oracle.c
         tests/sim/ssbm_stored_oracle.h)
-    target_link_libraries(m4_combat_test PRIVATE sim)
-    target_compile_features(m4_combat_test PRIVATE c_std_17)
-    set_target_properties(m4_combat_test PROPERTIES C_EXTENSIONS OFF)
-    pf_enable_project_warnings(m4_combat_test)
-    pf_apply_build_mode(m4_combat_test)
+    target_link_libraries(combat_test PRIVATE sim)
+    target_compile_features(combat_test PRIVATE c_std_17)
+    set_target_properties(combat_test PROPERTIES C_EXTENSIONS OFF)
+    pf_enable_project_warnings(combat_test)
+    pf_apply_build_mode(combat_test)
 
-    add_test(NAME sim.m4_combat COMMAND m4_combat_test)
+    add_test(NAME sim.combat COMMAND combat_test)
     set_tests_properties(
-        sim.m4_combat
+        sim.combat
         PROPERTIES PASS_REGULAR_EXPRESSION
                    "m4-combat=pass content_schema=78 deterministic_ticks=20000 combat_core=pass journal_invariants=74 weight=1 stale_move=1 prone_getup_roll=2 directional_ground_attacks=1 smash_charge=1 light_shield=1 shield_geometry=1 shield_sdi=1 ssbm_damage=1 directional_aerials=1 ledge_attack=1 crouch_cancel=1 double_jump_cancel_counter=skipped approach=1 spacing=1 mindgame=1 jab_cancel=1 pummel=1 directional_throws=1 chain_grab=1 team_resolution=1 team_wobble=skipped emergent_technique_tests=skipped")
 
     add_test(
-        NAME sim.m4_ssbm_falcon_common_hurt
-        COMMAND m4_combat_test --ssbm-oracle falcon-common-hurt)
+        NAME sim.ssbm_falcon_common_hurt
+        COMMAND combat_test --ssbm-oracle falcon-common-hurt)
     set_tests_properties(
-        sim.m4_ssbm_falcon_common_hurt
+        sim.ssbm_falcon_common_hurt
         PROPERTIES PASS_REGULAR_EXPRESSION
                    "m4-ssbm-stored-oracle=pass domain=falcon-common-hurt poses=714 cases=20")
 
     add_test(
-        NAME sim.m4_ssbm_falcon_wait_idle_lifecycle
-        COMMAND m4_combat_test --ssbm-oracle falcon-wait-idle-lifecycle)
+        NAME sim.ssbm_falcon_wait_idle_lifecycle
+        COMMAND combat_test --ssbm-oracle falcon-wait-idle-lifecycle)
     set_tests_properties(
-        sim.m4_ssbm_falcon_wait_idle_lifecycle
+        sim.ssbm_falcon_wait_idle_lifecycle
         PROPERTIES PASS_REGULAR_EXPRESSION
                    "m4-ssbm-stored-oracle=pass domain=falcon-wait-idle-lifecycle routes=2 ticks=440 poses=38")
 
     add_test(
-        NAME sim.m4_ssbm_falcon_dive_grab_geometry
-        COMMAND m4_combat_test --ssbm-oracle falcon-dive-grab-geometry)
+        NAME sim.ssbm_falcon_dive_grab_geometry
+        COMMAND combat_test --ssbm-oracle falcon-dive-grab-geometry)
     set_tests_properties(
-        sim.m4_ssbm_falcon_dive_grab_geometry
+        sim.ssbm_falcon_dive_grab_geometry
         PROPERTIES PASS_REGULAR_EXPRESSION
                    "m4-ssbm-stored-oracle=pass domain=falcon-dive-grab-geometry poses=186 cases=2")
 
     add_test(
-        NAME sim.m4_ssbm_falcon_punch
-        COMMAND m4_combat_test --ssbm-oracle falcon-neutral-special)
+        NAME sim.ssbm_falcon_punch
+        COMMAND combat_test --ssbm-oracle falcon-neutral-special)
     set_tests_properties(
-        sim.m4_ssbm_falcon_punch
+        sim.ssbm_falcon_punch
         PROPERTIES PASS_REGULAR_EXPRESSION
                    "m4-ssbm-stored-oracle=pass domain=falcon-neutral-special poses=0 cases=3 samples=251")
 
     add_test(
-        NAME sim.m4_ssbm_falcon_damage_iasa
-        COMMAND m4_combat_test --ssbm-oracle falcon-common-damage-iasa)
+        NAME sim.ssbm_falcon_damage_iasa
+        COMMAND combat_test --ssbm-oracle falcon-common-damage-iasa)
     set_tests_properties(
-        sim.m4_ssbm_falcon_damage_iasa
+        sim.ssbm_falcon_damage_iasa
         PROPERTIES PASS_REGULAR_EXPRESSION
                    "m4-ssbm-stored-oracle=pass domain=falcon-common-damage-iasa poses=0 cases=2 samples=4")
 
     if(PF_BUILD_TOOLS)
         find_package(Python3 REQUIRED COMPONENTS Interpreter)
         add_test(
-            NAME sim.m4_ssbm_falcon_raptor_boost
+            NAME sim.ssbm_falcon_raptor_boost
             COMMAND
                 "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_ssbm_stored_equivalence.py"
                 --build-dir "${CMAKE_BINARY_DIR}"
                 --domain falcon-side-special)
         set_tests_properties(
-            sim.m4_ssbm_falcon_raptor_boost
+            sim.ssbm_falcon_raptor_boost
             PROPERTIES PASS_REGULAR_EXPRESSION
                        "ssbm-stored-equivalence=pass domains=falcon-side-special generated_checks=1 stored_cases=5 replay=pass")
 
         add_test(
-            NAME sim.m4_ssbm_falcon_kick
+            NAME sim.ssbm_falcon_kick
             COMMAND
                 "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_ssbm_stored_equivalence.py"
                 --build-dir "${CMAKE_BINARY_DIR}"
                 --domain falcon-down-special)
         set_tests_properties(
-            sim.m4_ssbm_falcon_kick
+            sim.ssbm_falcon_kick
             PROPERTIES PASS_REGULAR_EXPRESSION
                        "ssbm-stored-equivalence=pass domains=falcon-down-special generated_checks=1 stored_cases=6 replay=pass")
 
         add_test(
-            NAME sim.m4_ssbm_falcon_shield_break
+            NAME sim.ssbm_falcon_shield_break
             COMMAND
                 "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_ssbm_stored_equivalence.py"
                 --build-dir "${CMAKE_BINARY_DIR}"
                 --domain falcon-common-shield-break)
         set_tests_properties(
-            sim.m4_ssbm_falcon_shield_break
+            sim.ssbm_falcon_shield_break
             PROPERTIES PASS_REGULAR_EXPRESSION
                        "ssbm-stored-equivalence=pass domains=falcon-common-shield-break generated_checks=1 stored_cases=1 replay=pass")
 
         add_test(
-            NAME sim.m4_ssbm_falcon_ucf084_cardinal_input
+            NAME sim.ssbm_falcon_ucf084_cardinal_input
             COMMAND
                 "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_ssbm_stored_equivalence.py"
                 --build-dir "${CMAKE_BINARY_DIR}"
                 --domain falcon-common-ucf084-cardinal-input)
         set_tests_properties(
-            sim.m4_ssbm_falcon_ucf084_cardinal_input
+            sim.ssbm_falcon_ucf084_cardinal_input
             PROPERTIES PASS_REGULAR_EXPRESSION
                        "ssbm-stored-equivalence=pass domains=falcon-common-ucf084-cardinal-input generated_checks=1 stored_cases=16 replay=pass")
 
         add_test(
-            NAME sim.m4_ssbm_falcon_ucf084_shield_input
+            NAME sim.ssbm_falcon_ucf084_shield_input
             COMMAND
                 "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_ssbm_stored_equivalence.py"
                 --build-dir "${CMAKE_BINARY_DIR}"
                 --domain falcon-common-ucf084-shield-input)
         set_tests_properties(
-            sim.m4_ssbm_falcon_ucf084_shield_input
+            sim.ssbm_falcon_ucf084_shield_input
             PROPERTIES PASS_REGULAR_EXPRESSION
                        "ssbm-stored-equivalence=pass domains=falcon-common-ucf084-shield-input generated_checks=1 stored_cases=7 replay=pass")
 
         add_test(
-            NAME sim.m4_ssbm_falcon_ucf084_hitlag_input
+            NAME sim.ssbm_falcon_ucf084_hitlag_input
             COMMAND
                 "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_ssbm_stored_equivalence.py"
                 --build-dir "${CMAKE_BINARY_DIR}"
                 --domain falcon-common-ucf084-hitlag-input)
         set_tests_properties(
-            sim.m4_ssbm_falcon_ucf084_hitlag_input
+            sim.ssbm_falcon_ucf084_hitlag_input
             PROPERTIES PASS_REGULAR_EXPRESSION
                        "ssbm-stored-equivalence=pass domains=falcon-common-ucf084-hitlag-input generated_checks=1 stored_cases=4 replay=pass")
 
         add_test(
-            NAME sim.m4_ssbm_falcon_ucf084_tumble_input
+            NAME sim.ssbm_falcon_ucf084_tumble_input
             COMMAND
                 "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_ssbm_stored_equivalence.py"
                 --build-dir "${CMAKE_BINARY_DIR}"
                 --domain falcon-common-ucf084-tumble-input)
         set_tests_properties(
-            sim.m4_ssbm_falcon_ucf084_tumble_input
+            sim.ssbm_falcon_ucf084_tumble_input
             PROPERTIES PASS_REGULAR_EXPRESSION
                        "ssbm-stored-equivalence=pass domains=falcon-common-ucf084-tumble-input generated_checks=1 stored_cases=2 replay=pass")
 
@@ -754,208 +754,208 @@ if(BUILD_TESTING)
             PROPERTIES PASS_REGULAR_EXPRESSION "Ran 11 tests")
 
         add_test(
-            NAME sim.m4_ssbm_falcon_ground_animation_clock
+            NAME sim.ssbm_falcon_ground_animation_clock
             COMMAND
                 "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_ssbm_falcon_ground_animation_clock.py"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/data/ssbm_falcon_ground_animation_clock.json"
-                "$<TARGET_FILE:m4_movement_trace>")
+                "$<TARGET_FILE:movement_trace>")
         set_tests_properties(
-            sim.m4_ssbm_falcon_ground_animation_clock
+            sim.ssbm_falcon_ground_animation_clock
             PROPERTIES PASS_REGULAR_EXPRESSION
                        "ssbm-falcon-ground-animation-clock=pass cases=3 samples=111 native_alignments=0,0,5")
 
         add_test(
-            NAME sim.m4_ssbm_falcon_down_bound_ecb_profile
+            NAME sim.ssbm_falcon_down_bound_ecb_profile
             COMMAND
                 "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_ssbm_falcon_down_bound_ecb.py"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/data/ssbm_falcon_down_bound_ecb.json")
         set_tests_properties(
-            sim.m4_ssbm_falcon_down_bound_ecb_profile
+            sim.ssbm_falcon_down_bound_ecb_profile
             PROPERTIES PASS_REGULAR_EXPRESSION
                        "ssbm-falcon-down-bound-ecb-profile=pass tracks=2 poses=52")
 
         add_test(
-            NAME sim.m4_ssbm_falcon_getup_ecb_profile
+            NAME sim.ssbm_falcon_getup_ecb_profile
             COMMAND
                 "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_ssbm_falcon_getup_ecb.py"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/data/ssbm_falcon_getup_ecb.json")
         set_tests_properties(
-            sim.m4_ssbm_falcon_getup_ecb_profile
+            sim.ssbm_falcon_getup_ecb_profile
             PROPERTIES PASS_REGULAR_EXPRESSION
                        "ssbm-falcon-getup-ecb-profile=pass tracks=10 poses=438")
 
         add_test(
-            NAME sim.m4_ssbm_falcon_ground_loop_ecb_profile
+            NAME sim.ssbm_falcon_ground_loop_ecb_profile
             COMMAND
                 "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_ssbm_falcon_ground_loop_ecb.py"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/data/ssbm_falcon_ground_loop_ecb.json")
         set_tests_properties(
-            sim.m4_ssbm_falcon_ground_loop_ecb_profile
+            sim.ssbm_falcon_ground_loop_ecb_profile
             PROPERTIES PASS_REGULAR_EXPRESSION
                        "ssbm-falcon-ground-loop-ecb-profile=pass tracks=1 poses=158")
     endif()
 
     add_test(
-        NAME sim.m4_ssbm_falcon_floor_response
-        COMMAND m4_combat_test --ssbm-oracle falcon-common-floor-response)
+        NAME sim.ssbm_falcon_floor_response
+        COMMAND combat_test --ssbm-oracle falcon-common-floor-response)
     set_tests_properties(
-        sim.m4_ssbm_falcon_floor_response
+        sim.ssbm_falcon_floor_response
         PROPERTIES PASS_REGULAR_EXPRESSION
                    "m4-ssbm-stored-oracle=pass domain=falcon-common-floor-response poses=0 cases=4 samples=48")
 
     add_test(
-        NAME sim.m4_ssbm_falcon_prone_response
-        COMMAND m4_combat_test --ssbm-oracle falcon-common-prone-response)
+        NAME sim.ssbm_falcon_prone_response
+        COMMAND combat_test --ssbm-oracle falcon-common-prone-response)
     set_tests_properties(
-        sim.m4_ssbm_falcon_prone_response
+        sim.ssbm_falcon_prone_response
         PROPERTIES PASS_REGULAR_EXPRESSION
                    "m4-ssbm-stored-oracle=pass domain=falcon-common-prone-response poses=0 cases=14 samples=168")
 
     add_test(
-        NAME sim.m4_ssbm_falcon_player_push
-        COMMAND m4_combat_test --ssbm-oracle falcon-common-player-push)
+        NAME sim.ssbm_falcon_player_push
+        COMMAND combat_test --ssbm-oracle falcon-common-player-push)
     set_tests_properties(
-        sim.m4_ssbm_falcon_player_push
+        sim.ssbm_falcon_player_push
         PROPERTIES PASS_REGULAR_EXPRESSION
                    "m4-ssbm-stored-oracle=pass domain=falcon-common-player-push poses=0 cases=2 samples=96")
 
     add_test(
-        NAME sim.m4_ssbm_falcon_slope_ledge_response
-        COMMAND m4_combat_test --ssbm-oracle falcon-common-slope-ledge-response)
+        NAME sim.ssbm_falcon_slope_ledge_response
+        COMMAND combat_test --ssbm-oracle falcon-common-slope-ledge-response)
     set_tests_properties(
-        sim.m4_ssbm_falcon_slope_ledge_response
+        sim.ssbm_falcon_slope_ledge_response
         PROPERTIES PASS_REGULAR_EXPRESSION
                    "m4-ssbm-stored-oracle=pass domain=falcon-common-slope-ledge-response poses=0 cases=4 samples=220")
 
     add_test(
-        NAME sim.m4_ssbm_falcon_battlefield_surface_response
-        COMMAND m4_combat_test --ssbm-oracle falcon-common-battlefield-surface-response)
+        NAME sim.ssbm_falcon_battlefield_surface_response
+        COMMAND combat_test --ssbm-oracle falcon-common-battlefield-surface-response)
     set_tests_properties(
-        sim.m4_ssbm_falcon_battlefield_surface_response
+        sim.ssbm_falcon_battlefield_surface_response
         PROPERTIES PASS_REGULAR_EXPRESSION
                    "m4-ssbm-stored-oracle=pass domain=falcon-common-battlefield-surface-response poses=0 cases=2 samples=24")
 
     add_test(
-        NAME sim.m4_ssbm_falcon_battlefield_bounce_recontact
-        COMMAND m4_combat_test --ssbm-oracle falcon-common-battlefield-bounce-recontact)
+        NAME sim.ssbm_falcon_battlefield_bounce_recontact
+        COMMAND combat_test --ssbm-oracle falcon-common-battlefield-bounce-recontact)
     set_tests_properties(
-        sim.m4_ssbm_falcon_battlefield_bounce_recontact
+        sim.ssbm_falcon_battlefield_bounce_recontact
         PROPERTIES PASS_REGULAR_EXPRESSION
                    "m4-ssbm-stored-oracle=pass domain=falcon-common-battlefield-bounce-recontact poses=0 cases=2 samples=111")
 
     add_test(
-        NAME sim.m4_ssbm_falcon_ledge_options
-        COMMAND m4_combat_test --ssbm-oracle falcon-common-ledge-options)
+        NAME sim.ssbm_falcon_ledge_options
+        COMMAND combat_test --ssbm-oracle falcon-common-ledge-options)
     set_tests_properties(
-        sim.m4_ssbm_falcon_ledge_options
+        sim.ssbm_falcon_ledge_options
         PROPERTIES PASS_REGULAR_EXPRESSION
                    "m4-ssbm-stored-oracle=pass domain=falcon-common-ledge-options poses=0 cases=19 samples=514")
 
-    add_executable(m4_item_test tests/sim/test_m4_item.c)
-    target_link_libraries(m4_item_test PRIVATE sim)
-    target_compile_features(m4_item_test PRIVATE c_std_17)
-    set_target_properties(m4_item_test PROPERTIES C_EXTENSIONS OFF)
-    pf_enable_project_warnings(m4_item_test)
-    pf_apply_build_mode(m4_item_test)
+    add_executable(item_test tests/sim/test_item.c)
+    target_link_libraries(item_test PRIVATE sim)
+    target_compile_features(item_test PRIVATE c_std_17)
+    set_target_properties(item_test PROPERTIES C_EXTENSIONS OFF)
+    pf_enable_project_warnings(item_test)
+    pf_apply_build_mode(item_test)
 
-    add_test(NAME sim.m4_item COMMAND m4_item_test)
+    add_test(NAME sim.item COMMAND item_test)
     set_tests_properties(
-        sim.m4_item
+        sim.item
         PROPERTIES PASS_REGULAR_EXPRESSION
                    "m4-item=pass content_schema=78 state_schema=78 save_bytes=1787 item_invariants=44 bat_drop=1 glide_toss=1 jump_cancel_throw=1 directional_throws=4 replay=1 rl=1")
 
     add_executable(
-        m4_projectile_test
-        tests/sim/test_m4_projectile.c)
-    target_link_libraries(m4_projectile_test PRIVATE sim)
-    target_compile_features(m4_projectile_test PRIVATE c_std_17)
+        projectile_test
+        tests/sim/test_projectile.c)
+    target_link_libraries(projectile_test PRIVATE sim)
+    target_compile_features(projectile_test PRIVATE c_std_17)
     set_target_properties(
-        m4_projectile_test
+        projectile_test
         PROPERTIES C_EXTENSIONS OFF)
-    pf_enable_project_warnings(m4_projectile_test)
-    pf_apply_build_mode(m4_projectile_test)
+    pf_enable_project_warnings(projectile_test)
+    pf_apply_build_mode(projectile_test)
 
-    add_test(NAME sim.m4_projectile COMMAND m4_projectile_test)
+    add_test(NAME sim.projectile COMMAND projectile_test)
     set_tests_properties(
-        sim.m4_projectile
+        sim.projectile
         PROPERTIES PASS_REGULAR_EXPRESSION
                    "m4-projectile=pass content_schema=78 state_schema=78 save_bytes=1787 projectile_invariants=46 short_hop_laser=1 powershield_reflect=1 replay=1 rl=1 emergent_technique_tests=skipped")
 
     add_executable(
-        m4_reflector_test
-        tests/sim/test_m4_reflector.c)
-    target_link_libraries(m4_reflector_test PRIVATE sim)
-    target_compile_features(m4_reflector_test PRIVATE c_std_17)
+        reflector_test
+        tests/sim/test_reflector.c)
+    target_link_libraries(reflector_test PRIVATE sim)
+    target_compile_features(reflector_test PRIVATE c_std_17)
     set_target_properties(
-        m4_reflector_test
+        reflector_test
         PROPERTIES C_EXTENSIONS OFF)
-    pf_enable_project_warnings(m4_reflector_test)
-    pf_apply_build_mode(m4_reflector_test)
+    pf_enable_project_warnings(reflector_test)
+    pf_apply_build_mode(reflector_test)
 
-    add_test(NAME sim.m4_reflector COMMAND m4_reflector_test)
+    add_test(NAME sim.reflector COMMAND reflector_test)
     set_tests_properties(
-        sim.m4_reflector
+        sim.reflector
         PROPERTIES PASS_REGULAR_EXPRESSION
                    "m4-reflector=pass content_schema=78 state_schema=78 save_bytes=1787 reflector_invariants=32 shine_spike=1 projectile_reflect=1 replay=1 rl=1")
 
     add_executable(
-        m4_charge_test
-        tests/sim/test_m4_charge.c)
-    target_link_libraries(m4_charge_test PRIVATE sim)
+        charge_test
+        tests/sim/test_charge.c)
+    target_link_libraries(charge_test PRIVATE sim)
     target_include_directories(
-        m4_charge_test
+        charge_test
         PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/sim")
-    target_compile_features(m4_charge_test PRIVATE c_std_17)
+    target_compile_features(charge_test PRIVATE c_std_17)
     set_target_properties(
-        m4_charge_test
+        charge_test
         PROPERTIES C_EXTENSIONS OFF)
-    pf_enable_project_warnings(m4_charge_test)
-    pf_apply_build_mode(m4_charge_test)
+    pf_enable_project_warnings(charge_test)
+    pf_apply_build_mode(charge_test)
 
-    add_test(NAME sim.m4_charge COMMAND m4_charge_test)
+    add_test(NAME sim.charge COMMAND charge_test)
     set_tests_properties(
-        sim.m4_charge
+        sim.charge
         PROPERTIES PASS_REGULAR_EXPRESSION
                    "m4-charge=pass content_schema=78 state_schema=78 save_bytes=1787 charge_invariants=28 charge_storage_cancel=1 resumed_release=1 replay=1 rl=1")
 
-    add_executable(m4_match_test tests/sim/test_m4_match.c)
-    target_link_libraries(m4_match_test PRIVATE sim)
-    target_compile_features(m4_match_test PRIVATE c_std_17)
-    set_target_properties(m4_match_test PROPERTIES C_EXTENSIONS OFF)
-    pf_enable_project_warnings(m4_match_test)
-    pf_apply_build_mode(m4_match_test)
+    add_executable(match_test tests/sim/test_match.c)
+    target_link_libraries(match_test PRIVATE sim)
+    target_compile_features(match_test PRIVATE c_std_17)
+    set_target_properties(match_test PROPERTIES C_EXTENSIONS OFF)
+    pf_enable_project_warnings(match_test)
+    pf_apply_build_mode(match_test)
 
-    add_test(NAME sim.m4_match COMMAND m4_match_test)
+    add_test(NAME sim.match COMMAND match_test)
     set_tests_properties(
-        sim.m4_match
+        sim.match
         PROPERTIES PASS_REGULAR_EXPRESSION
                    "m4-match=pass stocks=4 respawn_delay=60 respawn_invulnerability=120 sudden_death=1 team_result=1 invariants=24 journal_invariants=62 revival_invariants=24")
 
     add_executable(
-        m4_web_playtest_test
-        src/web_client/m4_playtest.c
-        tests/web/test_m4_playtest.c)
-    target_link_libraries(m4_web_playtest_test PRIVATE sim)
+        web_playtest_test
+        src/web_client/playtest.c
+        tests/web/test_playtest.c)
+    target_link_libraries(web_playtest_test PRIVATE sim)
     target_compile_definitions(
-        m4_web_playtest_test
+        web_playtest_test
         PRIVATE PF_WEB_M4_TEST=1)
     target_include_directories(
-        m4_web_playtest_test
+        web_playtest_test
         PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/web_client")
-    target_compile_features(m4_web_playtest_test PRIVATE c_std_17)
+    target_compile_features(web_playtest_test PRIVATE c_std_17)
     set_target_properties(
-        m4_web_playtest_test
+        web_playtest_test
         PROPERTIES C_EXTENSIONS OFF)
-    pf_enable_project_warnings(m4_web_playtest_test)
-    pf_apply_build_mode(m4_web_playtest_test)
+    pf_enable_project_warnings(web_playtest_test)
+    pf_apply_build_mode(web_playtest_test)
 
-    add_test(NAME web.m4_playtest COMMAND m4_web_playtest_test)
+    add_test(NAME web.playtest COMMAND web_playtest_test)
     set_tests_properties(
-        web.m4_playtest
+        web.playtest
         PROPERTIES PASS_REGULAR_EXPRESSION
                    "m4-web-bridge=pass view_schema=48 endpoints=3 renders=[1-9][0-9]*")
 

@@ -446,14 +446,14 @@ service-envelope responsibility.
   rejection.
 - Atomicity of every failed load checked by before/after state hash.
 - Mid-hitlag save/load plus equal future combat hashes in
-  `tests/sim/test_m4_combat.c`.
+  `tests/sim/test_combat.c`.
 - Mid-shield-hitlag save/load plus equal shield-stun and shield-health
-  continuation hashes in `tests/sim/test_m4_combat.c`.
+  continuation hashes in `tests/sim/test_combat.c`.
 - Mid-getup-roll save/load plus equal direction, invulnerability, and future
-  continuation hashes in `tests/sim/test_m4_combat.c`.
+  continuation hashes in `tests/sim/test_combat.c`.
 - Exact validation and future equality for DI/SDI, tumble, tech-window,
   lockout, tech outcome, shield health, shield stun, powershield, and the
-  shield-break flight/down/stand/stun route in `tests/sim/test_m4_combat.c`.
+  shield-break flight/down/stand/stun route in `tests/sim/test_combat.c`.
 - Validation of the canonical wall/ceiling tech and missed-bounce action
   relationships, including continued hitstun/tumble for a missed impact and
   cleared reaction state for a successful tech.
@@ -466,15 +466,15 @@ service-envelope responsibility.
   landing states, and inactive-slot trigger-age rules.
 - Mid-directional-aerial hitlag save/load plus equal future hashes and exact
   forward/back/up/down action, grounding, timing, hitlag-resume, signed launch,
-  damage, hitstun, and typed-event identity in `tests/sim/test_m4_combat.c`.
+  damage, hitstun, and typed-event identity in `tests/sim/test_combat.c`.
 - Mid-smash-charge save/load plus equal source/loaded hashes and events through
   the 60-tick automatic release, exact maximum charged damage, attacker-hitlag
   retention, slot-independent simultaneous charged trades, completion clearing,
   and invalid timer/action rejection in
-  `tests/sim/test_m4_combat.c`.
+  `tests/sim/test_combat.c`.
 - Mid-light-shield save/load plus exact raw strength, equal future hashes,
   interpolated hold depletion, light-versus-dense block pushback, and
-  dense-only powershield eligibility in `tests/sim/test_m4_combat.c`.
+  dense-only powershield eligibility in `tests/sim/test_combat.c`.
 - Mid-spot-dodge save/load plus equal fresh-down history, action,
   invulnerability derivation, and future hashes; validation enforces grounded
   roll/spot-dodge reaction-state rules and inactive-slot fresh-down history.
@@ -485,49 +485,49 @@ service-envelope responsibility.
   stock-loss and elimination invariants, exact inactive wait, stage-derived
   platform interpolation, input/timeout release, post-drop invulnerability,
   300% sudden-death setup, deterministic repeated-tie resolution, and team
-  winner masks in `tests/sim/test_m4_match.c`.
+  winner masks in `tests/sim/test_match.c`.
 - Exact per-tick journal equality after a mid-respawn save/load continuation,
   plus typed KO, respawn, sudden-death, result, forfeit, and time-limit event
   validation.
 - Exact disabled-regrab rejection through remaining tick 1, first-legal-tick
   catch and ledge-invulnerability refresh, reset/respawn clearing, and equal
   future hashes through three planking cycles in
-  `tests/sim/test_m4_movement.c`.
+  `tests/sim/test_movement.c`.
 - Mid-grab save/load plus reciprocal owner/target validation, exact natural
   and fresh-input mash escape timing, byte-identical future events, and equal
-  future hashes in `tests/sim/test_m4_combat.c`.
+  future hashes in `tests/sim/test_combat.c`.
 - Mid-chain save/load during down-throw startup plus reciprocal throw-link
   validation, byte-identical future throw events, equal future hashes, and two
-  subsequent legal regrabs in `tests/sim/test_m4_combat.c`.
+  subsequent legal regrabs in `tests/sim/test_combat.c`.
 - Mid-pummel save/load plus exact action timing, reciprocal-link retention,
   typed non-launching damage, last-hit attribution, held-input non-repetition,
   byte-identical future events, and equal future hashes in
-  `tests/sim/test_m4_combat.c`.
+  `tests/sim/test_combat.c`.
 - Mid-crouch-cancel hitlag save/load plus equal future events/hashes, standing
   and inclusive/first-over controls, exact launch/hitstun scaling, derived
   tumble, typed flag, and invalid/hash-sensitive authored data in
-  `tests/sim/test_m4_combat.c`.
+  `tests/sim/test_combat.c`.
 - Mid-dash-attack save/load on the first boost-grab cancel tick plus
   byte-identical future events, equal future hashes, retained momentum, and
-  deterministic capture in `tests/sim/test_m4_combat.c`.
+  deterministic capture in `tests/sim/test_combat.c`.
 - Mid-reset-bound save/load plus exact weak-hit qualification boundaries,
   grounded forced-getup and airborne SDI escape outcomes, byte-identical future
   events, and 64 equal future hashes through a real punish in
-  `tests/sim/test_m4_combat.c`.
+  `tests/sim/test_combat.c`.
 - Mid-item-throw save/load plus equal future hashes and events, strict item
   state/holder/source/timer validation, encoded replay verification, and
-  structured/compact RL observation checks in `tests/sim/test_m4_item.c`.
+  structured/compact RL observation checks in `tests/sim/test_item.c`.
 - Mid-jump-cancel save/load plus retained dash momentum, both attack-button
   routes, threshold/neutral/late exclusions, a real strong hit, and equal
-  future hashes and events in `tests/sim/test_m4_combat.c`.
+  future hashes and events in `tests/sim/test_combat.c`.
 - **Historical and superseded:** Mid-Moonwalk-setup save/load plus exact
   setup/activation timing, preserved
   facing, reverse velocity, traction exit, two mistimed dashback controls, and
-  equal future hashes in `tests/sim/test_m4_movement.c`.
+  equal future hashes in `tests/sim/test_movement.c`.
 - Mid-Vector-Ascent save/load plus equal future hashes, exact resource
   consumption, blocked same-airtime reuse, landing restoration, second-airtime
   reuse, and structured/compact RL visibility in
-  `tests/sim/test_m4_movement.c`.
+  `tests/sim/test_movement.c`.
 
 `tools/verify_m2_kernel.sh` compiles and runs this conformance test directly
 under the strict C17 warning policy, and includes serialization/hash objects in

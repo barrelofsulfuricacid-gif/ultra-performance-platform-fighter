@@ -84,12 +84,12 @@
   ],
   "selection": {
     "paths": [
-      "generated/data/m4_ssbm_falcon_damage_iasa_oracle.inc",
+      "generated/data/ssbm_falcon_damage_iasa_oracle.inc",
       "include/pf/m4.h",
       "src/sim/sim_movement.c",
       "tests/sim/ssbm_stored_oracle.c",
       "tests/sim/ssbm_stored_oracle.h",
-      "tests/sim/test_m4_combat.c",
+      "tests/sim/test_combat.c",
       "tools/capture_ssbm_movement.py",
       "tools/generate_ssbm_stored_trace_oracle.py",
       "tools/ssbm_falcon_damage_iasa_coverage.json",
@@ -131,15 +131,15 @@
       }
     ],
     "c": {
-      "symbol_prefix": "pf_m4_ssbm_falcon_damage_iasa",
+      "symbol_prefix": "ssbm_falcon_damage_iasa",
       "macro_prefix": "PF_M4_SSBM_FALCON_DAMAGE_IASA"
     },
     "generator": {
       "script": "tools/generate_ssbm_stored_trace_oracle.py",
-      "output": "generated/data/m4_ssbm_falcon_damage_iasa_oracle.inc"
+      "output": "generated/data/ssbm_falcon_damage_iasa_oracle.inc"
     },
     "runner": {
-      "executable": "m4_combat_test",
+      "executable": "combat_test",
       "arguments": ["--ssbm-oracle", "falcon-common-damage-iasa"]
     }
   }

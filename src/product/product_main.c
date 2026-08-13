@@ -14,7 +14,7 @@
 #endif
 
 #if PF_PRODUCT_BROWSER
-#include "m4_playtest.h"
+#include "playtest.h"
 #include "replay_checkpoint.h"
 
 extern void pf_web_set_status(const char *message);
@@ -88,7 +88,7 @@ static int run_smoke(void)
         (void)fprintf(stderr, "%s-smoke=fail reason=replay\n", PF_PRODUCT_NAME);
         return 1;
     }
-    if (!pf_web_m4_playtest_start())
+    if (!pf_web_playtest_start())
     {
         (void)fprintf(stderr, "%s-smoke=fail reason=m4-playtest\n", PF_PRODUCT_NAME);
         return 1;

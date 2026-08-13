@@ -16,15 +16,15 @@
   },
   "selection": {
     "paths": [
-      "generated/data/m4_falcon_ntsc102_hit_geometry.inc",
-      "generated/data/m4_ssbm_falcon_pummel_capture_oracle.inc",
+      "generated/data/falcon_ntsc102_hit_geometry.inc",
+      "generated/data/ssbm_falcon_pummel_capture_oracle.inc",
       "src/sim/sim_combat.c",
       "src/sim/sim_content.c",
       "src/sim/sim_falcon_frame_data.c",
       "src/sim/sim_falcon_frame_data.h",
       "src/sim/sim_movement.c",
       "src/sim/sim_snapshot.c",
-      "tests/sim/test_m4_combat.c",
+      "tests/sim/test_combat.c",
       "tools/capture_ssbm_movement.py",
       "tools/data/ssbm_falcon_capture_hurt.json",
       "tools/data/ssbm_falcon_pummel_hurt.json",
@@ -71,7 +71,7 @@
     "expected_pose_count": 79,
     "expected_capsules_per_pose": 11,
     "c": {
-      "symbol_prefix": "pf_m4_ssbm_falcon_pummel_capture",
+      "symbol_prefix": "ssbm_falcon_pummel_capture",
       "macro_prefix": "PF_M4_SSBM_FALCON_PUMMEL_CAPTURE",
       "track_count_expression": "3",
       "actions": {
@@ -91,10 +91,10 @@
     },
     "generator": {
       "script": "tools/generate_ssbm_stored_oracle.py",
-      "output": "generated/data/m4_ssbm_falcon_pummel_capture_oracle.inc"
+      "output": "generated/data/ssbm_falcon_pummel_capture_oracle.inc"
     },
     "runner": {
-      "executable": "m4_combat_test",
+      "executable": "combat_test",
       "arguments": ["--ssbm-oracle", "falcon-pummel-capture"]
     },
     "cases": [

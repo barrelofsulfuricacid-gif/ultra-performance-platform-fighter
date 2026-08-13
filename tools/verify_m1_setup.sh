@@ -250,7 +250,7 @@ fi
 if command -v node >/dev/null 2>&1; then
     node --check "$repository_root/src/web_client/web_adapter.js" ||
         fail "browser JavaScript adapter has invalid syntax"
-    node --check "$repository_root/src/web_client/m4_owner_evidence.js" ||
+    node --check "$repository_root/src/web_client/owner_evidence.js" ||
         fail "browser owner-evidence adapter has invalid syntax"
 else
     echo "javascript-syntax=deferred-to-web-ci"

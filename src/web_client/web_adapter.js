@@ -807,8 +807,8 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiii",
-  pf_web_m4_playtest_install: function (
+  pf_web_playtest_install__sig: "viiii",
+  pf_web_playtest_install: function (
     walkAxis,
     dashAxis,
     aerialLandingLagTicks,
@@ -2196,7 +2196,7 @@ mergeInto(LibraryManager.library, {
           : player1Gamepad.leftShieldStrength;
       var player1RightShieldStrength =
         player1Gamepad.rightShieldStrength;
-      var passed = Module._pf_web_m4_playtest_step_dual_trigger_special(
+      var passed = Module._pf_web_playtest_step_dual_trigger_special(
         mergeAxis(
           horizontal("KeyA", "KeyD"),
           player0Gamepad.horizontal
@@ -2306,7 +2306,7 @@ mergeInto(LibraryManager.library, {
       clearQueuedInputs();
       state.eventLog = [];
       state.lastEventSequence = 0;
-      if (!Module._pf_web_m4_playtest_configure_duel(stockCount)) {
+      if (!Module._pf_web_playtest_configure_duel(stockCount)) {
         if (status) {
           status.textContent += " match_setup_runtime=fail";
           status.dataset.matchSetupRuntime = "fail";
@@ -2332,7 +2332,7 @@ mergeInto(LibraryManager.library, {
         return;
       }
       clearQueuedInputs();
-      if (!Module._pf_web_m4_playtest_reset()) {
+      if (!Module._pf_web_playtest_reset()) {
         setRunning(false);
         return;
       }
@@ -2352,7 +2352,7 @@ mergeInto(LibraryManager.library, {
       state.eventLog = [];
       state.lastEventSequence = 0;
       state.teamLabActive = nextActive;
-      if (!Module._pf_web_m4_playtest_set_team_lab(nextActive ? 1 : 0)) {
+      if (!Module._pf_web_playtest_set_team_lab(nextActive ? 1 : 0)) {
         state.teamLabActive = !nextActive;
         if (status) {
           status.textContent += " team_lab_runtime=fail";
@@ -2384,7 +2384,7 @@ mergeInto(LibraryManager.library, {
         visible ? "true" : "false"
       );
       section.dataset.collisionOverlay = visible ? "visible" : "hidden";
-      if (state.latest && !Module._pf_web_m4_playtest_refresh()) {
+      if (state.latest && !Module._pf_web_playtest_refresh()) {
         setRunning(false);
         if (status) {
           status.textContent += " collision_overlay_runtime=fail";
@@ -2596,8 +2596,8 @@ mergeInto(LibraryManager.library, {
     requestAnimationFrame(frame);
   },
 
-  pf_web_m4_playtest_render__sig: "vpi",
-  pf_web_m4_playtest_render: function (viewPointer, viewCount) {
+  pf_web_playtest_render__sig: "vpi",
+  pf_web_playtest_render: function (viewPointer, viewCount) {
     var state = Module.pfM4Playtest;
     if (!state || viewCount !== 603) {
       return;

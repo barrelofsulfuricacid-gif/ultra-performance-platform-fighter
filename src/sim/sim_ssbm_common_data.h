@@ -5,7 +5,7 @@
 
 #define PF_M4_SSBM_COMMON_RAW_WORD_COUNT UINT16_C(518)
 
-typedef struct pf_m4_ssbm_damage_response_attributes
+typedef struct ssbm_damage_response_attributes
 {
     int32_t hitstun_per_knockback_q16;
     int32_t launch_speed_x_per_knockback_q16;
@@ -51,9 +51,9 @@ typedef struct pf_m4_ssbm_damage_response_attributes
     int32_t ground_damage_vertical_reflection_q16;
     uint16_t damage_fly_roll_damage_threshold;
     uint16_t damage_fly_roll_random_threshold_u16;
-} pf_m4_ssbm_damage_response_attributes;
+} ssbm_damage_response_attributes;
 
-typedef struct pf_m4_ssbm_surface_response_attributes
+typedef struct ssbm_surface_response_attributes
 {
     int32_t collision_threshold_x_q16;
     int32_t collision_threshold_y_q16;
@@ -71,9 +71,9 @@ typedef struct pf_m4_ssbm_surface_response_attributes
     uint16_t down_horizontal_axis_threshold;
     uint16_t down_attack_input_window_ticks;
     uint16_t down_c_up_axis_threshold;
-} pf_m4_ssbm_surface_response_attributes;
+} ssbm_surface_response_attributes;
 
-typedef struct pf_m4_ssbm_ledge_response_attributes
+typedef struct ssbm_ledge_response_attributes
 {
     int32_t direction_angle_tan_q16;
     uint16_t grab_down_axis_threshold;
@@ -85,9 +85,9 @@ typedef struct pf_m4_ssbm_ledge_response_attributes
     uint16_t wait_invulnerability_ticks;
     uint16_t c_attack_axis_threshold;
     uint16_t c_roll_axis_threshold;
-} pf_m4_ssbm_ledge_response_attributes;
+} ssbm_ledge_response_attributes;
 
-typedef struct pf_m4_ssbm_mash_attributes
+typedef struct ssbm_mash_attributes
 {
     uint32_t furafura_shield_health_q16;
     int32_t capture_base_q16;
@@ -104,9 +104,9 @@ typedef struct pf_m4_ssbm_mash_attributes
     uint16_t capture_tick_decrement;
     uint16_t capture_mash_reduction_ticks;
     uint16_t reserved;
-} pf_m4_ssbm_mash_attributes;
+} ssbm_mash_attributes;
 
-typedef struct pf_m4_ssbm_ground_input_attributes
+typedef struct ssbm_ground_input_attributes
 {
     int32_t grab_release_speed_x_q16;
     int32_t grab_release_air_speed_x_q16;
@@ -148,25 +148,25 @@ typedef struct pf_m4_ssbm_ground_input_attributes
     int32_t forward_smash_outer_angle_tan_q16;
     int32_t forward_smash_inner_angle_tan_q16;
     int32_t initial_dash_iasa_velocity_decay_q16;
-} pf_m4_ssbm_ground_input_attributes;
+} ssbm_ground_input_attributes;
 
-typedef struct pf_m4_ssbm_rebirth_attributes
+typedef struct ssbm_rebirth_attributes
 {
     uint16_t descent_ticks;
     uint16_t wait_ticks;
     uint16_t invulnerability_ticks;
     uint16_t reserved;
-} pf_m4_ssbm_rebirth_attributes;
+} ssbm_rebirth_attributes;
 
-typedef struct pf_m4_ssbm_match_entry_attributes
+typedef struct ssbm_match_entry_attributes
 {
     uint16_t ascent_ticks;
     uint16_t descent_ticks;
     uint16_t invulnerability_ticks;
     uint16_t player_delay_stride_ticks;
-} pf_m4_ssbm_match_entry_attributes;
+} ssbm_match_entry_attributes;
 
-typedef struct pf_m4_ssbm_clank_attributes
+typedef struct ssbm_clank_attributes
 {
     int32_t rebound_strength_damage_scale_q16;
     int32_t rebound_strength_base_q16;
@@ -174,55 +174,55 @@ typedef struct pf_m4_ssbm_clank_attributes
     int32_t rebound_velocity_base_q16;
     uint16_t damage_margin;
     uint16_t reserved;
-} pf_m4_ssbm_clank_attributes;
+} ssbm_clank_attributes;
 
-typedef struct pf_m4_ssbm_fall_animation_attributes
+typedef struct ssbm_fall_animation_attributes
 {
     int32_t direction_threshold_q16;
     int32_t blend_rate_q16;
-} pf_m4_ssbm_fall_animation_attributes;
+} ssbm_fall_animation_attributes;
 
-const uint8_t *pf_m4_ssbm_common_reference_source_sha256(void);
+const uint8_t *ssbm_common_reference_source_sha256(void);
 
-const uint32_t *pf_m4_ssbm_common_reference_raw_words(
+const uint32_t *ssbm_common_reference_raw_words(
     uint16_t *out_count);
 
-uint16_t pf_m4_ssbm_common_reference_jump_backward_axis_threshold(void);
+uint16_t ssbm_common_reference_jump_backward_axis_threshold(void);
 
-const pf_m4_ssbm_damage_response_attributes *
-pf_m4_ssbm_common_reference_damage_response(void);
+const ssbm_damage_response_attributes *
+ssbm_common_reference_damage_response(void);
 
-const pf_m4_ssbm_surface_response_attributes *
-pf_m4_ssbm_common_reference_surface_response(void);
+const ssbm_surface_response_attributes *
+ssbm_common_reference_surface_response(void);
 
-const pf_m4_ssbm_ledge_response_attributes *
-pf_m4_ssbm_common_reference_ledge_response(void);
+const ssbm_ledge_response_attributes *
+ssbm_common_reference_ledge_response(void);
 
-const pf_m4_ssbm_mash_attributes *
-pf_m4_ssbm_common_reference_mash(void);
+const ssbm_mash_attributes *
+ssbm_common_reference_mash(void);
 
-const pf_m4_ssbm_ground_input_attributes *
-pf_m4_ssbm_common_reference_ground_input(void);
+const ssbm_ground_input_attributes *
+ssbm_common_reference_ground_input(void);
 
-int32_t pf_m4_ssbm_throw_animation_rate_q16(
+int32_t ssbm_throw_animation_rate_q16(
     uint16_t fighter_weight,
     int weight_independent);
 
-uint16_t pf_m4_ssbm_throw_animation_ticks(
+uint16_t ssbm_throw_animation_ticks(
     uint16_t source_frames,
     uint16_t fighter_weight,
     int weight_independent);
 
-const pf_m4_ssbm_rebirth_attributes *
-pf_m4_ssbm_common_reference_rebirth(void);
+const ssbm_rebirth_attributes *
+ssbm_common_reference_rebirth(void);
 
-const pf_m4_ssbm_match_entry_attributes *
-pf_m4_ssbm_common_reference_match_entry(void);
+const ssbm_match_entry_attributes *
+ssbm_common_reference_match_entry(void);
 
-const pf_m4_ssbm_clank_attributes *
-pf_m4_ssbm_common_reference_clank(void);
+const ssbm_clank_attributes *
+ssbm_common_reference_clank(void);
 
-const pf_m4_ssbm_fall_animation_attributes *
-pf_m4_ssbm_common_reference_fall_animation(void);
+const ssbm_fall_animation_attributes *
+ssbm_common_reference_fall_animation(void);
 
 #endif

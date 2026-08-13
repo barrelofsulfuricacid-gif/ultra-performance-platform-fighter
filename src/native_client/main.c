@@ -1,6 +1,6 @@
 #include "pf/render_packet.h"
 #include "pf/sim.h"
-#include "m4_native_playtest.h"
+#include "native_playtest.h"
 
 #include <SDL3/SDL.h>
 
@@ -212,7 +212,7 @@ static int run_smoke(void)
         result = 1;
         goto cleanup;
     }
-    if (!pf_m4_native_playtest_smoke())
+    if (!native_playtest_smoke())
     {
         (void)puts("native-client-smoke=fail stage=playtest-contract");
         result = 1;
@@ -312,7 +312,7 @@ int main(int argument_count, char **arguments)
     }
     if (argument_count == 1)
     {
-        return pf_m4_native_playtest_run();
+        return native_playtest_run();
     }
 
     (void)fprintf(stderr, "usage: %s [--smoke]\n", arguments[0]);

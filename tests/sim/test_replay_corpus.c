@@ -326,7 +326,7 @@ int main(void)
     pf_bytes replay;
     pf_state_hash playback_hash;
     pf_state_hash malformed_before;
-    pf_m4_inspection combat_inspection;
+    struct inspection combat_inspection;
     uint8_t replay_digest[32];
     uint8_t events_digest[32];
     uint8_t observed_events_digest[32];
@@ -431,7 +431,7 @@ int main(void)
                 PF_STATUS_OK,
                 "source-tick-hash") ||
             !expect_status(
-                pf_m4_inspect(source_sim, &combat_inspection),
+                inspect(source_sim, &combat_inspection),
                 PF_STATUS_OK,
                 "source-tick-inspection"))
         {
@@ -491,7 +491,7 @@ int main(void)
         }
     }
     if (!expect_status(
-            pf_m4_inspect(source_sim, &combat_inspection),
+            inspect(source_sim, &combat_inspection),
             PF_STATUS_OK,
             "source-combat-inspection"))
     {

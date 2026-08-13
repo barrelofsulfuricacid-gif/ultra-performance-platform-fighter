@@ -2176,7 +2176,7 @@ def generate(
         f"/* complete action-script SHA-256: {action_script_digest} */",
         f"/* complete decoded animation-track SHA-256: {animation_tracks_sha256} */",
         "",
-        "static const uint8_t pf_m4_falcon_source_sha256[32] = {",
+        "static const uint8_t falcon_source_sha256[32] = {",
         "    "
         + ", ".join(
             f"UINT8_C(0x{EXPECTED_CANONICAL_SHA256[index:index + 2]})"
@@ -2184,7 +2184,7 @@ def generate(
         ),
         "};",
         "",
-        "static const uint8_t pf_m4_falcon_complete_source_sha256[32] = {",
+        "static const uint8_t falcon_complete_source_sha256[32] = {",
         "    "
         + ", ".join(
             f"UINT8_C(0x{complete_source_digest[index:index + 2]})"
@@ -2192,7 +2192,7 @@ def generate(
         ),
         "};",
         "",
-        "static const uint8_t pf_m4_falcon_submotion_catalog_sha256[32] = {",
+        "static const uint8_t falcon_submotion_catalog_sha256[32] = {",
         "    "
         + ", ".join(
             f"UINT8_C(0x{submotion_catalog_digest[index:index + 2]})"
@@ -2200,7 +2200,7 @@ def generate(
         ),
         "};",
         "",
-        "static const uint8_t pf_m4_falcon_action_script_sha256[32] = {",
+        "static const uint8_t falcon_action_script_sha256[32] = {",
         "    "
         + ", ".join(
             f"UINT8_C(0x{action_script_digest[index:index + 2]})"
@@ -2208,7 +2208,7 @@ def generate(
         ),
         "};",
         "",
-        "static const uint8_t pf_m4_falcon_animation_tracks_sha256[32] = {",
+        "static const uint8_t falcon_animation_tracks_sha256[32] = {",
         "    "
         + ", ".join(
             f"UINT8_C(0x{animation_tracks_sha256[index:index + 2]})"
@@ -2216,21 +2216,21 @@ def generate(
         ),
         "};",
         "",
-        "static const pf_m4_falcon_animation_decode_summary",
-        "pf_m4_falcon_animation_decode_summary_data = {",
+        "static const falcon_animation_decode_summary",
+        "falcon_animation_decode_summary_data = {",
         f"    UINT32_C({animation_node_count}),",
         f"    UINT32_C({animation_track_count}),",
         f"    UINT32_C({animation_key_count}),",
         "};",
         "",
-        "static const pf_m4_falcon_smash_charge_attributes",
-        "pf_m4_falcon_smash_charge_attributes_source = {",
+        "static const falcon_smash_charge_attributes",
+        "falcon_smash_charge_attributes_source = {",
         f"    UINT16_C({smash_charge_ticks}),",
         f"    UINT16_C({smash_charge_damage_multiplier_q8}),",
         "};",
         "",
-        "static const pf_m4_falcon_submotion_data",
-        "pf_m4_falcon_submotions[PF_M4_FALCON_SUBMOTION_COUNT] = {",
+        "static const falcon_submotion_data",
+        "falcon_submotions[PF_M4_FALCON_SUBMOTION_COUNT] = {",
     ]
     lines.extend(
         "    { "
@@ -2247,8 +2247,8 @@ def generate(
     lines.extend([
         "};",
         "",
-        "static const pf_m4_falcon_body_collision_timing",
-        "pf_m4_falcon_body_collision_timings[PF_M4_FALCON_SUBMOTION_COUNT] = {",
+        "static const falcon_body_collision_timing",
+        "falcon_body_collision_timings[PF_M4_FALCON_SUBMOTION_COUNT] = {",
     ])
     lines.extend(
         "    { "
@@ -2258,8 +2258,8 @@ def generate(
     lines.extend([
         "};",
         "",
-        "static const pf_m4_falcon_script_event",
-        "pf_m4_falcon_script_events[PF_M4_FALCON_SCRIPT_EVENT_COUNT] = {",
+        "static const falcon_script_event",
+        "falcon_script_events[PF_M4_FALCON_SCRIPT_EVENT_COUNT] = {",
     ])
     lines.extend(
         "    { "
@@ -2272,7 +2272,7 @@ def generate(
         "};",
         "",
         "static const uint8_t",
-        "pf_m4_falcon_script_bytes[PF_M4_FALCON_SCRIPT_BYTE_COUNT] = {",
+        "falcon_script_bytes[PF_M4_FALCON_SCRIPT_BYTE_COUNT] = {",
     ])
     lines.extend(
         "    "
@@ -2284,7 +2284,7 @@ def generate(
         "};",
         "",
         "static const uint32_t",
-        "pf_m4_falcon_common_attribute_bits[PF_M4_FALCON_COMMON_ATTRIBUTE_COUNT] = {",
+        "falcon_common_attribute_bits[PF_M4_FALCON_COMMON_ATTRIBUTE_COUNT] = {",
     ])
     lines.extend(
         "    "
@@ -2299,8 +2299,8 @@ def generate(
         (
             "};",
             "",
-            "static const pf_m4_falcon_common_attributes",
-            "pf_m4_falcon_common_attribute_data = {",
+            "static const falcon_common_attributes",
+            "falcon_common_attribute_data = {",
         )
     )
     lines.extend(
@@ -2327,8 +2327,8 @@ def generate(
         (
             "};",
             "",
-            "static const pf_m4_falcon_ledge_attributes",
-            "pf_m4_falcon_ledge_attribute_data = {",
+            "static const falcon_ledge_attributes",
+            "falcon_ledge_attribute_data = {",
         )
     )
     lines.extend(
@@ -2339,8 +2339,8 @@ def generate(
             "};",
             "",
             f"/* qualified ledge-root capture SHA-256: {LEDGE_ROOT_CAPTURE_SHA256} */",
-            "static const pf_m4_falcon_ledge_root_positions",
-            "pf_m4_falcon_ledge_root_position_data = {",
+            "static const falcon_ledge_root_positions",
+            "falcon_ledge_root_position_data = {",
             "    .catch_frame_one_x_q16 = INT32_C("
             f"{round(LEDGE_CATCH_FRAME_ONE_ROOT_MELEE[0] * MELEE_X_TO_SIM_Q16)}"
             "),",
@@ -2378,8 +2378,8 @@ def generate(
             "    },",
             "};",
             "",
-            "static const pf_m4_falcon_ledge_attack_reference",
-            "pf_m4_falcon_ledge_attack_references[2] = {",
+            "static const falcon_ledge_attack_reference",
+            "falcon_ledge_attack_references[2] = {",
             *(
                 "    { "
                 f"UINT16_C({attack['total_frames']}), "
@@ -2393,7 +2393,7 @@ def generate(
             "/* qualified Hyrule CliffJump1 trace SHA-256: "
             f"{LEDGE_JUMP1_HYRULE_SOURCE_TRACE_SHA256} */",
             "static const int32_t",
-            "pf_m4_falcon_hyrule_ledge_jump1_quick_from_wait_q16"
+            "falcon_hyrule_ledge_jump1_quick_from_wait_q16"
             "[PF_M4_FALCON_LEDGE_JUMP1_QUICK_FRAME_COUNT][2] = {",
             *(
                 f"    {{ INT32_C({x}), INT32_C({y}) }},"
@@ -2401,7 +2401,7 @@ def generate(
             ),
             "};",
             "static const int32_t",
-            "pf_m4_falcon_hyrule_ledge_jump1_slow_from_wait_q16"
+            "falcon_hyrule_ledge_jump1_slow_from_wait_q16"
             "[PF_M4_FALCON_LEDGE_JUMP1_SLOW_FRAME_COUNT][2] = {",
             *(
                 f"    {{ INT32_C({x}), INT32_C({y}) }},"
@@ -2409,15 +2409,15 @@ def generate(
             ),
             "};",
             "static const int32_t",
-            "pf_m4_falcon_hyrule_ledge_jump2_frame_one_from_wait_q16[2][2] = {",
+            "falcon_hyrule_ledge_jump2_frame_one_from_wait_q16[2][2] = {",
             *(
                 f"    {{ INT32_C({x}), INT32_C({y}) }},"
                 for x, y in LEDGE_JUMP2_HYRULE_FRAME_ONE_FROM_WAIT_Q16
             ),
             "};",
             "",
-            "static const pf_m4_falcon_common_special_attributes",
-            "pf_m4_falcon_common_special_attribute_data = {",
+            "static const falcon_common_special_attributes",
+            "falcon_common_special_attribute_data = {",
         )
     )
     lines.extend(
@@ -2429,8 +2429,8 @@ def generate(
         (
             "};",
             "",
-            "static const pf_m4_falcon_air_dodge_attributes",
-            "pf_m4_falcon_air_dodge_attribute_data = {",
+            "static const falcon_air_dodge_attributes",
+            "falcon_air_dodge_attribute_data = {",
             "    .initial_velocity_x_q16 = "
             f"INT32_C({air_dodge_attributes['initial_velocity_x_q16']}),",
             "    .initial_velocity_y_q16 = "
@@ -2446,8 +2446,8 @@ def generate(
             "    .reserved = UINT16_C(0),",
             "};",
             "",
-            "static const pf_m4_melee_stale_move_data",
-            "pf_m4_melee_stale_move_data_source = {",
+            "static const melee_stale_move_data",
+            "melee_stale_move_data_source = {",
             "    .slot_reduction_q16 = {",
             "        "
             + ", ".join(
@@ -2458,8 +2458,8 @@ def generate(
             "    },",
             "};",
             "",
-            "static const pf_m4_falcon_special_attributes",
-            "pf_m4_falcon_special_attribute_data = {",
+            "static const falcon_special_attributes",
+            "falcon_special_attribute_data = {",
         )
     )
     lines.extend(
@@ -2474,8 +2474,8 @@ def generate(
         (
             "};",
             "",
-            "static const pf_m4_falcon_neutral_special_timing",
-            "pf_m4_falcon_neutral_special_timing_data = {",
+            "static const falcon_neutral_special_timing",
+            "falcon_neutral_special_timing_data = {",
             f"    .launch_frame = UINT16_C({specialn_launch_frame}),",
             "    .velocity_scale_begin_frame = "
             f"UINT16_C({specialn_scale_begin_frame}),",
@@ -2485,8 +2485,8 @@ def generate(
             f"UINT16_C({specialn_air_physics_begin_frame}),",
             "};",
             "",
-            "static const pf_m4_falcon_side_special_timing",
-            "pf_m4_falcon_side_special_timing_data = {",
+            "static const falcon_side_special_timing",
+            "falcon_side_special_timing_data = {",
             "    .ground_search_begin_frame = "
             f"UINT16_C({specials_ground_search_begin}),",
             "    .ground_search_end_frame = "
@@ -2497,8 +2497,8 @@ def generate(
             f"UINT16_C({specials_air_gravity_begin}),",
             "};",
             "",
-            "static const pf_m4_falcon_up_special_timing",
-            "pf_m4_falcon_up_special_timing_data = {",
+            "static const falcon_up_special_timing",
+            "falcon_up_special_timing_data = {",
             "    .air_control_begin_frame = "
             f"UINT16_C({specialhi_ground_control_begin}),",
             "    .throw_gravity_begin_frame = "
@@ -2516,8 +2516,8 @@ def generate(
             "),",
             "};",
             "",
-            "static const pf_m4_falcon_down_special_timing",
-            "pf_m4_falcon_down_special_timing_data = {",
+            "static const falcon_down_special_timing",
+            "falcon_down_special_timing_data = {",
             "    .ground_wall_rebound_begin_frame = "
             f"UINT16_C({speciallw_ground_wall_rebound_begin}),",
             "    .air_wall_rebound_begin_frame = "
@@ -2541,8 +2541,8 @@ def generate(
             f"INT32_C({q16(FALCON_KICK_GROUND_END_ENTRY_VELOCITY_SCALE)}),",
             "};",
             "",
-            "static const pf_m4_falcon_collision_pose",
-            "pf_m4_falcon_collision_pose_data = {",
+            "static const falcon_collision_pose",
+            "falcon_collision_pose_data = {",
             "    .falling_bottom_y_from_origin_q16 = INT32_C("
             f"{round(FALLING_ECB_BOTTOM_Y_MELEE * MELEE_Y_TO_SIM_Q16)}"
             "),",
@@ -2685,7 +2685,7 @@ def generate(
             "    },",
             "};",
             "",
-            "static const pf_m4_reference_hit_phase pf_m4_falcon_hit_phases[] = {",
+            "static const reference_hit_phase falcon_hit_phases[] = {",
         )
     )
     lines.extend(
@@ -2696,13 +2696,13 @@ def generate(
         (
             "};",
             "",
-            "static const pf_m4_reference_hit_effect pf_m4_falcon_hit_effects[] = {",
+            "static const reference_hit_effect falcon_hit_effects[] = {",
         )
     )
     for effect in effects:
         lines.append(f"    {c_hit_effect(effect)},")
     lines.extend(
-        ("};", "", "static const pf_m4_reference_throw pf_m4_falcon_throws[] = {")
+        ("};", "", "static const reference_throw falcon_throws[] = {")
     )
     for throw in throws:
         lines.append(
@@ -2720,7 +2720,7 @@ def generate(
         (
             "};",
             "",
-            "static const pf_m4_reference_move pf_m4_falcon_moves[PF_M4_FALCON_MOVE_COUNT] = {",
+            "static const reference_move falcon_moves[PF_M4_FALCON_MOVE_COUNT] = {",
         )
     )
     for move in moves:
@@ -2746,7 +2746,7 @@ def generate(
             "};",
             "",
             "static const int32_t "
-            "pf_m4_falcon_translation_x_q16[PF_M4_FALCON_TRANSLATION_SAMPLE_COUNT] = {",
+            "falcon_translation_x_q16[PF_M4_FALCON_TRANSLATION_SAMPLE_COUNT] = {",
         )
     )
     lines.extend(
@@ -2760,7 +2760,7 @@ def generate(
             "};",
             "",
             "static const int32_t "
-            "pf_m4_falcon_translation_y_q16[PF_M4_FALCON_TRANSLATION_SAMPLE_COUNT] = {",
+            "falcon_translation_y_q16[PF_M4_FALCON_TRANSLATION_SAMPLE_COUNT] = {",
         )
     )
     lines.extend(

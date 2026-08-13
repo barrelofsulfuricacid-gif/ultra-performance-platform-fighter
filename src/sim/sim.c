@@ -236,7 +236,7 @@ pf_status pf_sim_init(
     pf_sim **out_sim)
 {
     pf_memory_requirements requirements;
-    pf_m4_content resolved_content;
+    struct content resolved_content;
     pf_status status;
     pf_sim *sim;
 
@@ -256,7 +256,7 @@ pf_status pf_sim_init(
     {
         return PF_STATUS_INVALID_ARGUMENT;
     }
-    status = pf_m4_content_from_view(content, &resolved_content);
+    status = content_from_view(content, &resolved_content);
     if (status != PF_STATUS_OK)
     {
         return status;
@@ -380,19 +380,19 @@ pf_status pf_sim_reset(pf_sim *sim, uint64_t seed)
                 ? (uint8_t)(player_index & UINT32_C(1))
                 : (uint8_t)player_index;
         sim->world.active[player_index] = UINT8_C(1);
-        pf_m4_reset_player(sim, player_index, 0);
+        reset_player(sim, player_index, 0);
     }
-    pf_m4_reset_item(sim);
-    pf_m4_reset_projectile(sim);
+    reset_item(sim);
+    reset_projectile(sim);
 
     (void)memset(sim->scratch, 0, sizeof(*sim->scratch));
     sim->has_reset = UINT8_C(1);
     return PF_STATUS_OK;
 }
 
-pf_status pf_m4_start_reference_match(pf_sim *sim)
+pf_status start_reference_match(pf_sim *sim)
 {
-    const pf_m4_ssbm_stage_collision_profile *profile;
+    const ssbm_stage_collision_profile *profile;
     uint32_t player_index;
 
     if (!pf_sim_is_valid(sim) || sim->has_reset == UINT8_C(0))
@@ -413,7 +413,7 @@ pf_status pf_m4_start_reference_match(pf_sim *sim)
         return PF_STATUS_INVALID_STATE;
     }
 
-    profile = pf_m4_ssbm_reference_stage_collision(
+    profile = ssbm_reference_stage_collision(
         sim->content.stage.reference_collision_profile);
     if (profile == NULL || profile->spawn_point_count < UINT8_C(4))
     {
@@ -442,7 +442,7 @@ pf_status pf_m4_start_reference_match(pf_sim *sim)
          player_index < (uint32_t)sim->world.player_count;
          ++player_index)
     {
-        const pf_m4_ssbm_stage_spawn_point *spawn =
+        const ssbm_stage_spawn_point *spawn =
             &profile->spawn_points[player_index + UINT32_C(2)];
 
         sim->world.position_x_q16[player_index] =
@@ -565,11 +565,11 @@ pf_status pf_sim_observe(
         player->position_y_q16 =
             sim->world.position_y_q16[player_index];
         player->velocity_x_q16 =
-            pf_m4_total_velocity_q16(
+            total_velocity_q16(
                 sim->world.velocity_x_q16[player_index],
                 sim->world.knockback_velocity_x_q16[player_index]);
         player->velocity_y_q16 =
-            pf_m4_total_velocity_q16(
+            total_velocity_q16(
                 sim->world.velocity_y_q16[player_index],
                 sim->world.knockback_velocity_y_q16[player_index]);
         player->player_slot = (uint8_t)player_index;
@@ -591,7 +591,7 @@ pf_status pf_sim_observe(
             sim->world.smash_charge_ticks[player_index];
         player->shield_strength =
             sim->world.shield_strength[player_index];
-        pf_m4_shield_tilt_axes(
+        shield_tilt_axes(
             sim->world.shield_angle_turn[player_index],
             sim->world.shield_magnitude[player_index],
             sim->world.facing[player_index],
@@ -617,11 +617,11 @@ pf_status pf_sim_observe(
                     : sim->world.action_state[player_index];
 
             player->stale_move_multiplier_q16 =
-                pf_m4_stale_move_multiplier_q16(
+                stale_move_multiplier_q16(
                     &sim->content.fighter,
                     sim->world.stale_move_ids[player_index],
                     sim->world.stale_move_count[player_index],
-                    pf_m4_stale_move_id_for_action(current_action));
+                    stale_move_id_for_action(current_action));
             (void)memcpy(
                 player->stale_move_ids,
                 sim->world.stale_move_ids[player_index],

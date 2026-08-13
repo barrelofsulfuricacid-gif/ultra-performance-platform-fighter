@@ -29,7 +29,7 @@ extern "C"
 #define PF_M4_TEST_CHARGE_COUNT UINT8_C(1)
 #define PF_M4_TEST_RECOVERY_COUNT UINT8_C(1)
 
-typedef enum pf_m4_action_state
+enum action_state
 {
     PF_M4_ACTION_GROUND_IDLE = 0,
     PF_M4_ACTION_WALK = 1,
@@ -183,16 +183,16 @@ typedef enum pf_m4_action_state
     PF_M4_ACTION_MATCH_ENTRY = 149,
     PF_M4_ACTION_MATCH_ENTRY_START = 150,
     PF_M4_ACTION_MATCH_ENTRY_END = 151
-} pf_m4_action_state;
+};
 
-typedef enum pf_m4_projectile_state
+typedef enum projectile_state
 {
     PF_M4_PROJECTILE_STATE_INACTIVE = 0,
     PF_M4_PROJECTILE_STATE_SPAWNING = 1,
     PF_M4_PROJECTILE_STATE_ACTIVE = 2
-} pf_m4_projectile_state;
+} projectile_state;
 
-typedef struct pf_m4_projectile_data
+typedef struct projectile_data
 {
     uint32_t struct_size;
     uint16_t schema_version;
@@ -211,9 +211,9 @@ typedef struct pf_m4_projectile_data
     uint16_t fire_recovery_ticks;
     uint16_t hitlag_ticks;
     uint16_t powershield_reflect_window_ticks;
-} pf_m4_projectile_data;
+} projectile_data;
 
-typedef struct pf_m4_reflector_data
+typedef struct reflector_data
 {
     uint32_t struct_size;
     uint16_t schema_version;
@@ -231,9 +231,9 @@ typedef struct pf_m4_reflector_data
     uint16_t active_ticks;
     uint16_t recovery_ticks;
     uint16_t hitlag_ticks;
-} pf_m4_reflector_data;
+} reflector_data;
 
-typedef struct pf_m4_charge_data
+typedef struct charge_data
 {
     uint32_t struct_size;
     uint16_t schema_version;
@@ -254,9 +254,9 @@ typedef struct pf_m4_charge_data
     uint16_t release_active_ticks;
     uint16_t release_recovery_ticks;
     uint16_t release_hitlag_ticks;
-} pf_m4_charge_data;
+} charge_data;
 
-typedef struct pf_m4_recovery_data
+typedef struct recovery_data
 {
     uint32_t struct_size;
     uint16_t schema_version;
@@ -266,9 +266,9 @@ typedef struct pf_m4_recovery_data
     int32_t vertical_speed_q16;
     uint16_t ascent_ticks;
     uint16_t reserved2;
-} pf_m4_recovery_data;
+} recovery_data;
 
-typedef struct pf_m4_melee_knockback_data
+typedef struct melee_knockback_data
 {
     uint16_t angle_degrees;
     uint16_t growth;
@@ -276,9 +276,9 @@ typedef struct pf_m4_melee_knockback_data
     uint16_t base;
     uint8_t enabled;
     uint8_t reserved[3];
-} pf_m4_melee_knockback_data;
+} melee_knockback_data;
 
-typedef struct pf_m4_throw_data
+struct throw_data
 {
     uint32_t damage_q16;
     int32_t base_velocity_x_q16;
@@ -289,10 +289,10 @@ typedef struct pf_m4_throw_data
     uint16_t recovery_ticks;
     uint16_t hitlag_ticks;
     uint16_t reserved;
-    pf_m4_melee_knockback_data melee_knockback;
-} pf_m4_throw_data;
+    melee_knockback_data melee_knockback;
+};
 
-typedef struct pf_m4_attack_data
+typedef struct attack_data
 {
     int32_t hitbox_offset_x_q16;
     int32_t hitbox_offset_y_q16;
@@ -306,33 +306,33 @@ typedef struct pf_m4_attack_data
     uint16_t active_ticks;
     uint16_t recovery_ticks;
     uint16_t hitlag_ticks;
-} pf_m4_attack_data;
+} attack_data;
 
-typedef enum pf_m4_item_state
+typedef enum item_state
 {
     PF_M4_ITEM_STATE_INACTIVE = 0,
     PF_M4_ITEM_STATE_GROUND = 1,
     PF_M4_ITEM_STATE_HELD = 2,
     PF_M4_ITEM_STATE_AIRBORNE = 3,
     PF_M4_ITEM_STATE_RESPAWN_WAIT = 4
-} pf_m4_item_state;
+} item_state;
 
-typedef enum pf_m4_item_throw_direction
+typedef enum item_throw_direction
 {
     PF_M4_ITEM_THROW_NONE = 0,
     PF_M4_ITEM_THROW_FORWARD = 1,
     PF_M4_ITEM_THROW_BACK = 2,
     PF_M4_ITEM_THROW_UP = 3,
     PF_M4_ITEM_THROW_DOWN = 4
-} pf_m4_item_throw_direction;
+} item_throw_direction;
 
-typedef struct pf_m4_item_velocity
+typedef struct item_velocity
 {
     int32_t velocity_x_q16;
     int32_t velocity_y_q16;
-} pf_m4_item_velocity;
+} item_velocity;
 
-typedef struct pf_m4_item_data
+typedef struct item_data
 {
     uint32_t struct_size;
     uint16_t schema_version;
@@ -349,10 +349,10 @@ typedef struct pf_m4_item_data
     int32_t gravity_q16;
     int32_t fall_speed_q16;
     int32_t drop_velocity_y_q16;
-    pf_m4_item_velocity forward_throw;
-    pf_m4_item_velocity back_throw;
-    pf_m4_item_velocity up_throw;
-    pf_m4_item_velocity down_throw;
+    item_velocity forward_throw;
+    item_velocity back_throw;
+    item_velocity up_throw;
+    item_velocity down_throw;
     int32_t momentum_transfer_q16;
     int32_t hitbox_half_width_q16;
     int32_t hitbox_half_height_q16;
@@ -371,9 +371,9 @@ typedef struct pf_m4_item_data
     uint16_t respawn_ticks;
     uint16_t hitlag_ticks;
     uint16_t reserved2;
-} pf_m4_item_data;
+} item_data;
 
-typedef enum pf_m4_surface
+enum surface
 {
     PF_M4_SURFACE_NONE = 0,
     PF_M4_SURFACE_FLOOR = 1,
@@ -381,16 +381,16 @@ typedef enum pf_m4_surface
     PF_M4_SURFACE_SOLID_TOP = 3,
     PF_M4_SURFACE_REVIVAL_PLATFORM = 4,
     PF_M4_SURFACE_UPPER_PLATFORM = 5
-} pf_m4_surface;
+};
 
-typedef enum pf_m4_reference_stage
+enum reference_stage
 {
     PF_M4_REFERENCE_STAGE_AUTHORED = 0,
     PF_M4_REFERENCE_STAGE_HYRULE_TEMPLE = 1,
     PF_M4_REFERENCE_STAGE_BATTLEFIELD = 2
-} pf_m4_reference_stage;
+};
 
-typedef enum pf_m4_reference_stage_line_kind
+typedef enum reference_stage_line_kind
 {
     PF_M4_REFERENCE_STAGE_LINE_UNCLASSIFIED = 0,
     PF_M4_REFERENCE_STAGE_LINE_FLOOR = 1,
@@ -398,9 +398,9 @@ typedef enum pf_m4_reference_stage_line_kind
     PF_M4_REFERENCE_STAGE_LINE_RIGHT_WALL = 3,
     PF_M4_REFERENCE_STAGE_LINE_LEFT_WALL = 4,
     PF_M4_REFERENCE_STAGE_LINE_DYNAMIC = 5
-} pf_m4_reference_stage_line_kind;
+} reference_stage_line_kind;
 
-typedef struct pf_m4_reference_stage_line
+typedef struct reference_stage_line
 {
     int32_t start_x_q16;
     int32_t start_y_q16;
@@ -411,37 +411,37 @@ typedef struct pf_m4_reference_stage_line
     uint16_t support;
     uint8_t kind;
     uint8_t reserved;
-} pf_m4_reference_stage_line;
+} reference_stage_line;
 
-typedef enum pf_m4_ledge
+enum ledge
 {
     PF_M4_LEDGE_NONE = 0,
     PF_M4_LEDGE_LEFT = 1,
     PF_M4_LEDGE_RIGHT = 2
-} pf_m4_ledge;
+};
 
-typedef enum pf_m4_prone_orientation
+enum prone_orientation
 {
     PF_M4_PRONE_NONE = 0,
     PF_M4_PRONE_BACK = 1,
     PF_M4_PRONE_STOMACH = 2
-} pf_m4_prone_orientation;
+};
 
-typedef enum pf_m4_gameplay_ruleset
+typedef enum gameplay_ruleset
 {
     PF_M4_GAMEPLAY_RULESET_GENERIC = 0,
     PF_M4_GAMEPLAY_RULESET_SSBM_NTSC102_UCF084 = 1
-} pf_m4_gameplay_ruleset;
+} gameplay_ruleset;
 
-typedef struct pf_m4_getup_roll_timing
+typedef struct getup_roll_timing
 {
     uint8_t movement_begin_tick;
     uint8_t invulnerability_begin_tick;
     uint8_t invulnerability_end_tick;
     uint8_t reserved;
-} pf_m4_getup_roll_timing;
+} getup_roll_timing;
 
-typedef struct pf_m4_fighter_data
+typedef struct fighter_data
 {
     uint32_t struct_size;
     uint16_t schema_version;
@@ -515,7 +515,7 @@ typedef struct pf_m4_fighter_data
     int32_t jab_base_knockback_x_q16;
     int32_t jab_base_knockback_y_q16;
     int32_t jab_knockback_growth_q16;
-    pf_m4_melee_knockback_data jab_melee_knockback;
+    melee_knockback_data jab_melee_knockback;
     int32_t jab_final_hitbox_offset_x_q16;
     int32_t jab_final_hitbox_offset_y_q16;
     int32_t jab_final_hitbox_half_width_q16;
@@ -524,21 +524,21 @@ typedef struct pf_m4_fighter_data
     int32_t jab_final_base_knockback_x_q16;
     int32_t jab_final_base_knockback_y_q16;
     int32_t jab_final_knockback_growth_q16;
-    pf_m4_melee_knockback_data jab_final_melee_knockback;
-    pf_m4_attack_data up_attack;
-    pf_m4_attack_data down_attack;
-    pf_m4_attack_data forward_attack;
-    pf_m4_attack_data forward_strong_attack;
-    pf_m4_attack_data up_strong_attack;
-    pf_m4_attack_data down_strong_attack;
+    melee_knockback_data jab_final_melee_knockback;
+    attack_data up_attack;
+    attack_data down_attack;
+    attack_data forward_attack;
+    attack_data forward_strong_attack;
+    attack_data up_strong_attack;
+    attack_data down_strong_attack;
     uint32_t smash_charge_damage_bonus_q16;
     uint16_t smash_charge_max_ticks;
     uint16_t smash_charge_reserved;
-    pf_m4_attack_data forward_aerial;
-    pf_m4_attack_data back_aerial;
-    pf_m4_attack_data up_aerial;
-    pf_m4_attack_data down_aerial;
-    pf_m4_attack_data ledge_attack;
+    attack_data forward_aerial;
+    attack_data back_aerial;
+    attack_data up_aerial;
+    attack_data down_aerial;
+    attack_data ledge_attack;
     uint32_t reset_max_damage_q16;
     int32_t reset_bound_speed_q16;
     int32_t strong_hitbox_offset_x_q16;
@@ -627,10 +627,10 @@ typedef struct pf_m4_fighter_data
     uint32_t pummel_damage_q16;
     uint16_t pummel_hit_tick;
     uint16_t pummel_total_ticks;
-    pf_m4_throw_data forward_throw;
-    pf_m4_throw_data back_throw;
-    pf_m4_throw_data up_throw;
-    pf_m4_throw_data down_throw;
+    struct throw_data forward_throw;
+    struct throw_data back_throw;
+    struct throw_data up_throw;
+    struct throw_data down_throw;
     uint16_t jump_squat_ticks;
     uint16_t double_jump_cancel_ticks;
     uint16_t double_jump_armor_max_hitstun_ticks;
@@ -746,10 +746,10 @@ typedef struct pf_m4_fighter_data
     uint16_t getup_neutral_ticks;
     uint16_t getup_neutral_invulnerability_ticks;
     uint16_t getup_roll_ticks;
-    pf_m4_getup_roll_timing getup_roll_back_forward;
-    pf_m4_getup_roll_timing getup_roll_back_backward;
-    pf_m4_getup_roll_timing getup_roll_stomach_forward;
-    pf_m4_getup_roll_timing getup_roll_stomach_backward;
+    getup_roll_timing getup_roll_back_forward;
+    getup_roll_timing getup_roll_back_backward;
+    getup_roll_timing getup_roll_stomach_forward;
+    getup_roll_timing getup_roll_stomach_backward;
     uint16_t getup_attack_ticks;
     uint16_t getup_attack_back_invulnerability_ticks;
     uint16_t getup_attack_stomach_invulnerability_ticks;
@@ -801,9 +801,9 @@ typedef struct pf_m4_fighter_data
     uint16_t crouch_start_ticks;
     uint16_t crouch_end_ticks;
     uint16_t crouch_release_axis_threshold;
-} pf_m4_fighter_data;
+} fighter_data;
 
-typedef struct pf_m4_stage_data
+typedef struct stage_data
 {
     uint32_t struct_size;
     uint16_t schema_version;
@@ -835,9 +835,9 @@ typedef struct pf_m4_stage_data
     int32_t upper_platform_center_x_q16;
     int32_t upper_platform_y_q16;
     int32_t upper_platform_half_width_q16;
-} pf_m4_stage_data;
+} stage_data;
 
-typedef struct pf_m4_content
+struct content
 {
     uint32_t struct_size;
     uint16_t schema_version;
@@ -849,16 +849,16 @@ typedef struct pf_m4_content
     uint8_t charge_count;
     uint8_t recovery_count;
     uint8_t gameplay_ruleset;
-    pf_m4_fighter_data fighter;
-    pf_m4_stage_data stage;
-    pf_m4_item_data item;
-    pf_m4_projectile_data projectile;
-    pf_m4_reflector_data reflector;
-    pf_m4_charge_data charge;
-    pf_m4_recovery_data recovery;
-} pf_m4_content;
+    fighter_data fighter;
+    stage_data stage;
+    item_data item;
+    projectile_data projectile;
+    reflector_data reflector;
+    charge_data charge;
+    recovery_data recovery;
+};
 
-typedef struct pf_m4_hit_sphere_inspection
+typedef struct hit_sphere_inspection
 {
     int32_t center_x_q16;
     int32_t center_y_q16;
@@ -868,9 +868,9 @@ typedef struct pf_m4_hit_sphere_inspection
     uint8_t hitbox_id;
     uint8_t group_id;
     uint8_t collision_state;
-} pf_m4_hit_sphere_inspection;
+} hit_sphere_inspection;
 
-typedef struct pf_m4_hurt_capsule_inspection
+typedef struct hurt_capsule_inspection
 {
     int32_t endpoint_a_x_q16;
     int32_t endpoint_a_y_q16;
@@ -883,9 +883,9 @@ typedef struct pf_m4_hurt_capsule_inspection
     uint8_t height;
     uint8_t grabbable;
     uint8_t reserved;
-} pf_m4_hurt_capsule_inspection;
+} hurt_capsule_inspection;
 
-typedef struct pf_m4_player_inspection
+typedef struct player_inspection
 {
     int32_t position_x_q16;
     int32_t position_y_q16;
@@ -927,7 +927,7 @@ typedef struct pf_m4_player_inspection
     int32_t hitbox_right_q16;
     int32_t hitbox_top_q16;
     int32_t hitbox_bottom_q16;
-    pf_m4_hit_sphere_inspection
+    hit_sphere_inspection
         hit_spheres[PF_M4_INSPECTION_HIT_SPHERE_CAPACITY];
     int32_t grabbox_left_q16;
     int32_t grabbox_right_q16;
@@ -989,11 +989,11 @@ typedef struct pf_m4_player_inspection
     uint8_t reserved3[3];
     uint8_t hurt_capsule_count;
     uint8_t reserved4[3];
-    pf_m4_hurt_capsule_inspection
+    hurt_capsule_inspection
         hurt_capsules[PF_M4_INSPECTION_HURT_CAPSULE_CAPACITY];
-} pf_m4_player_inspection;
+} player_inspection;
 
-typedef struct pf_m4_stage_inspection
+typedef struct stage_inspection
 {
     int32_t floor_left_q16;
     int32_t floor_right_q16;
@@ -1020,9 +1020,9 @@ typedef struct pf_m4_stage_inspection
     int32_t upper_platform_left_q16;
     int32_t upper_platform_right_q16;
     int32_t upper_platform_y_q16;
-} pf_m4_stage_inspection;
+} stage_inspection;
 
-typedef struct pf_m4_item_inspection
+typedef struct item_inspection
 {
     int32_t position_x_q16;
     int32_t position_y_q16;
@@ -1039,9 +1039,9 @@ typedef struct pf_m4_item_inspection
     uint8_t hit_mask;
     uint8_t hitbox_active;
     uint8_t stale_registered;
-} pf_m4_item_inspection;
+} item_inspection;
 
-typedef struct pf_m4_projectile_inspection
+typedef struct projectile_inspection
 {
     int32_t position_x_q16;
     int32_t position_y_q16;
@@ -1056,9 +1056,9 @@ typedef struct pf_m4_projectile_inspection
     uint8_t state;
     uint8_t owner;
     uint8_t hitbox_active;
-} pf_m4_projectile_inspection;
+} projectile_inspection;
 
-typedef struct pf_m4_inspection
+struct inspection
 {
     uint32_t struct_size;
     uint16_t schema_version;
@@ -1071,41 +1071,41 @@ typedef struct pf_m4_inspection
     uint8_t terminated;
     uint8_t truncated;
     uint8_t winner_mask;
-    pf_m4_stage_inspection stage;
-    pf_m4_item_inspection item;
-    pf_m4_projectile_inspection projectile;
-    pf_m4_player_inspection players[PF_SIM_MAX_PLAYERS];
-} pf_m4_inspection;
+    stage_inspection stage;
+    item_inspection item;
+    projectile_inspection projectile;
+    player_inspection players[PF_SIM_MAX_PLAYERS];
+};
 
-pf_status pf_m4_default_content(pf_m4_content *out_content);
+pf_status default_content(struct content *out_content);
 
-pf_status pf_m4_reference_stage_content(
-    pf_m4_reference_stage stage,
-    pf_m4_content *out_content);
+pf_status reference_stage_content(
+    enum reference_stage stage,
+    struct content *out_content);
 
-pf_status pf_m4_reference_stage_geometry_line_count(
-    pf_m4_reference_stage stage,
+pf_status reference_stage_geometry_line_count(
+    enum reference_stage stage,
     uint16_t *out_line_count);
 
-pf_status pf_m4_reference_stage_geometry_line(
-    pf_m4_reference_stage stage,
+pf_status reference_stage_geometry_line(
+    enum reference_stage stage,
     uint16_t line_index,
-    pf_m4_reference_stage_line *out_line);
+    reference_stage_line *out_line);
 
-pf_status pf_m4_validate_content(const pf_m4_content *content);
+pf_status validate_content(const struct content *content);
 
-pf_status pf_m4_make_content_view(
-    const pf_m4_content *content,
+pf_status make_content_view(
+    const struct content *content,
     pf_content_view *out_view);
 
-pf_status pf_m4_inspect(
+pf_status inspect(
     const pf_sim *sim,
-    pf_m4_inspection *out_inspection);
+    struct inspection *out_inspection);
 
 /* Replace the generic reset pose with the exact two-player SSBM match-entry
  * lifecycle. This remains separate from pf_sim_reset so focused fixtures and
  * post-KO revival keep their existing contracts. */
-pf_status pf_m4_start_reference_match(pf_sim *sim);
+pf_status start_reference_match(pf_sim *sim);
 
 #ifdef __cplusplus
 }

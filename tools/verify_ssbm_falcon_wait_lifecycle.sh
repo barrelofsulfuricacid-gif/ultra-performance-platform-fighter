@@ -84,7 +84,7 @@ capture "${repeat}"
     "${extract_root}/PlCaAJ.dat" \
     "${extract_root}/PlCo.dat" \
     "${extract_root}/PlCaGy.dat" \
-    "${repo_root}/generated/data/m4_ssbm_falcon_ground_loop_hsd.inc"
+    "${repo_root}/generated/data/ssbm_falcon_ground_loop_hsd.inc"
 
 printf 'ssbm-falcon-wait-lifecycle=pass captures=2 rows=880 output=%s\n' \
     "${output_root}"

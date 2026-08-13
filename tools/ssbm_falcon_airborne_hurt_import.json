@@ -6,7 +6,7 @@
   "profile_sha256": "3eda3f573971b3f66e0e10e1087db444eb939cf67f6fb53ca72968ea730afb38",
   "capture_sha256": "cf458d593451c210b69fe45305c7affa992bf179d14aa2e3ce0b00e81d150a26",
   "semantic_sha256": "71c9e643816604f9d2e90cfc226b907e7ce7cb48edc4fa2fea51d6797013ee7f",
-  "symbol_prefix": "pf_m4_falcon_airborne_hurt",
+  "symbol_prefix": "falcon_airborne_hurt",
   "enum_prefix": "PF_M4_FALCON_AIRBORNE_HURT",
   "expected_pose_count": 186,
   "expected_unique_pose_count": 186,

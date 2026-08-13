@@ -384,7 +384,7 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
 
 ## Delivered in the first M4 slice
 
-- A validated, hash-identified `pf_m4_content` precursor containing one
+- A validated, hash-identified `content` precursor containing one
   original placeholder fighter table and one original test-stage table.
 - Real-simulation Q16.16 states for proportional walk, initial dash, run,
   dash-dance reversal, run turnaround, run brake, post-turnaround run lockout,
@@ -403,7 +403,7 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
 - Replay format 1 regenerated against the new canonical state schema and real
   attack/hit inputs, with native and WebAssembly comparisons still using the
   same corpus path.
-- A public `pf_m4_inspect` surface for movement state, active ledge claims,
+- A public `inspect` surface for movement state, active ledge claims,
   ledge points, moving-platform and solid-block geometry, blast zones, percent, hitlag,
   hitstun, tumble, tech timers, SDI state, active hitbox bounds, and last-hit
   metadata, plus shield health/stun/powershield state, trigger age, and
@@ -518,7 +518,7 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
   Two fresh native-Windows milestone runs at the same exact commit qualified
   all ten available scenarios against an isolated same-commit baseline with
   zero invalid comparisons, suspected regressions, or confirmed regressions.
-  See the [M4 performance checkpoint](../../performance/reports/2026-08-01_m4_combat.md)
+  See the [M4 performance checkpoint](../../performance/reports/2026-08-01_combat.md)
   and [profile analysis](../../performance/profiles/M4/analysis.md).
 
 ## Delivered in the repeated verifier-match slice
@@ -606,7 +606,7 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
   require observed SDI and tech-window state.
 
 The exact first-primitive behavior and intentional remaining scope are fixed in
-[`m4_combat_contract.md`](../product/m4_combat_contract.md).
+[`combat_contract.md`](../product/combat_contract.md).
 
 ## Delivered in the missed-tech floor-recovery slice
 
@@ -1570,10 +1570,10 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   glide-tosses it while preserving roll momentum; and a fresh attack during
   jump squat cancels takeoff while preserving dash momentum. Spacing, frame-5,
   and first-airborne-frame controls prove the corresponding negative routes.
-- `tests/sim/test_m4_item.c` adds 44 focused invariants, all four throw
+- `tests/sim/test_item.c` adds 44 focused invariants, all four throw
   directions, typed item events, save/load future equality, encoded replay
   verification, structured and compact RL observation, and despawn/reset.
-  `tools/verify_m4_item.sh` makes the result a verifier-readable check.
+  `tools/verify_item.sh` makes the result a verifier-readable check.
 - State schema 26/save format 25 and `PFSAVE25` expand the canonical payload
   from 495 to 522 bytes and the checkpoint from 635 to 662 bytes. Structured
   observation schema 3 and RL schema 5 expose the fixed item; compact
@@ -1612,11 +1612,11 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   collision-deferred spawning phase, straight active motion, authored
   lifetime/blast despawn, ordinary hit reaction, shield block, and exact
   two-frame powershield reflection without allocation or dynamic entities.
-- `tests/sim/test_m4_projectile.c` adds 38 focused invariants covering content
+- `tests/sim/test_projectile.c` adds 38 focused invariants covering content
   validation/hash, simultaneous requests, ground fire/hit, ordinary shield
   block, exact reflection and returned hit, short-hop fire and generic landing,
   save/load future equality, replay verification, and structured/compact RL
-  visibility. `tools/verify_m4_projectile.sh` is an independent strict-warning
+  visibility. `tools/verify_projectile.sh` is an independent strict-warning
   verifier check.
 - State schema 28/save format 27 and `PFSAVE27` append the 20-byte projectile
   slot, producing a 542-byte payload and 682-byte checkpoint. Input schema 4,
@@ -1642,7 +1642,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - While active, that same box reverses a Pulse Bolt's horizontal velocity and
   transfers ownership without applying the powershield result. Ordinary
   two-frame projectile powershield reflection remains unchanged.
-- `tests/sim/test_m4_reflector.c` adds 32 invariants covering content
+- `tests/sim/test_reflector.c` adds 32 invariants covering content
   validation/hash, a grounded downward hit, simultaneous reflector/projectile
   resolution and returned hit, an ordinary-input offstage Shine-spike stock
   route, the unchallenged recovery control, save/load future equality, replay
@@ -1670,12 +1670,12 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   complete grounded router and preserves charge, including a same-tick normal
   attack. Holding shield through the boundary commits to ordinary shield;
   taking a physical hit during charge or store clears the value.
-- `tests/sim/test_m4_charge.c` adds 28 focused invariants covering default and
+- `tests/sim/test_charge.c` adds 28 focused invariants covering default and
   invalid data, accumulation/clamp, early store cancel, the held-shield
   negative, exact resume, low/full release damage, interruption loss,
   checksum-valid over-cap load rejection, save/load future equality, replay
   verification, and structured/compact RL visibility.
-  `tools/verify_m4_charge.sh` is an independent strict-warning
+  `tools/verify_charge.sh` is an independent strict-warning
   verifier check.
 - State schema 30/save format 29 and `PFSAVE29` append one `uint16_t` charge
   value per player, producing a 550-byte payload and 690-byte checkpoint.
@@ -1700,7 +1700,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Immediate full-back reversal and only one reduced-back setup tick both remain
   ordinary dashbacks, so the browser recipe distinguishes correct timing from
   the two nearest mistakes without a hidden per-player history counter.
-- `tests/sim/test_m4_movement.c` adds 12 focused invariants for default and
+- `tests/sim/test_movement.c` adds 12 focused invariants for default and
   invalid authored timing, isolated content hashing, exact positive timing,
   facing/dash direction/velocity, traction exit, both negative routes, and a
   690-byte mid-setup save/load with equal future hashes.
@@ -1728,7 +1728,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   focused recipe proves an immediate standing attack and full opposite
   initial dash; jump, shield, crouch, special, grab, and walking remain routed
   by the same production controls.
-- `tests/sim/test_m4_movement.c` adds 11 focused invariants for default and
+- `tests/sim/test_movement.c` adds 11 focused invariants for default and
   invalid authored data, isolated content hashing, exact clamp/support/facing,
   neutral duration, both cancels, both negative routes, and a 690-byte
   mid-teeter save/load with equal future hashes.
@@ -1754,7 +1754,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Existing canonical down-edge history gates repetition: holding the diagonal
   produces only one step. Neutral down remains stationary crouch, horizontal
   alone remains dash, and down on pass-through support retains platform drop.
-- `tests/sim/test_m4_movement.c` adds ten focused invariants covering default
+- `tests/sim/test_movement.c` adds ten focused invariants covering default
   and invalid authored data, isolated hashing, exact bidirectional movement,
   eight release/reset repetitions, all three negative controls, and a
   690-byte mid-step save/load with equal future hashes.
@@ -1783,7 +1783,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   projectile; the opponent closes the gap and lands three physical hits. Both
   traces reject termination/truncation, making the bounded clock and failure
   case explicit.
-- `tests/sim/test_m4_projectile.c` expands to 46 invariants and prints the
+- `tests/sim/test_projectile.c` expands to 46 invariants and prints the
   exact trace counts. Browser startup independently repeats both routes and
   exports `camping_probe` before restoring default content.
 - Registry row 5, Camping, advances from `planned` to `playable`. Owner
@@ -2554,7 +2554,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   playtest recipes are required for all 61 rows before M4 can be accepted; none
   may be deferred to a later milestone.
 - Registry schema 1 now exists at
-  [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
+  [`advanced_technique_registry.md`](../product/advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
   blocked: 1 verified, 60 playable, 0 primitive-ready, and 0 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
@@ -3214,7 +3214,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   4/135/130/0/7, 3/85/105/0/17, and 7/65/34/0/18 respectively.
   Defaults and runtime response query the generated table; no throw value is
   transcribed into `sim_content.c`.
-- One shared `pf_m4_melee_knockback_data` value selects the zero-allocation
+- One shared `melee_knockback_data` value selects the zero-allocation
   integer Melee response for attacks and throws. Explicit custom content can
   disable it and use the pre-existing vector response. Content schema 68 and
   fighter schema 60 hash and validate the choice without a hot-loop lookup or
@@ -3509,7 +3509,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   for the 241-frame air-physics route. The latter observes launch `(1.794, 0)`
   on frame 50, multiplier physics through frame 64, ordinary physics on frame
   65, and `Fall` after frame 99.
-- `tools/verify_m4_falcon_punch.sh` strictly rebuilds the native movement
+- `tools/verify_falcon_punch.sh` strictly rebuilds the native movement
   runner, verifies the GALE01 NTSC 1.02 disc SHA-256, and differentially checks
   200 frames of each route on demand. Both routes pass with a 640-Q16 position
   allowance and 32-Q16 velocity allowance. Windows passes 20/20 CTest targets,
@@ -3542,7 +3542,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   ground/air hit effects, miss/hit landing lag, and all four start/hit actions.
   The source search resolver is shared, fixed-capacity, and allocation-free;
   custom special/projectile fixtures retain an explicit reference-data opt-out.
-- The new at-will `tools/verify_m4_raptor_boost.sh` runner drives the owner
+- The new at-will `tools/verify_raptor_boost.sh` runner drives the owner
   executable and simulator with identical inputs. Its 46-frame ground-hit
   route passes strict action and velocity checks plus the established 640-Q16
   position envelope. This trace exposed a shared one-frame fidelity defect:
@@ -3628,7 +3628,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   the established 640-Q16 representation envelope and 32-Q16 velocity
   envelope. The run exposed and corrected a one-frame ground-end traction
   offset; the decoded source command frame remains the authority.
-  `tools/verify_m4_falcon_kick.sh` rebuilds and reruns this oracle at will.
+  `tools/verify_falcon_kick.sh` rebuilds and reruns this oracle at will.
 - State schema 60/save format 56 serialize the bounded per-player ground-hit
   counter. The canonical payload is 667 bytes and the checkpoint is 807 bytes.
   Replay identity is corpus/final/event SHA-256
@@ -3678,7 +3678,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   bounded channel from imported root motion, entry scale, common/fast friction,
   traction, multiplier, and cap. The implementation allocates nothing, adds no
   duplicate serialized velocity, and shares the generated Falcon data path.
-- `tools/verify_m4_falcon_kick.sh` now qualifies 341 frames across ground, air,
+- `tools/verify_falcon_kick.sh` now qualifies 341 frames across ground, air,
   landing, edge, and ground-hit routes. All five pass strict action, action-tick,
   facing, grounded-state, velocity, attacker/defender hitlag, and defender
   damage checks with the established 640-Q16 position envelope. Fresh source
@@ -3712,7 +3712,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   same-tick floor reattachment. Production now preserves the incoming channel
   and suppresses only that impossible same-tick landing, with no allocation,
   duplicated frame table, or added serialized state.
-- `tools/verify_m4_falcon_kick.sh` now passes 399 frames across all six ground,
+- `tools/verify_falcon_kick.sh` now passes 399 frames across all six ground,
   air, landing, edge, hit, and wall routes. Falcon Kick has no remaining
   unqualified dynamic state. M4 remains unfinished because broader common
   behavior and remaining Raptor Boost/Falcon Dive dynamic routes still require
@@ -3743,7 +3743,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   zero-hitlag reactions instead of silently losing their pending state, and a
   captured fighter updates correctly while airborne through the same bounded
   `GRABBED` path used on the ground.
-- `tools/verify_m4_falcon_dive.sh` reruns all four catch/miss captures at will.
+- `tools/verify_falcon_dive.sh` reruns all four catch/miss captures at will.
   It passes 116 grounded-catch, 92 aerial-catch, 103 grounded-miss, and 165
   aerial-miss frames, plus 42 aerial victim frames that
   strictly compare capture/reaction action, grounded state, internal damage,
@@ -3777,7 +3777,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
 - A fresh clean 431-row Dolphin memory capture contains the grounded- and
   aerial-miss routes at SHA-256
   `81cafb4d75e75c1f876b6a903a770a3e20376d0399d9374cab19d7feea413602`.
-  `tools/verify_m4_raptor_boost.sh` now passes 80 grounded-miss and 180 aerial-
+  `tools/verify_raptor_boost.sh` now passes 80 grounded-miss and 180 aerial-
   miss frames in addition to the existing 46-frame ground hit. A separate
   aerial-hit capture, SHA-256
   `8eda88a578afb770af4d28a0a166413d2ee3ecf9da38fb533b45012c958e262a`,
@@ -3876,7 +3876,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   source review corrected two independent gaps: Falcon may change facing only
   on the exact frame-13 command gate, and its horizontal cap uses imported
   `air_drift_max` rather than the separate maximum-air-speed field.
-- `tools/verify_m4_falcon_dive.sh` now reruns 539 strict comparable frames and
+- `tools/verify_falcon_dive.sh` now reruns 539 strict comparable frames and
   the source-verified catch/hang transition at will. Regeneration from all
   five pinned Falcon inputs byte-matches the generated include at SHA-256
   `0be763ee219d385e738e7c32a2cfbd65b9adfbc5759fed114280ce1f9588ca34`;
@@ -5164,7 +5164,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
 - The earlier 348-frame movement runner reproduced Battlefield's vertical
   layout with authored primitives. It proved action/position timing but did
   not exercise the shipped `reference_collision_profile`. The runner now uses
-  `pf_m4_reference_stage_content(BATTLEFIELD)`, reaches the oracle's left
+  `reference_stage_content(BATTLEFIELD)`, reaches the oracle's left
   platform through ordinary walk/jump inputs, and emits the selected support
   in its allocation-free CSV trace.
 - The comparator reads the source floor index from the existing collision-
@@ -5477,7 +5477,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   full 657-frame at-will verifier remains green: five fighter routes plus the
   source-native grounded Capsule search.
 - The new generic `native-csv-trace-v1` schema reuses the production
-  `pf_m4_movement_trace` binary. It generates compressed input runs and exact
+  `movement_trace` binary. It generates compressed input runs and exact
   field/exclusion metadata instead of another Falcon-specific C adapter.
 - Shared controller normalization and shared Raptor action/timer mapping prove
   the stored inputs and source projection are the same ones used by the live
@@ -5999,7 +5999,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   version advances to 2 without adding per-player state. The ordinary
   moving-target blend resolves the evaluated terminal-plus-one source pose;
   shared replay descriptors cover both idle-to-idle and action-entry blends.
-- A focused `sim.m4_ssbm_falcon_wait_idle_lifecycle` test runs 440 production
+- A focused `sim.ssbm_falcon_wait_idle_lifecycle` test runs 440 production
   ticks and 38 stored poses. `tools/verify_ssbm_falcon_wait_lifecycle.sh`
   provides one at-will fresh-capture/source/generated-data qualification route.
   The importer skill now records DAT offsets, RNG isolation/injection, rejection
@@ -6618,7 +6618,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   Collision toggling, setup-to-result/rematch transitions, and replay event
   navigation/fail-closed import now have separate deferred owner-interaction
   names. A static DOM dump no longer overstates those behaviors as exercised.
-- Strict Windows and WSL `web.m4_playtest` CTests pass, the production
+- Strict Windows and WSL `web.playtest` CTests pass, the production
   Emscripten page rebuilds, and Chrome smoke passes with the current 83-event
   replay and final SHA-256
   `de96572115c1e4850d79353839576efc4b780ccbd75e8e70a2f23bee419c14af`.

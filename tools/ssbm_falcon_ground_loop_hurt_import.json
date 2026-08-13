@@ -489,7 +489,7 @@
     ]
   },
   "guard_setoff_stored_oracle": {
-    "symbol_prefix": "pf_m4_falcon_guard_setoff_hsd",
+    "symbol_prefix": "falcon_guard_setoff_hsd",
     "coordinate_tolerance_q16": 64,
     "captures": [
       { "id": "light", "sha256": "ed7023223832ca898467b5a30d55af9c62aa2abd8fc0da2d9f744cd1ecbeea36" },
@@ -523,7 +523,7 @@
     ]
   },
   "wait_stored_oracle": {
-    "symbol_prefix": "pf_m4_falcon_wait_hsd",
+    "symbol_prefix": "falcon_wait_hsd",
     "capture_sha256": "a9c9b5456f421304e08ae5b63165283b529a3612ee6d991379836f6cb3314dc3",
     "coordinate_tolerance_q16": 64,
     "cases": [
@@ -533,7 +533,7 @@
     ]
   },
   "wait_transition_stored_oracle": {
-    "symbol_prefix": "pf_m4_falcon_wait_transition_hsd",
+    "symbol_prefix": "falcon_wait_transition_hsd",
     "capture_sha256": "a9c9b5456f421304e08ae5b63165283b529a3612ee6d991379836f6cb3314dc3",
     "coordinate_tolerance_q16": 64,
     "cases": [
@@ -546,7 +546,7 @@
     ]
   },
   "wait_lifecycle_stored_oracle": {
-    "symbol_prefix": "pf_m4_falcon_wait_lifecycle_hsd",
+    "symbol_prefix": "falcon_wait_lifecycle_hsd",
     "capture_sha256": "d97474f2a15912b1c98fba9b7444883c1db4798290702c311b13bcffb4cc7f7b",
     "coordinate_tolerance_q16": 64,
     "cases": [
@@ -622,5 +622,5 @@
       { "source_action": "SHIELD_BREAK_TEETER", "action_value": 211, "expected_samples": 127 }
     ]
   },
-  "symbol_prefix": "pf_m4_falcon_dynamic_hsd"
+  "symbol_prefix": "falcon_dynamic_hsd"
 }

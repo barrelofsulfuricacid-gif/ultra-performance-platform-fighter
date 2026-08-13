@@ -92,9 +92,9 @@
   },
   "selection": {
     "paths": [
-      "generated/data/m4_ssbm_falcon_air_neutral_turn_oracle.json",
+      "generated/data/ssbm_falcon_air_neutral_turn_oracle.json",
       "src/sim/sim_movement.c",
-      "src/tools/m4_movement_trace.c",
+      "src/tools/movement_trace.c",
       "tools/capture_ssbm_movement.py",
       "tools/compare_ssbm_movement.py",
       "tools/generate_ssbm_stored_trace_oracle.py",
@@ -161,10 +161,10 @@
     ],
     "generator": {
       "script": "tools/generate_ssbm_stored_trace_oracle.py",
-      "output": "generated/data/m4_ssbm_falcon_air_neutral_turn_oracle.json"
+      "output": "generated/data/ssbm_falcon_air_neutral_turn_oracle.json"
     },
     "runner": {
-      "executable": "pf_m4_movement_trace",
+      "executable": "movement_trace",
       "arguments": []
     }
   }

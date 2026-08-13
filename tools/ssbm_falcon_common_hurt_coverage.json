@@ -54,11 +54,11 @@
   },
   "selection": {
     "paths": [
-      "generated/data/m4_falcon_ntsc102_frame_data.inc",
-      "generated/data/m4_falcon_ntsc102_hit_geometry.inc",
-      "generated/data/m4_ssbm_falcon_guard_hurt.inc",
-      "generated/data/m4_ssbm_falcon_ledge_hurt.inc",
-      "generated/data/m4_ssbm_falcon_common_hurt_oracle.inc",
+      "generated/data/falcon_ntsc102_frame_data.inc",
+      "generated/data/falcon_ntsc102_hit_geometry.inc",
+      "generated/data/ssbm_falcon_guard_hurt.inc",
+      "generated/data/ssbm_falcon_ledge_hurt.inc",
+      "generated/data/ssbm_falcon_common_hurt_oracle.inc",
       "tools/capture_ssbm_falcon_ledge_hurt_poses.sh",
       "tools/data/ssbm_falcon_ledge_hurt.json",
       "tools/data/ssbm_falcon_guard_ecb.json",
@@ -261,7 +261,7 @@
     "expected_pose_count": 714,
     "expected_capsules_per_pose": 11,
     "c": {
-      "symbol_prefix": "pf_m4_ssbm_falcon_common_hurt",
+      "symbol_prefix": "ssbm_falcon_common_hurt",
       "macro_prefix": "PF_M4_SSBM_FALCON_COMMON_HURT",
       "track_count_expression": "PF_M4_FALCON_COMMON_HURT_COUNT + PF_M4_FALCON_LEDGE_HURT_TRACK_COUNT + PF_M4_FALCON_GUARD_HURT_TRACK_COUNT",
       "actions": {
@@ -318,10 +318,10 @@
     },
     "generator": {
       "script": "tools/generate_ssbm_stored_oracle.py",
-      "output": "generated/data/m4_ssbm_falcon_common_hurt_oracle.inc"
+      "output": "generated/data/ssbm_falcon_common_hurt_oracle.inc"
     },
     "runner": {
-      "executable": "m4_combat_test",
+      "executable": "combat_test",
       "arguments": ["--ssbm-oracle", "falcon-common-hurt"]
     },
     "cases": [

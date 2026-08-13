@@ -9,12 +9,12 @@
 #define PF_M4_Q30_ONE INT64_C(1073741824)
 #define PF_M4_SSBM_VECTOR_EXTRA_SCALE INT64_C(256)
 
-static int64_t pf_m4_ssbm_abs_i64(int64_t value)
+static int64_t ssbm_abs_i64(int64_t value)
 {
     return value < INT64_C(0) ? -value : value;
 }
 
-static int64_t pf_m4_ssbm_div_round_nearest_i64(
+static int64_t ssbm_div_round_nearest_i64(
     int64_t numerator,
     int64_t denominator)
 {
@@ -23,14 +23,14 @@ static int64_t pf_m4_ssbm_div_round_nearest_i64(
                : (numerator + denominator / INT64_C(2)) / denominator;
 }
 
-pf_m4_ssbm_damage_floor_response
-pf_m4_ssbm_select_damage_floor_response_q16(
+ssbm_damage_floor_response
+ssbm_select_damage_floor_response_q16(
     int32_t knockback_velocity_x_q16,
     int32_t knockback_velocity_y_q16,
     uint8_t force_down_bound)
 {
-    const pf_m4_ssbm_damage_response_attributes *common =
-        pf_m4_ssbm_common_reference_damage_response();
+    const ssbm_damage_response_attributes *common =
+        ssbm_common_reference_damage_response();
     const int64_t source_x =
         (int64_t)knockback_velocity_x_q16 * INT64_C(115) /
         INT64_C(12);
@@ -41,9 +41,9 @@ pf_m4_ssbm_select_damage_floor_response_q16(
     uint64_t threshold_squared;
 
     if (force_down_bound != UINT8_C(0) ||
-        pf_m4_ssbm_abs_i64(source_x) >=
+        ssbm_abs_i64(source_x) >=
             common->damage_floor_down_speed_q16 ||
-        pf_m4_ssbm_abs_i64(source_y) >=
+        ssbm_abs_i64(source_y) >=
             common->damage_floor_down_speed_q16)
     {
         return PF_M4_SSBM_DAMAGE_FLOOR_DOWN_BOUND;
@@ -70,7 +70,7 @@ pf_m4_ssbm_select_damage_floor_response_q16(
                : PF_M4_SSBM_DAMAGE_FLOOR_KEEP_ACTION;
 }
 
-pf_status pf_m4_ssbm_resolve_ground_damage_launch_q16(
+pf_status ssbm_resolve_ground_damage_launch_q16(
     int32_t source_normal_x_q16,
     int32_t source_normal_y_q16,
     int32_t ground_projection_x_q16,
@@ -81,8 +81,8 @@ pf_status pf_m4_ssbm_resolve_ground_damage_launch_q16(
     int32_t *ground_scalar_q16,
     uint8_t *launch_grounded)
 {
-    const pf_m4_ssbm_damage_response_attributes *common =
-        pf_m4_ssbm_common_reference_damage_response();
+    const ssbm_damage_response_attributes *common =
+        ssbm_common_reference_damage_response();
     int64_t source_x;
     int64_t source_y_math;
     int64_t maximum_component;
@@ -96,8 +96,8 @@ pf_status pf_m4_ssbm_resolve_ground_damage_launch_q16(
         common == NULL || damage_level > UINT8_C(3) ||
         (source_normal_x_q16 == INT32_C(0) &&
          source_normal_y_q16 == INT32_C(0)) ||
-        pf_m4_ssbm_abs_i64(source_normal_x_q16) > PF_Q16_ONE ||
-        pf_m4_ssbm_abs_i64(source_normal_y_q16) > PF_Q16_ONE)
+        ssbm_abs_i64(source_normal_x_q16) > PF_Q16_ONE ||
+        ssbm_abs_i64(source_normal_y_q16) > PF_Q16_ONE)
     {
         return PF_STATUS_INVALID_ARGUMENT;
     }
@@ -110,10 +110,10 @@ pf_status pf_m4_ssbm_resolve_ground_damage_launch_q16(
         (int64_t)*velocity_x_q16 * INT64_C(115) / INT64_C(12);
     source_y_math =
         -(int64_t)*velocity_y_q16 * INT64_C(62) / INT64_C(11);
-    maximum_component = pf_m4_ssbm_abs_i64(source_x);
-    if (pf_m4_ssbm_abs_i64(source_y_math) > maximum_component)
+    maximum_component = ssbm_abs_i64(source_x);
+    if (ssbm_abs_i64(source_y_math) > maximum_component)
     {
-        maximum_component = pf_m4_ssbm_abs_i64(source_y_math);
+        maximum_component = ssbm_abs_i64(source_y_math);
     }
     while (maximum_component > (INT64_C(1) << 30U))
     {
@@ -157,8 +157,8 @@ pf_status pf_m4_ssbm_resolve_ground_damage_launch_q16(
     magnitude_squared =
         (uint64_t)(source_x * source_x) +
         (uint64_t)(source_y_math * source_y_math);
-    magnitude = pf_m4_u64_sqrt(magnitude_squared);
-    normal_magnitude = pf_m4_u64_sqrt(
+    magnitude = u64_sqrt(magnitude_squared);
+    normal_magnitude = u64_sqrt(
         (uint64_t)((int64_t)source_normal_x_q16 *
                    source_normal_x_q16) +
         (uint64_t)((int64_t)source_normal_y_q16 *
@@ -185,17 +185,17 @@ pf_status pf_m4_ssbm_resolve_ground_damage_launch_q16(
     return PF_STATUS_OK;
 }
 
-pf_status pf_m4_ssbm_select_damage_motion(
+pf_status ssbm_select_damage_motion(
     uint8_t launch_grounded,
     uint8_t damage_level,
     uint32_t resulting_damage_q16,
     int32_t launch_velocity_x_q16,
     int32_t launch_velocity_y_q16,
     uint64_t *rng_state,
-    pf_m4_ssbm_damage_motion_kind *out_motion)
+    ssbm_damage_motion_kind *out_motion)
 {
-    const pf_m4_ssbm_damage_response_attributes *common =
-        pf_m4_ssbm_common_reference_damage_response();
+    const ssbm_damage_response_attributes *common =
+        ssbm_common_reference_damage_response();
 
     if (rng_state == NULL || out_motion == NULL || common == NULL)
     {
@@ -243,31 +243,31 @@ pf_status pf_m4_ssbm_select_damage_motion(
     return PF_STATUS_OK;
 }
 
-static int32_t pf_m4_ssbm_clamp_stick_axis(int16_t axis)
+static int32_t ssbm_clamp_stick_axis(int16_t axis)
 {
     return axis == INT16_MIN ? INT32_C(-32767) : (int32_t)axis;
 }
 
-static int64_t pf_m4_ssbm_mul_q30(int64_t left, int64_t right)
+static int64_t ssbm_mul_q30(int64_t left, int64_t right)
 {
     return (left * right) / PF_M4_Q30_ONE;
 }
 
-static void pf_m4_ssbm_sin_cos_q30(
+static void ssbm_sin_cos_q30(
     int64_t angle_q30,
     int64_t *out_sin_q30,
     int64_t *out_cos_q30)
 {
     const int64_t angle_2 =
-        pf_m4_ssbm_mul_q30(angle_q30, angle_q30);
+        ssbm_mul_q30(angle_q30, angle_q30);
     const int64_t angle_3 =
-        pf_m4_ssbm_mul_q30(angle_2, angle_q30);
+        ssbm_mul_q30(angle_2, angle_q30);
     const int64_t angle_4 =
-        pf_m4_ssbm_mul_q30(angle_2, angle_2);
+        ssbm_mul_q30(angle_2, angle_2);
     const int64_t angle_5 =
-        pf_m4_ssbm_mul_q30(angle_4, angle_q30);
+        ssbm_mul_q30(angle_4, angle_q30);
     const int64_t angle_6 =
-        pf_m4_ssbm_mul_q30(angle_4, angle_2);
+        ssbm_mul_q30(angle_4, angle_2);
 
     /* |angle| is source-bounded to 18 degrees for legal controller input.
      * These fixed Taylor terms stay below one Q16.16 velocity unit of the
@@ -279,29 +279,29 @@ static void pf_m4_ssbm_sin_cos_q30(
         angle_4 / INT64_C(24) - angle_6 / INT64_C(720);
 }
 
-int pf_m4_ssbm_stick_meets_radial_threshold(
+int ssbm_stick_meets_radial_threshold(
     int16_t stick_x,
     int16_t stick_y,
     uint16_t threshold)
 {
-    const int64_t x = (int64_t)pf_m4_ssbm_clamp_stick_axis(stick_x);
-    const int64_t y = (int64_t)pf_m4_ssbm_clamp_stick_axis(stick_y);
+    const int64_t x = (int64_t)ssbm_clamp_stick_axis(stick_x);
+    const int64_t y = (int64_t)ssbm_clamp_stick_axis(stick_y);
     const int64_t threshold_64 = (int64_t)threshold;
 
     return x * x + y * y >= threshold_64 * threshold_64;
 }
 
-int32_t pf_m4_ssbm_analog_displacement_q16(
+int32_t ssbm_analog_displacement_q16(
     int16_t stick_axis,
     int32_t maximum_distance_q16)
 {
     return (int32_t)(
-        (int64_t)pf_m4_ssbm_clamp_stick_axis(stick_axis) *
+        (int64_t)ssbm_clamp_stick_axis(stick_axis) *
         (int64_t)maximum_distance_q16 /
         INT64_C(32767));
 }
 
-pf_status pf_m4_ssbm_decay_air_knockback_q16(
+pf_status ssbm_decay_air_knockback_q16(
     int32_t decay_q16,
     int32_t *velocity_x_q16,
     int32_t *velocity_y_q16)
@@ -326,18 +326,18 @@ pf_status pf_m4_ssbm_decay_air_knockback_q16(
     {
         return PF_STATUS_INVALID_ARGUMENT;
     }
-    source_x = pf_m4_ssbm_div_round_nearest_i64(
+    source_x = ssbm_div_round_nearest_i64(
         (int64_t)*velocity_x_q16 * INT64_C(115) *
             PF_M4_SSBM_VECTOR_EXTRA_SCALE,
         INT64_C(12));
-    source_y = pf_m4_ssbm_div_round_nearest_i64(
+    source_y = ssbm_div_round_nearest_i64(
         (int64_t)*velocity_y_q16 * INT64_C(62) *
             PF_M4_SSBM_VECTOR_EXTRA_SCALE,
         INT64_C(11));
     magnitude_squared =
         (uint64_t)(source_x * source_x) +
         (uint64_t)(source_y * source_y);
-    magnitude = pf_m4_u64_sqrt(magnitude_squared);
+    magnitude = u64_sqrt(magnitude_squared);
     guarded_decay =
         (int64_t)decay_q16 * PF_M4_SSBM_VECTOR_EXTRA_SCALE;
     if (magnitude == UINT32_C(0) ||
@@ -349,16 +349,16 @@ pf_status pf_m4_ssbm_decay_air_knockback_q16(
     }
 
     remaining = (int64_t)magnitude - guarded_decay;
-    decayed_source_x = pf_m4_ssbm_div_round_nearest_i64(
+    decayed_source_x = ssbm_div_round_nearest_i64(
         source_x * remaining,
         (int64_t)magnitude);
-    decayed_source_y = pf_m4_ssbm_div_round_nearest_i64(
+    decayed_source_y = ssbm_div_round_nearest_i64(
         source_y * remaining,
         (int64_t)magnitude);
-    decayed_x = pf_m4_ssbm_div_round_nearest_i64(
+    decayed_x = ssbm_div_round_nearest_i64(
         decayed_source_x * INT64_C(12),
         INT64_C(115) * PF_M4_SSBM_VECTOR_EXTRA_SCALE);
-    decayed_y = pf_m4_ssbm_div_round_nearest_i64(
+    decayed_y = ssbm_div_round_nearest_i64(
         decayed_source_y * INT64_C(11),
         INT64_C(62) * PF_M4_SSBM_VECTOR_EXTRA_SCALE);
     if (decayed_x < (int64_t)INT32_MIN ||
@@ -373,7 +373,7 @@ pf_status pf_m4_ssbm_decay_air_knockback_q16(
     return PF_STATUS_OK;
 }
 
-pf_status pf_m4_ssbm_mirror_velocity_q16(
+pf_status ssbm_mirror_velocity_q16(
     int32_t source_normal_x_q16,
     int32_t source_normal_y_q16,
     int32_t multiplier_q16,
@@ -467,7 +467,7 @@ store_result:
     return PF_STATUS_OK;
 }
 
-pf_status pf_m4_ssbm_apply_di_q16(
+pf_status ssbm_apply_di_q16(
     int32_t max_angle_radians_q30,
     int16_t stick_x,
     int16_t stick_y,
@@ -480,9 +480,9 @@ pf_status pf_m4_ssbm_apply_di_q16(
     int64_t source_velocity_x;
     int64_t source_velocity_y_math;
     const int64_t stick_x_64 =
-        (int64_t)pf_m4_ssbm_clamp_stick_axis(stick_x);
+        (int64_t)ssbm_clamp_stick_axis(stick_x);
     const int64_t stick_y_math =
-        -(int64_t)pf_m4_ssbm_clamp_stick_axis(stick_y);
+        -(int64_t)ssbm_clamp_stick_axis(stick_y);
     uint64_t speed_squared;
     uint32_t speed;
     int64_t cross;
@@ -513,7 +513,7 @@ pf_status pf_m4_ssbm_apply_di_q16(
     speed_squared =
         (uint64_t)(source_velocity_x * source_velocity_x) +
         (uint64_t)(source_velocity_y_math * source_velocity_y_math);
-    speed = pf_m4_u64_sqrt(speed_squared);
+    speed = u64_sqrt(speed_squared);
 
     if (speed == UINT32_C(0) ||
         (stick_x == INT16_C(0) && stick_y == INT16_C(0)))
@@ -546,7 +546,7 @@ pf_status pf_m4_ssbm_apply_di_q16(
     {
         return PF_STATUS_OK;
     }
-    pf_m4_ssbm_sin_cos_q30(angle_q30, &sin_q30, &cos_q30);
+    ssbm_sin_cos_q30(angle_q30, &sin_q30, &cos_q30);
 
     influenced_source_x =
         (source_velocity_x * cos_q30 -

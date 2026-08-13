@@ -78,7 +78,7 @@ typedef struct pf_diff_summary
     size_t other;
 } pf_diff_summary;
 
-typedef struct pf_verifier_m4_match_summary
+typedef struct pf_verifier_match_summary
 {
     uint64_t total_ticks;
     uint64_t digest;
@@ -93,15 +93,15 @@ typedef struct pf_verifier_m4_match_summary
     uint32_t item_events;
     uint32_t rollbacks;
     uint32_t replays;
-} pf_verifier_m4_match_summary;
+} pf_verifier_match_summary;
 
 static pf_verifier_storage pf_verifier_storage_pool[4];
-static pf_input_frame pf_verifier_m4_match_inputs[
+static pf_input_frame pf_verifier_match_inputs[
     PF_VERIFIER_M4_MATCH_MAX_TICKS * PF_VERIFIER_M4_MATCH_PLAYERS];
-static pf_state_hash pf_verifier_m4_match_hashes[
+static pf_state_hash pf_verifier_match_hashes[
     PF_VERIFIER_M4_MATCH_MAX_TICKS + 1U];
-static uint8_t pf_verifier_m4_match_replay[PF_VERIFIER_M4_REPLAY_CAPACITY];
-static uint8_t pf_verifier_m4_match_checkpoint[PF_VERIFIER_SAVE_CAPACITY];
+static uint8_t pf_verifier_match_replay[PF_VERIFIER_M4_REPLAY_CAPACITY];
+static uint8_t pf_verifier_match_checkpoint[PF_VERIFIER_SAVE_CAPACITY];
 
 static int add_check(
     pf_verifier_checks *checks,
@@ -339,11 +339,11 @@ static int tick_result_outcomes_equal(
            left->winner_mask == right->winner_mask;
 }
 
-static int make_m4_match_content(
-    pf_m4_content *content,
+static int make_match_content(
+    struct content *content,
     pf_content_view *view)
 {
-    if (pf_m4_default_content(content) != PF_STATUS_OK)
+    if (default_content(content) != PF_STATUS_OK)
     {
         return 0;
     }
@@ -374,10 +374,10 @@ static int make_m4_match_content(
     content->stage.spawn_spacing_q16 =
         (INT32_C(4) * PF_Q16_ONE) / INT32_C(5);
 
-    return pf_m4_make_content_view(content, view) == PF_STATUS_OK;
+    return make_content_view(content, view) == PF_STATUS_OK;
 }
 
-static int initialize_m4_match_sim(
+static int initialize_match_sim(
     size_t storage_index,
     const pf_content_view *content,
     pf_sim **out_sim)
@@ -415,9 +415,9 @@ static int initialize_m4_match_sim(
                out_sim) == PF_STATUS_OK;
 }
 
-static void make_m4_match_inputs(
+static void make_match_inputs(
     pf_input_frame inputs[PF_SIM_MAX_PLAYERS],
-    const pf_m4_inspection *inspection,
+    const struct inspection *inspection,
     uint64_t seed,
     uint32_t match_index)
 {
@@ -539,8 +539,8 @@ static void make_m4_match_inputs(
     }
 }
 
-static void record_m4_match_events(
-    pf_verifier_m4_match_summary *summary,
+static void record_match_events(
+    pf_verifier_match_summary *summary,
     const pf_tick_result *result)
 {
     uint32_t event_index;
@@ -584,7 +584,7 @@ static void record_m4_match_events(
     }
 }
 
-static uint64_t mix_m4_match_digest_u64(uint64_t digest, uint64_t value)
+static uint64_t mix_match_digest_u64(uint64_t digest, uint64_t value)
 {
     uint32_t byte_index;
 
@@ -596,7 +596,7 @@ static uint64_t mix_m4_match_digest_u64(uint64_t digest, uint64_t value)
     return digest;
 }
 
-static uint64_t mix_m4_match_hash(
+static uint64_t mix_match_hash(
     uint64_t digest,
     const pf_state_hash *hash)
 {
@@ -612,26 +612,26 @@ static uint64_t mix_m4_match_hash(
     return digest;
 }
 
-static int run_m4_match_soak_invariant(pf_verifier_checks *checks)
+static int run_match_soak_invariant(pf_verifier_checks *checks)
 {
-    pf_m4_content content;
+    struct content content;
     pf_content_view content_view;
     pf_sim *primary = NULL;
     pf_sim *twin = NULL;
     pf_sim *initial = NULL;
     pf_sim *replay_target = NULL;
-    pf_verifier_m4_match_summary summary;
+    pf_verifier_match_summary summary;
     uint32_t match_index;
     int passed = 1;
     char observed[PF_VERIFIER_TEXT_CAPACITY];
 
     (void)memset(&summary, 0, sizeof(summary));
     summary.digest = UINT64_C(14695981039346656037);
-    if (!make_m4_match_content(&content, &content_view) ||
-        !initialize_m4_match_sim((size_t)0, &content_view, &primary) ||
-        !initialize_m4_match_sim((size_t)1, &content_view, &twin) ||
-        !initialize_m4_match_sim((size_t)2, &content_view, &initial) ||
-        !initialize_m4_match_sim(
+    if (!make_match_content(&content, &content_view) ||
+        !initialize_match_sim((size_t)0, &content_view, &primary) ||
+        !initialize_match_sim((size_t)1, &content_view, &twin) ||
+        !initialize_match_sim((size_t)2, &content_view, &initial) ||
+        !initialize_match_sim(
             (size_t)3,
             &content_view,
             &replay_target))
@@ -653,7 +653,7 @@ static int run_m4_match_soak_invariant(pf_verifier_checks *checks)
         pf_state_hash primary_hash;
         pf_state_hash twin_hash;
         pf_state_hash initial_hash;
-        pf_m4_inspection inspection;
+        struct inspection inspection;
         pf_replay_source replay_source;
         pf_replay_verification verification;
         pf_mut_bytes destination;
@@ -679,7 +679,7 @@ static int run_m4_match_soak_invariant(pf_verifier_checks *checks)
             passed = 0;
             break;
         }
-        pf_verifier_m4_match_hashes[0] = primary_hash;
+        pf_verifier_match_hashes[0] = primary_hash;
 
         for (tick = UINT64_C(0);
              tick < (uint64_t)PF_VERIFIER_M4_MATCH_MAX_TICKS;
@@ -693,14 +693,14 @@ static int run_m4_match_soak_invariant(pf_verifier_checks *checks)
             pf_status primary_hash_status;
             pf_status twin_hash_status;
 
-            if (pf_m4_inspect(primary, &inspection) != PF_STATUS_OK)
+            if (inspect(primary, &inspection) != PF_STATUS_OK)
             {
                 passed = 0;
                 break;
             }
-            make_m4_match_inputs(inputs, &inspection, seed, match_index);
+            make_match_inputs(inputs, &inspection, seed, match_index);
             (void)memcpy(
-                &pf_verifier_m4_match_inputs[input_offset],
+                &pf_verifier_match_inputs[input_offset],
                 inputs,
                 sizeof(inputs[0]) *
                     (size_t)PF_VERIFIER_M4_MATCH_PLAYERS);
@@ -739,7 +739,7 @@ static int run_m4_match_soak_invariant(pf_verifier_checks *checks)
                     pf_status_name(twin_hash_status),
                     primary_result.fault_flags,
                     primary_result.completed_tick);
-                if (pf_m4_inspect(primary, &inspection) == PF_STATUS_OK)
+                if (inspect(primary, &inspection) == PF_STATUS_OK)
                 {
                     uint32_t player_index;
 
@@ -748,7 +748,7 @@ static int run_m4_match_soak_invariant(pf_verifier_checks *checks)
                              (uint32_t)PF_VERIFIER_M4_MATCH_PLAYERS;
                          ++player_index)
                     {
-                        const pf_m4_player_inspection *player =
+                        const player_inspection *player =
                             &inspection.players[player_index];
 
                         (void)fprintf(
@@ -780,16 +780,16 @@ static int run_m4_match_soak_invariant(pf_verifier_checks *checks)
                 passed = 0;
                 break;
             }
-            pf_verifier_m4_match_hashes[(size_t)primary_result.completed_tick] =
+            pf_verifier_match_hashes[(size_t)primary_result.completed_tick] =
                 primary_hash;
-            record_m4_match_events(&summary, &primary_result);
+            record_match_events(&summary, &primary_result);
 
             if (primary_result.completed_tick ==
                 (uint64_t)PF_VERIFIER_M4_MATCH_CHECKPOINT_TICK)
             {
-                destination.bytes = pf_verifier_m4_match_checkpoint;
+                destination.bytes = pf_verifier_match_checkpoint;
                 destination.capacity =
-                    sizeof(pf_verifier_m4_match_checkpoint);
+                    sizeof(pf_verifier_match_checkpoint);
                 destination.size = (size_t)0;
                 if (pf_sim_save(primary, &destination) != PF_STATUS_OK)
                 {
@@ -831,7 +831,7 @@ static int run_m4_match_soak_invariant(pf_verifier_checks *checks)
             ++summary.time_limits;
         }
 
-        bytes.bytes = pf_verifier_m4_match_checkpoint;
+        bytes.bytes = pf_verifier_match_checkpoint;
         bytes.size = checkpoint_size;
         if (pf_sim_load(twin, bytes) != PF_STATUS_OK)
         {
@@ -847,13 +847,13 @@ static int run_m4_match_soak_invariant(pf_verifier_checks *checks)
 
             if (pf_sim_tick(
                     twin,
-                    &pf_verifier_m4_match_inputs[input_offset],
+                    &pf_verifier_match_inputs[input_offset],
                     (size_t)PF_VERIFIER_M4_MATCH_PLAYERS,
                     &rollback_result) != PF_STATUS_OK ||
                 pf_sim_hash(twin, &twin_hash) != PF_STATUS_OK ||
                 !state_hashes_equal(
                     &twin_hash,
-                    &pf_verifier_m4_match_hashes[(size_t)tick + (size_t)1]))
+                    &pf_verifier_match_hashes[(size_t)tick + (size_t)1]))
             {
                 passed = 0;
                 break;
@@ -872,11 +872,11 @@ static int run_m4_match_soak_invariant(pf_verifier_checks *checks)
         replay_source.schema_version = PF_REPLAY_SCHEMA_VERSION;
         replay_source.flags = PF_REPLAY_FLAG_PER_TICK_HASHES;
         replay_source.initial_state = initial;
-        replay_source.input_frames = pf_verifier_m4_match_inputs;
+        replay_source.input_frames = pf_verifier_match_inputs;
         replay_source.input_frame_count =
             (size_t)tick_count *
             (size_t)PF_VERIFIER_M4_MATCH_PLAYERS;
-        replay_source.state_hashes = pf_verifier_m4_match_hashes;
+        replay_source.state_hashes = pf_verifier_match_hashes;
         replay_source.state_hash_count = (size_t)tick_count + (size_t)1;
         replay_source.tick_count = tick_count;
         replay_source.final_result = primary_result;
@@ -885,7 +885,7 @@ static int run_m4_match_soak_invariant(pf_verifier_checks *checks)
                 pf_replay_query_size(&replay_source, &replay_size);
 
             if (replay_query_status != PF_STATUS_OK ||
-                replay_size > sizeof(pf_verifier_m4_match_replay))
+                replay_size > sizeof(pf_verifier_match_replay))
             {
                 uint32_t event_index;
 
@@ -934,8 +934,8 @@ static int run_m4_match_soak_invariant(pf_verifier_checks *checks)
                 break;
             }
         }
-        destination.bytes = pf_verifier_m4_match_replay;
-        destination.capacity = sizeof(pf_verifier_m4_match_replay);
+        destination.bytes = pf_verifier_match_replay;
+        destination.capacity = sizeof(pf_verifier_match_replay);
         destination.size = (size_t)0;
         {
             const pf_status replay_encode_status =
@@ -954,7 +954,7 @@ static int run_m4_match_soak_invariant(pf_verifier_checks *checks)
                 break;
             }
         }
-        bytes.bytes = pf_verifier_m4_match_replay;
+        bytes.bytes = pf_verifier_match_replay;
         bytes.size = replay_size;
         (void)memset(&verification, 0, sizeof(verification));
         {
@@ -987,14 +987,14 @@ static int run_m4_match_soak_invariant(pf_verifier_checks *checks)
         ++summary.replays;
         for (tick = UINT64_C(0); tick <= tick_count; ++tick)
         {
-            summary.digest = mix_m4_match_hash(
+            summary.digest = mix_match_hash(
                 summary.digest,
-                &pf_verifier_m4_match_hashes[(size_t)tick]);
+                &pf_verifier_match_hashes[(size_t)tick]);
         }
-        summary.digest = mix_m4_match_digest_u64(
+        summary.digest = mix_match_digest_u64(
             summary.digest,
             primary_result.completed_tick);
-        summary.digest = mix_m4_match_digest_u64(
+        summary.digest = mix_match_digest_u64(
             summary.digest,
             (uint64_t)primary_result.winner_mask |
                 ((uint64_t)primary_result.terminated << 8U) |
@@ -1043,7 +1043,7 @@ static int run_m4_match_soak_invariant(pf_verifier_checks *checks)
         "Eight seeded production M4 duels complete through ordinary player "
         "inputs with exact twin, save/load rollback, replay, and final hashes.",
         observed,
-        "public pf_sim_tick, pf_m4_inspect, pf_sim_save/load, and "
+        "public pf_sim_tick, inspect, pf_sim_save/load, and "
         "pf_replay_encode/verify APIs");
 }
 
@@ -1409,7 +1409,7 @@ static int run_internal_checks(pf_verifier_checks *checks)
     (void)memset(checks, 0, sizeof(*checks));
     return run_action_layer_invariant(checks) &&
            run_snapshot_invariant(checks) &&
-           run_m4_match_soak_invariant(checks) &&
+           run_match_soak_invariant(checks) &&
            run_render_invariant(checks);
 }
 

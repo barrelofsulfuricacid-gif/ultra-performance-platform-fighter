@@ -6,39 +6,39 @@
 #include "pf/m4.h"
 #include "sim_collision.h"
 
-#include "../../generated/data/m4_ssbm_ntsc102_hyrule_collision.inc"
-#include "../../generated/data/m4_ssbm_ntsc102_battlefield_collision.inc"
+#include "../../generated/data/ssbm_ntsc102_hyrule_collision.inc"
+#include "../../generated/data/ssbm_ntsc102_battlefield_collision.inc"
 
 _Static_assert(
-    sizeof(pf_m4_ssbm_hyrule_collision_lines) /
-            sizeof(pf_m4_ssbm_hyrule_collision_lines[0]) ==
+    sizeof(ssbm_hyrule_collision_lines) /
+            sizeof(ssbm_hyrule_collision_lines[0]) ==
         (size_t)91,
     "Hyrule Temple collision catalog must remain complete");
 _Static_assert(
-    sizeof(pf_m4_ssbm_battlefield_collision_lines) /
-            sizeof(pf_m4_ssbm_battlefield_collision_lines[0]) ==
+    sizeof(ssbm_battlefield_collision_lines) /
+            sizeof(ssbm_battlefield_collision_lines[0]) ==
         (size_t)23,
     "Battlefield collision catalog must remain complete");
 
-const pf_m4_ssbm_stage_collision_profile *
-pf_m4_ssbm_reference_stage_collision(uint16_t profile_id)
+const ssbm_stage_collision_profile *
+ssbm_reference_stage_collision(uint16_t profile_id)
 {
     if (profile_id == (uint16_t)PF_M4_REFERENCE_STAGE_HYRULE_TEMPLE)
     {
-        return &pf_m4_ssbm_hyrule_collision_profile;
+        return &ssbm_hyrule_collision_profile;
     }
     if (profile_id == (uint16_t)PF_M4_REFERENCE_STAGE_BATTLEFIELD)
     {
-        return &pf_m4_ssbm_battlefield_collision_profile;
+        return &ssbm_battlefield_collision_profile;
     }
     return NULL;
 }
 
-const pf_m4_ssbm_stage_collision_line *
-pf_m4_ssbm_reference_stage_line(uint16_t profile_id, uint8_t support)
+const ssbm_stage_collision_line *
+ssbm_reference_stage_line(uint16_t profile_id, uint8_t support)
 {
-    const pf_m4_ssbm_stage_collision_profile *profile =
-        pf_m4_ssbm_reference_stage_collision(profile_id);
+    const ssbm_stage_collision_profile *profile =
+        ssbm_reference_stage_collision(profile_id);
     const uint16_t line_index = (uint16_t)support - UINT16_C(1);
 
     if (profile == NULL || support == UINT8_C(0) ||
@@ -49,13 +49,13 @@ pf_m4_ssbm_reference_stage_line(uint16_t profile_id, uint8_t support)
     return &profile->lines[line_index];
 }
 
-const pf_m4_ssbm_stage_spawn_point *
-pf_m4_ssbm_reference_stage_spawn_point(
+const ssbm_stage_spawn_point *
+ssbm_reference_stage_spawn_point(
     uint16_t profile_id,
     uint8_t player_index)
 {
-    const pf_m4_ssbm_stage_collision_profile *profile =
-        pf_m4_ssbm_reference_stage_collision(profile_id);
+    const ssbm_stage_collision_profile *profile =
+        ssbm_reference_stage_collision(profile_id);
 
     if (profile == NULL || profile->spawn_points == NULL ||
         player_index >= profile->spawn_point_count)
@@ -65,7 +65,7 @@ pf_m4_ssbm_reference_stage_spawn_point(
     return &profile->spawn_points[player_index];
 }
 
-int32_t pf_m4_ssbm_revival_platform_x_q16(
+int32_t ssbm_revival_platform_x_q16(
     uint16_t profile_id,
     uint8_t player_count,
     uint8_t player_index,
@@ -95,17 +95,17 @@ int32_t pf_m4_ssbm_revival_platform_x_q16(
         authored_spawn_spacing_q16;
 }
 
-pf_status pf_m4_reference_stage_geometry_line_count(
-    pf_m4_reference_stage stage,
+pf_status reference_stage_geometry_line_count(
+    enum reference_stage stage,
     uint16_t *out_line_count)
 {
-    const pf_m4_ssbm_stage_collision_profile *profile;
+    const ssbm_stage_collision_profile *profile;
 
     if (out_line_count == NULL)
     {
         return PF_STATUS_INVALID_ARGUMENT;
     }
-    profile = pf_m4_ssbm_reference_stage_collision((uint16_t)stage);
+    profile = ssbm_reference_stage_collision((uint16_t)stage);
     if (profile == NULL)
     {
         return PF_STATUS_INVALID_CONFIG;
@@ -114,19 +114,19 @@ pf_status pf_m4_reference_stage_geometry_line_count(
     return PF_STATUS_OK;
 }
 
-pf_status pf_m4_reference_stage_geometry_line(
-    pf_m4_reference_stage stage,
+pf_status reference_stage_geometry_line(
+    enum reference_stage stage,
     uint16_t line_index,
-    pf_m4_reference_stage_line *out_line)
+    reference_stage_line *out_line)
 {
-    const pf_m4_ssbm_stage_collision_profile *profile;
-    const pf_m4_ssbm_stage_collision_line *source;
+    const ssbm_stage_collision_profile *profile;
+    const ssbm_stage_collision_line *source;
 
     if (out_line == NULL)
     {
         return PF_STATUS_INVALID_ARGUMENT;
     }
-    profile = pf_m4_ssbm_reference_stage_collision((uint16_t)stage);
+    profile = ssbm_reference_stage_collision((uint16_t)stage);
     if (profile == NULL || line_index >= profile->line_count)
     {
         return PF_STATUS_INVALID_CONFIG;
@@ -144,8 +144,8 @@ pf_status pf_m4_reference_stage_geometry_line(
     return PF_STATUS_OK;
 }
 
-int32_t pf_m4_ssbm_stage_line_y_q16(
-    const pf_m4_ssbm_stage_collision_line *line,
+int32_t ssbm_stage_line_y_q16(
+    const ssbm_stage_collision_line *line,
     int32_t position_x_q16)
 {
     int64_t dx;
@@ -167,7 +167,7 @@ int32_t pf_m4_ssbm_stage_line_y_q16(
             dx);
 }
 
-int pf_m4_ssbm_reference_stage_find_ceiling_contact(
+int ssbm_reference_stage_find_ceiling_contact(
     uint16_t profile_id,
     int32_t position_x_q16,
     int64_t previous_top_q16,
@@ -175,8 +175,8 @@ int pf_m4_ssbm_reference_stage_find_ceiling_contact(
     int32_t *out_ceiling_y_q16,
     uint8_t *out_support)
 {
-    const pf_m4_ssbm_stage_collision_profile *profile =
-        pf_m4_ssbm_reference_stage_collision(profile_id);
+    const ssbm_stage_collision_profile *profile =
+        ssbm_reference_stage_collision(profile_id);
     int32_t nearest_y_q16 = INT32_MIN;
     uint8_t nearest_support = UINT8_C(0);
     uint16_t offset;
@@ -190,7 +190,7 @@ int pf_m4_ssbm_reference_stage_find_ceiling_contact(
     {
         const uint16_t line_index =
             (uint16_t)(profile->ceiling_start + offset);
-        const pf_m4_ssbm_stage_collision_line *line;
+        const ssbm_stage_collision_line *line;
         int32_t left_q16;
         int32_t right_q16;
         int32_t ceiling_y_q16;
@@ -217,7 +217,7 @@ int pf_m4_ssbm_reference_stage_find_ceiling_contact(
             continue;
         }
         ceiling_y_q16 =
-            pf_m4_ssbm_stage_line_y_q16(line, position_x_q16);
+            ssbm_stage_line_y_q16(line, position_x_q16);
         if (previous_top_q16 >= (int64_t)ceiling_y_q16 &&
             current_top_q16 <= (int64_t)ceiling_y_q16 &&
             (nearest_support == UINT8_C(0) ||
@@ -236,8 +236,8 @@ int pf_m4_ssbm_reference_stage_find_ceiling_contact(
     return 1;
 }
 
-static int32_t pf_m4_ssbm_stage_line_x_q16(
-    const pf_m4_ssbm_stage_collision_line *line,
+static int32_t ssbm_stage_line_x_q16(
+    const ssbm_stage_collision_line *line,
     int32_t position_y_q16)
 {
     const int64_t dx =
@@ -255,7 +255,7 @@ static int32_t pf_m4_ssbm_stage_line_x_q16(
             dy);
 }
 
-int pf_m4_ssbm_reference_stage_find_wall_contact(
+int ssbm_reference_stage_find_wall_contact(
     uint16_t profile_id,
     int32_t previous_position_x_q16,
     int32_t current_position_x_q16,
@@ -266,8 +266,8 @@ int pf_m4_ssbm_reference_stage_find_wall_contact(
     uint8_t *out_support,
     int8_t *out_away_direction)
 {
-    const pf_m4_ssbm_stage_collision_profile *profile =
-        pf_m4_ssbm_reference_stage_collision(profile_id);
+    const ssbm_stage_collision_profile *profile =
+        ssbm_reference_stage_collision(profile_id);
     const int moving_right =
         current_position_x_q16 > previous_position_x_q16;
     const int moving_left =
@@ -299,7 +299,7 @@ int pf_m4_ssbm_reference_stage_find_wall_contact(
     for (offset = UINT16_C(0); offset < range_count; ++offset)
     {
         const uint16_t line_index = (uint16_t)(range_start + offset);
-        const pf_m4_ssbm_stage_collision_line *line;
+        const ssbm_stage_collision_line *line;
         const uint8_t expected_kind =
             moving_right != 0
                 ? (uint8_t)PF_M4_SSBM_STAGE_SURFACE_LEFT_WALL
@@ -343,10 +343,10 @@ int pf_m4_ssbm_reference_stage_find_wall_contact(
         {
             continue;
         }
-        x_at_top_q16 = pf_m4_ssbm_stage_line_x_q16(
+        x_at_top_q16 = ssbm_stage_line_x_q16(
             line,
             (int32_t)overlap_top_q16);
-        x_at_bottom_q16 = pf_m4_ssbm_stage_line_x_q16(
+        x_at_bottom_q16 = ssbm_stage_line_x_q16(
             line,
             (int32_t)overlap_bottom_q16);
         wall_x_q16 =
@@ -392,7 +392,7 @@ int pf_m4_ssbm_reference_stage_find_wall_contact(
     return 1;
 }
 
-static int64_t pf_m4_ssbm_cross_q16(
+static int64_t ssbm_cross_q16(
     int64_t ax_q16,
     int64_t ay_q16,
     int64_t bx_q16,
@@ -401,7 +401,7 @@ static int64_t pf_m4_ssbm_cross_q16(
     return ax_q16 * by_q16 - ay_q16 * bx_q16;
 }
 
-int pf_m4_ssbm_reference_stage_find_floor_point_contact(
+int ssbm_reference_stage_find_floor_point_contact(
     uint16_t profile_id,
     int32_t previous_point_x_q16,
     int32_t previous_point_y_q16,
@@ -411,8 +411,8 @@ int pf_m4_ssbm_reference_stage_find_floor_point_contact(
     int32_t *out_floor_y_q16,
     uint8_t *out_support)
 {
-    const pf_m4_ssbm_stage_collision_profile *profile =
-        pf_m4_ssbm_reference_stage_collision(profile_id);
+    const ssbm_stage_collision_profile *profile =
+        ssbm_reference_stage_collision(profile_id);
     const int64_t sweep_x_q16 =
         (int64_t)current_point_x_q16 - previous_point_x_q16;
     const int64_t sweep_y_q16 =
@@ -432,7 +432,7 @@ int pf_m4_ssbm_reference_stage_find_floor_point_contact(
     {
         const uint16_t line_index =
             (uint16_t)(profile->floor_start + offset);
-        const pf_m4_ssbm_stage_collision_line *line;
+        const ssbm_stage_collision_line *line;
         int64_t line_x_q16;
         int64_t line_y_q16;
         int64_t relative_x_q16;
@@ -461,17 +461,17 @@ int pf_m4_ssbm_reference_stage_find_floor_point_contact(
             (int64_t)line->start_x_q16 - previous_point_x_q16;
         relative_y_q16 =
             (int64_t)line->start_y_q16 - previous_point_y_q16;
-        denominator = pf_m4_ssbm_cross_q16(
+        denominator = ssbm_cross_q16(
             sweep_x_q16,
             sweep_y_q16,
             line_x_q16,
             line_y_q16);
-        sweep_numerator = pf_m4_ssbm_cross_q16(
+        sweep_numerator = ssbm_cross_q16(
             relative_x_q16,
             relative_y_q16,
             line_x_q16,
             line_y_q16);
-        line_numerator = pf_m4_ssbm_cross_q16(
+        line_numerator = ssbm_cross_q16(
             relative_x_q16,
             relative_y_q16,
             sweep_x_q16,
@@ -490,7 +490,7 @@ int pf_m4_ssbm_reference_stage_find_floor_point_contact(
         {
             continue;
         }
-        fraction_q16 = (uint32_t)pf_m4_collision_ratio_q16(
+        fraction_q16 = (uint32_t)collision_ratio_q16(
             sweep_numerator,
             denominator);
         contact_y_q16 =
@@ -519,7 +519,7 @@ int pf_m4_ssbm_reference_stage_find_floor_point_contact(
     return 1;
 }
 
-int pf_m4_ssbm_reference_stage_find_wall_point_contact(
+int ssbm_reference_stage_find_wall_point_contact(
     uint16_t profile_id,
     int32_t previous_point_x_q16,
     int32_t previous_point_y_q16,
@@ -529,8 +529,8 @@ int pf_m4_ssbm_reference_stage_find_wall_point_contact(
     uint8_t *out_support,
     int8_t *out_away_direction)
 {
-    const pf_m4_ssbm_stage_collision_profile *profile =
-        pf_m4_ssbm_reference_stage_collision(profile_id);
+    const ssbm_stage_collision_profile *profile =
+        ssbm_reference_stage_collision(profile_id);
     const int64_t sweep_x_q16 =
         (int64_t)current_point_x_q16 - previous_point_x_q16;
     const int64_t sweep_y_q16 =
@@ -563,7 +563,7 @@ int pf_m4_ssbm_reference_stage_find_wall_point_contact(
     for (offset = UINT16_C(0); offset < range_count; ++offset)
     {
         const uint16_t line_index = (uint16_t)(range_start + offset);
-        const pf_m4_ssbm_stage_collision_line *line;
+        const ssbm_stage_collision_line *line;
         const uint8_t expected_kind =
             moving_right != 0
                 ? (uint8_t)PF_M4_SSBM_STAGE_SURFACE_LEFT_WALL
@@ -595,17 +595,17 @@ int pf_m4_ssbm_reference_stage_find_wall_point_contact(
             (int64_t)line->start_x_q16 - previous_point_x_q16;
         relative_y_q16 =
             (int64_t)line->start_y_q16 - previous_point_y_q16;
-        denominator = pf_m4_ssbm_cross_q16(
+        denominator = ssbm_cross_q16(
             sweep_x_q16,
             sweep_y_q16,
             line_x_q16,
             line_y_q16);
-        sweep_numerator = pf_m4_ssbm_cross_q16(
+        sweep_numerator = ssbm_cross_q16(
             relative_x_q16,
             relative_y_q16,
             line_x_q16,
             line_y_q16);
-        line_numerator = pf_m4_ssbm_cross_q16(
+        line_numerator = ssbm_cross_q16(
             relative_x_q16,
             relative_y_q16,
             sweep_x_q16,
@@ -624,7 +624,7 @@ int pf_m4_ssbm_reference_stage_find_wall_point_contact(
         {
             continue;
         }
-        fraction_q16 = (uint32_t)pf_m4_collision_ratio_q16(
+        fraction_q16 = (uint32_t)collision_ratio_q16(
             sweep_numerator,
             denominator);
         if (nearest_support == UINT8_C(0) ||
@@ -645,12 +645,12 @@ int pf_m4_ssbm_reference_stage_find_wall_point_contact(
     return 1;
 }
 
-int pf_m4_ssbm_stage_support_valid(
+int ssbm_stage_support_valid(
     uint16_t profile_id,
     uint8_t support,
     uint8_t grounded)
 {
-    const pf_m4_ssbm_stage_collision_line *line;
+    const ssbm_stage_collision_line *line;
 
     if (profile_id == (uint16_t)PF_M4_REFERENCE_STAGE_AUTHORED)
     {
@@ -660,7 +660,7 @@ int pf_m4_ssbm_stage_support_valid(
     {
         return grounded == UINT8_C(0);
     }
-    line = pf_m4_ssbm_reference_stage_line(profile_id, support);
+    line = ssbm_reference_stage_line(profile_id, support);
     return line != NULL &&
            (line->runtime_flags & UINT32_C(0x00010000)) != UINT32_C(0) &&
            (line->runtime_flags & UINT32_C(0x00040000)) == UINT32_C(0) &&
@@ -668,12 +668,12 @@ int pf_m4_ssbm_stage_support_valid(
            line->kind == (uint8_t)PF_M4_SSBM_STAGE_SURFACE_FLOOR);
 }
 
-uint8_t pf_m4_ssbm_reference_stage_ledge_support(
+uint8_t ssbm_reference_stage_ledge_support(
     uint16_t profile_id,
     int32_t ledge_x_q16)
 {
-    const pf_m4_ssbm_stage_collision_profile *profile =
-        pf_m4_ssbm_reference_stage_collision(profile_id);
+    const ssbm_stage_collision_profile *profile =
+        ssbm_reference_stage_collision(profile_id);
     uint16_t line_index;
 
     if (profile == NULL)
@@ -684,7 +684,7 @@ uint8_t pf_m4_ssbm_reference_stage_ledge_support(
          line_index < profile->line_count;
          ++line_index)
     {
-        const pf_m4_ssbm_stage_collision_line *line =
+        const ssbm_stage_collision_line *line =
             &profile->lines[line_index];
         const int endpoint_matches =
             line->start_x_q16 == ledge_x_q16 ||

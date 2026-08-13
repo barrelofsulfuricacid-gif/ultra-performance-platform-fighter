@@ -8,77 +8,77 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "../../generated/data/m4_falcon_ntsc102_frame_data.inc"
-#include "../../generated/data/m4_falcon_ntsc102_hit_geometry.inc"
-#include "../../generated/data/m4_ssbm_falcon_ledge_hurt.inc"
-#include "../../generated/data/m4_ssbm_falcon_airborne_hurt.inc"
-#include "../../generated/data/m4_ssbm_falcon_turn_hurt.inc"
-#include "../../generated/data/m4_ssbm_falcon_crouch_taunt_hurt.inc"
-#include "../../generated/data/m4_ssbm_falcon_guard_hurt.inc"
-#include "../../generated/data/m4_ssbm_falcon_ground_loop_hsd.inc"
+#include "../../generated/data/falcon_ntsc102_frame_data.inc"
+#include "../../generated/data/falcon_ntsc102_hit_geometry.inc"
+#include "../../generated/data/ssbm_falcon_ledge_hurt.inc"
+#include "../../generated/data/ssbm_falcon_airborne_hurt.inc"
+#include "../../generated/data/ssbm_falcon_turn_hurt.inc"
+#include "../../generated/data/ssbm_falcon_crouch_taunt_hurt.inc"
+#include "../../generated/data/ssbm_falcon_guard_hurt.inc"
+#include "../../generated/data/ssbm_falcon_ground_loop_hsd.inc"
 
 _Static_assert(
     (size_t)PF_M4_FALCON_LEDGE_HURT_COUNT ==
         (size_t)PF_M4_FALCON_LEDGE_HURT_TRACK_COUNT,
-    "Falcon ledge hurt-pose manifest and runtime binding disagree");
+    "Falcon enum ledge hurt-pose manifest and runtime binding disagree");
 
 _Static_assert(
-    sizeof(pf_m4_falcon_moves) / sizeof(pf_m4_falcon_moves[0]) ==
+    sizeof(falcon_moves) / sizeof(falcon_moves[0]) ==
         (size_t)PF_M4_FALCON_MOVE_COUNT,
     "Falcon move table must cover every indexed move");
 _Static_assert(
-    sizeof(pf_m4_falcon_hurt_moves) /
-            sizeof(pf_m4_falcon_hurt_moves[0]) ==
+    sizeof(falcon_hurt_moves) /
+            sizeof(falcon_hurt_moves[0]) ==
         (size_t)PF_M4_FALCON_MOVE_COUNT,
     "Falcon hurt-pose table must cover every indexed move");
 _Static_assert(
-    sizeof(pf_m4_falcon_common_attribute_bits) /
-            sizeof(pf_m4_falcon_common_attribute_bits[0]) ==
+    sizeof(falcon_common_attribute_bits) /
+            sizeof(falcon_common_attribute_bits[0]) ==
         (size_t)PF_M4_FALCON_COMMON_ATTRIBUTE_COUNT,
     "Falcon common-attribute table must be complete");
 _Static_assert(
-    sizeof(pf_m4_falcon_submotions) / sizeof(pf_m4_falcon_submotions[0]) ==
+    sizeof(falcon_submotions) / sizeof(falcon_submotions[0]) ==
         (size_t)PF_M4_FALCON_SUBMOTION_COUNT,
     "Falcon submotion table must cover every source slot");
 _Static_assert(
-    sizeof(pf_m4_falcon_script_events) /
-            sizeof(pf_m4_falcon_script_events[0]) ==
+    sizeof(falcon_script_events) /
+            sizeof(falcon_script_events[0]) ==
         (size_t)PF_M4_FALCON_SCRIPT_EVENT_COUNT,
     "Falcon action-script event table must be complete");
 _Static_assert(
-    sizeof(pf_m4_falcon_body_collision_timings) /
-            sizeof(pf_m4_falcon_body_collision_timings[0]) ==
+    sizeof(falcon_body_collision_timings) /
+            sizeof(falcon_body_collision_timings[0]) ==
         (size_t)PF_M4_FALCON_SUBMOTION_COUNT,
     "Falcon body-collision timing table must cover every source slot");
 _Static_assert(
-    sizeof(pf_m4_falcon_translation_x_q16) /
-            sizeof(pf_m4_falcon_translation_x_q16[0]) ==
+    sizeof(falcon_translation_x_q16) /
+            sizeof(falcon_translation_x_q16[0]) ==
         (size_t)PF_M4_FALCON_TRANSLATION_SAMPLE_COUNT,
     "Falcon X translation table must be complete");
 _Static_assert(
-    sizeof(pf_m4_falcon_translation_y_q16) /
-            sizeof(pf_m4_falcon_translation_y_q16[0]) ==
+    sizeof(falcon_translation_y_q16) /
+            sizeof(falcon_translation_y_q16[0]) ==
         (size_t)PF_M4_FALCON_TRANSLATION_SAMPLE_COUNT,
     "Falcon Y translation table must be complete");
 _Static_assert(
-    sizeof(pf_m4_falcon_script_bytes) /
-            sizeof(pf_m4_falcon_script_bytes[0]) ==
+    sizeof(falcon_script_bytes) /
+            sizeof(falcon_script_bytes[0]) ==
         (size_t)PF_M4_FALCON_SCRIPT_BYTE_COUNT,
     "Falcon action-script byte table must be complete");
 _Static_assert(
-    sizeof(pf_m4_falcon_special_attributes) == (size_t)0x8c,
+    sizeof(falcon_special_attributes) == (size_t)0x8c,
     "Falcon special-attribute view must cover the source block exactly");
 _Static_assert(
     PF_M4_MELEE_STALE_MOVE_SLOT_COUNT == PF_SIM_STALE_MOVE_QUEUE_CAPACITY,
     "Imported Melee stale-move table must cover the runtime queue");
 _Static_assert(
-    sizeof(pf_m4_falcon_collision_pose_data.crouch_wait) /
-            sizeof(pf_m4_falcon_collision_pose_data.crouch_wait[0]) ==
+    sizeof(falcon_collision_pose_data.crouch_wait) /
+            sizeof(falcon_collision_pose_data.crouch_wait[0]) ==
         (size_t)PF_M4_FALCON_CROUCH_WAIT_ECB_FRAME_COUNT,
     "Falcon CrouchWait ECB cycle must be complete");
 _Static_assert(
-    sizeof(pf_m4_falcon_collision_pose_data.airborne) /
-            sizeof(pf_m4_falcon_collision_pose_data.airborne[0]) ==
+    sizeof(falcon_collision_pose_data.airborne) /
+            sizeof(falcon_collision_pose_data.airborne[0]) ==
         (size_t)PF_M4_FALCON_AIRBORNE_ECB_FRAME_COUNT,
     "Falcon airborne ECB table must be complete");
 _Static_assert(
@@ -91,95 +91,95 @@ _Static_assert(
         PF_M4_FALCON_AIRBORNE_ECB_FRAME_COUNT,
     "Falcon airborne ECB track spans must cover the packed table");
 _Static_assert(
-    sizeof(pf_m4_falcon_collision_pose_data.shield_break_fly) /
-            sizeof(pf_m4_falcon_collision_pose_data.shield_break_fly[0]) ==
+    sizeof(falcon_collision_pose_data.shield_break_fly) /
+            sizeof(falcon_collision_pose_data.shield_break_fly[0]) ==
         (size_t)PF_M4_FALCON_SHIELD_BREAK_FLY_ECB_FRAME_COUNT,
     "Falcon ShieldBreakFly ECB table must be complete");
 _Static_assert(
-    sizeof(pf_m4_falcon_collision_pose_data.shield_break_down_down) /
-            sizeof(pf_m4_falcon_collision_pose_data
+    sizeof(falcon_collision_pose_data.shield_break_down_down) /
+            sizeof(falcon_collision_pose_data
                        .shield_break_down_down[0]) ==
         (size_t)PF_M4_FALCON_SHIELD_BREAK_DOWN_ECB_FRAME_COUNT,
     "Falcon ShieldBreakDownD ECB table must be complete");
 _Static_assert(
-    sizeof(pf_m4_falcon_collision_pose_data.shield_break_stand_down) /
-            sizeof(pf_m4_falcon_collision_pose_data
+    sizeof(falcon_collision_pose_data.shield_break_stand_down) /
+            sizeof(falcon_collision_pose_data
                        .shield_break_stand_down[0]) ==
         (size_t)PF_M4_FALCON_SHIELD_BREAK_STAND_ECB_FRAME_COUNT,
     "Falcon ShieldBreakStandD ECB table must be complete");
 _Static_assert(
-    sizeof(pf_m4_falcon_collision_pose_data.shield_break_stun) /
-            sizeof(pf_m4_falcon_collision_pose_data.shield_break_stun[0]) ==
+    sizeof(falcon_collision_pose_data.shield_break_stun) /
+            sizeof(falcon_collision_pose_data.shield_break_stun[0]) ==
         (size_t)PF_M4_FALCON_SHIELD_BREAK_STUN_ECB_FRAME_COUNT,
     "Falcon Furafura ECB table must be complete");
 _Static_assert(
-    sizeof(pf_m4_falcon_collision_pose_data.guard_on) /
-            sizeof(pf_m4_falcon_collision_pose_data.guard_on[0]) ==
+    sizeof(falcon_collision_pose_data.guard_on) /
+            sizeof(falcon_collision_pose_data.guard_on[0]) ==
         (size_t)PF_M4_FALCON_GUARD_ON_FRAME_COUNT,
     "Falcon GuardOn ECB table must be complete");
 _Static_assert(
-    sizeof(pf_m4_falcon_collision_pose_data.guard) /
-            sizeof(pf_m4_falcon_collision_pose_data.guard[0]) ==
+    sizeof(falcon_collision_pose_data.guard) /
+            sizeof(falcon_collision_pose_data.guard[0]) ==
         (size_t)PF_M4_FALCON_GUARD_FRAME_COUNT,
     "Falcon Guard ECB table must be complete");
 _Static_assert(
-    sizeof(pf_m4_falcon_collision_pose_data.guard_off) /
-            sizeof(pf_m4_falcon_collision_pose_data.guard_off[0]) ==
+    sizeof(falcon_collision_pose_data.guard_off) /
+            sizeof(falcon_collision_pose_data.guard_off[0]) ==
         (size_t)PF_M4_FALCON_GUARD_OFF_FRAME_COUNT,
     "Falcon GuardOff ECB table must be complete");
 _Static_assert(
-    sizeof(pf_m4_falcon_collision_pose_data.ceiling_bounce) /
-            sizeof(pf_m4_falcon_collision_pose_data.ceiling_bounce[0]) ==
+    sizeof(falcon_collision_pose_data.ceiling_bounce) /
+            sizeof(falcon_collision_pose_data.ceiling_bounce[0]) ==
         (size_t)PF_M4_FALCON_CEILING_BOUNCE_ECB_FRAME_COUNT,
     "Falcon ceiling-bounce ECB table must be complete");
 _Static_assert(
-    sizeof(pf_m4_falcon_collision_pose_data.wall_bounce) /
-            sizeof(pf_m4_falcon_collision_pose_data.wall_bounce[0]) ==
+    sizeof(falcon_collision_pose_data.wall_bounce) /
+            sizeof(falcon_collision_pose_data.wall_bounce[0]) ==
         (size_t)PF_M4_FALCON_WALL_BOUNCE_ECB_FRAME_COUNT,
     "Falcon wall-bounce ECB table must be complete");
 
-const uint8_t *pf_m4_falcon_reference_source_sha256(void)
+const uint8_t *falcon_reference_source_sha256(void)
 {
-    return pf_m4_falcon_source_sha256;
+    return falcon_source_sha256;
 }
 
-const uint8_t *pf_m4_falcon_reference_complete_source_sha256(void)
+const uint8_t *falcon_reference_complete_source_sha256(void)
 {
-    return pf_m4_falcon_complete_source_sha256;
+    return falcon_complete_source_sha256;
 }
 
-const uint8_t *pf_m4_falcon_reference_submotion_catalog_sha256(void)
+const uint8_t *falcon_reference_submotion_catalog_sha256(void)
 {
-    return pf_m4_falcon_submotion_catalog_sha256;
+    return falcon_submotion_catalog_sha256;
 }
 
-const uint8_t *pf_m4_falcon_reference_action_script_sha256(void)
+const uint8_t *falcon_reference_action_script_sha256(void)
 {
-    return pf_m4_falcon_action_script_sha256;
+    return falcon_action_script_sha256;
 }
 
-const uint8_t *pf_m4_falcon_reference_animation_tracks_sha256(void)
+const uint8_t *falcon_reference_animation_tracks_sha256(void)
 {
-    return pf_m4_falcon_animation_tracks_sha256;
+    return falcon_animation_tracks_sha256;
 }
 
-const pf_m4_falcon_animation_decode_summary *
-pf_m4_falcon_reference_animation_decode_summary(void)
+const falcon_animation_decode_summary *
+falcon_reference_animation_decode_summary(void)
 {
-    return &pf_m4_falcon_animation_decode_summary_data;
+    return &falcon_animation_decode_summary_data;
 }
 
-const pf_m4_falcon_submotion_data *pf_m4_falcon_reference_submotion(
+const falcon_submotion_data *falcon_reference_submotion(
     uint16_t submotion_index)
 {
     if (submotion_index >= PF_M4_FALCON_SUBMOTION_COUNT)
     {
         return NULL;
     }
-    return &pf_m4_falcon_submotions[submotion_index];
+    return &falcon_submotions[submotion_index];
 }
 
-int pf_m4_falcon_reference_damage_submotion(
+int falcon_reference_damage_submotion(
     uint8_t source_grounded,
     uint8_t damage_level,
     uint8_t hurtbox_height,
@@ -211,72 +211,72 @@ int pf_m4_falcon_reference_damage_submotion(
     return 1;
 }
 
-const pf_m4_falcon_script_event *pf_m4_falcon_reference_submotion_event(
+const falcon_script_event *falcon_reference_submotion_event(
     uint16_t submotion_index,
     uint16_t event_index,
     const uint8_t **out_bytes)
 {
-    const pf_m4_falcon_submotion_data *submotion;
-    const pf_m4_falcon_script_event *event;
+    const falcon_submotion_data *submotion;
+    const falcon_script_event *event;
 
     if (out_bytes != NULL)
     {
         *out_bytes = NULL;
     }
-    submotion = pf_m4_falcon_reference_submotion(submotion_index);
+    submotion = falcon_reference_submotion(submotion_index);
     if (submotion == NULL || event_index >= submotion->event_count)
     {
         return NULL;
     }
-    event = &pf_m4_falcon_script_events[
+    event = &falcon_script_events[
         (uint32_t)submotion->event_offset + (uint32_t)event_index];
     if (out_bytes != NULL)
     {
-        *out_bytes = &pf_m4_falcon_script_bytes[event->byte_offset];
+        *out_bytes = &falcon_script_bytes[event->byte_offset];
     }
     return event;
 }
 
-const pf_m4_falcon_body_collision_timing *
-pf_m4_falcon_reference_body_collision_timing(uint16_t submotion_index)
+const falcon_body_collision_timing *
+falcon_reference_body_collision_timing(uint16_t submotion_index)
 {
     if (submotion_index >= PF_M4_FALCON_SUBMOTION_COUNT)
     {
         return NULL;
     }
-    return &pf_m4_falcon_body_collision_timings[submotion_index];
+    return &falcon_body_collision_timings[submotion_index];
 }
 
-const uint32_t *pf_m4_falcon_reference_common_attribute_bits(
+const uint32_t *falcon_reference_common_attribute_bits(
     uint16_t *out_count)
 {
     if (out_count != NULL)
     {
         *out_count = PF_M4_FALCON_COMMON_ATTRIBUTE_COUNT;
     }
-    return pf_m4_falcon_common_attribute_bits;
+    return falcon_common_attribute_bits;
 }
 
-const pf_m4_falcon_common_attributes *
-pf_m4_falcon_reference_common_attributes(void)
+const falcon_common_attributes *
+falcon_reference_common_attributes(void)
 {
-    return &pf_m4_falcon_common_attribute_data;
+    return &falcon_common_attribute_data;
 }
 
-const pf_m4_falcon_ledge_attributes *
-pf_m4_falcon_reference_ledge_attributes(void)
+const falcon_ledge_attributes *
+falcon_reference_ledge_attributes(void)
 {
-    return &pf_m4_falcon_ledge_attribute_data;
+    return &falcon_ledge_attribute_data;
 }
 
-const pf_m4_falcon_ledge_root_positions *
-pf_m4_falcon_reference_ledge_root_positions(void)
+const falcon_ledge_root_positions *
+falcon_reference_ledge_root_positions(void)
 {
-    return &pf_m4_falcon_ledge_root_position_data;
+    return &falcon_ledge_root_position_data;
 }
 
-const pf_m4_falcon_ledge_attack_reference *
-pf_m4_falcon_reference_ledge_attack(uint16_t submotion_index)
+const falcon_ledge_attack_reference *
+falcon_reference_ledge_attack(uint16_t submotion_index)
 {
     if (submotion_index <
             (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_ATTACK_SLOW ||
@@ -285,12 +285,12 @@ pf_m4_falcon_reference_ledge_attack(uint16_t submotion_index)
     {
         return NULL;
     }
-    return &pf_m4_falcon_ledge_attack_references[
+    return &falcon_ledge_attack_references[
         submotion_index -
         (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_ATTACK_SLOW];
 }
 
-int pf_m4_falcon_reference_ledge_option_anchor_q16(
+int falcon_reference_ledge_option_anchor_q16(
     uint16_t submotion_index,
     int32_t *out_x_q16,
     int32_t *out_y_q16)
@@ -313,19 +313,19 @@ int pf_m4_falcon_reference_ledge_option_anchor_q16(
     if (out_x_q16 != NULL)
     {
         *out_x_q16 =
-            pf_m4_falcon_ledge_root_position_data
+            falcon_ledge_root_position_data
                 .option_frame_one_x_q16[option_index];
     }
     if (out_y_q16 != NULL)
     {
         *out_y_q16 =
-            pf_m4_falcon_ledge_root_position_data
+            falcon_ledge_root_position_data
                 .option_frame_one_y_q16[option_index];
     }
     return 1;
 }
 
-uint16_t pf_m4_falcon_reference_ledge_option_ground_frame(
+uint16_t falcon_reference_ledge_option_ground_frame(
     uint16_t submotion_index)
 {
     if (submotion_index < PF_M4_FALCON_LEDGE_OPTION_SUBMOTION_FIRST ||
@@ -335,11 +335,11 @@ uint16_t pf_m4_falcon_reference_ledge_option_ground_frame(
     {
         return UINT16_C(0);
     }
-    return pf_m4_falcon_ledge_root_position_data.option_ground_frame[
+    return falcon_ledge_root_position_data.option_ground_frame[
         submotion_index - PF_M4_FALCON_LEDGE_OPTION_SUBMOTION_FIRST];
 }
 
-int pf_m4_falcon_reference_hyrule_ledge_jump_position_q16(
+int falcon_reference_hyrule_ledge_jump_position_q16(
     uint16_t submotion_index,
     uint16_t displayed_frame,
     int32_t *out_x_from_wait_q16,
@@ -351,13 +351,13 @@ int pf_m4_falcon_reference_hyrule_ledge_jump_position_q16(
     if (submotion_index ==
         (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_JUMP_QUICK_1)
     {
-        path_q16 = pf_m4_falcon_hyrule_ledge_jump1_quick_from_wait_q16;
+        path_q16 = falcon_hyrule_ledge_jump1_quick_from_wait_q16;
         frame_count = PF_M4_FALCON_LEDGE_JUMP1_QUICK_FRAME_COUNT;
     }
     else if (submotion_index ==
              (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_JUMP_SLOW_1)
     {
-        path_q16 = pf_m4_falcon_hyrule_ledge_jump1_slow_from_wait_q16;
+        path_q16 = falcon_hyrule_ledge_jump1_slow_from_wait_q16;
         frame_count = PF_M4_FALCON_LEDGE_JUMP1_SLOW_FRAME_COUNT;
     }
     else if (displayed_frame == UINT16_C(1) &&
@@ -375,13 +375,13 @@ int pf_m4_falcon_reference_hyrule_ledge_jump_position_q16(
         if (out_x_from_wait_q16 != NULL)
         {
             *out_x_from_wait_q16 =
-                pf_m4_falcon_hyrule_ledge_jump2_frame_one_from_wait_q16
+                falcon_hyrule_ledge_jump2_frame_one_from_wait_q16
                     [phase_two_index][0];
         }
         if (out_y_from_wait_q16 != NULL)
         {
             *out_y_from_wait_q16 =
-                pf_m4_falcon_hyrule_ledge_jump2_frame_one_from_wait_q16
+                falcon_hyrule_ledge_jump2_frame_one_from_wait_q16
                     [phase_two_index][1];
         }
         return 1;
@@ -405,12 +405,12 @@ int pf_m4_falcon_reference_hyrule_ledge_jump_position_q16(
     return 1;
 }
 
-int pf_m4_falcon_reference_body_invulnerable(
+int falcon_reference_body_invulnerable(
     uint16_t submotion_index,
     uint16_t action_ticks)
 {
-    const pf_m4_falcon_body_collision_timing *timing =
-        pf_m4_falcon_reference_body_collision_timing(submotion_index);
+    const falcon_body_collision_timing *timing =
+        falcon_reference_body_collision_timing(submotion_index);
     const uint32_t displayed_frame =
         (uint32_t)action_ticks + UINT32_C(1);
 
@@ -421,68 +421,68 @@ int pf_m4_falcon_reference_body_invulnerable(
             displayed_frame < (uint32_t)timing->state_zero_frame);
 }
 
-const pf_m4_falcon_special_attributes *
-pf_m4_falcon_reference_special_attributes(void)
+const falcon_special_attributes *
+falcon_reference_special_attributes(void)
 {
-    return &pf_m4_falcon_special_attribute_data;
+    return &falcon_special_attribute_data;
 }
 
-const pf_m4_falcon_common_special_attributes *
-pf_m4_falcon_reference_common_special_attributes(void)
+const falcon_common_special_attributes *
+falcon_reference_common_special_attributes(void)
 {
-    return &pf_m4_falcon_common_special_attribute_data;
+    return &falcon_common_special_attribute_data;
 }
 
-const pf_m4_falcon_air_dodge_attributes *
-pf_m4_falcon_reference_air_dodge_attributes(void)
+const falcon_air_dodge_attributes *
+falcon_reference_air_dodge_attributes(void)
 {
-    return &pf_m4_falcon_air_dodge_attribute_data;
+    return &falcon_air_dodge_attribute_data;
 }
 
-const pf_m4_melee_stale_move_data *
-pf_m4_falcon_reference_stale_move_data(void)
+const melee_stale_move_data *
+falcon_reference_stale_move_data(void)
 {
-    return &pf_m4_melee_stale_move_data_source;
+    return &melee_stale_move_data_source;
 }
 
-const pf_m4_falcon_smash_charge_attributes *
-pf_m4_falcon_reference_smash_charge_attributes(void)
+const falcon_smash_charge_attributes *
+falcon_reference_smash_charge_attributes(void)
 {
-    return &pf_m4_falcon_smash_charge_attributes_source;
+    return &falcon_smash_charge_attributes_source;
 }
 
-const pf_m4_falcon_neutral_special_timing *
-pf_m4_falcon_reference_neutral_special_timing(void)
+const falcon_neutral_special_timing *
+falcon_reference_neutral_special_timing(void)
 {
-    return &pf_m4_falcon_neutral_special_timing_data;
+    return &falcon_neutral_special_timing_data;
 }
 
-const pf_m4_falcon_side_special_timing *
-pf_m4_falcon_reference_side_special_timing(void)
+const falcon_side_special_timing *
+falcon_reference_side_special_timing(void)
 {
-    return &pf_m4_falcon_side_special_timing_data;
+    return &falcon_side_special_timing_data;
 }
 
-const pf_m4_falcon_up_special_timing *
-pf_m4_falcon_reference_up_special_timing(void)
+const falcon_up_special_timing *
+falcon_reference_up_special_timing(void)
 {
-    return &pf_m4_falcon_up_special_timing_data;
+    return &falcon_up_special_timing_data;
 }
 
-const pf_m4_falcon_down_special_timing *
-pf_m4_falcon_reference_down_special_timing(void)
+const falcon_down_special_timing *
+falcon_reference_down_special_timing(void)
 {
-    return &pf_m4_falcon_down_special_timing_data;
+    return &falcon_down_special_timing_data;
 }
 
-const pf_m4_falcon_collision_pose *
-pf_m4_falcon_reference_collision_pose(void)
+const falcon_collision_pose *
+falcon_reference_collision_pose(void)
 {
-    return &pf_m4_falcon_collision_pose_data;
+    return &falcon_collision_pose_data;
 }
 
-const pf_m4_falcon_ecb_pose_q16 *
-pf_m4_falcon_reference_guard_ecb_pose(
+const falcon_ecb_pose_q16 *
+falcon_reference_guard_ecb_pose(
     uint8_t action_state,
     uint16_t source_submotion,
     uint16_t action_ticks)
@@ -500,11 +500,11 @@ pf_m4_falcon_reference_guard_ecb_pose(
                     ? action_ticks
                     : (uint16_t)(PF_M4_FALCON_GUARD_ON_FRAME_COUNT -
                                  UINT16_C(1));
-            return &pf_m4_falcon_collision_pose_data.guard_on[frame];
+            return &falcon_collision_pose_data.guard_on[frame];
         }
         if (source_submotion == (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD)
         {
-            return &pf_m4_falcon_collision_pose_data.guard[0];
+            return &falcon_collision_pose_data.guard[0];
         }
     }
     if (action_state == (uint8_t)PF_M4_ACTION_SHIELD_RELEASE &&
@@ -516,12 +516,12 @@ pf_m4_falcon_reference_guard_ecb_pose(
                 ? action_ticks
                 : (uint16_t)(PF_M4_FALCON_GUARD_OFF_FRAME_COUNT -
                              UINT16_C(1));
-        return &pf_m4_falcon_collision_pose_data.guard_off[frame];
+        return &falcon_collision_pose_data.guard_off[frame];
     }
     return NULL;
 }
 
-static int pf_m4_falcon_prone_pose_orientation_index(
+static int falcon_prone_pose_orientation_index(
     uint8_t prone_orientation,
     uint16_t *out_index)
 {
@@ -538,8 +538,8 @@ static int pf_m4_falcon_prone_pose_orientation_index(
     return 0;
 }
 
-const pf_m4_falcon_ecb_pose_q16 *
-pf_m4_falcon_reference_prone_ecb_pose(
+const falcon_ecb_pose_q16 *
+falcon_reference_prone_ecb_pose(
     uint8_t action_state,
     uint16_t action_ticks,
     uint8_t prone_orientation,
@@ -551,7 +551,7 @@ pf_m4_falcon_reference_prone_ecb_pose(
     uint16_t frame_index;
 
     if (action_state == (uint8_t)PF_M4_ACTION_KNOCKDOWN &&
-        pf_m4_falcon_prone_pose_orientation_index(
+        falcon_prone_pose_orientation_index(
             prone_orientation,
             &orientation_index))
     {
@@ -560,22 +560,22 @@ pf_m4_falcon_reference_prone_ecb_pose(
                           : (uint16_t)(
                                 PF_M4_FALCON_DOWN_BOUND_ECB_FRAME_COUNT -
                                 UINT16_C(1));
-        return &pf_m4_falcon_collision_pose_data
+        return &falcon_collision_pose_data
                     .down_bound[orientation_index][frame_index];
     }
     if (action_state == (uint8_t)PF_M4_ACTION_DOWN_WAIT &&
-        pf_m4_falcon_prone_pose_orientation_index(
+        falcon_prone_pose_orientation_index(
             prone_orientation,
             &orientation_index))
     {
         frame_index = (uint16_t)(
             (action_ticks + UINT16_C(1)) %
             PF_M4_FALCON_DOWN_WAIT_ECB_FRAME_COUNT);
-        return &pf_m4_falcon_collision_pose_data
+        return &falcon_collision_pose_data
                     .down_wait[orientation_index][frame_index];
     }
     if (action_state == (uint8_t)PF_M4_ACTION_GETUP_NEUTRAL &&
-        pf_m4_falcon_prone_pose_orientation_index(
+        falcon_prone_pose_orientation_index(
             prone_orientation,
             &orientation_index))
     {
@@ -585,11 +585,11 @@ pf_m4_falcon_reference_prone_ecb_pose(
                 : (uint16_t)(
                       PF_M4_FALCON_GETUP_NEUTRAL_ECB_FRAME_COUNT -
                       UINT16_C(1));
-        return &pf_m4_falcon_collision_pose_data
+        return &falcon_collision_pose_data
                     .getup_neutral[orientation_index][frame_index];
     }
     if (action_state == (uint8_t)PF_M4_ACTION_GETUP_ATTACK &&
-        pf_m4_falcon_prone_pose_orientation_index(
+        falcon_prone_pose_orientation_index(
             prone_orientation,
             &orientation_index))
     {
@@ -598,13 +598,13 @@ pf_m4_falcon_reference_prone_ecb_pose(
                           : (uint16_t)(
                                 PF_M4_FALCON_GETUP_ATTACK_ECB_FRAME_COUNT -
                                 UINT16_C(1));
-        return &pf_m4_falcon_collision_pose_data
+        return &falcon_collision_pose_data
                     .getup_attack[orientation_index][frame_index];
     }
     if (action_state == (uint8_t)PF_M4_ACTION_GETUP_ROLL &&
         (tech_direction == INT8_C(-1) || tech_direction == INT8_C(1)) &&
         (facing == INT8_C(-1) || facing == INT8_C(1)) &&
-        pf_m4_falcon_prone_pose_orientation_index(
+        falcon_prone_pose_orientation_index(
             prone_roll_motion_orientation,
             &orientation_index))
     {
@@ -616,13 +616,13 @@ pf_m4_falcon_reference_prone_ecb_pose(
                           : (uint16_t)(
                                 PF_M4_FALCON_GETUP_ROLL_ECB_FRAME_COUNT -
                                 UINT16_C(1));
-        return &pf_m4_falcon_collision_pose_data
+        return &falcon_collision_pose_data
                     .getup_roll[orientation_index][direction_index][frame_index];
     }
     return NULL;
 }
 
-static int32_t pf_m4_falcon_ecb_source_scale_q16(
+static int32_t falcon_ecb_source_scale_q16(
     int32_t value_q16,
     int32_t numerator,
     int32_t denominator)
@@ -636,12 +636,12 @@ static int32_t pf_m4_falcon_ecb_source_scale_q16(
                                denominator);
 }
 
-static uint64_t pf_m4_falcon_abs_i64(int64_t value)
+static uint64_t falcon_abs_i64(int64_t value)
 {
     return value < INT64_C(0) ? (uint64_t)(-value) : (uint64_t)value;
 }
 
-static uint64_t pf_m4_falcon_ecb_sim_to_source_abs_q16(
+static uint64_t falcon_ecb_sim_to_source_abs_q16(
     uint64_t value_q16,
     uint32_t numerator,
     uint32_t denominator)
@@ -649,11 +649,11 @@ static uint64_t pf_m4_falcon_ecb_sim_to_source_abs_q16(
     return (value_q16 * denominator + numerator / UINT32_C(2)) / numerator;
 }
 
-int pf_m4_falcon_reference_collision_sweep_step_count_q16(
+int falcon_reference_collision_sweep_step_count_q16(
     int32_t position_delta_x_q16,
     int32_t position_delta_y_q16,
-    const pf_m4_falcon_ecb_pose_q16 *current_ecb,
-    const pf_m4_falcon_ecb_pose_q16 *desired_ecb,
+    const falcon_ecb_pose_q16 *current_ecb,
+    const falcon_ecb_pose_q16 *desired_ecb,
     uint16_t *out_step_count)
 {
     const uint64_t source_threshold_q16 =
@@ -668,12 +668,12 @@ int pf_m4_falcon_reference_collision_sweep_step_count_q16(
         return 0;
     }
     maximum_source_delta_q16 =
-        pf_m4_falcon_ecb_sim_to_source_abs_q16(
-            pf_m4_falcon_abs_i64(position_delta_x_q16),
+        falcon_ecb_sim_to_source_abs_q16(
+            falcon_abs_i64(position_delta_x_q16),
             UINT32_C(12),
             UINT32_C(115));
-    source_delta_q16 = pf_m4_falcon_ecb_sim_to_source_abs_q16(
-        pf_m4_falcon_abs_i64(position_delta_y_q16),
+    source_delta_q16 = falcon_ecb_sim_to_source_abs_q16(
+        falcon_abs_i64(position_delta_y_q16),
         UINT32_C(11),
         UINT32_C(62));
     if (source_delta_q16 > maximum_source_delta_q16)
@@ -683,8 +683,8 @@ int pf_m4_falcon_reference_collision_sweep_step_count_q16(
 #define PF_M4_FALCON_ACCUMULATE_SWEEP_X(field)                              \
     do                                                                       \
     {                                                                        \
-        source_delta_q16 = pf_m4_falcon_ecb_sim_to_source_abs_q16(          \
-            pf_m4_falcon_abs_i64(                                            \
+        source_delta_q16 = falcon_ecb_sim_to_source_abs_q16(          \
+            falcon_abs_i64(                                            \
                 (int64_t)desired_ecb->field - current_ecb->field),          \
             UINT32_C(12),                                                     \
             UINT32_C(115));                                                   \
@@ -696,8 +696,8 @@ int pf_m4_falcon_reference_collision_sweep_step_count_q16(
 #define PF_M4_FALCON_ACCUMULATE_SWEEP_Y(field)                              \
     do                                                                       \
     {                                                                        \
-        source_delta_q16 = pf_m4_falcon_ecb_sim_to_source_abs_q16(          \
-            pf_m4_falcon_abs_i64(                                            \
+        source_delta_q16 = falcon_ecb_sim_to_source_abs_q16(          \
+            falcon_abs_i64(                                            \
                 (int64_t)desired_ecb->field - current_ecb->field),          \
             UINT32_C(11),                                                     \
             UINT32_C(62));                                                    \
@@ -727,19 +727,19 @@ int pf_m4_falcon_reference_collision_sweep_step_count_q16(
 enum
 {
     PF_M4_FALCON_HSD_ECB_JOINT_COUNT =
-        sizeof(pf_m4_falcon_dynamic_hsd_ecb_joint_indices) /
-        sizeof(pf_m4_falcon_dynamic_hsd_ecb_joint_indices[0]),
+        sizeof(falcon_dynamic_hsd_ecb_joint_indices) /
+        sizeof(falcon_dynamic_hsd_ecb_joint_indices[0]),
     PF_M4_FALCON_HSD_ECB_EVALUATION_JOINT_COUNT =
         PF_M4_FALCON_HSD_ECB_JOINT_COUNT + 1
 };
 
-static inline int pf_m4_falcon_hsd_ecb_evaluation_joints(
+static inline int falcon_hsd_ecb_evaluation_joints(
     uint8_t joint_indices[PF_M4_FALCON_HSD_ECB_EVALUATION_JOINT_COUNT])
 {
     uint8_t joint_index;
 
     if (joint_indices == NULL ||
-        pf_m4_falcon_dynamic_hsd_data.copy_target_joint_count !=
+        falcon_dynamic_hsd_data.copy_target_joint_count !=
             UINT8_C(1))
     {
         return 0;
@@ -749,22 +749,22 @@ static inline int pf_m4_falcon_hsd_ecb_evaluation_joints(
          ++joint_index)
     {
         joint_indices[joint_index] =
-            pf_m4_falcon_dynamic_hsd_ecb_joint_indices[joint_index];
+            falcon_dynamic_hsd_ecb_joint_indices[joint_index];
     }
     joint_indices[PF_M4_FALCON_HSD_ECB_JOINT_COUNT] =
-        pf_m4_falcon_dynamic_hsd_data.copy_target_joint_indices[0];
+        falcon_dynamic_hsd_data.copy_target_joint_indices[0];
     return 1;
 }
 
-int pf_m4_falcon_reference_ecb_apply_bottom_lock_q16(
+int falcon_reference_ecb_apply_bottom_lock_q16(
     int32_t locked_bottom_y_q16,
-    pf_m4_falcon_ecb_pose_q16 *pose)
+    falcon_ecb_pose_q16 *pose)
 {
-    const int32_t one_x_q16 = pf_m4_falcon_ecb_source_scale_q16(
+    const int32_t one_x_q16 = falcon_ecb_source_scale_q16(
         INT32_C(65536), INT32_C(12), INT32_C(115));
-    const int32_t one_y_q16 = pf_m4_falcon_ecb_source_scale_q16(
+    const int32_t one_y_q16 = falcon_ecb_source_scale_q16(
         INT32_C(65536), INT32_C(11), INT32_C(62));
-    const int32_t epsilon_y_q16 = pf_m4_falcon_ecb_source_scale_q16(
+    const int32_t epsilon_y_q16 = falcon_ecb_source_scale_q16(
         INT32_C(66), INT32_C(11), INT32_C(62));
 
     if (pose == NULL)
@@ -838,13 +838,13 @@ int pf_m4_falcon_reference_ecb_apply_bottom_lock_q16(
     return 1;
 }
 
-static int pf_m4_falcon_hsd_ecb_from_origins(
+static int falcon_hsd_ecb_from_origins(
     const int32_t *origins_q16,
     uint8_t origin_count,
     const int32_t reference_origin_q16[3],
     int grounded,
     int32_t locked_bottom_y_q16,
-    pf_m4_falcon_ecb_pose_q16 *out_pose)
+    falcon_ecb_pose_q16 *out_pose)
 {
     int32_t left_q16;
     int32_t right_q16;
@@ -921,33 +921,33 @@ static int pf_m4_falcon_hsd_ecb_from_origins(
     }
     side_y_q16 = (bottom_q16 + top_q16) / INT32_C(2);
     out_pose->top_x_from_origin_q16 = INT32_C(0);
-    out_pose->top_y_from_origin_q16 = pf_m4_falcon_ecb_source_scale_q16(
+    out_pose->top_y_from_origin_q16 = falcon_ecb_source_scale_q16(
         top_q16, INT32_C(11), INT32_C(62));
     out_pose->bottom_x_from_origin_q16 = INT32_C(0);
     out_pose->bottom_y_from_origin_q16 =
-        pf_m4_falcon_ecb_source_scale_q16(
+        falcon_ecb_source_scale_q16(
             bottom_q16, INT32_C(11), INT32_C(62));
-    out_pose->right_x_from_origin_q16 = pf_m4_falcon_ecb_source_scale_q16(
+    out_pose->right_x_from_origin_q16 = falcon_ecb_source_scale_q16(
         right_q16, INT32_C(12), INT32_C(115));
-    out_pose->right_y_from_origin_q16 = pf_m4_falcon_ecb_source_scale_q16(
+    out_pose->right_y_from_origin_q16 = falcon_ecb_source_scale_q16(
         side_y_q16, INT32_C(11), INT32_C(62));
-    out_pose->left_x_from_origin_q16 = pf_m4_falcon_ecb_source_scale_q16(
+    out_pose->left_x_from_origin_q16 = falcon_ecb_source_scale_q16(
         left_q16, INT32_C(12), INT32_C(115));
     out_pose->left_y_from_origin_q16 = out_pose->right_y_from_origin_q16;
-    return pf_m4_falcon_reference_ecb_apply_bottom_lock_q16(
+    return falcon_reference_ecb_apply_bottom_lock_q16(
         locked_bottom_y_q16,
         out_pose);
 }
 
 int
-pf_m4_falcon_reference_hsd_ecb_pose(
+falcon_reference_hsd_ecb_pose(
     uint16_t source_submotion,
     int32_t source_animation_frame_q16,
     int grounded,
     int32_t locked_bottom_y_q16,
-    pf_m4_falcon_ecb_pose_q16 *out_pose)
+    falcon_ecb_pose_q16 *out_pose)
 {
-    const pf_m4_falcon_submotion_data *submotion;
+    const falcon_submotion_data *submotion;
     static const int32_t zero_origin_q16[3] = {
         INT32_C(0), INT32_C(0), INT32_C(0)
     };
@@ -963,20 +963,20 @@ pf_m4_falcon_reference_hsd_ecb_pose(
             ((uint32_t)source_animation_frame_q16 >> UINT32_C(16)) %
             PF_M4_FALCON_CROUCH_WAIT_ECB_FRAME_COUNT);
 
-        *out_pose = pf_m4_falcon_collision_pose_data.crouch_wait[frame_index];
+        *out_pose = falcon_collision_pose_data.crouch_wait[frame_index];
         return 1;
     }
-    submotion = pf_m4_falcon_reference_submotion(source_submotion);
+    submotion = falcon_reference_submotion(source_submotion);
     if (submotion == NULL)
     {
         return 0;
     }
-    if (!pf_m4_falcon_hsd_ecb_evaluation_joints(joint_indices))
+    if (!falcon_hsd_ecb_evaluation_joints(joint_indices))
     {
         return 0;
     }
-    if (!pf_m4_hsd_evaluate_joint_origins_source_q16(
-            &pf_m4_falcon_dynamic_hsd_data,
+    if (!hsd_evaluate_joint_origins_source_q16(
+            &falcon_dynamic_hsd_data,
             source_submotion,
             source_animation_frame_q16,
             joint_indices,
@@ -985,7 +985,7 @@ pf_m4_falcon_reference_hsd_ecb_pose(
     {
         return 0;
     }
-    return pf_m4_falcon_hsd_ecb_from_origins(
+    return falcon_hsd_ecb_from_origins(
         &origins_q16[0][0],
         (uint8_t)PF_M4_FALCON_HSD_ECB_JOINT_COUNT,
         (submotion->animation_flags &
@@ -997,25 +997,25 @@ pf_m4_falcon_reference_hsd_ecb_pose(
         out_pose);
 }
 
-int pf_m4_falcon_reference_action_hsd_source(
+int falcon_reference_action_hsd_source(
     uint8_t action_state,
     uint16_t action_ticks,
     uint16_t *out_submotion,
     int32_t *out_frame_q16)
 {
-    pf_m4_falcon_move_index move_index;
-    const pf_m4_reference_move *move;
+    falcon_move_index move_index;
+    const struct reference_move *move;
     int8_t frame_offset;
     int32_t source_frame;
 
     if (out_submotion == NULL || out_frame_q16 == NULL ||
-        !pf_m4_falcon_reference_move_for_action(action_state, &move_index))
+        !falcon_reference_move_for_action(action_state, &move_index))
     {
         return 0;
     }
-    move = pf_m4_falcon_reference_move(move_index);
+    move = falcon_reference_move(move_index);
     if (move == NULL ||
-        !pf_m4_falcon_dynamic_hsd_action_frame_offset(
+        !falcon_dynamic_hsd_action_frame_offset(
             move->subaction_index, &frame_offset))
     {
         return 0;
@@ -1031,18 +1031,18 @@ int pf_m4_falcon_reference_action_hsd_source(
     return 1;
 }
 
-int pf_m4_falcon_reference_action_hsd_ecb_pose(
+int falcon_reference_action_hsd_ecb_pose(
     uint8_t action_state,
     uint16_t action_ticks,
     uint8_t grounded,
     int32_t locked_bottom_y_q16,
-    pf_m4_falcon_ecb_pose_q16 *out_pose)
+    falcon_ecb_pose_q16 *out_pose)
 {
     uint16_t source_submotion;
     int32_t source_frame_q16;
 
     if (out_pose == NULL ||
-        !pf_m4_falcon_reference_action_hsd_source(
+        !falcon_reference_action_hsd_source(
             action_state,
             action_ticks,
             &source_submotion,
@@ -1050,7 +1050,7 @@ int pf_m4_falcon_reference_action_hsd_ecb_pose(
     {
         return 0;
     }
-    return pf_m4_falcon_reference_hsd_ecb_pose(
+    return falcon_reference_hsd_ecb_pose(
         source_submotion,
         source_frame_q16,
         grounded != UINT8_C(0),
@@ -1058,38 +1058,38 @@ int pf_m4_falcon_reference_action_hsd_ecb_pose(
         out_pose);
 }
 
-const pf_m4_hsd_pose_data *
-pf_m4_falcon_reference_hsd_pose_data(void)
+const hsd_pose_data *
+falcon_reference_hsd_pose_data(void)
 {
-    return &pf_m4_falcon_dynamic_hsd_data;
+    return &falcon_dynamic_hsd_data;
 }
 
-const pf_m4_hsd_local_pose *
-pf_m4_falcon_reference_guard_target_hsd_pose(void)
+const hsd_local_pose *
+falcon_reference_guard_target_hsd_pose(void)
 {
-    return pf_m4_falcon_dynamic_hsd_guard_target_pose;
+    return falcon_dynamic_hsd_guard_target_pose;
 }
 
-int pf_m4_falcon_resolve_compact_hsd_pose(
+int falcon_resolve_compact_hsd_pose(
     uint16_t source_submotion,
     int32_t source_animation_frame_q16,
     int32_t progress_q16,
-    const pf_m4_hsd_compact_pose *compact,
-    pf_m4_hsd_local_pose out_pose[PF_M4_HSD_POSE_MAX_JOINTS])
+    const hsd_compact_pose *compact,
+    hsd_local_pose out_pose[PF_M4_HSD_POSE_MAX_JOINTS])
 {
     if (compact != NULL &&
         compact->mode == (uint8_t)PF_M4_HSD_COMPACT_POSE_PACKED &&
         source_submotion ==
             (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD_ON)
     {
-        return pf_m4_hsd_inflate_compact_pose_q16(
-            &pf_m4_falcon_dynamic_hsd_data,
-            pf_m4_falcon_dynamic_hsd_guard_target_pose,
+        return hsd_inflate_compact_pose_q16(
+            &falcon_dynamic_hsd_data,
+            falcon_dynamic_hsd_guard_target_pose,
             compact,
             out_pose);
     }
-    return pf_m4_hsd_resolve_compact_pose_q16(
-        &pf_m4_falcon_dynamic_hsd_data,
+    return hsd_resolve_compact_pose_q16(
+        &falcon_dynamic_hsd_data,
         source_submotion,
         source_animation_frame_q16,
         progress_q16,
@@ -1097,24 +1097,24 @@ int pf_m4_falcon_resolve_compact_hsd_pose(
         out_pose);
 }
 
-const pf_m4_hsd_wait_animation *
-pf_m4_falcon_reference_wait_animations(uint8_t *out_count)
+const hsd_wait_animation *
+falcon_reference_wait_animations(uint8_t *out_count)
 {
     if (out_count != NULL)
     {
         *out_count = (uint8_t)(
-            sizeof(pf_m4_falcon_dynamic_hsd_wait_animations) /
-            sizeof(pf_m4_falcon_dynamic_hsd_wait_animations[0]));
+            sizeof(falcon_dynamic_hsd_wait_animations) /
+            sizeof(falcon_dynamic_hsd_wait_animations[0]));
     }
-    return pf_m4_falcon_dynamic_hsd_wait_animations;
+    return falcon_dynamic_hsd_wait_animations;
 }
 
-const pf_m4_hsd_wait_animation *
-pf_m4_falcon_reference_wait_animation(uint16_t source_submotion)
+const hsd_wait_animation *
+falcon_reference_wait_animation(uint16_t source_submotion)
 {
     uint8_t count;
-    const pf_m4_hsd_wait_animation *animations =
-        pf_m4_falcon_reference_wait_animations(&count);
+    const hsd_wait_animation *animations =
+        falcon_reference_wait_animations(&count);
     uint8_t index;
 
     for (index = UINT8_C(0); index < count; ++index)
@@ -1127,7 +1127,7 @@ pf_m4_falcon_reference_wait_animation(uint16_t source_submotion)
     return NULL;
 }
 
-int pf_m4_falcon_reference_direct_hsd_pose(
+int falcon_reference_direct_hsd_pose(
     uint8_t action_state,
     uint16_t action_ticks,
     uint8_t grounded,
@@ -1198,23 +1198,23 @@ int pf_m4_falcon_reference_direct_hsd_pose(
     return 1;
 }
 
-static int pf_m4_falcon_reference_hsd_ecb_pose_from_local_pose(
-    const pf_m4_hsd_local_pose pose[PF_M4_HSD_POSE_MAX_JOINTS],
+static int falcon_reference_hsd_ecb_pose_from_local_pose(
+    const hsd_local_pose pose[PF_M4_HSD_POSE_MAX_JOINTS],
     int grounded,
     int32_t locked_bottom_y_q16,
-    pf_m4_falcon_ecb_pose_q16 *out_pose)
+    falcon_ecb_pose_q16 *out_pose)
 {
     int32_t origins_q16[PF_M4_HSD_POSE_MAX_JOINTS][3];
     uint8_t joint_indices[PF_M4_FALCON_HSD_ECB_EVALUATION_JOINT_COUNT];
 
     if (pose == NULL || out_pose == NULL ||
-        !pf_m4_falcon_hsd_ecb_evaluation_joints(joint_indices))
+        !falcon_hsd_ecb_evaluation_joints(joint_indices))
     {
         return 0;
     }
     if (
-        !pf_m4_hsd_evaluate_joint_origins_from_local_pose_q16(
-            &pf_m4_falcon_dynamic_hsd_data,
+        !hsd_evaluate_joint_origins_from_local_pose_q16(
+            &falcon_dynamic_hsd_data,
             pose,
             joint_indices,
             (uint8_t)PF_M4_FALCON_HSD_ECB_EVALUATION_JOINT_COUNT,
@@ -1222,7 +1222,7 @@ static int pf_m4_falcon_reference_hsd_ecb_pose_from_local_pose(
     {
         return 0;
     }
-    return pf_m4_falcon_hsd_ecb_from_origins(
+    return falcon_hsd_ecb_from_origins(
         &origins_q16[0][0],
         (uint8_t)PF_M4_FALCON_HSD_ECB_JOINT_COUNT,
         origins_q16[PF_M4_FALCON_HSD_ECB_JOINT_COUNT],
@@ -1231,30 +1231,30 @@ static int pf_m4_falcon_reference_hsd_ecb_pose_from_local_pose(
         out_pose);
 }
 
-int pf_m4_falcon_reference_hsd_ground_ecb_pose_from_local_pose(
-    const pf_m4_hsd_local_pose pose[PF_M4_HSD_POSE_MAX_JOINTS],
-    pf_m4_falcon_ecb_pose_q16 *out_pose)
+int falcon_reference_hsd_ground_ecb_pose_from_local_pose(
+    const hsd_local_pose pose[PF_M4_HSD_POSE_MAX_JOINTS],
+    falcon_ecb_pose_q16 *out_pose)
 {
-    return pf_m4_falcon_reference_hsd_ecb_pose_from_local_pose(
+    return falcon_reference_hsd_ecb_pose_from_local_pose(
         pose,
         1,
         PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16,
         out_pose);
 }
 
-int pf_m4_falcon_reference_hsd_fall_ecb_pose(
+int falcon_reference_hsd_fall_ecb_pose(
     uint16_t directional_submotion,
     int32_t source_animation_frame_q16,
     int32_t directional_blend_q16,
     uint8_t directional_target_switched,
     int32_t locked_bottom_y_q16,
-    pf_m4_falcon_ecb_pose_q16 *out_pose)
+    falcon_ecb_pose_q16 *out_pose)
 {
-    pf_m4_hsd_local_pose neutral[PF_M4_HSD_POSE_MAX_JOINTS];
-    pf_m4_hsd_local_pose directional[PF_M4_HSD_POSE_MAX_JOINTS];
-    pf_m4_hsd_local_pose transition[PF_M4_HSD_POSE_MAX_JOINTS];
-    pf_m4_hsd_local_pose blended[PF_M4_HSD_POSE_MAX_JOINTS];
-    const pf_m4_hsd_local_pose *pose = neutral;
+    hsd_local_pose neutral[PF_M4_HSD_POSE_MAX_JOINTS];
+    hsd_local_pose directional[PF_M4_HSD_POSE_MAX_JOINTS];
+    hsd_local_pose transition[PF_M4_HSD_POSE_MAX_JOINTS];
+    hsd_local_pose blended[PF_M4_HSD_POSE_MAX_JOINTS];
+    const hsd_local_pose *pose = neutral;
     uint16_t neutral_submotion;
 
     if (directional_submotion >=
@@ -1289,8 +1289,8 @@ int pf_m4_falcon_reference_hsd_fall_ecb_pose(
         directional_blend_q16 < INT32_C(0) ||
         directional_blend_q16 > PF_Q16_ONE ||
         directional_target_switched > UINT8_C(1) ||
-        !pf_m4_hsd_evaluate_local_pose_q16(
-            &pf_m4_falcon_dynamic_hsd_data,
+        !hsd_evaluate_local_pose_q16(
+            &falcon_dynamic_hsd_data,
             neutral_submotion,
             source_animation_frame_q16,
             neutral))
@@ -1299,8 +1299,8 @@ int pf_m4_falcon_reference_hsd_fall_ecb_pose(
     }
     if (directional_blend_q16 != INT32_C(0))
     {
-        const pf_m4_falcon_submotion_data *directional_motion =
-            pf_m4_falcon_reference_submotion(directional_submotion);
+        const falcon_submotion_data *directional_motion =
+            falcon_reference_submotion(directional_submotion);
         int32_t directional_frame_q16 =
             source_animation_frame_q16 + PF_Q16_ONE;
 
@@ -1315,13 +1315,13 @@ int pf_m4_falcon_reference_hsd_fall_ecb_pose(
          * path. Preserve both passes so transition-frame ECBs match the HSD
          * skeleton rather than approximating them with a larger scalar. */
         if (directional_target_switched != UINT8_C(0) &&
-            (!pf_m4_hsd_evaluate_local_pose_q16(
-                 &pf_m4_falcon_dynamic_hsd_data,
+            (!hsd_evaluate_local_pose_q16(
+                 &falcon_dynamic_hsd_data,
                  directional_submotion,
                  source_animation_frame_q16,
                  directional) ||
-             !pf_m4_hsd_blend_local_pose_q16(
-                 &pf_m4_falcon_dynamic_hsd_data,
+             !hsd_blend_local_pose_q16(
+                 &falcon_dynamic_hsd_data,
                  directional,
                  neutral,
                  PF_Q16_ONE - directional_blend_q16,
@@ -1336,13 +1336,13 @@ int pf_m4_falcon_reference_hsd_fall_ecb_pose(
                 (int32_t)directional_motion->animation_frame_count *
                 PF_Q16_ONE;
         }
-        if (!pf_m4_hsd_evaluate_local_pose_q16(
-                &pf_m4_falcon_dynamic_hsd_data,
+        if (!hsd_evaluate_local_pose_q16(
+                &falcon_dynamic_hsd_data,
                 directional_submotion,
                 directional_frame_q16,
                 directional) ||
-            !pf_m4_hsd_blend_local_pose_q16(
-                &pf_m4_falcon_dynamic_hsd_data,
+            !hsd_blend_local_pose_q16(
+                &falcon_dynamic_hsd_data,
                 directional,
                 directional_target_switched != UINT8_C(0)
                     ? transition
@@ -1354,15 +1354,15 @@ int pf_m4_falcon_reference_hsd_fall_ecb_pose(
         }
         pose = blended;
     }
-    return pf_m4_falcon_reference_hsd_ecb_pose_from_local_pose(
+    return falcon_reference_hsd_ecb_pose_from_local_pose(
         pose,
         0,
         locked_bottom_y_q16,
         out_pose);
 }
 
-const pf_m4_falcon_ecb_pose_q16 *
-pf_m4_falcon_reference_airborne_ecb_pose(
+const falcon_ecb_pose_q16 *
+falcon_reference_airborne_ecb_pose(
     uint16_t source_submotion,
     uint16_t action_ticks)
 {
@@ -1412,20 +1412,20 @@ pf_m4_falcon_reference_airborne_ecb_pose(
     {
         action_ticks = (uint16_t)(frame_count - UINT16_C(1));
     }
-    return &pf_m4_falcon_collision_pose_data.airborne[offset + action_ticks];
+    return &falcon_collision_pose_data.airborne[offset + action_ticks];
 }
 
-const pf_m4_reference_search_sphere *
-pf_m4_falcon_reference_side_special_search_spheres(
+const reference_search_sphere *
+falcon_reference_side_special_search_spheres(
     int airborne,
     uint8_t *out_count)
 {
     const uint16_t offset = airborne != 0
-                                ? pf_m4_falcon_side_special_air_search_offset
-                                : pf_m4_falcon_side_special_ground_search_offset;
+                                ? falcon_side_special_air_search_offset
+                                : falcon_side_special_ground_search_offset;
     const uint8_t count = airborne != 0
-                              ? pf_m4_falcon_side_special_air_search_count
-                              : pf_m4_falcon_side_special_ground_search_count;
+                              ? falcon_side_special_air_search_count
+                              : falcon_side_special_ground_search_count;
 
     if (out_count != NULL)
     {
@@ -1433,29 +1433,29 @@ pf_m4_falcon_reference_side_special_search_spheres(
     }
     return count == UINT8_C(0)
                ? NULL
-               : &pf_m4_falcon_side_special_search_spheres[offset];
+               : &falcon_side_special_search_spheres[offset];
 }
 
-const uint8_t *pf_m4_falcon_reference_geometry_sha256(void)
+const uint8_t *falcon_reference_geometry_sha256(void)
 {
-    return pf_m4_falcon_geometry_sha256;
+    return falcon_geometry_sha256;
 }
 
-void pf_m4_falcon_reference_capture_offset_q16(
+void falcon_reference_capture_offset_q16(
     int32_t *out_x_q16,
     int32_t *out_y_q16)
 {
     if (out_x_q16 != NULL)
     {
-        *out_x_q16 = pf_m4_falcon_capture_offset_x_q16;
+        *out_x_q16 = falcon_capture_offset_x_q16;
     }
     if (out_y_q16 != NULL)
     {
-        *out_y_q16 = pf_m4_falcon_capture_offset_y_q16;
+        *out_y_q16 = falcon_capture_offset_y_q16;
     }
 }
 
-int pf_m4_falcon_reference_capture_constraint_q16(
+int falcon_reference_capture_constraint_q16(
     uint16_t holder_submotion,
     int32_t holder_frame_q16,
     int8_t holder_facing,
@@ -1479,26 +1479,26 @@ int pf_m4_falcon_reference_capture_constraint_q16(
     if (out_x_q16 == NULL || out_y_q16 == NULL ||
         (holder_facing != INT8_C(-1) && holder_facing != INT8_C(1)) ||
         (victim_facing != INT8_C(-1) && victim_facing != INT8_C(1)) ||
-        pf_m4_falcon_dynamic_hsd_data.copy_target_joint_count != UINT8_C(1))
+        falcon_dynamic_hsd_data.copy_target_joint_count != UINT8_C(1))
     {
         return 0;
     }
     joint_indices[0] =
-        pf_m4_falcon_dynamic_hsd_capture_constraint_joint_indices[0];
+        falcon_dynamic_hsd_capture_constraint_joint_indices[0];
     joint_indices[1] =
-        pf_m4_falcon_dynamic_hsd_capture_constraint_joint_indices[1];
+        falcon_dynamic_hsd_capture_constraint_joint_indices[1];
     joint_indices[2] =
-        pf_m4_falcon_dynamic_hsd_data.copy_target_joint_indices[0];
+        falcon_dynamic_hsd_data.copy_target_joint_indices[0];
     if (
-        !pf_m4_hsd_evaluate_joint_origins_source_q16(
-            &pf_m4_falcon_dynamic_hsd_data,
+        !hsd_evaluate_joint_origins_source_q16(
+            &falcon_dynamic_hsd_data,
             holder_submotion,
             holder_frame_q16,
             joint_indices,
             UINT8_C(3),
             holder_origins) ||
-        !pf_m4_hsd_evaluate_joint_origins_source_q16(
-            &pf_m4_falcon_dynamic_hsd_data,
+        !hsd_evaluate_joint_origins_source_q16(
+            &falcon_dynamic_hsd_data,
             victim_submotion,
             victim_frame_q16,
             joint_indices,
@@ -1527,12 +1527,12 @@ int pf_m4_falcon_reference_capture_constraint_q16(
                  (int64_t)holder_origins[2][0]) +
             (int64_t)victim_facing *
                 (int64_t)
-                    pf_m4_falcon_dynamic_hsd_capture_root_offset_source_q16[2];
+                    falcon_dynamic_hsd_capture_root_offset_source_q16[2];
         relative_y =
             ((int64_t)holder_origins[1][1] -
              (int64_t)holder_origins[2][1]) +
             (int64_t)
-                pf_m4_falcon_dynamic_hsd_capture_root_offset_source_q16[1];
+                falcon_dynamic_hsd_capture_root_offset_source_q16[1];
     }
     else
     {
@@ -1555,25 +1555,25 @@ int pf_m4_falcon_reference_capture_constraint_q16(
     {
         return 0;
     }
-    *out_x_q16 = pf_m4_falcon_ecb_source_scale_q16(
+    *out_x_q16 = falcon_ecb_source_scale_q16(
         (int32_t)relative_x,
-        pf_m4_falcon_dynamic_hsd_data.source_to_sim_numerator,
-        pf_m4_falcon_dynamic_hsd_data.source_to_sim_denominator);
-    *out_y_q16 = -pf_m4_falcon_ecb_source_scale_q16(
+        falcon_dynamic_hsd_data.source_to_sim_numerator,
+        falcon_dynamic_hsd_data.source_to_sim_denominator);
+    *out_y_q16 = -falcon_ecb_source_scale_q16(
         (int32_t)relative_y,
-        pf_m4_falcon_dynamic_hsd_capture_world_y_source_to_sim_numerator,
-        pf_m4_falcon_dynamic_hsd_capture_world_y_source_to_sim_denominator);
+        falcon_dynamic_hsd_capture_world_y_source_to_sim_numerator,
+        falcon_dynamic_hsd_capture_world_y_source_to_sim_denominator);
     return 1;
 }
 
-int pf_m4_falcon_reference_throw_motions(
+int falcon_reference_throw_motions(
     uint8_t action_state,
     uint16_t *out_holder_submotion,
     uint16_t *out_victim_submotion,
     int32_t *out_animation_rate_q16)
 {
-    const pf_m4_falcon_common_attributes *attributes =
-        pf_m4_falcon_reference_common_attributes();
+    const falcon_common_attributes *attributes =
+        falcon_reference_common_attributes();
     uint16_t holder_submotion;
     uint16_t victim_submotion;
     uint32_t throw_index;
@@ -1612,58 +1612,58 @@ int pf_m4_falcon_reference_throw_motions(
     }
     *out_holder_submotion = holder_submotion;
     *out_victim_submotion = victim_submotion;
-    *out_animation_rate_q16 = pf_m4_ssbm_throw_animation_rate_q16(
+    *out_animation_rate_q16 = ssbm_throw_animation_rate_q16(
         attributes->weight,
         (attributes->weight_independent_throws_mask &
          (uint8_t)(UINT8_C(1) << throw_index)) != UINT8_C(0));
     return *out_animation_rate_q16 > INT32_C(0);
 }
 
-const pf_m4_reference_move *pf_m4_falcon_reference_move(
-    pf_m4_falcon_move_index move_index)
+const struct reference_move *falcon_reference_move(
+    falcon_move_index move_index)
 {
     if ((uint32_t)move_index >= (uint32_t)PF_M4_FALCON_MOVE_COUNT)
     {
         return NULL;
     }
-    return &pf_m4_falcon_moves[move_index];
+    return &falcon_moves[move_index];
 }
 
-const pf_m4_reference_hit_phase *pf_m4_falcon_reference_phase(
-    pf_m4_falcon_move_index move_index,
+const reference_hit_phase *falcon_reference_phase(
+    falcon_move_index move_index,
     uint16_t phase_index)
 {
-    const pf_m4_reference_move *move =
-        pf_m4_falcon_reference_move(move_index);
+    const struct reference_move *move =
+        falcon_reference_move(move_index);
 
     if (move == NULL || move->present == UINT8_C(0) ||
         phase_index >= (uint16_t)move->phase_count)
     {
         return NULL;
     }
-    return &pf_m4_falcon_hit_phases[move->phase_offset + phase_index];
+    return &falcon_hit_phases[move->phase_offset + phase_index];
 }
 
-const pf_m4_reference_hit_effect *pf_m4_falcon_reference_effect(
-    pf_m4_falcon_move_index move_index,
+const reference_hit_effect *falcon_reference_effect(
+    falcon_move_index move_index,
     uint16_t effect_index)
 {
-    const pf_m4_reference_move *move =
-        pf_m4_falcon_reference_move(move_index);
+    const struct reference_move *move =
+        falcon_reference_move(move_index);
 
     if (move == NULL || move->present == UINT8_C(0) ||
         effect_index >= (uint16_t)move->effect_count)
     {
         return NULL;
     }
-    return &pf_m4_falcon_hit_effects[move->effect_offset + effect_index];
+    return &falcon_hit_effects[move->effect_offset + effect_index];
 }
 
-const pf_m4_reference_hit_effect *pf_m4_falcon_reference_primary_effect(
-    pf_m4_falcon_move_index move_index)
+const reference_hit_effect *falcon_reference_primary_effect(
+    falcon_move_index move_index)
 {
-    const pf_m4_reference_hit_phase *phase =
-        pf_m4_falcon_reference_phase(move_index, UINT16_C(0));
+    const reference_hit_phase *phase =
+        falcon_reference_phase(move_index, UINT16_C(0));
     uint16_t effect_index = UINT16_C(0);
     uint16_t mask;
 
@@ -1677,30 +1677,30 @@ const pf_m4_reference_hit_effect *pf_m4_falcon_reference_primary_effect(
         mask >>= 1U;
         ++effect_index;
     }
-    return pf_m4_falcon_reference_effect(move_index, effect_index);
+    return falcon_reference_effect(move_index, effect_index);
 }
 
-const pf_m4_reference_hit_phase *pf_m4_falcon_reference_phase_at_frame(
-    pf_m4_falcon_move_index move_index,
+const reference_hit_phase *falcon_reference_phase_at_frame(
+    falcon_move_index move_index,
     uint16_t action_frame)
 {
-    const pf_m4_reference_move *move =
-        pf_m4_falcon_reference_move(move_index);
+    const struct reference_move *move =
+        falcon_reference_move(move_index);
     uint16_t phase_index;
 
     if (move == NULL || move->present == UINT8_C(0))
     {
         return NULL;
     }
-    action_frame = pf_m4_falcon_reference_effective_hit_frame(
+    action_frame = falcon_reference_effective_hit_frame(
         move_index,
         action_frame);
     for (phase_index = UINT16_C(0);
          phase_index < (uint16_t)move->phase_count;
          ++phase_index)
     {
-        const pf_m4_reference_hit_phase *phase =
-            pf_m4_falcon_reference_phase(move_index, phase_index);
+        const reference_hit_phase *phase =
+            falcon_reference_phase(move_index, phase_index);
 
         if (phase != NULL && action_frame >= phase->first_frame &&
             action_frame <= phase->last_frame)
@@ -1711,8 +1711,8 @@ const pf_m4_reference_hit_phase *pf_m4_falcon_reference_phase_at_frame(
     return NULL;
 }
 
-uint16_t pf_m4_falcon_reference_effective_hit_frame(
-    pf_m4_falcon_move_index move_index,
+uint16_t falcon_reference_effective_hit_frame(
+    falcon_move_index move_index,
     uint16_t action_frame)
 {
     if (move_index != PF_M4_FALCON_RAPID_JABS_LOOP ||
@@ -1729,12 +1729,12 @@ uint16_t pf_m4_falcon_reference_effective_hit_frame(
                       (action_frame - UINT16_C(4)) % UINT16_C(8));
 }
 
-const pf_m4_reference_hit_effect *pf_m4_falcon_reference_effect_at_frame(
-    pf_m4_falcon_move_index move_index,
+const reference_hit_effect *falcon_reference_effect_at_frame(
+    falcon_move_index move_index,
     uint16_t action_frame)
 {
-    const pf_m4_reference_hit_phase *phase =
-        pf_m4_falcon_reference_phase_at_frame(move_index, action_frame);
+    const reference_hit_phase *phase =
+        falcon_reference_phase_at_frame(move_index, action_frame);
     uint16_t effect_index = UINT16_C(0);
     uint16_t mask;
 
@@ -1748,17 +1748,17 @@ const pf_m4_reference_hit_effect *pf_m4_falcon_reference_effect_at_frame(
         mask >>= 1U;
         ++effect_index;
     }
-    return pf_m4_falcon_reference_effect(move_index, effect_index);
+    return falcon_reference_effect(move_index, effect_index);
 }
 
-const pf_m4_reference_hit_sphere *
-pf_m4_falcon_reference_hit_spheres_at_frame(
-    pf_m4_falcon_move_index move_index,
+const reference_hit_sphere *
+falcon_reference_hit_spheres_at_frame(
+    falcon_move_index move_index,
     uint16_t action_frame,
     uint8_t *out_sphere_count)
 {
-    const pf_m4_reference_geometry_move *geometry;
-    const pf_m4_reference_hit_frame *frame;
+    const reference_geometry_move *geometry;
+    const reference_hit_frame *frame;
     uint16_t relative_frame;
 
     if (out_sphere_count != NULL)
@@ -1769,10 +1769,10 @@ pf_m4_falcon_reference_hit_spheres_at_frame(
     {
         return NULL;
     }
-    action_frame = pf_m4_falcon_reference_effective_hit_frame(
+    action_frame = falcon_reference_effective_hit_frame(
         move_index,
         action_frame);
-    geometry = &pf_m4_falcon_geometry_moves[move_index];
+    geometry = &falcon_geometry_moves[move_index];
     if (geometry->frame_count == UINT8_C(0) ||
         action_frame < (uint16_t)geometry->first_frame)
     {
@@ -1784,7 +1784,7 @@ pf_m4_falcon_reference_hit_spheres_at_frame(
     {
         return NULL;
     }
-    frame = &pf_m4_falcon_hit_frames[
+    frame = &falcon_hit_frames[
         geometry->frame_offset + relative_frame];
     if (frame->sphere_count == UINT8_C(0))
     {
@@ -1794,37 +1794,37 @@ pf_m4_falcon_reference_hit_spheres_at_frame(
     {
         *out_sphere_count = frame->sphere_count;
     }
-    return &pf_m4_falcon_hit_spheres[frame->sphere_offset];
+    return &falcon_hit_spheres[frame->sphere_offset];
 }
 
-int pf_m4_falcon_reference_has_hit_geometry(
-    pf_m4_falcon_move_index move_index)
+int falcon_reference_has_hit_geometry(
+    falcon_move_index move_index)
 {
     return (uint32_t)move_index < (uint32_t)PF_M4_FALCON_MOVE_COUNT &&
-           pf_m4_falcon_geometry_moves[move_index].frame_count != UINT8_C(0);
+           falcon_geometry_moves[move_index].frame_count != UINT8_C(0);
 }
 
-const pf_m4_reference_hurt_capsule *
-pf_m4_falcon_reference_standing_hurt_capsules(uint8_t *out_count)
+const reference_hurt_capsule *
+falcon_reference_standing_hurt_capsules(uint8_t *out_count)
 {
     if (out_count != NULL)
     {
         *out_count = (uint8_t)(
-            sizeof(pf_m4_falcon_standing_hurt_capsules) /
-            sizeof(pf_m4_falcon_standing_hurt_capsules[0]));
+            sizeof(falcon_standing_hurt_capsules) /
+            sizeof(falcon_standing_hurt_capsules[0]));
     }
-    return pf_m4_falcon_standing_hurt_capsules;
+    return falcon_standing_hurt_capsules;
 }
 
-static const pf_m4_reference_hurt_capsule *
-pf_m4_falcon_reference_hurt_track_at_frame(
-    const pf_m4_reference_hurt_move *move,
-    const pf_m4_reference_hurt_frame *frames,
-    const pf_m4_reference_hurt_capsule *capsules,
+static const reference_hurt_capsule *
+falcon_reference_hurt_track_at_frame(
+    const reference_hurt_move *move,
+    const reference_hurt_frame *frames,
+    const reference_hurt_capsule *capsules,
     uint16_t action_frame,
     uint8_t *out_count)
 {
-    const pf_m4_reference_hurt_frame *frame;
+    const reference_hurt_frame *frame;
     uint16_t relative_frame;
 
     if (out_count != NULL)
@@ -1853,9 +1853,9 @@ pf_m4_falcon_reference_hurt_track_at_frame(
     return &capsules[frame->capsule_offset];
 }
 
-const pf_m4_reference_hurt_capsule *
-pf_m4_falcon_reference_hurt_capsules_at_frame(
-    pf_m4_falcon_move_index move_index,
+const reference_hurt_capsule *
+falcon_reference_hurt_capsules_at_frame(
+    falcon_move_index move_index,
     uint16_t action_frame,
     uint8_t *out_count)
 {
@@ -1867,19 +1867,19 @@ pf_m4_falcon_reference_hurt_capsules_at_frame(
         }
         return NULL;
     }
-    return pf_m4_falcon_reference_hurt_track_at_frame(
-        &pf_m4_falcon_hurt_moves[move_index],
-        pf_m4_falcon_hurt_frames,
-        pf_m4_falcon_hurt_capsules,
+    return falcon_reference_hurt_track_at_frame(
+        &falcon_hurt_moves[move_index],
+        falcon_hurt_frames,
+        falcon_hurt_capsules,
         action_frame,
         out_count);
 }
 
-static uint8_t pf_m4_falcon_ledge_hurt_track_for_action(
+static uint8_t falcon_ledge_hurt_track_for_action(
     uint8_t action_state,
     uint16_t source_submotion)
 {
-    switch ((pf_m4_action_state)action_state)
+    switch ((enum action_state)action_state)
     {
         case PF_M4_ACTION_LEDGE_CLIMB:
             if (source_submotion ==
@@ -1918,7 +1918,7 @@ static uint8_t pf_m4_falcon_ledge_hurt_track_for_action(
             }
             break;
         case PF_M4_ACTION_LEDGE_JUMP:
-            switch ((pf_m4_falcon_submotion_index)source_submotion)
+            switch ((falcon_submotion_index)source_submotion)
             {
                 case PF_M4_FALCON_SUBMOTION_LEDGE_JUMP_QUICK_1:
                 return (uint8_t)PF_M4_FALCON_LEDGE_HURT_JUMP_QUICK_1;
@@ -1938,25 +1938,25 @@ static uint8_t pf_m4_falcon_ledge_hurt_track_for_action(
     return UINT8_MAX;
 }
 
-const pf_m4_reference_hurt_capsule *
-pf_m4_falcon_reference_common_hurt_capsules_at_frame(
+const reference_hurt_capsule *
+falcon_reference_common_hurt_capsules_at_frame(
     uint8_t action_state,
     uint16_t action_frame,
     uint8_t *out_count)
 {
     return
-        pf_m4_falcon_reference_common_hurt_capsules_for_submotion_at_frame(
+        falcon_reference_common_hurt_capsules_for_submotion_at_frame(
             action_state,
             UINT16_C(0),
             action_frame,
             out_count);
 }
 
-static int pf_m4_falcon_copy_dynamic_ground_hurt_capsules(
-    const pf_m4_hsd_evaluated_capsule
+static int falcon_copy_dynamic_ground_hurt_capsules(
+    const hsd_evaluated_capsule
         evaluated[PF_M4_HSD_POSE_MAX_CAPSULES],
     uint8_t count,
-    pf_m4_reference_hurt_capsule
+    reference_hurt_capsule
         out_capsules[PF_M4_HSD_POSE_MAX_CAPSULES],
     uint8_t *out_count)
 {
@@ -1974,9 +1974,9 @@ static int pf_m4_falcon_copy_dynamic_ground_hurt_capsules(
          capsule_index < count;
          ++capsule_index)
     {
-        const pf_m4_hsd_evaluated_capsule *source =
+        const hsd_evaluated_capsule *source =
             &evaluated[capsule_index];
-        pf_m4_reference_hurt_capsule *destination =
+        reference_hurt_capsule *destination =
             &out_capsules[capsule_index];
 
         destination->endpoint_a_x_q16 = source->endpoint_a_q16[0];
@@ -1995,18 +1995,18 @@ static int pf_m4_falcon_copy_dynamic_ground_hurt_capsules(
     return 1;
 }
 
-int pf_m4_falcon_reference_hsd_hurt_capsules(
+int falcon_reference_hsd_hurt_capsules(
     uint16_t source_submotion,
     int32_t source_animation_frame_q16,
-    pf_m4_reference_hurt_capsule
+    reference_hurt_capsule
         out_capsules[PF_M4_HSD_POSE_MAX_CAPSULES],
     uint8_t *out_count)
 {
-    pf_m4_hsd_evaluated_capsule evaluated[PF_M4_HSD_POSE_MAX_CAPSULES];
+    hsd_evaluated_capsule evaluated[PF_M4_HSD_POSE_MAX_CAPSULES];
     uint8_t count;
 
-    if (!pf_m4_hsd_evaluate_hurt_pose(
-            &pf_m4_falcon_dynamic_hsd_data,
+    if (!hsd_evaluate_hurt_pose(
+            &falcon_dynamic_hsd_data,
             source_submotion,
             source_animation_frame_q16,
             evaluated,
@@ -2018,21 +2018,21 @@ int pf_m4_falcon_reference_hsd_hurt_capsules(
         }
         return 0;
     }
-    return pf_m4_falcon_copy_dynamic_ground_hurt_capsules(
+    return falcon_copy_dynamic_ground_hurt_capsules(
         evaluated, count, out_capsules, out_count);
 }
 
-int pf_m4_falcon_reference_hsd_hurt_capsules_from_local_pose(
-    const pf_m4_hsd_local_pose pose[PF_M4_HSD_POSE_MAX_JOINTS],
-    pf_m4_reference_hurt_capsule
+int falcon_reference_hsd_hurt_capsules_from_local_pose(
+    const hsd_local_pose pose[PF_M4_HSD_POSE_MAX_JOINTS],
+    reference_hurt_capsule
         out_capsules[PF_M4_HSD_POSE_MAX_CAPSULES],
     uint8_t *out_count)
 {
-    pf_m4_hsd_evaluated_capsule evaluated[PF_M4_HSD_POSE_MAX_CAPSULES];
+    hsd_evaluated_capsule evaluated[PF_M4_HSD_POSE_MAX_CAPSULES];
     uint8_t count;
 
-    if (!pf_m4_hsd_evaluate_hurt_pose_from_local_pose(
-            &pf_m4_falcon_dynamic_hsd_data,
+    if (!hsd_evaluate_hurt_pose_from_local_pose(
+            &falcon_dynamic_hsd_data,
             pose,
             evaluated,
             &count))
@@ -2043,17 +2043,17 @@ int pf_m4_falcon_reference_hsd_hurt_capsules_from_local_pose(
         }
         return 0;
     }
-    return pf_m4_falcon_copy_dynamic_ground_hurt_capsules(
+    return falcon_copy_dynamic_ground_hurt_capsules(
         evaluated, count, out_capsules, out_count);
 }
 
-static int pf_m4_falcon_reference_damage_hsd_local_pose(
+static int falcon_reference_damage_hsd_local_pose(
     uint16_t source_submotion,
     int32_t source_animation_frame_q16,
     int8_t facing,
     int32_t total_velocity_x_q16,
     int32_t total_velocity_y_q16,
-    pf_m4_hsd_local_pose out_pose[PF_M4_HSD_POSE_MAX_JOINTS])
+    hsd_local_pose out_pose[PF_M4_HSD_POSE_MAX_JOINTS])
 {
     enum
     {
@@ -2061,8 +2061,8 @@ static int pf_m4_falcon_reference_damage_hsd_local_pose(
     };
 
     if (out_pose == NULL || (facing != INT8_C(-1) && facing != INT8_C(1)) ||
-        !pf_m4_hsd_evaluate_local_pose_q16(
-            &pf_m4_falcon_dynamic_hsd_data,
+        !hsd_evaluate_local_pose_q16(
+            &falcon_dynamic_hsd_data,
             source_submotion,
             source_animation_frame_q16,
             out_pose))
@@ -2089,7 +2089,7 @@ static int pf_m4_falcon_reference_damage_hsd_local_pose(
         /* DamageFlyRoll's callbacks overwrite FtPart_XRotN with
          * facing * atan2(total_x, total_y) in Melee source space.  The
          * imported model's complete part map keeps XRotN at joint two. */
-        unsigned_turn = pf_m4_fixed_atan2_turn(
+        unsigned_turn = fixed_atan2_turn(
             (int32_t)source_x, (int32_t)source_y);
         signed_turn =
             unsigned_turn <= UINT16_C(32767)
@@ -2101,30 +2101,30 @@ static int pf_m4_falcon_reference_damage_hsd_local_pose(
     return 1;
 }
 
-int pf_m4_falcon_reference_damage_hsd_hurt_capsules(
+int falcon_reference_damage_hsd_hurt_capsules(
     uint16_t source_submotion,
     int32_t source_animation_frame_q16,
     int8_t facing,
     int32_t total_velocity_x_q16,
     int32_t total_velocity_y_q16,
-    pf_m4_reference_hurt_capsule
+    reference_hurt_capsule
         out_capsules[PF_M4_HSD_POSE_MAX_CAPSULES],
     uint8_t *out_count)
 {
-    pf_m4_hsd_local_pose pose[PF_M4_HSD_POSE_MAX_JOINTS];
+    hsd_local_pose pose[PF_M4_HSD_POSE_MAX_JOINTS];
 
-    return pf_m4_falcon_reference_damage_hsd_local_pose(
+    return falcon_reference_damage_hsd_local_pose(
                source_submotion,
                source_animation_frame_q16,
                facing,
                total_velocity_x_q16,
                total_velocity_y_q16,
                pose) &&
-           pf_m4_falcon_reference_hsd_hurt_capsules_from_local_pose(
+           falcon_reference_hsd_hurt_capsules_from_local_pose(
                pose, out_capsules, out_count);
 }
 
-int pf_m4_falcon_reference_damage_hsd_ecb_pose(
+int falcon_reference_damage_hsd_ecb_pose(
     uint16_t source_submotion,
     int32_t source_animation_frame_q16,
     int8_t facing,
@@ -2132,22 +2132,22 @@ int pf_m4_falcon_reference_damage_hsd_ecb_pose(
     int32_t total_velocity_y_q16,
     int grounded,
     int32_t locked_bottom_y_q16,
-    pf_m4_falcon_ecb_pose_q16 *out_pose)
+    falcon_ecb_pose_q16 *out_pose)
 {
-    pf_m4_hsd_local_pose pose[PF_M4_HSD_POSE_MAX_JOINTS];
+    hsd_local_pose pose[PF_M4_HSD_POSE_MAX_JOINTS];
 
-    return pf_m4_falcon_reference_damage_hsd_local_pose(
+    return falcon_reference_damage_hsd_local_pose(
                source_submotion,
                source_animation_frame_q16,
                facing,
                total_velocity_x_q16,
                total_velocity_y_q16,
                pose) &&
-           pf_m4_falcon_reference_hsd_ecb_pose_from_local_pose(
+           falcon_reference_hsd_ecb_pose_from_local_pose(
                pose, grounded, locked_bottom_y_q16, out_pose);
 }
 
-int pf_m4_falcon_reference_retained_hsd_pose(
+int falcon_reference_retained_hsd_pose(
     uint8_t action_state,
     uint16_t source_submotion,
     uint16_t action_ticks,
@@ -2160,7 +2160,7 @@ int pf_m4_falcon_reference_retained_hsd_pose(
     {
         return 0;
     }
-    switch ((pf_m4_action_state)action_state)
+    switch ((enum action_state)action_state)
     {
     case PF_M4_ACTION_AIR_DODGE:
         expected_submotion =
@@ -2189,11 +2189,11 @@ int pf_m4_falcon_reference_retained_hsd_pose(
         break;
     case PF_M4_ACTION_SHIELD_BREAK_DOWN:
         expected_submotion =
-            pf_m4_falcon_reference_shield_break_down_submotion();
+            falcon_reference_shield_break_down_submotion();
         break;
     case PF_M4_ACTION_SHIELD_BREAK_STAND:
         expected_submotion =
-            pf_m4_falcon_reference_shield_break_down_submotion() ==
+            falcon_reference_shield_break_down_submotion() ==
                     (uint16_t)PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_DOWN_DOWN
                 ? (uint16_t)PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_STAND_DOWN
                 : (uint16_t)PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_STAND_UP;
@@ -2222,18 +2222,18 @@ int pf_m4_falcon_reference_retained_hsd_pose(
     return 1;
 }
 
-int pf_m4_falcon_reference_retained_hsd_hurt_capsules(
+int falcon_reference_retained_hsd_hurt_capsules(
     uint8_t action_state,
     uint16_t source_submotion,
     uint16_t action_ticks,
     int32_t source_animation_frame_q16,
-    pf_m4_reference_hurt_capsule
+    reference_hurt_capsule
         out_capsules[PF_M4_HSD_POSE_MAX_CAPSULES],
     uint8_t *out_count)
 {
     int32_t evaluated_frame_q16;
 
-    if (!pf_m4_falcon_reference_retained_hsd_pose(
+    if (!falcon_reference_retained_hsd_pose(
             action_state,
             source_submotion,
             action_ticks,
@@ -2242,20 +2242,20 @@ int pf_m4_falcon_reference_retained_hsd_hurt_capsules(
     {
         return 0;
     }
-    return pf_m4_falcon_reference_hsd_hurt_capsules(
+    return falcon_reference_hsd_hurt_capsules(
         source_submotion,
         evaluated_frame_q16,
         out_capsules,
         out_count);
 }
 
-uint16_t pf_m4_falcon_reference_shield_break_down_submotion(void)
+uint16_t falcon_reference_shield_break_down_submotion(void)
 {
     _Static_assert(
-        pf_m4_falcon_dynamic_hsd_pose_branch_shield_break_down_up_component_q16 <
+        falcon_dynamic_hsd_pose_branch_shield_break_down_up_component_q16 <
             INT32_C(0),
         "Falcon terminal ShieldBreakFly HipN branch must remain DownD");
-    return pf_m4_falcon_dynamic_hsd_pose_branch_shield_break_down_up !=
+    return falcon_dynamic_hsd_pose_branch_shield_break_down_up !=
                    UINT8_C(0)
                ? (uint16_t)
                      PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_DOWN_UP
@@ -2263,31 +2263,31 @@ uint16_t pf_m4_falcon_reference_shield_break_down_submotion(void)
                      PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_DOWN_DOWN;
 }
 
-const pf_m4_reference_hurt_capsule *
-pf_m4_falcon_reference_common_hurt_capsules_for_submotion_at_frame(
+const reference_hurt_capsule *
+falcon_reference_common_hurt_capsules_for_submotion_at_frame(
     uint8_t action_state,
     uint16_t source_submotion,
     uint16_t action_frame,
     uint8_t *out_count)
 {
-    pf_m4_falcon_common_hurt_index track_index;
+    falcon_common_hurt_index track_index;
     const uint8_t ledge_track_index =
-        pf_m4_falcon_ledge_hurt_track_for_action(
+        falcon_ledge_hurt_track_for_action(
             action_state,
             source_submotion);
 
     if (ledge_track_index != UINT8_MAX)
     {
-        return pf_m4_falcon_reference_hurt_track_at_frame(
-            &pf_m4_falcon_ledge_hurt_moves[ledge_track_index],
-            pf_m4_falcon_ledge_hurt_frames,
-            pf_m4_falcon_ledge_hurt_capsules,
+        return falcon_reference_hurt_track_at_frame(
+            &falcon_ledge_hurt_moves[ledge_track_index],
+            falcon_ledge_hurt_frames,
+            falcon_ledge_hurt_capsules,
             action_frame,
             out_count);
     }
     if (action_state == (uint8_t)PF_M4_ACTION_GRABBED)
     {
-        pf_m4_falcon_capture_hurt_index capture_track;
+        falcon_capture_hurt_index capture_track;
 
         if (source_submotion ==
             (uint16_t)PF_M4_FALCON_SUBMOTION_CAPTURE_WAIT_HIGH)
@@ -2305,8 +2305,8 @@ pf_m4_falcon_reference_common_hurt_capsules_for_submotion_at_frame(
         }
         if (capture_track != PF_M4_FALCON_CAPTURE_HURT_COUNT)
         {
-            const pf_m4_reference_hurt_move *track =
-                &pf_m4_falcon_capture_hurt_moves[capture_track];
+            const reference_hurt_move *track =
+                &falcon_capture_hurt_moves[capture_track];
 
             if (capture_track == PF_M4_FALCON_CAPTURE_HURT_WAIT_HIGH &&
                 track->frame_count != UINT8_C(0))
@@ -2314,10 +2314,10 @@ pf_m4_falcon_reference_common_hurt_capsules_for_submotion_at_frame(
                 action_frame =
                     (uint16_t)(action_frame % track->frame_count);
             }
-            return pf_m4_falcon_reference_hurt_track_at_frame(
+            return falcon_reference_hurt_track_at_frame(
                 track,
-                pf_m4_falcon_hurt_frames,
-                pf_m4_falcon_hurt_capsules,
+                falcon_hurt_frames,
+                falcon_hurt_capsules,
                 action_frame,
                 out_count);
         }
@@ -2347,10 +2347,10 @@ pf_m4_falcon_reference_common_hurt_capsules_for_submotion_at_frame(
         }
         if (guard_track != PF_M4_FALCON_GUARD_HURT_COUNT)
         {
-            return pf_m4_falcon_reference_hurt_track_at_frame(
-                &pf_m4_falcon_guard_hurt_moves[guard_track],
-                pf_m4_falcon_guard_hurt_frames,
-                pf_m4_falcon_guard_hurt_capsules,
+            return falcon_reference_hurt_track_at_frame(
+                &falcon_guard_hurt_moves[guard_track],
+                falcon_guard_hurt_frames,
+                falcon_guard_hurt_capsules,
                 action_frame,
                 out_count);
         }
@@ -2359,11 +2359,11 @@ pf_m4_falcon_reference_common_hurt_capsules_for_submotion_at_frame(
         source_submotion ==
             (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD_OFF)
     {
-        return pf_m4_falcon_reference_hurt_track_at_frame(
-            &pf_m4_falcon_guard_hurt_moves[
+        return falcon_reference_hurt_track_at_frame(
+            &falcon_guard_hurt_moves[
                 PF_M4_FALCON_GUARD_HURT_GUARD_OFF],
-            pf_m4_falcon_guard_hurt_frames,
-            pf_m4_falcon_guard_hurt_capsules,
+            falcon_guard_hurt_frames,
+            falcon_guard_hurt_capsules,
             action_frame,
             out_count);
     }
@@ -2371,7 +2371,7 @@ pf_m4_falcon_reference_common_hurt_capsules_for_submotion_at_frame(
     {
         uint8_t airborne_track;
 
-        switch ((pf_m4_falcon_submotion_index)source_submotion)
+        switch ((falcon_submotion_index)source_submotion)
         {
         case PF_M4_FALCON_SUBMOTION_JUMP_FORWARD:
             airborne_track = PF_M4_FALCON_AIRBORNE_HURT_JUMP_FORWARD;
@@ -2399,10 +2399,10 @@ pf_m4_falcon_reference_common_hurt_capsules_for_submotion_at_frame(
         }
         if (airborne_track != UINT8_MAX)
         {
-            return pf_m4_falcon_reference_hurt_track_at_frame(
-                &pf_m4_falcon_airborne_hurt_moves[airborne_track],
-                pf_m4_falcon_airborne_hurt_frames,
-                pf_m4_falcon_airborne_hurt_capsules,
+            return falcon_reference_hurt_track_at_frame(
+                &falcon_airborne_hurt_moves[airborne_track],
+                falcon_airborne_hurt_frames,
+                falcon_airborne_hurt_capsules,
                 action_frame,
                 out_count);
         }
@@ -2410,22 +2410,22 @@ pf_m4_falcon_reference_common_hurt_capsules_for_submotion_at_frame(
     if (action_state == (uint8_t)PF_M4_ACTION_STANDING_TURN &&
         source_submotion == (uint16_t)PF_M4_FALCON_SUBMOTION_TURN)
     {
-        return pf_m4_falcon_reference_hurt_track_at_frame(
-            &pf_m4_falcon_turn_hurt_moves[
+        return falcon_reference_hurt_track_at_frame(
+            &falcon_turn_hurt_moves[
                 PF_M4_FALCON_TURN_HURT_STANDING_TURN],
-            pf_m4_falcon_turn_hurt_frames,
-            pf_m4_falcon_turn_hurt_capsules,
+            falcon_turn_hurt_frames,
+            falcon_turn_hurt_capsules,
             action_frame,
             out_count);
     }
     if (action_state == (uint8_t)PF_M4_ACTION_RUN_TURNAROUND &&
         source_submotion == (uint16_t)PF_M4_FALCON_SUBMOTION_TURN_RUN)
     {
-        return pf_m4_falcon_reference_hurt_track_at_frame(
-            &pf_m4_falcon_turn_hurt_moves[
+        return falcon_reference_hurt_track_at_frame(
+            &falcon_turn_hurt_moves[
                 PF_M4_FALCON_TURN_HURT_RUN_TURNAROUND],
-            pf_m4_falcon_turn_hurt_frames,
-            pf_m4_falcon_turn_hurt_capsules,
+            falcon_turn_hurt_frames,
+            falcon_turn_hurt_capsules,
             action_frame,
             out_count);
     }
@@ -2433,8 +2433,8 @@ pf_m4_falcon_reference_common_hurt_capsules_for_submotion_at_frame(
         source_submotion ==
             (uint16_t)PF_M4_FALCON_SUBMOTION_SQUAT_WAIT)
     {
-        const pf_m4_reference_hurt_move *track =
-            &pf_m4_falcon_crouch_taunt_hurt_moves[
+        const reference_hurt_move *track =
+            &falcon_crouch_taunt_hurt_moves[
                 PF_M4_FALCON_CROUCH_TAUNT_HURT_CROUCH_WAIT];
 
         if (action_frame >= track->first_frame &&
@@ -2446,10 +2446,10 @@ pf_m4_falcon_reference_common_hurt_capsules_for_submotion_at_frame(
                     (action_frame - track->first_frame) %
                         track->frame_count);
         }
-        return pf_m4_falcon_reference_hurt_track_at_frame(
+        return falcon_reference_hurt_track_at_frame(
             track,
-            pf_m4_falcon_crouch_taunt_hurt_frames,
-            pf_m4_falcon_crouch_taunt_hurt_capsules,
+            falcon_crouch_taunt_hurt_frames,
+            falcon_crouch_taunt_hurt_capsules,
             action_frame,
             out_count);
     }
@@ -2475,17 +2475,17 @@ pf_m4_falcon_reference_common_hurt_capsules_for_submotion_at_frame(
         }
         if (taunt_track_index != UINT8_MAX)
         {
-            return pf_m4_falcon_reference_hurt_track_at_frame(
-                &pf_m4_falcon_crouch_taunt_hurt_moves[
+            return falcon_reference_hurt_track_at_frame(
+                &falcon_crouch_taunt_hurt_moves[
                     taunt_track_index],
-                pf_m4_falcon_crouch_taunt_hurt_frames,
-                pf_m4_falcon_crouch_taunt_hurt_capsules,
+                falcon_crouch_taunt_hurt_frames,
+                falcon_crouch_taunt_hurt_capsules,
                 action_frame,
                 out_count);
         }
     }
 
-    switch ((pf_m4_action_state)action_state)
+    switch ((enum action_state)action_state)
     {
         case PF_M4_ACTION_INITIAL_DASH:
             track_index = PF_M4_FALCON_COMMON_HURT_INITIAL_DASH;
@@ -2531,21 +2531,21 @@ pf_m4_falcon_reference_common_hurt_capsules_for_submotion_at_frame(
             }
             return NULL;
     }
-    return pf_m4_falcon_reference_hurt_track_at_frame(
-        &pf_m4_falcon_common_hurt_moves[track_index],
-        pf_m4_falcon_hurt_frames,
-        pf_m4_falcon_hurt_capsules,
+    return falcon_reference_hurt_track_at_frame(
+        &falcon_common_hurt_moves[track_index],
+        falcon_hurt_frames,
+        falcon_hurt_capsules,
         action_frame,
         out_count);
 }
 
-int pf_m4_falcon_reference_move_for_action(
+int falcon_reference_move_for_action(
     uint8_t action_state,
-    pf_m4_falcon_move_index *out_move_index)
+    falcon_move_index *out_move_index)
 {
-    pf_m4_falcon_move_index move_index;
+    falcon_move_index move_index;
 
-    switch ((pf_m4_action_state)action_state)
+    switch ((enum action_state)action_state)
     {
         case PF_M4_ACTION_GROUND_ATTACK:
             move_index = PF_M4_FALCON_JAB1;
@@ -2701,36 +2701,36 @@ int pf_m4_falcon_reference_move_for_action(
     return 1;
 }
 
-const pf_m4_reference_throw *pf_m4_falcon_reference_throw(
-    pf_m4_falcon_move_index move_index)
+const reference_throw *falcon_reference_throw(
+    falcon_move_index move_index)
 {
-    const pf_m4_reference_move *move =
-        pf_m4_falcon_reference_move(move_index);
+    const struct reference_move *move =
+        falcon_reference_move(move_index);
 
     if (move == NULL || move->present == UINT8_C(0) ||
         move->throw_index == UINT16_MAX)
     {
         return NULL;
     }
-    return &pf_m4_falcon_throws[move->throw_index];
+    return &falcon_throws[move->throw_index];
 }
 
-pf_m4_reference_timing pf_m4_falcon_reference_timing(
-    pf_m4_falcon_move_index move_index)
+reference_timing falcon_reference_timing(
+    falcon_move_index move_index)
 {
-    const pf_m4_reference_move *move =
-        pf_m4_falcon_reference_move(move_index);
-    pf_m4_reference_timing timing = {0};
-    const pf_m4_reference_hit_phase *first;
-    const pf_m4_reference_hit_phase *last;
+    const struct reference_move *move =
+        falcon_reference_move(move_index);
+    reference_timing timing = {0};
+    const reference_hit_phase *first;
+    const reference_hit_phase *last;
 
     if (move == NULL || move->present == UINT8_C(0) ||
         move->phase_count == UINT8_C(0))
     {
         return timing;
     }
-    first = pf_m4_falcon_reference_phase(move_index, UINT16_C(0));
-    last = pf_m4_falcon_reference_phase(
+    first = falcon_reference_phase(move_index, UINT16_C(0));
+    last = falcon_reference_phase(
         move_index,
         (uint16_t)(move->phase_count - UINT8_C(1)));
     if (first == NULL || last == NULL)
@@ -2745,25 +2745,25 @@ pf_m4_reference_timing pf_m4_falcon_reference_timing(
     return timing;
 }
 
-const pf_m4_reference_move *pf_m4_falcon_reference_attack(
+const struct reference_move *falcon_reference_attack(
     uint8_t action_state,
-    pf_m4_reference_timing authored_timing,
+    reference_timing authored_timing,
     uint32_t authored_damage_q16)
 {
-    pf_m4_falcon_move_index move_index;
-    const pf_m4_reference_move *move;
-    const pf_m4_reference_hit_effect *effect;
-    pf_m4_reference_timing reference;
+    falcon_move_index move_index;
+    const struct reference_move *move;
+    const reference_hit_effect *effect;
+    reference_timing reference;
 
-    if (!pf_m4_falcon_reference_move_for_action(
+    if (!falcon_reference_move_for_action(
             action_state,
             &move_index))
     {
         return NULL;
     }
-    move = pf_m4_falcon_reference_move(move_index);
-    effect = pf_m4_falcon_reference_primary_effect(move_index);
-    reference = pf_m4_falcon_reference_timing(move_index);
+    move = falcon_reference_move(move_index);
+    effect = falcon_reference_primary_effect(move_index);
+    reference = falcon_reference_timing(move_index);
     if (move == NULL || effect == NULL ||
         authored_timing.startup_ticks != reference.startup_ticks ||
         authored_timing.active_ticks != reference.active_ticks ||
@@ -2776,21 +2776,21 @@ const pf_m4_reference_move *pf_m4_falcon_reference_attack(
     return move;
 }
 
-int pf_m4_falcon_reference_attack_matches(
+int falcon_reference_attack_matches(
     uint8_t action_state,
-    pf_m4_reference_timing authored_timing,
+    reference_timing authored_timing,
     uint32_t authored_damage_q16)
 {
-    return pf_m4_falcon_reference_attack(
+    return falcon_reference_attack(
                action_state,
                authored_timing,
                authored_damage_q16) != NULL;
 }
 
-pf_m4_reference_iasa_policy pf_m4_falcon_reference_iasa_policy_for_action(
+reference_iasa_policy falcon_reference_iasa_policy_for_action(
     uint8_t action_state)
 {
-    switch ((pf_m4_action_state)action_state)
+    switch ((enum action_state)action_state)
     {
         case PF_M4_ACTION_GROUND_ATTACK:
         case PF_M4_ACTION_JAB_FINAL:
@@ -2818,15 +2818,15 @@ pf_m4_reference_iasa_policy pf_m4_falcon_reference_iasa_policy_for_action(
     }
 }
 
-pf_m4_reference_ground_physics
-pf_m4_falcon_reference_ground_physics_for_action(uint8_t action_state)
+reference_ground_physics
+falcon_reference_ground_physics_for_action(uint8_t action_state)
 {
     /*
      * These are the common-action callbacks which call ft_80084FA8 or
      * ft_80085030. The other grounded normals use ft_80084F3C and therefore
      * apply ground friction without consuming animation translation.
      */
-    switch ((pf_m4_action_state)action_state)
+    switch ((enum action_state)action_state)
     {
         case PF_M4_ACTION_GROUND_ATTACK:
         case PF_M4_ACTION_JAB_FINAL:
@@ -2844,52 +2844,52 @@ pf_m4_falcon_reference_ground_physics_for_action(uint8_t action_state)
     }
 }
 
-int pf_m4_falcon_reference_iasa_active(
+int falcon_reference_iasa_active(
     uint8_t action_state,
     uint32_t displayed_frame)
 {
-    pf_m4_falcon_move_index move_index;
-    const pf_m4_reference_move *move;
+    falcon_move_index move_index;
+    const struct reference_move *move;
 
-    if (!pf_m4_falcon_reference_move_for_action(
+    if (!falcon_reference_move_for_action(
             action_state,
             &move_index))
     {
         return 0;
     }
-    move = pf_m4_falcon_reference_move(move_index);
+    move = falcon_reference_move(move_index);
     return move != NULL && move->iasa_frame != UINT16_C(0) &&
            displayed_frame >= (uint32_t)move->iasa_frame;
 }
 
-int pf_m4_falcon_reference_special_iasa_active(
+int falcon_reference_special_iasa_active(
     uint8_t action_state,
     uint16_t action_ticks)
 {
-    const pf_m4_reference_iasa_policy policy =
-        pf_m4_falcon_reference_iasa_policy_for_action(action_state);
+    const reference_iasa_policy policy =
+        falcon_reference_iasa_policy_for_action(action_state);
 
     return (policy == PF_M4_REFERENCE_IASA_WAIT ||
             policy == PF_M4_REFERENCE_IASA_FORWARD_SMASH) &&
-           pf_m4_falcon_reference_iasa_active(
+           falcon_reference_iasa_active(
                action_state,
                (uint32_t)action_ticks + UINT32_C(1));
 }
 
-int pf_m4_falcon_reference_translation_q16(
+int falcon_reference_translation_q16(
     uint16_t submotion_index,
     uint16_t displayed_frame,
     int32_t *out_translation_x_q16,
     int32_t *out_translation_y_q16)
 {
-    const pf_m4_falcon_submotion_data *submotion;
+    const falcon_submotion_data *submotion;
     uint32_t sample_index;
 
     if (displayed_frame == UINT16_C(0))
     {
         return 0;
     }
-    submotion = pf_m4_falcon_reference_submotion(submotion_index);
+    submotion = falcon_reference_submotion(submotion_index);
     if (submotion == NULL || displayed_frame > submotion->translation_count)
     {
         return 0;
@@ -2903,84 +2903,84 @@ int pf_m4_falcon_reference_translation_q16(
     if (out_translation_x_q16 != NULL)
     {
         *out_translation_x_q16 =
-            pf_m4_falcon_translation_x_q16[sample_index];
+            falcon_translation_x_q16[sample_index];
     }
     if (out_translation_y_q16 != NULL)
     {
         *out_translation_y_q16 =
-            pf_m4_falcon_translation_y_q16[sample_index];
+            falcon_translation_y_q16[sample_index];
     }
     return 1;
 }
 
-int pf_m4_falcon_reference_motion_x_q16(
+int falcon_reference_motion_x_q16(
     uint8_t action_state,
     uint16_t action_frame,
     int32_t *out_motion_x_q16)
 {
-    pf_m4_falcon_move_index move_index;
-    const pf_m4_reference_move *move;
+    falcon_move_index move_index;
+    const struct reference_move *move;
 
     if (action_frame == UINT16_C(0) ||
-        !pf_m4_falcon_reference_move_for_action(
+        !falcon_reference_move_for_action(
             action_state,
             &move_index))
     {
         return 0;
     }
-    move = pf_m4_falcon_reference_move(move_index);
+    move = falcon_reference_move(move_index);
     if (move == NULL)
     {
         return 0;
     }
-    return pf_m4_falcon_reference_translation_q16(
+    return falcon_reference_translation_q16(
         move->subaction_index,
         action_frame,
         out_motion_x_q16,
         NULL);
 }
 
-int pf_m4_falcon_reference_motion_y_q16(
+int falcon_reference_motion_y_q16(
     uint8_t action_state,
     uint16_t action_frame,
     int32_t *out_motion_y_q16)
 {
-    pf_m4_falcon_move_index move_index;
-    const pf_m4_reference_move *move;
+    falcon_move_index move_index;
+    const struct reference_move *move;
 
     if (action_frame == UINT16_C(0) ||
-        !pf_m4_falcon_reference_move_for_action(
+        !falcon_reference_move_for_action(
             action_state,
             &move_index))
     {
         return 0;
     }
-    move = pf_m4_falcon_reference_move(move_index);
+    move = falcon_reference_move(move_index);
     if (move == NULL)
     {
         return 0;
     }
-    return pf_m4_falcon_reference_translation_q16(
+    return falcon_reference_translation_q16(
         move->subaction_index,
         action_frame,
         NULL,
         out_motion_y_q16);
 }
 
-int pf_m4_falcon_reference_landing_lag_active(
+int falcon_reference_landing_lag_active(
     uint8_t action_state,
     uint16_t action_frame)
 {
-    pf_m4_falcon_move_index move_index;
-    const pf_m4_reference_move *move;
+    falcon_move_index move_index;
+    const struct reference_move *move;
 
-    if (!pf_m4_falcon_reference_move_for_action(
+    if (!falcon_reference_move_for_action(
             action_state,
             &move_index))
     {
         return -1;
     }
-    move = pf_m4_falcon_reference_move(move_index);
+    move = falcon_reference_move(move_index);
     if (move == NULL || move->landing_lag == UINT16_C(0) ||
         move->autocancel_before == UINT16_C(0) ||
         move->autocancel_after == UINT16_C(0))

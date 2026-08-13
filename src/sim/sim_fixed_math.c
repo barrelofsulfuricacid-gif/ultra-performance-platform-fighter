@@ -1,7 +1,7 @@
 #include "sim_fixed_math.h"
 
 /* atan(i / 64) in unsigned-turn units. */
-const uint16_t pf_m4_atan_turn_table[65] = {
+const uint16_t atan_turn_table[65] = {
     UINT16_C(0), UINT16_C(163), UINT16_C(326), UINT16_C(489),
     UINT16_C(651), UINT16_C(813), UINT16_C(975), UINT16_C(1136),
     UINT16_C(1297), UINT16_C(1457), UINT16_C(1617), UINT16_C(1775),

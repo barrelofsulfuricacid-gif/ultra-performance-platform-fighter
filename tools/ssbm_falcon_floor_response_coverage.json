@@ -87,8 +87,8 @@
   ],
   "selection": {
     "paths": [
-      "generated/data/m4_ssbm_ntsc102_common_data.inc",
-      "generated/data/m4_ssbm_falcon_floor_response_oracle.inc",
+      "generated/data/ssbm_ntsc102_common_data.inc",
+      "generated/data/ssbm_falcon_floor_response_oracle.inc",
       "include/pf/m4.h",
       "src/sim/sim_content.c",
       "src/sim/sim_falcon_frame_data.c",
@@ -99,7 +99,7 @@
       "src/sim/sim_ssbm_common_data.h",
       "tests/sim/ssbm_stored_oracle.c",
       "tests/sim/ssbm_stored_oracle.h",
-      "tests/sim/test_m4_combat.c",
+      "tests/sim/test_combat.c",
       "tools/capture_ssbm_movement.py",
       "tools/generate_ssbm_stored_trace_oracle.py",
       "tools/import_ssbm_common_data.py",
@@ -140,15 +140,15 @@
       }
     ],
     "c": {
-      "symbol_prefix": "pf_m4_ssbm_falcon_floor_response",
+      "symbol_prefix": "ssbm_falcon_floor_response",
       "macro_prefix": "PF_M4_SSBM_FALCON_FLOOR_RESPONSE"
     },
     "generator": {
       "script": "tools/generate_ssbm_stored_trace_oracle.py",
-      "output": "generated/data/m4_ssbm_falcon_floor_response_oracle.inc"
+      "output": "generated/data/ssbm_falcon_floor_response_oracle.inc"
     },
     "runner": {
-      "executable": "m4_combat_test",
+      "executable": "combat_test",
       "arguments": ["--ssbm-oracle", "falcon-common-floor-response"]
     }
   }

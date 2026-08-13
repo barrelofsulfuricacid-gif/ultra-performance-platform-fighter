@@ -1074,7 +1074,7 @@ def generate(
         f"/* decomp revision: {EXPECTED_DECOMP_REVISION} */",
         f"/* canonical geometry SHA-256: {geometry_digest} */",
         "",
-        "static const uint8_t pf_m4_falcon_geometry_sha256[32] = {",
+        "static const uint8_t falcon_geometry_sha256[32] = {",
         "    "
         + ", ".join(
             f"UINT8_C(0x{geometry_digest[index:index + 2]})"
@@ -1082,21 +1082,21 @@ def generate(
         ),
         "};",
         "",
-        "static const int32_t pf_m4_falcon_capture_offset_x_q16 = "
+        "static const int32_t falcon_capture_offset_x_q16 = "
         f"INT32_C({capture_offset_x_q16});",
-        "static const int32_t pf_m4_falcon_capture_offset_y_q16 = "
+        "static const int32_t falcon_capture_offset_y_q16 = "
         f"INT32_C({capture_offset_y_q16});",
         "",
-        "static const uint16_t pf_m4_falcon_side_special_ground_search_offset = "
+        "static const uint16_t falcon_side_special_ground_search_offset = "
         f"UINT16_C({search_offsets[0]});",
-        "static const uint8_t pf_m4_falcon_side_special_ground_search_count = "
+        "static const uint8_t falcon_side_special_ground_search_count = "
         f"UINT8_C({search_counts[0]});",
-        "static const uint16_t pf_m4_falcon_side_special_air_search_offset = "
+        "static const uint16_t falcon_side_special_air_search_offset = "
         f"UINT16_C({search_offsets[1]});",
-        "static const uint8_t pf_m4_falcon_side_special_air_search_count = "
+        "static const uint8_t falcon_side_special_air_search_count = "
         f"UINT8_C({search_counts[1]});",
-        "static const pf_m4_reference_search_sphere",
-        "pf_m4_falcon_side_special_search_spheres[] = {",
+        "static const reference_search_sphere",
+        "falcon_side_special_search_spheres[] = {",
     ]
     lines.extend(
         "    { "
@@ -1108,8 +1108,8 @@ def generate(
     lines.extend((
         "};",
         "",
-        "static const pf_m4_reference_geometry_move",
-        "pf_m4_falcon_geometry_moves[PF_M4_FALCON_MOVE_COUNT] = {",
+        "static const reference_geometry_move",
+        "falcon_geometry_moves[PF_M4_FALCON_MOVE_COUNT] = {",
     ))
     lines.extend(
         "    { "
@@ -1123,8 +1123,8 @@ def generate(
         (
             "};",
             "",
-            "static const pf_m4_reference_hit_frame",
-            "pf_m4_falcon_hit_frames[] = {",
+            "static const reference_hit_frame",
+            "falcon_hit_frames[] = {",
         )
     )
     lines.extend(
@@ -1138,8 +1138,8 @@ def generate(
         (
             "};",
             "",
-            "static const pf_m4_reference_hit_sphere",
-            "pf_m4_falcon_hit_spheres[] = {",
+            "static const reference_hit_sphere",
+            "falcon_hit_spheres[] = {",
         )
     )
     lines.extend(
@@ -1159,8 +1159,8 @@ def generate(
         (
             "};",
             "",
-            "static const pf_m4_reference_hurt_move",
-            "pf_m4_falcon_hurt_moves[PF_M4_FALCON_MOVE_COUNT] = {",
+            "static const reference_hurt_move",
+            "falcon_hurt_moves[PF_M4_FALCON_MOVE_COUNT] = {",
         )
     )
     lines.extend(
@@ -1175,8 +1175,8 @@ def generate(
         (
             "};",
             "",
-            "static const pf_m4_reference_hurt_move",
-            "pf_m4_falcon_capture_hurt_moves[PF_M4_FALCON_CAPTURE_HURT_COUNT] = {",
+            "static const reference_hurt_move",
+            "falcon_capture_hurt_moves[PF_M4_FALCON_CAPTURE_HURT_COUNT] = {",
         )
     )
     lines.extend(
@@ -1191,8 +1191,8 @@ def generate(
         (
             "};",
             "",
-            "static const pf_m4_reference_hurt_move",
-            "pf_m4_falcon_common_hurt_moves[PF_M4_FALCON_COMMON_HURT_COUNT] = {",
+            "static const reference_hurt_move",
+            "falcon_common_hurt_moves[PF_M4_FALCON_COMMON_HURT_COUNT] = {",
         )
     )
     lines.extend(
@@ -1207,8 +1207,8 @@ def generate(
         (
             "};",
             "",
-            "static const pf_m4_reference_hurt_frame",
-            "pf_m4_falcon_hurt_frames[] = {",
+            "static const reference_hurt_frame",
+            "falcon_hurt_frames[] = {",
         )
     )
     lines.extend(
@@ -1222,8 +1222,8 @@ def generate(
         (
             "};",
             "",
-            "static const pf_m4_reference_hurt_capsule",
-            "pf_m4_falcon_hurt_capsules[] = {",
+            "static const reference_hurt_capsule",
+            "falcon_hurt_capsules[] = {",
         )
     )
     lines.extend(
@@ -1246,8 +1246,8 @@ def generate(
             "};",
             "",
             "/* Opponent Stand pose 18, collision-evaluated during Ftilt frame 9. */",
-            "static const pf_m4_reference_hurt_capsule",
-            "pf_m4_falcon_standing_hurt_capsules[] = {",
+            "static const reference_hurt_capsule",
+            "falcon_standing_hurt_capsules[] = {",
         )
     )
     lines.extend(

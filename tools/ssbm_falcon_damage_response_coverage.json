@@ -69,10 +69,10 @@
   },
   "selection": {
     "paths": [
-      "generated/data/m4_ssbm_ntsc102_common_data.inc",
+      "generated/data/ssbm_ntsc102_common_data.inc",
       "src/sim/sim_ssbm_common_data.c",
       "src/sim/sim_ssbm_damage.c",
-      "generated/data/m4_ssbm_falcon_damage_response_oracle.inc",
+      "generated/data/ssbm_falcon_damage_response_oracle.inc",
       "tools/import_ssbm_common_data.py",
       "tools/ssbm_dat.py",
       "tools/ssbm_live_trace.py",
@@ -96,15 +96,15 @@
     "production_trace_sha256": "53471e3af8475959868a5f64361200151bc9fd9b640dbb5b3d66e4cd5031db4b",
     "samples_per_case": 3,
     "c": {
-      "symbol_prefix": "pf_m4_ssbm_falcon_damage_response",
+      "symbol_prefix": "ssbm_falcon_damage_response",
       "macro_prefix": "PF_M4_SSBM_FALCON_DAMAGE_RESPONSE"
     },
     "generator": {
       "script": "tools/generate_ssbm_stored_trace_oracle.py",
-      "output": "generated/data/m4_ssbm_falcon_damage_response_oracle.inc"
+      "output": "generated/data/ssbm_falcon_damage_response_oracle.inc"
     },
     "runner": {
-      "executable": "m4_combat_test",
+      "executable": "combat_test",
       "arguments": ["--ssbm-oracle", "falcon-common-damage-response"]
     }
   }

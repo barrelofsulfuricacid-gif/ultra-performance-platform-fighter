@@ -1,6 +1,6 @@
 #include "sim_internal.h"
 
-static int pf_m4_reflector_action_can_start(
+static int reflector_action_can_start(
     uint8_t grounded,
     uint8_t action_state)
 {
@@ -18,8 +18,8 @@ static int pf_m4_reflector_action_can_start(
            action_state == (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP;
 }
 
-void pf_m4_prepare_reflector_input(
-    const pf_m4_content *content,
+void prepare_reflector_input(
+    const struct content *content,
     const pf_world_state *world,
     const pf_input_frame *input,
     uint32_t player_index,
@@ -56,7 +56,7 @@ void pf_m4_prepare_reflector_input(
         world->active[player_index] == UINT8_C(0) ||
         world->hitlag_ticks[player_index] != UINT16_C(0) ||
         world->tumble[player_index] != UINT8_C(0) ||
-        !pf_m4_reflector_action_can_start(
+        !reflector_action_can_start(
             world->grounded[player_index],
             world->action_state[player_index]))
     {

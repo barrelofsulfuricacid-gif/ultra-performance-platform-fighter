@@ -31,6 +31,6 @@ optimization is accepted by the two unsampled Windows milestone distributions,
 not by instrumented timing. The raw trace, capture log, workload log, manifest,
 and capture tool remain local to the clean measuring worktree.
 
-See the [M4 combat performance checkpoint](../../reports/2026-08-01_m4_combat.md)
+See the [M4 combat performance checkpoint](../../reports/2026-08-01_combat.md)
 for the repeated unsampled benchmark distributions. Those measurements, not
 the instrumented trace, are the authoritative throughput evidence.
