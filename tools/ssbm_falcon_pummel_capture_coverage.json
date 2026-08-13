@@ -40,9 +40,9 @@
     "pose_profiles": [
       {
         "path": "data/ssbm_falcon_pummel_hurt.json",
-        "profile_sha256": "8f21c06cfc702ac93bb5b4be99540d7b8a5d5bb5b26d02b3c0da1007cae626aa",
+        "profile_sha256": "63907f2df19582e711df98cecced51190dbeaa1ef68628932f662754d71c6749",
         "capture_sha256": "9385eb7e314f161274e5d79ad458b5ae7091f29e1490db370aaa35690227fe9b",
-        "semantic_sha256": "1cac2d2e2b7ad6c95be382958b82f57efa4207bfa715c99f815c65475318d23c",
+        "semantic_sha256": "b40013e47c5aa43bc5571186b88963b913f32850c49acf7d73be194a73baa307",
         "track_submotions": {
           "pummel": "CATCH_ATTACK"
         },
@@ -52,9 +52,9 @@
       },
       {
         "path": "data/ssbm_falcon_capture_hurt.json",
-        "profile_sha256": "f3b5ca8a1aff0cb5a31b41684904b0db7d12d3d2725bfd88d307e017988cb399",
+        "profile_sha256": "67ee04476448a0644611b520242f588eea2cb72f08082cdd88cca74b7216732e",
         "capture_sha256": "9385eb7e314f161274e5d79ad458b5ae7091f29e1490db370aaa35690227fe9b",
-        "semantic_sha256": "e9b2aee7fe5fa88e610edc36ec5b116ff076ec533f8c77c2c8127dd13a36dc2f",
+        "semantic_sha256": "d8f848df2261100628787bb7b415405068ddc1b010a5ce16ebaf9dd37703216d",
         "track_submotions": {
           "capture_wait_high": "CAPTURE_WAIT_HIGH",
           "capture_damage_high": "CAPTURE_DAMAGE_HIGH"
@@ -66,7 +66,7 @@
       }
     ],
     "source_pose_sha256": "e1ba78ad8a537c192849a295d9db896e0d165e70a13bbe7488bdd85e3885fead",
-    "production_pose_serialization": "action-name-nul,source-frame-u16le,capsule-count-u8,capsules-seven-i32le-four-u8-v1",
+    "production_pose_serialization": "action-name-nul,source-frame-u16le,capsule-count-u8,capsules-seven-f32le-four-u8-v2",
     "production_pose_sha256": "7b13e659fa8be4e22ef2d390dc029463cbc712547801b4c63e7f1db0068fa2a7",
     "expected_pose_count": 79,
     "expected_capsules_per_pose": 11,

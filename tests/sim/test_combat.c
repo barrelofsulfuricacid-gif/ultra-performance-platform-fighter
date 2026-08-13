@@ -30874,7 +30874,7 @@ static int run_wait_source_animation_clock_test(void)
                         &inspection.players[0],
                         oracle,
                         PF_M4_FALCON_WAIT_LIFECYCLE_HSD_ORACLE_CAPSULE_COUNT,
-                        PF_M4_FALCON_WAIT_LIFECYCLE_HSD_ORACLE_TOLERANCE_Q16))
+                        PF_M4_FALCON_WAIT_LIFECYCLE_HSD_ORACLE_TOLERANCE_F32))
                 {
                     return 0;
                 }
@@ -30950,7 +30950,7 @@ static int run_wait_transition_pose_test(void)
                 &inspection.players[0],
                 oracle,
                 PF_M4_FALCON_WAIT_TRANSITION_HSD_ORACLE_CAPSULE_COUNT,
-                PF_M4_FALCON_WAIT_TRANSITION_HSD_ORACLE_TOLERANCE_Q16))
+                PF_M4_FALCON_WAIT_TRANSITION_HSD_ORACLE_TOLERANCE_F32))
         {
             return 0;
         }
@@ -31729,19 +31729,19 @@ int main(int argc, char **argv)
             falcon_ground_loop_hsd_oracle_cases,
             PF_M4_FALCON_GROUND_LOOP_HSD_ORACLE_CASE_COUNT,
             PF_M4_FALCON_GROUND_LOOP_HSD_ORACLE_CAPSULE_COUNT,
-            PF_M4_FALCON_GROUND_LOOP_HSD_ORACLE_TOLERANCE_Q16,
+            PF_M4_FALCON_GROUND_LOOP_HSD_ORACLE_TOLERANCE_F32,
             falcon_reference_hsd_hurt_capsules) ||
         !run_hsd_hurt_pose_oracle(
             falcon_wait_hsd_oracle_cases,
             PF_M4_FALCON_WAIT_HSD_ORACLE_CASE_COUNT,
             PF_M4_FALCON_WAIT_HSD_ORACLE_CAPSULE_COUNT,
-            PF_M4_FALCON_WAIT_HSD_ORACLE_TOLERANCE_Q16,
+            PF_M4_FALCON_WAIT_HSD_ORACLE_TOLERANCE_F32,
             falcon_reference_hsd_hurt_capsules) ||
         !run_hsd_hurt_pose_oracle(
             falcon_guard_setoff_hsd_oracle_cases,
             PF_M4_FALCON_GUARD_SETOFF_HSD_ORACLE_CASE_COUNT,
             PF_M4_FALCON_GUARD_SETOFF_HSD_ORACLE_CAPSULE_COUNT,
-            PF_M4_FALCON_GUARD_SETOFF_HSD_ORACLE_TOLERANCE_Q16,
+            PF_M4_FALCON_GUARD_SETOFF_HSD_ORACLE_TOLERANCE_F32,
             falcon_reference_hsd_hurt_capsules) ||
         !run_reference_common_hurt_stored_oracle(0) ||
         !run_reference_falcon_grounded_loop_hurt_stored_oracle(0) ||

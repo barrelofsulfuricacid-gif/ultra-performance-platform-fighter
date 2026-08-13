@@ -18,7 +18,7 @@ from ssbm_collision import (
 
 PRODUCTION_POSE_SERIALIZATION = (
     "action-name-nul,source-frame-u16le,capsule-count-u8,"
-    "capsules-seven-i32le-four-u8-v1"
+    "capsules-seven-f32le-four-u8-v2"
 )
 
 

@@ -12,12 +12,12 @@ from typing import Any
 from ssbm_collision import (
     canonical_json_sha256,
     canonical_hurt_pose_f32,
+    hurt_poses_equivalent,
     hurt_pose_tracks_semantic_payload,
-    q16_hurt_poses_equivalent,
 )
 
 
-MELEE_TO_SIM_Q16 = 65536.0 * 12.0 / 115.0
+MELEE_TO_SIM_F32 = 12.0 / 115.0
 
 
 def extract_track(
@@ -34,7 +34,7 @@ def extract_track(
     use_display_pose: bool = False,
     frame_mode: str = "action",
 ) -> dict[str, Any]:
-    frames: dict[int, tuple[tuple[int, ...], ...]] = {}
+    frames: dict[int, tuple[tuple[float | int, ...], ...]] = {}
     collision_trace_frames = collision_trace_frames or {}
     action_key = "opponent_action" if opponent else "action"
     action_frame_key = (
@@ -104,7 +104,7 @@ def extract_track(
             hurtbox_key,
             fighter_position_key,
             int(facing),
-            MELEE_TO_SIM_Q16,
+            MELEE_TO_SIM_F32,
             endpoint_key_prefix,
         )
         if len(pose) != 11:
@@ -113,18 +113,18 @@ def extract_track(
                 f"{len(pose)} hurt capsules"
             )
         previous = frames.get(displayed_frame)
-        if previous is not None and not q16_hurt_poses_equivalent(previous, pose):
+        if previous is not None and not hurt_poses_equivalent(previous, pose):
             pending_pose = canonical_hurt_pose_f32(
                 memory,
                 hurtbox_key,
                 fighter_position_key,
                 -int(facing),
-                MELEE_TO_SIM_Q16,
+                MELEE_TO_SIM_F32,
                 endpoint_key_prefix,
             )
             if (
                 displayed_frame == pending_pose_facing_frame
-                and q16_hurt_poses_equivalent(previous, pending_pose)
+                and hurt_poses_equivalent(previous, pending_pose)
             ):
                 pending_pose_facing_rows += 1
             else:

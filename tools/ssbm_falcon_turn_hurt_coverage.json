@@ -79,9 +79,9 @@
     "pose_profiles": [
       {
         "path": "data/ssbm_falcon_turn_hurt.json",
-        "profile_sha256": "6addc920dda39acf06df2f8bcecee7ee23a3200c128b6545d0232c58c5704ea6",
+        "profile_sha256": "fbc50f56b51100a075cb3610ced68193e7b6ff51b5ceb9d73cea8be1219a5f3f",
         "capture_sha256": "e0240567b226cdd1802a3b7ad14384cf5096df9c8b323b383020c0a1844cf901",
-        "semantic_sha256": "1cc3543b1363ecb5c7427c36f4d8d8a2826f9fb7c5281877f54108e1ffe281a2",
+        "semantic_sha256": "951c6e6722fd965126e691f1b7ee1c0514639165177db7b710cde6df0d11fa93",
         "track_submotions": {
           "standing_turn": "TURN",
           "run_turnaround": "TURN_RUN"
@@ -93,7 +93,7 @@
       }
     ],
     "source_pose_sha256": "1c004b685babaecff0a105774766e389e7babccf7a3905877d277a29e01022ea",
-    "production_pose_serialization": "action-name-nul,source-frame-u16le,capsule-count-u8,capsules-seven-i32le-four-u8-v1",
+    "production_pose_serialization": "action-name-nul,source-frame-u16le,capsule-count-u8,capsules-seven-f32le-four-u8-v2",
     "production_pose_sha256": "0750e32d78d2b51b49f4e917dde6088a266e6940d92351250c8a167422563d07",
     "expected_pose_count": 33,
     "expected_capsules_per_pose": 11,

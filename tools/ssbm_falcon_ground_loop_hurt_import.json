@@ -170,7 +170,7 @@
     "probe_engine_version": "1.3.1",
     "decomp_revision": "9509dc04406fb2028bfab01243841ba4787c0fb7",
     "capture_route_field": "damage_hit_route",
-    "coordinate_tolerance_f32": 8,
+    "coordinate_tolerance_f32": 0.0001220703125,
     "compare_ecb": true,
     "ecb_joint_point_set_id": "ecb",
     "captures": [
@@ -225,7 +225,7 @@
     "probe_engine_version": "1.3.1",
     "decomp_revision": "9509dc04406fb2028bfab01243841ba4787c0fb7",
     "capture_route_field": "shield_break_orientation_route",
-    "coordinate_tolerance_f32": 8,
+    "coordinate_tolerance_f32": 0.0001220703125,
     "captures": [
       {
         "id": "shield-break-control",
@@ -249,7 +249,7 @@
     "probe_engine_version": "1.3.1",
     "decomp_revision": "9509dc04406fb2028bfab01243841ba4787c0fb7",
     "capture_route_field": "common_hurt_geometry_route",
-    "coordinate_tolerance_f32": 8,
+    "coordinate_tolerance_f32": 0.0001220703125,
     "compare_ecb": true,
     "ecb_joint_point_set_id": "ecb",
     "captures": [
@@ -287,7 +287,7 @@
     "probe_engine_version": "1.3.1",
     "decomp_revision": "9509dc04406fb2028bfab01243841ba4787c0fb7",
     "capture_route_field": "common_hurt_geometry_route",
-    "coordinate_tolerance_f32": 8,
+    "coordinate_tolerance_f32": 0.0001220703125,
     "compare_ecb": true,
     "ecb_joint_point_set_id": "ecb",
     "captures": [
@@ -307,7 +307,7 @@
     "probe_engine_version": "1.3.1",
     "decomp_revision": "9509dc04406fb2028bfab01243841ba4787c0fb7",
     "capture_route_field": "shield_hit_route",
-    "coordinate_tolerance_f32": 8,
+    "coordinate_tolerance_f32": 0.0001220703125,
     "frame_tolerance_f32": 0,
     "rate_tolerance_f32": 0,
     "compare_ecb": true,
@@ -376,7 +376,7 @@
     "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
     "probe_engine_version": "1.3.1",
     "decomp_revision": "9509dc04406fb2028bfab01243841ba4787c0fb7",
-    "coordinate_tolerance_f32": 8,
+    "coordinate_tolerance_f32": 0.0001220703125,
     "require_motion_action_frame_offset": true,
     "cases": [
       { "source_action": "NEUTRAL_ATTACK_1", "submotion_index": 46, "first_frame": 1, "last_frame": 21, "grounded": true },
@@ -415,7 +415,7 @@
     "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
     "probe_engine_version": "1.3.1",
     "decomp_revision": "9509dc04406fb2028bfab01243841ba4787c0fb7",
-    "coordinate_tolerance_f32": 8,
+    "coordinate_tolerance_f32": 0.0001220703125,
     "captures": [
       {
         "id": "raptor-start-control",
@@ -490,7 +490,7 @@
   },
   "guard_setoff_stored_oracle": {
     "symbol_prefix": "falcon_guard_setoff_hsd",
-    "coordinate_tolerance_f32": 64,
+    "coordinate_tolerance_f32": 0.0009765625,
     "captures": [
       { "id": "light", "sha256": "ed7023223832ca898467b5a30d55af9c62aa2abd8fc0da2d9f744cd1ecbeea36" },
       { "id": "mid", "sha256": "07537b376ae658a9e173ade4b31295e3b4a981c1bc74f6093fe2f0e4c0faca2e" },
@@ -509,8 +509,9 @@
     ]
   },
   "stored_oracle": {
+    "symbol_prefix": "falcon_ground_loop_hsd",
     "capture_sha256": "4894c8d3917568e43d3499b71cb3b3ebc361575670aeaad63c8a99bcba106b4e",
-    "coordinate_tolerance_f32": 64,
+    "coordinate_tolerance_f32": 0.0009765625,
     "cases": [
       { "id": "walk-slow-fractional", "trace_frame": 190, "c_submotion": "PF_M4_FALCON_SUBMOTION_WALK_SLOW" },
       { "id": "walk-slow-looped-fractional", "trace_frame": 225, "c_submotion": "PF_M4_FALCON_SUBMOTION_WALK_SLOW" },
@@ -524,8 +525,8 @@
   },
   "wait_stored_oracle": {
     "symbol_prefix": "falcon_wait_hsd",
-    "capture_sha256": "a9c9b5456f421304e08ae5b63165283b529a3612ee6d991379836f6cb3314dc3",
-    "coordinate_tolerance_f32": 64,
+    "capture_sha256": "d97474f2a15912b1c98fba9b7444883c1db4798290702c311b13bcffb4cc7f7b",
+    "coordinate_tolerance_f32": 0.0009765625,
     "cases": [
       { "id": "wait-first-unblended", "trace_frame": 29, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
       { "id": "wait-middle", "trace_frame": 53, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
@@ -534,8 +535,8 @@
   },
   "wait_transition_stored_oracle": {
     "symbol_prefix": "falcon_wait_transition_hsd",
-    "capture_sha256": "a9c9b5456f421304e08ae5b63165283b529a3612ee6d991379836f6cb3314dc3",
-    "coordinate_tolerance_f32": 64,
+    "capture_sha256": "d97474f2a15912b1c98fba9b7444883c1db4798290702c311b13bcffb4cc7f7b",
+    "coordinate_tolerance_f32": 0.0009765625,
     "cases": [
       { "id": "squatrv-wait-blend-1", "trace_frame": 23, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
       { "id": "squatrv-wait-blend-2", "trace_frame": 24, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
@@ -548,7 +549,7 @@
   "wait_lifecycle_stored_oracle": {
     "symbol_prefix": "falcon_wait_lifecycle_hsd",
     "capture_sha256": "d97474f2a15912b1c98fba9b7444883c1db4798290702c311b13bcffb4cc7f7b",
-    "coordinate_tolerance_f32": 64,
+    "coordinate_tolerance_f32": 0.0009765625,
     "cases": [
       { "id": "wait2-entry", "trace_frame": 83, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT_2" },
       { "id": "wait2-frame-1", "trace_frame": 84, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT_2" },
@@ -589,7 +590,7 @@
     "repeat_capture_sha256": "2c0dda770bd58774e0681b3736ea3f7c7de61f15a116849f9381b0460c4af529",
     "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
     "dolphin_release_artifact_sha256": "87e9ef6d80ed03354a1647d0616016dbc91399aa9e86a69ae5a398edd0a0c2bd",
-    "coordinate_tolerance_f32": 8,
+    "coordinate_tolerance_f32": 0.0001220703125,
     "cases": [
       { "source_action": "WALK_SLOW", "submotion_index": 7, "expected_samples": 51 },
       { "source_action": "WALK_MIDDLE", "submotion_index": 8, "expected_samples": 31 },

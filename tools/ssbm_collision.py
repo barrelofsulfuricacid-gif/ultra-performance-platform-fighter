@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import struct
 from typing import Any, Sequence
 
 
@@ -163,6 +164,15 @@ def captured_collision_margin(
     )
 
 
+DEFAULT_HURT_POSE_TOLERANCE_F32 = 0.0000152587890625
+
+
+def binary32(value: float) -> float:
+    """Round once to the runtime's IEEE-754 binary32 representation."""
+
+    return struct.unpack(">f", struct.pack(">f", float(value)))[0]
+
+
 def canonical_hurt_pose_f32(
     memory: dict[str, Any],
     hurtbox_key: str,
@@ -170,7 +180,7 @@ def canonical_hurt_pose_f32(
     facing: int,
     coordinate_scale_f32: float,
     endpoint_key_prefix: str = "position",
-) -> tuple[tuple[int, ...], ...]:
+) -> tuple[tuple[float | int, ...], ...]:
     """Canonicalize a live hurt pose into facing-right float32 space."""
 
     if facing not in (-1, 1):
@@ -197,35 +207,35 @@ def canonical_hurt_pose_f32(
         ]
         capsules.append(
             (
-                round(
+                binary32(
                     facing
                     * (endpoint_a[0] - fighter_position[0])
                     * coordinate_scale_f32
                 ),
-                round(
+                binary32(
                     -(endpoint_a[1] - fighter_position[1])
                     * coordinate_scale_f32
                 ),
-                round(
+                binary32(
                     facing
                     * (endpoint_a[2] - fighter_position[2])
                     * coordinate_scale_f32
                 ),
-                round(
+                binary32(
                     facing
                     * (endpoint_b[0] - fighter_position[0])
                     * coordinate_scale_f32
                 ),
-                round(
+                binary32(
                     -(endpoint_b[1] - fighter_position[1])
                     * coordinate_scale_f32
                 ),
-                round(
+                binary32(
                     facing
                     * (endpoint_b[2] - fighter_position[2])
                     * coordinate_scale_f32
                 ),
-                round(float(hurtbox["radius"]) * coordinate_scale_f32),
+                binary32(float(hurtbox["radius"]) * coordinate_scale_f32),
                 hurtbox_id,
                 int(hurtbox["height"]),
                 int(hurtbox["grabbable"]),
@@ -234,19 +244,19 @@ def canonical_hurt_pose_f32(
     return tuple(capsules)
 
 
-def q16_hurt_poses_equivalent(
-    left: tuple[tuple[int, ...], ...],
-    right: tuple[tuple[int, ...], ...],
-    tolerance: int = 1,
+def hurt_poses_equivalent(
+    left: tuple[tuple[float | int, ...], ...],
+    right: tuple[tuple[float | int, ...], ...],
+    tolerance_f32: float = DEFAULT_HURT_POSE_TOLERANCE_F32,
 ) -> bool:
-    """Compare canonical hurt poses with a bounded Q16 coordinate envelope."""
+    """Compare canonical binary32 hurt poses with a bounded coordinate envelope."""
 
-    if tolerance < 0:
+    if not math.isfinite(tolerance_f32) or tolerance_f32 < 0.0:
         raise ValueError("hurt-pose tolerance must be nonnegative")
     return len(left) == len(right) and all(
         left_capsule[7:] == right_capsule[7:]
         and all(
-            abs(left_value - right_value) <= tolerance
+            abs(float(left_value) - float(right_value)) <= tolerance_f32
             for left_value, right_value in zip(
                 left_capsule[:7], right_capsule[:7], strict=True
             )

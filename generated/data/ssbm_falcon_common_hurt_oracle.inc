@@ -59,11 +59,11 @@ ssbm_falcon_common_hurt_cases[] = {
 #define PF_M4_SSBM_FALCON_COMMON_HURT_CASE_COUNT UINT16_C(20)
 #define PF_M4_SSBM_FALCON_COMMON_HURT_CAPSULES_PER_POSE UINT8_C(11)
 #define PF_M4_SSBM_FALCON_COMMON_HURT_PRODUCTION_SERIALIZATION \
-    "action-name-nul,source-frame-u16le,capsule-count-u8,capsules-seven-i32le-four-u8-v1"
+    "action-name-nul,source-frame-u16le,capsule-count-u8,capsules-seven-f32le-four-u8-v2"
 #define PF_M4_SSBM_FALCON_COMMON_HURT_SOURCE_POSE_SHA256 \
     "9688be9b0ca0d0eacac5ba26714968acdcc3b19aaac9449778c108275b1c940b"
 #define PF_M4_SSBM_FALCON_COMMON_HURT_PRODUCTION_POSE_SHA256 \
-    "0641ed13ea1d179e214f5629b4f8d7b93e226091b9925d6e31dfe53645c74c36"
+    "46544e40d72aa83beceb9cb1a8d72172f192e099dc5c0f87592f18a4aee0ca87"
 
 _Static_assert(
     sizeof(ssbm_falcon_common_hurt_pose_tracks) /

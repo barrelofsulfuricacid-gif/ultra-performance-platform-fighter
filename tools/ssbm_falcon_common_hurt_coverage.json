@@ -222,9 +222,9 @@
     "pose_profiles": [
       {
         "path": "data/ssbm_falcon_ledge_hurt.json",
-        "profile_sha256": "2630b5be93c7f55b869ac1da64aaa4e4716b35e601ec6e8a47fc5d8e4ef91ff7",
+        "profile_sha256": "e77bec3e622ab9f9b254a8d908dd68ca90f8a25ed4723fec5ec1caf0621b5fa9",
         "capture_sha256": "3055455eb02949e15c240f563a49648578b6c5affa4dc5dd7ca62f2c7b19c1e3",
-        "semantic_sha256": "9125200e3e162822131fd8805ae1551371c4ebf0abc2256bba9a167cc181103a",
+        "semantic_sha256": "51c53a8d58f17086c28ce7decd3f900b6ff3f8825124e96cc28de723b4fbc152",
         "track_submotions": {
           "ledge_climb_quick": "LEDGE_CLIMB_QUICK",
           "ledge_climb_slow": "LEDGE_CLIMB_SLOW",
@@ -240,9 +240,9 @@
       },
       {
         "path": "data/ssbm_falcon_guard_hurt.json",
-        "profile_sha256": "e1d76de8fac684d0976fa464d5906a145aeb340a99c0f88490da3574231c763b",
+        "profile_sha256": "ec69079c62ba0b3941f7ef3cdaef3118ead2b00af57473648b63b6ab0e06933c",
         "capture_sha256": "e9141d1ce253bee82233d9545cf20145d594d60510cee5ea77b19ca5e12390b9",
-        "semantic_sha256": "4db8c524835e969b5b34fda81e53b59d6af99aa68d13e7203086c6441a41abde",
+        "semantic_sha256": "7f0114dcbe08709de824f3f899a438245ec7dedc13b3beade8159d05c41ad6ef",
         "track_submotions": {
           "guard_on": "GUARD_ON",
           "guard": "GUARD",
@@ -256,8 +256,8 @@
       }
     ],
     "source_pose_sha256": "9688be9b0ca0d0eacac5ba26714968acdcc3b19aaac9449778c108275b1c940b",
-    "production_pose_serialization": "action-name-nul,source-frame-u16le,capsule-count-u8,capsules-seven-i32le-four-u8-v1",
-    "production_pose_sha256": "0641ed13ea1d179e214f5629b4f8d7b93e226091b9925d6e31dfe53645c74c36",
+    "production_pose_serialization": "action-name-nul,source-frame-u16le,capsule-count-u8,capsules-seven-f32le-four-u8-v2",
+    "production_pose_sha256": "46544e40d72aa83beceb9cb1a8d72172f192e099dc5c0f87592f18a4aee0ca87",
     "expected_pose_count": 714,
     "expected_capsules_per_pose": 11,
     "c": {

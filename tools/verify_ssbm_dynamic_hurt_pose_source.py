@@ -24,7 +24,7 @@ from hsd_joint_pose import (
     read_fighter_part_layout,
     read_joint_tree,
 )
-from ssbm_collision import canonical_hurt_pose_f32
+from ssbm_collision import binary32, canonical_hurt_pose_f32
 from ssbm_dat import read_hsd_archive
 from ssbm_ecb_pose import (
     Y_Q16_PER_MELEE_UNIT,
@@ -101,16 +101,16 @@ def canonical_source_pose_f32(
     capsules: tuple[tuple[float, ...], ...],
     coordinate_scale_f32: float,
     axis_sign: tuple[int, int, int],
-) -> tuple[tuple[int, ...], ...]:
+) -> tuple[tuple[float | int, ...], ...]:
     return tuple(
         (
-            round(capsule[0] * coordinate_scale_f32 * axis_sign[0]),
-            round(capsule[1] * coordinate_scale_f32 * axis_sign[1]),
-            round(capsule[2] * coordinate_scale_f32 * axis_sign[2]),
-            round(capsule[3] * coordinate_scale_f32 * axis_sign[0]),
-            round(capsule[4] * coordinate_scale_f32 * axis_sign[1]),
-            round(capsule[5] * coordinate_scale_f32 * axis_sign[2]),
-            round(capsule[6] * coordinate_scale_f32),
+            binary32(capsule[0] * coordinate_scale_f32 * axis_sign[0]),
+            binary32(capsule[1] * coordinate_scale_f32 * axis_sign[1]),
+            binary32(capsule[2] * coordinate_scale_f32 * axis_sign[2]),
+            binary32(capsule[3] * coordinate_scale_f32 * axis_sign[0]),
+            binary32(capsule[4] * coordinate_scale_f32 * axis_sign[1]),
+            binary32(capsule[5] * coordinate_scale_f32 * axis_sign[2]),
+            binary32(capsule[6] * coordinate_scale_f32),
             hurtbox_id,
             int(capsule[7]),
             int(capsule[8]),
@@ -127,7 +127,7 @@ def compare_hurt_pose_f32(
     layout: Any,
     coordinate_scale_f32: float,
     axis_sign: tuple[int, int, int],
-    tolerance: int,
+    tolerance_f32: float,
     context: str,
 ) -> int:
     memory = row.get("hitbox_memory")
@@ -171,9 +171,9 @@ def compare_hurt_pose_f32(
             for left_value, right_value in zip(left[:7], right[:7], strict=True)
         )
         require(
-            difference <= tolerance,
+            difference <= tolerance_f32,
             f"{context}: trace={row['trace_frame']} capsule={capsule_index} "
-            f"Q16 difference={difference}",
+            f"float32 difference={difference}",
         )
         maximum_difference = max(maximum_difference, difference)
     return maximum_difference
@@ -244,9 +244,7 @@ def build_hurt_pose_source(
             int(manifest["fighter_kind"]),
         ),
         capsules=read_fighter_hurt_capsules(fighter_archive, fighter_root),
-        coordinate_scale_f32=(
-            65536.0 * float(numerator) / float(denominator)
-        ),
+        coordinate_scale_f32=float(numerator) / float(denominator),
         axis_sign=axis_sign,
     )
 
@@ -343,8 +341,8 @@ def main() -> int:
         help="ECB profile declared by pose_branch_qualification.ecb_profile",
     )
     parser.add_argument(
-        "--tolerance-q16",
-        type=int,
+        "--tolerance-f32",
+        type=float,
         help="diagnostic override for the manifest coordinate tolerance",
     )
     args = parser.parse_args()
@@ -426,11 +424,14 @@ def main() -> int:
     )
     ecb_source_joints = tuple(int(index) for index in raw_ecb_source_joints)
     tolerance = (
-        int(qualification["coordinate_tolerance_f32"])
+        float(qualification["coordinate_tolerance_f32"])
         if args.tolerance_f32 is None
         else args.tolerance_f32
     )
-    require(tolerance >= 0, "coordinate tolerance must be nonnegative")
+    require(
+        math.isfinite(tolerance) and tolerance >= 0.0,
+        "coordinate tolerance must be finite and nonnegative",
+    )
     animations = {
         int(case["submotion_index"]): decode_figatree(
             fighter_animation_slice(
@@ -452,8 +453,8 @@ def main() -> int:
     }
     total_samples = 0
     total_capsules = 0
-    maximum_difference = 0
-    maximum_ecb_difference = 0
+    maximum_difference = 0.0
+    maximum_ecb_difference = 0.0
     capture_digests: list[str] = []
     for capture_name, capture_digest, rows in capture_specs:
         capture_digests.append(capture_digest)
@@ -485,7 +486,7 @@ def main() -> int:
                 f"{case['expected_samples']} qualified rows, got {len(selected)}",
             )
 
-            case_maximum = 0
+            case_maximum = 0.0
             for row in selected:
                 memory = row["hitbox_memory"]
                 frame = memory.get("fighter_animation_frame")
@@ -530,7 +531,7 @@ def main() -> int:
                 if ecb_difference > tolerance:
                     raise ValueError(
                         f"{capture_name}/{action}: trace={row['trace_frame']} "
-                        f"ECB Q16 difference={ecb_difference}"
+                        f"ECB float32 difference={ecb_difference}"
                     )
                 maximum_ecb_difference = max(
                     maximum_ecb_difference,
