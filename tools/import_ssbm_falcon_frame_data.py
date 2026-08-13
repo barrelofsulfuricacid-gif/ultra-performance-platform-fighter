@@ -597,10 +597,10 @@ def c_f32(value: float) -> str:
     return rendered + "f"
 
 
-def captured_fixed_f32(value: int | float) -> float:
-    """Decode legacy stored ECB capture units while profiles are regenerated."""
+def captured_f32(value: int | float) -> float:
+    """Round a stored ECB coordinate to the runtime binary32 representation."""
 
-    return binary32(float(value) / 65536.0) if isinstance(value, int) else binary32(value)
+    return binary32(value)
 
 
 def render_ecb_pose_f32(frame: dict[str, Any]) -> str:
@@ -610,7 +610,7 @@ def render_ecb_pose_f32(frame: dict[str, Any]) -> str:
         for point in ECB_POINTS
         for value in ecb[point]
     ]
-    return "{ " + ", ".join(c_f32(captured_fixed_f32(value)) for value in values) + " }"
+    return "{ " + ", ".join(c_f32(captured_f32(value)) for value in values) + " }"
 
 
 def render_ecb_pose_track(

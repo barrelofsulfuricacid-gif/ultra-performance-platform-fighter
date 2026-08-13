@@ -27,7 +27,7 @@ from hsd_joint_pose import (
 from ssbm_collision import binary32, canonical_hurt_pose_f32
 from ssbm_dat import read_hsd_archive
 from ssbm_ecb_pose import (
-    Y_Q16_PER_MELEE_UNIT,
+    Y_SIM_PER_MELEE_UNIT,
     canonical_source_ecb,
     pose_f32,
 )
@@ -158,7 +158,7 @@ def compare_hurt_pose_f32(
         axis_sign,
     )
     require(len(actual) == len(expected), f"{context}: capsule count mismatch")
-    maximum_difference = 0
+    maximum_difference = 0.0
     for capsule_index, (left, right) in enumerate(
         zip(actual, expected, strict=True)
     ):
@@ -254,8 +254,8 @@ def source_joint_ecb_f32(
     source_joint_indices: tuple[int, ...],
     reference_joint_index: int | None = None,
     grounded: bool = True,
-    locked_bottom_y_f32: int | None = None,
-) -> dict[str, list[int]]:
+    locked_bottom_y_f32: float | None = None,
+) -> dict[str, list[float]]:
     reference_x = (
         0.0 if reference_joint_index is None
         else matrices[reference_joint_index][0][3]
@@ -288,7 +288,7 @@ def source_joint_ecb_f32(
     bottom = 0.0 if grounded else max(bottom, 0.0)
     side_y = 0.5 * (bottom + top)
     if locked_bottom_y_f32 is not None:
-        bottom = locked_bottom_y_f32 / Y_Q16_PER_MELEE_UNIT
+        bottom = locked_bottom_y_f32 / Y_SIM_PER_MELEE_UNIT
         if abs(top - bottom) < 1.0:
             top += 1.0
             side_y = 0.5 * (top + bottom)
@@ -656,7 +656,7 @@ def main() -> int:
             branch_animation,
             branch_animation.frame_count - 1.0,
         )[source_joint][matrix_row][matrix_column]
-        component_f32 = round(component * 65536.0)
+        component_f32 = binary32(component)
         expected_positive = branch_qualification.get("expected_positive")
         require(
             isinstance(expected_positive, bool)

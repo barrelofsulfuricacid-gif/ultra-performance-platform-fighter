@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import json
 import math
+import struct
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +17,10 @@ FIGHTER_BONE_ANIMATED = 0x40
 FIGHTER_BONE_SKIP = 0x80
 FIGHTER_BONE_COPY_TARGET = 0x08
 FIGHTER_BONE_SECONDARY = 0x04
+
+
+def binary32(value: float) -> float:
+    return struct.unpack(">f", struct.pack(">f", float(value)))[0]
 
 
 def require(condition: bool, message: str) -> None:
@@ -108,7 +113,7 @@ def canonical_pose(pose: dict[str, Any], root: bool) -> dict[str, Any]:
         "flags": int(pose["flags"]) & JOBJ_USE_QUATERNION,
         "rotation_q20": [round(value * (1 << 20)) for value in pose_quaternion(pose)],
         "scale_q20": [round(value * (1 << 20)) for value in vector(pose, "scale", 3)],
-        "translation_f32": [round(value * (1 << 16)) for value in translation],
+        "translation_f32": [binary32(value) for value in translation],
     }
 
 
@@ -123,13 +128,13 @@ def semantic_payload(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "action": row["action"],
                 "motion": surface["fighter_motion_id"],
                 "animation": surface["fighter_animation_id"],
-                "frame_f32": round(surface["fighter_animation_frame"] * 65536),
-                "rate_f32": round(surface["fighter_animation_rate"] * 65536),
-                "blend_frames_f32": round(
-                    surface["fighter_animation_blend_frames"] * 65536
+                "frame_f32": binary32(surface["fighter_animation_frame"]),
+                "rate_f32": binary32(surface["fighter_animation_rate"]),
+                "blend_frames_f32": binary32(
+                    surface["fighter_animation_blend_frames"]
                 ),
-                "blend_progress_f32": round(
-                    surface["fighter_animation_blend_progress"] * 65536
+                "blend_progress_f32": binary32(
+                    surface["fighter_animation_blend_progress"]
                 ),
                 "joints": [
                     {

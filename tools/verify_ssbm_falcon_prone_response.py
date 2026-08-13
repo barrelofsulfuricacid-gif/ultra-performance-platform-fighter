@@ -10,6 +10,8 @@ import math
 from pathlib import Path
 from typing import Any
 
+from ssbm_live_trace import parse_numeric_observations
+
 
 EXPECTED_OBSERVATION_SHA256 = "db317711cb1a5b2c877d4dc8dd57e1ef38c31edd93638dd1d05e272b6d46cd8d"
 EXPECTED_SOURCE_SHA256 = {
@@ -280,25 +282,12 @@ def qualify_live(
         raise SystemExit("up backward getup roll root translation mismatch")
 
 
-def parse_sim(path: Path) -> dict[str, list[dict[str, int]]]:
-    prefix = "m4-ssbm-prone-response-observation "
-    cases: dict[str, list[dict[str, int]]] = {}
-    for line in path.read_text(encoding="utf-8").splitlines():
-        if not line.startswith(prefix):
-            continue
-        fields: dict[str, str] = {}
-        for token in line[len(prefix) :].split():
-            key, value = token.split("=", 1)
-            fields[key] = value
-        case_id = fields.pop("case")
-        cases.setdefault(case_id, []).append(
-            {key: int(value) for key, value in fields.items()}
-        )
-    return cases
+def parse_sim(path: Path) -> dict[str, list[dict[str, int | float]]]:
+    return parse_numeric_observations(path, "m4-ssbm-prone-response-observation ")
 
 
-def sim_x_to_source(value_f32: int) -> float:
-    return float(value_f32) * 115.0 / (12.0 * 65536.0)
+def sim_x_to_source(value_f32: int | float) -> float:
+    return float(value_f32) * 115.0 / 12.0
 
 
 def compare_sim(

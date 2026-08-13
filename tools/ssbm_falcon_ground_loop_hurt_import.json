@@ -194,9 +194,9 @@
         "source_action": "DAMAGE_NEUTRAL_2",
         "submotion_index": 169,
         "compare_ecb": false,
-        "expected_source_frame_pattern_f32": [65536, 65536, 65536, 131072, 196608, 262144, 327680, 393216, 458752, 524288, 589824, 655360],
+        "expected_source_frame_pattern_f32": [1.0, 1.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
         "expected_source_frame_pattern_repetitions": 6,
-        "expected_animation_rate_f32": 65536,
+        "expected_animation_rate_f32": 1.0,
         "expected_samples": 72
       },
       {
@@ -205,9 +205,9 @@
         "excluded_label_suffixes": ["_pre_hit"],
         "ecb_grounded_from_capture": true,
         "ecb_lock_ticks_from_capture": true,
-        "expected_source_frame_pattern_f32": [65536, 65536, 131072, 196608, 262144, 327680, 393216, 458752, 524288, 589824, 655360],
+        "expected_source_frame_pattern_f32": [1.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
         "expected_source_frame_pattern_repetitions": 6,
-        "expected_animation_rate_f32": 65536,
+        "expected_animation_rate_f32": 1.0,
         "expected_samples": 66
       },
       {
@@ -217,9 +217,9 @@
         "ecb_owner": "previous-row-post-animation",
         "ecb_owner_facing": 1,
         "ecb_grounded_from_capture": true,
-        "expected_source_frame_pattern_f32": [65536],
+        "expected_source_frame_pattern_f32": [1.0],
         "expected_source_frame_pattern_repetitions": 6,
-        "expected_animation_rate_f32": 65536,
+        "expected_animation_rate_f32": 1.0,
         "expected_samples": 6
       }
     ]
@@ -279,7 +279,7 @@
       {
         "source_action": "STANDING",
         "submotion_index": 2,
-        "minimum_source_frame_exclusive_f32": 327680,
+        "minimum_source_frame_exclusive_f32": 5.0,
         "first_source_frame": 6,
         "last_source_frame": 59,
         "expected_samples": 54
@@ -313,8 +313,8 @@
     "decomp_revision": "9509dc04406fb2028bfab01243841ba4787c0fb7",
     "capture_route_field": "shield_hit_route",
     "coordinate_tolerance_f32": 0.0001220703125,
-    "frame_tolerance_f32": 0,
-    "rate_tolerance_f32": 0,
+    "frame_tolerance_f32": 0.00000762939453125,
+    "rate_tolerance_f32": 0.00000762939453125,
     "compare_ecb": true,
     "ecb_joint_point_set_id": "ecb",
     "captures": [
@@ -325,9 +325,9 @@
           {
             "source_action": "SHIELD_STUN",
             "submotion_index": 40,
-            "minimum_source_frame_exclusive_f32": 0,
-            "expected_source_frames_f32": [279634, 559267, 838901, 1118534],
-            "expected_animation_rate_f32": 279634,
+            "minimum_source_frame_exclusive_f32": 0.0,
+            "expected_source_frames_f32": [4.266876220703125, 8.533737182617188, 12.800613403320312, 17.067474365234375],
+            "expected_animation_rate_f32": 4.266876220703125,
             "expected_samples": 4
           }
         ]
@@ -344,9 +344,9 @@
           {
             "source_action": "SHIELD_STUN",
             "submotion_index": 40,
-            "minimum_source_frame_exclusive_f32": 0,
-            "expected_source_frames_f32": [339942, 679883, 1019825],
-            "expected_animation_rate_f32": 339942,
+            "minimum_source_frame_exclusive_f32": 0.0,
+            "expected_source_frames_f32": [5.187103271484375, 10.374191284179688, 15.561294555664062],
+            "expected_animation_rate_f32": 5.187103271484375,
             "expected_samples": 3
           }
         ]
@@ -363,9 +363,9 @@
           {
             "source_action": "SHIELD_STUN",
             "submotion_index": 40,
-            "minimum_source_frame_exclusive_f32": 0,
-            "expected_source_frames_f32": [454232, 908465],
-            "expected_animation_rate_f32": 454232,
+            "minimum_source_frame_exclusive_f32": 0.0,
+            "expected_source_frames_f32": [6.9310302734375, 13.862075805664062],
+            "expected_animation_rate_f32": 6.9310302734375,
             "expected_samples": 2
           }
         ]

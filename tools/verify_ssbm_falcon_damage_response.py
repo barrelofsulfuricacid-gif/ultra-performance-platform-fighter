@@ -10,7 +10,7 @@ import math
 from pathlib import Path
 from typing import Any
 
-from ssbm_live_trace import normalized_sha256
+from ssbm_live_trace import normalized_sha256, parse_numeric_observations
 
 
 EXPECTED_OBSERVATION_SHA256 = (
@@ -133,29 +133,18 @@ def angle(row: dict[str, Any]) -> float:
     )
 
 
-def parse_sim_observations(path: Path) -> dict[str, list[dict[str, int]]]:
-    prefix = "m4-ssbm-damage-observation "
-    parsed: dict[str, list[dict[str, int]]] = {}
-    for raw_line in path.read_text(encoding="utf-8").splitlines():
-        if not raw_line.startswith(prefix):
-            continue
-        fields: dict[str, str] = {}
-        for token in raw_line[len(prefix) :].split():
-            key, value = token.split("=", 1)
-            fields[key] = value
-        case_id = fields.pop("case")
-        parsed.setdefault(case_id, []).append(
-            {key: int(value) for key, value in fields.items()}
-        )
-    return parsed
+def parse_sim_observations(
+    path: Path,
+) -> dict[str, list[dict[str, int | float]]]:
+    return parse_numeric_observations(path, "m4-ssbm-damage-observation ")
 
 
-def sim_x_to_source(value_f32: int) -> float:
-    return float(value_f32) * 115.0 / (12.0 * 65536.0)
+def sim_x_to_source(value_f32: int | float) -> float:
+    return float(value_f32) * 115.0 / 12.0
 
 
-def sim_y_to_source(value_f32: int) -> float:
-    return -float(value_f32) * 62.0 / (11.0 * 65536.0)
+def sim_y_to_source(value_f32: int | float) -> float:
+    return -float(value_f32) * 62.0 / 11.0
 
 
 def compare_sim_observations(

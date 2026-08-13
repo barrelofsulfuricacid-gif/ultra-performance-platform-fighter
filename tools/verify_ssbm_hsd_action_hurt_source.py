@@ -16,6 +16,7 @@ from hsd_joint_pose import (
     fighter_animation_flags,
     fighter_animation_slice,
 )
+from ssbm_collision import binary32
 from ssbm_ecb_pose import canonical_source_ecb, pose_f32
 from verify_ssbm_dynamic_hurt_pose_source import (
     build_hurt_pose_source,
@@ -136,10 +137,10 @@ def main() -> int:
         common_raw,
         model_raw,
     )
-    tolerance = int(qualification["coordinate_tolerance_f32"])
+    tolerance = float(qualification["coordinate_tolerance_f32"])
     require(tolerance >= 0, "action hurt tolerance must be nonnegative")
-    frame_tolerance = int(qualification.get("frame_tolerance_f32", 0))
-    rate_tolerance = int(qualification.get("rate_tolerance_f32", 0))
+    frame_tolerance = float(qualification.get("frame_tolerance_f32", 0.0))
+    rate_tolerance = float(qualification.get("rate_tolerance_f32", 0.0))
     require(
         frame_tolerance >= 0 and rate_tolerance >= 0,
         "action hurt clock tolerances must be nonnegative",
@@ -195,8 +196,8 @@ def main() -> int:
 
     total_cases = 0
     total_samples = 0
-    maximum_difference = 0
-    maximum_ecb_difference = 0
+    maximum_difference = 0.0
+    maximum_ecb_difference = 0.0
 
     for spec in capture_specs:
         capture_name = str(spec["id"])
@@ -296,15 +297,15 @@ def main() -> int:
                     isinstance(source_frame, (int, float)),
                     f"{capture_name}/{action}: invalid source frame",
                 )
-                source_frame_f32 = round(float(source_frame) * 65536.0)
+                source_frame_f32 = binary32(float(source_frame))
                 if (
                     minimum_frame_f32 is not None
-                    and source_frame_f32 <= int(minimum_frame_f32)
+                    and source_frame_f32 <= float(minimum_frame_f32)
                 ):
                     continue
                 if (
                     maximum_frame_f32 is not None
-                    and source_frame_f32 > int(maximum_frame_f32)
+                    and source_frame_f32 > float(maximum_frame_f32)
                 ):
                     continue
                 selected.append(row)
@@ -315,9 +316,8 @@ def main() -> int:
                 f"{case['expected_samples']} rows, got {len(selected)}",
             )
             source_frames_f32 = [
-                round(
+                binary32(
                     float(row["hitbox_memory"]["fighter_animation_frame"])
-                    * 65536.0
                 )
                 for row in selected
             ]
@@ -333,7 +333,11 @@ def main() -> int:
                 require(
                     isinstance(expected_frames_f32, list)
                     and len(expected_frames_f32) == len(selected)
-                    and all(isinstance(value, int) for value in expected_frames_f32),
+                    and all(
+                        isinstance(value, (int, float))
+                        and not isinstance(value, bool)
+                        for value in expected_frames_f32
+                    ),
                     f"{capture_name}/{action}: invalid expected source frames",
                 )
                 require(
@@ -341,7 +345,7 @@ def main() -> int:
                         abs(actual - expected) <= frame_tolerance
                         for actual, expected in zip(
                             source_frames_f32,
-                            expected_frames_f32,
+                            [binary32(value) for value in expected_frames_f32],
                             strict=True,
                         )
                     ),
@@ -353,7 +357,8 @@ def main() -> int:
                     isinstance(expected_frame_pattern_f32, list)
                     and expected_frame_pattern_f32
                     and all(
-                        isinstance(value, int)
+                        isinstance(value, (int, float))
+                        and not isinstance(value, bool)
                         for value in expected_frame_pattern_f32
                     )
                     and isinstance(repetitions, int)
@@ -369,7 +374,7 @@ def main() -> int:
                         abs(actual - expected) <= frame_tolerance
                         for actual, expected in zip(
                             source_frames_f32,
-                            expected_frames_f32,
+                            [binary32(value) for value in expected_frames_f32],
                             strict=True,
                         )
                     ),
@@ -381,7 +386,7 @@ def main() -> int:
                 source_frame_cycle = case.get("source_frame_cycle")
                 if source_frame_cycle is None:
                     expected_frames_f32 = [
-                        frame * 65536
+                        binary32(float(frame))
                         for frame in range(
                             first_source_frame,
                             last_source_frame + 1,
@@ -396,7 +401,7 @@ def main() -> int:
                         f"{capture_name}/{action}: invalid source-frame cycle",
                     )
                     expected_frames_f32 = [
-                        ((first_source_frame + index) % cycle) * 65536
+                        binary32(float((first_source_frame + index) % cycle))
                         for index in range(int(case["expected_samples"]))
                     ]
                 require(
@@ -405,11 +410,15 @@ def main() -> int:
                 )
             expected_rate_f32 = case.get("expected_animation_rate_f32")
             if expected_rate_f32 is not None:
-                require(isinstance(expected_rate_f32, int), "invalid animation rate")
+                require(
+                    isinstance(expected_rate_f32, (int, float))
+                    and not isinstance(expected_rate_f32, bool),
+                    "invalid animation rate",
+                )
+                expected_rate_f32 = binary32(float(expected_rate_f32))
                 actual_rates_f32 = [
-                    round(
+                    binary32(
                         float(row["hitbox_memory"]["fighter_animation_rate"])
-                        * 65536.0
                     )
                     for row in selected
                 ]
@@ -552,7 +561,7 @@ def main() -> int:
                     require(
                         ecb_difference <= tolerance,
                         f"{capture_name}/{action}: trace={row['trace_frame']} "
-                        f"ECB Q16 difference={ecb_difference} "
+                        f"ECB float32 difference={ecb_difference} "
                         f"components={ecb_component_differences} "
                         f"actual={actual_ecb} expected={expected_ecb}",
                     )

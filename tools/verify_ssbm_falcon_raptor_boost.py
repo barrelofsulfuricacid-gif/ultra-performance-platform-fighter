@@ -21,6 +21,7 @@ from generate_ssbm_stored_trace_oracle import (
     expand_case_samples,
     native_csv_input_line,
 )
+from ssbm_collision import binary32
 from ssbm_live_trace import canonical_sha256, selected_trace_fields
 
 
@@ -121,7 +122,7 @@ def source_sample_values(
     anchor_x: float,
     anchor_y: float,
     shield_strength: int,
-) -> dict[str, int | None]:
+) -> dict[str, int | float | None]:
     action = str(row["action"])
     action_frame = float(row["action_frame"])
     hitlag_left = float(row.get("hitlag_left", 0.0))
@@ -151,14 +152,14 @@ def source_sample_values(
         ),
         "velocity_x_f32": scaled_f32(float(row[velocity_x_key])),
         "velocity_y_f32": scaled_y_f32(float(row["velocity_y"])),
-        "shield_health_f32": round(float(row["shield_health"]) * 65536.0),
+        "shield_health_f32": binary32(float(row["shield_health"])),
         "shield_strength": shield_strength,
         "hitlag_ticks": round(hitlag_left),
         "opponent_hitlag_ticks": round(
             float(row.get("opponent_hitlag_left", 0.0))
         ),
-        "opponent_damage_f32": round(
-            float(row.get("opponent_damage_percent", 0.0)) * 65536.0
+        "opponent_damage_f32": binary32(
+            float(row.get("opponent_damage_percent", 0.0))
         ),
     }
 

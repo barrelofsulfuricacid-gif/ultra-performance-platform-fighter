@@ -10,6 +10,9 @@ import math
 from pathlib import Path
 from typing import Any
 
+from ssbm_collision import binary32
+from ssbm_live_trace import parse_numeric_observations
+
 
 EXPECTED_DISC_SHA256 = (
     "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464"
@@ -20,9 +23,9 @@ EXPECTED_EXIAI_SHA256 = (
 EXPECTED_FTCOMMON_SHA256 = (
     "6a85efe9ef6997a23e5b91fb3c6165e70ca00aac0c617d46c92dc28a5bb86194"
 )
-SOURCE_TO_PROJECT_Q16 = 65536.0 * 12.0 / 115.0
-POSITION_TOLERANCE_Q16 = 640 + round(0.3 * SOURCE_TO_PROJECT_Q16)
-VELOCITY_TOLERANCE_Q16 = 32
+SOURCE_TO_PROJECT_F32 = 12.0 / 115.0
+POSITION_TOLERANCE_F32 = 0.009765625 + 0.3 * SOURCE_TO_PROJECT_F32
+VELOCITY_TOLERANCE_F32 = 0.00048828125
 ACTION_MAP = {"STANDING": 0, "WALK_SLOW": 1, "WALK_MIDDLE": 1, "WALK_FAST": 1}
 
 
@@ -113,19 +116,22 @@ def qualify_source(cases: dict[str, list[dict[str, Any]]]) -> None:
             raise SystemExit(f"{case_id}: fixed 0.3 player nudge changed")
 
 
-def parse_sim(path: Path) -> dict[str, list[list[dict[str, int]]]]:
-    prefix = "m4-ssbm-player-push-observation "
-    flat: dict[str, dict[int, dict[int, dict[str, int]]]] = {}
-    for line_text in path.read_text(encoding="utf-8").splitlines():
-        if not line_text.startswith(prefix):
-            continue
-        fields = dict(token.split("=", 1) for token in line_text[len(prefix):].split())
-        case_id = fields.pop("case")
-        sample = int(fields.pop("sample")) - 1
-        lane_index = int(fields.pop("lane"))
-        flat.setdefault(case_id, {}).setdefault(sample, {})[lane_index] = {
-            key: int(value) for key, value in fields.items()
-        }
+def parse_sim(
+    path: Path,
+) -> dict[str, list[list[dict[str, int | float]]]]:
+    rows = parse_numeric_observations(
+        path, "m4-ssbm-player-push-observation ", "case"
+    )
+    flat: dict[
+        str, dict[int, dict[int, dict[str, int | float]]]
+    ] = {}
+    for case_id, case_rows in rows.items():
+        for fields in case_rows:
+            sample = int(fields.pop("sample")) - 1
+            lane_index = int(fields.pop("lane"))
+            flat.setdefault(case_id, {}).setdefault(sample, {})[
+                lane_index
+            ] = fields
     return {
         case_id: [
             [samples[index][lane_index] for lane_index in range(2)]
@@ -158,16 +164,24 @@ def compare_sim(
                             f"{case_id} sample {sample_index} lane {lane_index}: "
                             f"{field} {produced[field]} != {expected_value}"
                         )
-                expected_position = round(expected["position_x"] * SOURCE_TO_PROJECT_Q16)
-                if abs(produced["dx"] - expected_position) > POSITION_TOLERANCE_Q16:
+                expected_position = binary32(
+                    expected["position_x"] * SOURCE_TO_PROJECT_F32
+                )
+                if (
+                    abs(float(produced["dx"]) - expected_position)
+                    > POSITION_TOLERANCE_F32
+                ):
                     raise SystemExit(
                         f"{case_id} sample {sample_index} lane {lane_index}: "
                         "position exceeded float32 push allowance"
                     )
-                expected_velocity = round(
-                    expected["self_velocity_x"] * SOURCE_TO_PROJECT_Q16
+                expected_velocity = binary32(
+                    expected["self_velocity_x"] * SOURCE_TO_PROJECT_F32
                 )
-                if abs(produced["self_vx"] - expected_velocity) > VELOCITY_TOLERANCE_Q16:
+                if (
+                    abs(float(produced["self_vx"]) - expected_velocity)
+                    > VELOCITY_TOLERANCE_F32
+                ):
                     raise SystemExit(
                         f"{case_id} sample {sample_index} lane {lane_index}: "
                         "velocity exceeded float32 allowance"
@@ -217,8 +231,8 @@ def main() -> int:
         "ssbm-falcon-player-push=pass "
         f"rows={len(rows)} cases={len(cases)} samples={len(rows) * 2} "
         f"sim_trace={int(args.sim_output is not None)} "
-        f"position_tolerance_f32={POSITION_TOLERANCE_Q16} "
-        f"velocity_tolerance_f32={VELOCITY_TOLERANCE_Q16} "
+        f"position_tolerance_f32={POSITION_TOLERANCE_F32} "
+        f"velocity_tolerance_f32={VELOCITY_TOLERANCE_F32} "
         f"source_trace_sha256={observed}"
     )
     return 0

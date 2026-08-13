@@ -10,6 +10,8 @@ import math
 from pathlib import Path
 from typing import Any
 
+from ssbm_live_trace import parse_numeric_observations
+
 
 EXPECTED_OBSERVATION_SHA256 = (
     "5339134dd04cff9612e8c8a3e1d460f85018ae4c081ac7426fbad3cee3b785f5"
@@ -122,29 +124,18 @@ def observation_sha256(capture: dict[str, Any]) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
-def parse_sim(path: Path) -> dict[str, list[dict[str, int]]]:
-    prefix = "m4-ssbm-surface-response-observation "
-    cases: dict[str, list[dict[str, int]]] = {}
-    for line in path.read_text(encoding="utf-8").splitlines():
-        if not line.startswith(prefix):
-            continue
-        fields: dict[str, str] = {}
-        for token in line[len(prefix) :].split():
-            key, value = token.split("=", 1)
-            fields[key] = value
-        case_id = fields.pop("case")
-        cases.setdefault(case_id, []).append(
-            {key: int(value) for key, value in fields.items()}
-        )
-    return cases
+def parse_sim(path: Path) -> dict[str, list[dict[str, int | float]]]:
+    return parse_numeric_observations(
+        path, "m4-ssbm-surface-response-observation "
+    )
 
 
-def sim_x_to_source(value_f32: int) -> float:
-    return float(value_f32) * 115.0 / (12.0 * 65536.0)
+def sim_x_to_source(value_f32: int | float) -> float:
+    return float(value_f32) * 115.0 / 12.0
 
 
-def sim_y_to_source(value_f32: int) -> float:
-    return -float(value_f32) * 62.0 / (11.0 * 65536.0)
+def sim_y_to_source(value_f32: int | float) -> float:
+    return -float(value_f32) * 62.0 / 11.0
 
 
 def qualify_live(cases: dict[str, list[dict[str, Any]]]) -> None:

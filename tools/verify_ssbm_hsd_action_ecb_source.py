@@ -144,7 +144,7 @@ def main() -> int:
     ecb_sets = [point_set for point_set in point_sets if point_set["id"] == "ecb"]
     require(len(ecb_sets) == 1, "manifest ECB joint point set is not unique")
     ecb_source_joints = tuple(ecb_sets[0]["source_joint_indices"])
-    tolerance = int(qualification["coordinate_tolerance_f32"])
+    tolerance = float(qualification["coordinate_tolerance_f32"])
     require(tolerance >= 0, "action ECB tolerance must be nonnegative")
     disc_sha256 = qualification["disc_sha256"]
     probe_version = qualification["probe_engine_version"]
@@ -153,7 +153,7 @@ def main() -> int:
     animation_flags_cache: dict[int, int] = {}
     total_rows = 0
     total_unique_frames = 0
-    maximum_difference = 0
+    maximum_difference = 0.0
 
     for digest, spec in specs_by_digest.items():
         path, capture = supplied[digest]
@@ -310,7 +310,7 @@ def main() -> int:
                         <= float(frame_range[1])
                         for frame_range in bottom_lock_ranges
                     )
-                locked_bottom_y_f32: int | None = None
+                locked_bottom_y_f32: float | None = None
                 if evaluated_bottom_locked:
                     lock_source = case.get("locked_bottom_source")
                     for candidate in case.get("locked_bottom_sources", []):
@@ -326,7 +326,7 @@ def main() -> int:
                             lock_source = candidate
                             break
                     if lock_source is None:
-                        locked_bottom_y_f32 = 0
+                        locked_bottom_y_f32 = 0.0
                     else:
                         require(
                             isinstance(lock_source, dict),
@@ -382,7 +382,7 @@ def main() -> int:
                         difference <= tolerance,
                         f"{spec['id']}/{action}: trace={row['trace_frame']} "
                         f"frame={row['action_frame']} source_frame={evaluated_frame} "
-                        f"Q16 difference={difference} "
+                        f"float32 difference={difference} "
                         f"source={actual} capture={expected}",
                     )
                 case_maximum = max(case_maximum, difference)

@@ -246,8 +246,8 @@ def compare_hitlag(
                 production_samples[index]["position_x_f32_from_origin"]
                 - production_base
             )
-            if abs(source_delta - production_delta) > 1:
-                fail(f"hitlag-q16 case={source_case['id']} row={index}")
+            if abs(source_delta - production_delta) > 0.0000152587890625:
+                fail(f"hitlag-float32 case={source_case['id']} row={index}")
 
 
 def main() -> int:
@@ -289,7 +289,7 @@ def main() -> int:
         raise SystemExit(f"ssbm-ucf084-damage-input=fail reason={error}") from error
     print(
         "ssbm-ucf084-damage-input=pass domains=2 cases=6 rows=22 "
-        "strict62=1 strict75=1 source_repeat=1 stored=1 q16_tolerance=1"
+        "strict62=1 strict75=1 source_repeat=1 stored=1 float32_tolerance=1"
     )
     return 0
 
