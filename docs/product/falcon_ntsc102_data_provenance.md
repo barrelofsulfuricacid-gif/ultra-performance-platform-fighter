@@ -1,5 +1,15 @@
 # M4 Falcon NTSC 1.02 gameplay-data provenance
 
+## 2026-08-13 numeric representation migration
+
+The active importer and production simulation now round source numbers once to
+IEEE-754 binary32 and retain float32 through generated data, runtime state,
+inspection, save/replay serialization, and oracle projections. Historical
+sections below preserve their original integer-grid measurements and hashes as
+chronology; those labels are not current runtime types. Current manifests own
+explicit `*_tolerance_f32` values in source units, while actions, clocks,
+callback order, supports, and other discrete channels remain exact.
+
 ## Authorization and scope
 
 On 2026-08-03, the owner authorized importing frame-data tables to make the M4

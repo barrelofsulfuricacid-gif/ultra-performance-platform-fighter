@@ -24,6 +24,11 @@ the replay before it can produce a pass or simulation-gap claim.
 This adds no simulation code, production allocation, or runtime branch. Parser,
 downloads, reports, and runner processes live under ignored `build/` paths.
 
+The active replay projection uses binary32 position, velocity, damage, and
+geometry fields. Historical candidate deltas below remain in their capture-time
+integer-grid units; current comparisons use the profile's explicit
+`*_tolerance_f32` values and never reconstruct the retired representation.
+
 The checked-in parts are character-independent worker code plus data profiles:
 
 - `tools/ssbm_replay_differential.py`: provenance, qualification, comparison,

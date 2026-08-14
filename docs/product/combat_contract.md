@@ -613,9 +613,9 @@ The hit target can affect its reaction through the normalized main stick:
 - Trajectory DI reads the final hitlag input and rotates pending launch toward
   the stick's perpendicular component. Full perpendicular input reaches the
   data-defined 18-degree maximum. Parallel input produces no rotation.
-- The fixed-point DI path uses deterministic integer square root and
-  renormalizes the rotated vector to preserve launch speed within integer
-  truncation.
+- The binary32 DI path preserves the source operation order, uses the shared
+  finite-checked float32 rotation, and renormalizes the rotated vector to
+  preserve launch speed within the declared float32 comparison envelope.
 - A hitlag shift cannot pass downward through a floor or pass-through
   platform. An ordinary target shift can move upward or beyond a support edge
   and become airborne. Grounded shield SDI/ASDI can likewise move beyond a
@@ -849,8 +849,8 @@ constant minimum screen-space size.
 On every ordinary shield tick, the main-stick target angle is measured relative
 to facing and follows the shortest wrapped route; target magnitude is the
 capped Euclidean stick magnitude. Both canonical values converge by one half
-per tick, matching common-data field `x44C`. A 65-entry octant table supplies a
-deterministic fixed-point `atan2`, while the captured eight-key Falcon guard
+per tick, matching common-data field `x44C`. Binary32 `atan2f` supplies the
+angle before deterministic turn-unit rounding, while the captured eight-key Falcon guard
 animation is linearly interpolated from one immutable table. The four-byte
 canonical angle/magnitude state freezes through shield hitlag and shield stun,
 survives save/load and rollback, and clears with release, break, hit, grab,

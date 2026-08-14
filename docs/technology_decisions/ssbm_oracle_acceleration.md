@@ -13,6 +13,11 @@ The owner-supplied `GALE01` NTSC-U 1.02 image remains outside the repository.
 The release AppImage and extracted toolchain also remain under ignored
 `build/oracle-toolchain/` paths.
 
+Since the 2026-08-13 numeric migration, source/native projections use canonical
+IEEE-754 binary32 fields and manifest-owned float32 tolerances. Older timing and
+digest checkpoints below retain their original integer-grid wording strictly as
+historical evidence; the active runner no longer exposes that representation.
+
 ## Prior-art sweep
 
 The selected prior art is:

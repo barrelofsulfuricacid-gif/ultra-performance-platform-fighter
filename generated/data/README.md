@@ -88,15 +88,15 @@ The generic generator reads
 the four hash-pinned owner-extracted fighter/model DATs, validates the complete
 model and runtime part layout, retains only the 25 parent-closed joints needed
 by Falcon's 11 hurt capsules and six ECB selectors, and emits 68 motions
-containing 4,511 FObj tracks and 44,881 keys. The character-independent Q16
-runtime evaluator samples these
+containing 4,511 FObj tracks and 44,881 keys. The character-independent
+binary32 runtime evaluator samples these
 tracks at the canonical fractional animation cursor; Falcon only binds its
 source submotion IDs and converts the shared capsule result. Imported
 submotion animation flags also select whether Melee has extracted/zeroed
 TransN or retained it in model space, so ECB reference ownership is generated
 without action-specific branches. The same source
 import also evaluates compact common-state pose predicates: Falcon's terminal
-ShieldBreakFly HipN matrix component is emitted as one signed Q16 value and one
+ShieldBreakFly HipN matrix component is emitted as one signed binary32 value and one
 boolean, so the runtime selects DownD. ShieldBreakFly/DownD/StandD/Furafura
 hurt capsules are evaluated from those retained HSD motions. Their collision ECBs
 remain compact live-source tracks because Melee's runtime animation/collision

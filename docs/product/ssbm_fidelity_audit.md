@@ -17,6 +17,12 @@ simulator's float32 representation are acceptable when the verifier reports and
 justifies them; discrete action/state, timing, facing, grounded-state,
 threshold, and route differences are not.
 
+As of 2026-08-13, production, generated geometry, save/replay state, and oracle
+numeric projections use IEEE-754 binary32. Integer-grid unit labels retained in
+older checkpoint paragraphs below describe the historical evidence scale only;
+active comparisons use manifest-declared `*_tolerance_f32` values in source
+units.
+
 ### 2026-08-10 implementation checkpoint
 
 An exhaustive callback-by-callback comparison against pinned decomp revision

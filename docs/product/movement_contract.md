@@ -272,8 +272,8 @@ uses:
 
 | Action | Total ticks | Motion | Invulnerability |
 |---|---:|---|---|
-| Forward roll | 31 | `9/50` Q16 units/tick on action ticks `[3, 20)` | action ticks `[4, 17)` |
-| Backward roll | 35 | `4/25` Q16 units/tick on action ticks `[3, 20)` | action ticks `[4, 17)` |
+| Forward roll | 31 | `0.18f` units/tick on action ticks `[3, 20)` | action ticks `[4, 17)` |
+| Backward roll | 35 | `0.16f` units/tick on action ticks `[3, 20)` | action ticks `[4, 17)` |
 | Spot dodge | 25 | none | action ticks `[3, 16)` |
 
 The half-open ranges make startup and recovery visibly punishable. Rolls use

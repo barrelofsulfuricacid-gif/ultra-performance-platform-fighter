@@ -126,9 +126,9 @@ The owner explicitly accepts very small differences caused by the simulator's
 float32 representation. The oracle therefore treats exact equivalence as
 behavioral: discrete state/action/timing, facing, grounded state, thresholds,
 and route selection remain strict, while numeric position or velocity
-tolerances must be narrow, recorded, and justified as fixed-point
-quantization. For strict collision boundaries, a single bounded one-tick
-fixed-point transient is acceptable; cumulative drift or a different
+tolerances must be narrow, recorded, and justified by the source and binary32
+operation order. For strict collision boundaries, a single bounded one-tick
+binary32 transient is acceptable; cumulative drift or a different
 behavioral result is not.
 
 Current qualification evidence is deliberately narrower than this acceptance
@@ -173,7 +173,7 @@ The analog shield-input/health route is qualified separately by a 500-frame
 Final Destination capture. It samples both sides of the common dead zone,
 light, intermediate, near-dense, simultaneous-shoulder, and digital-full input,
 then release and regeneration. Action/state and shield health remain strict
-within the existing 64-Q16 health gate; normalized shield pressure allows only
+within the existing `0.0009765625` float32 health gate; normalized shield pressure allows only
 one unit of 16-bit conversion error. Shield collision damage, stun, pushback,
 tilt smoothing, and exact collision geometry are not inferred from this
 pressure-only route.
@@ -186,8 +186,8 @@ attacker recoil independently inferred from executable position delta minus
 self velocity. The implementation follows the pinned decomp and owner-disc
 common table: integer shield-hit conversion; pressure-dependent damage and
 stun; post-hitlag ordering; and a separate attacker-recoil component with
-ground/air decay. The three captures pass with exact/32-Q16 component gates
-and the established 640-Q16 position envelope. Exact shield tilt, collision
+ground/air decay. The three captures pass with strict `0.00048828125` float32
+component gates and the established `0.009765625` float32 position envelope. Exact shield tilt, collision
 geometry, and uncaptured shield-hit routes remain active work.
 
 The platform routes are qualified separately by a 348-frame Battlefield
