@@ -13113,6 +13113,7 @@ static int run_ledge_roll_test(const struct content *default_content)
     struct inspection inspection;
     float hang_x;
     float hang_y;
+    int reference_duration_snapshot_tested = 0;
     uint32_t tick;
 
     if (!expect_status(
@@ -13236,8 +13237,25 @@ static int run_ledge_roll_test(const struct content *default_content)
         {
             return 0;
         }
+        if (reference_duration_snapshot_tested == 0 &&
+            inspection.players[0].action_state ==
+                (uint8_t)PF_M4_ACTION_LEDGE_ROLL &&
+            inspection.players[0].action_ticks >=
+                content.fighter.ledge_roll_ticks)
+        {
+            if (!run_ledge_snapshot_test(
+                    sim,
+                    &view,
+                    &inspection,
+                    (uint8_t)PF_M4_ACTION_LEDGE_ROLL))
+            {
+                return 0;
+            }
+            reference_duration_snapshot_tested = 1;
+        }
     }
     if (tick == UINT32_C(128) ||
+        reference_duration_snapshot_tested == 0 ||
         inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
         inspection.players[0].grounded != UINT8_C(1) ||

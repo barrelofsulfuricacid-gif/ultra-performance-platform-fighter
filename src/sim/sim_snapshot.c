@@ -2892,6 +2892,28 @@ static uint32_t snapshot_ledge_attack_ticks(
            (uint32_t)fighter->ledge_attack.recovery_ticks;
 }
 
+static uint32_t snapshot_ledge_roll_ticks(
+    const fighter_data *fighter,
+    uint16_t source_submotion)
+{
+    const int reference_roll =
+        source_submotion ==
+            (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_ROLL_SLOW ||
+        source_submotion ==
+            (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_ROLL_QUICK;
+    const falcon_submotion_data *motion =
+        fighter->reference_frame_data_enabled != UINT8_C(0) &&
+                reference_roll != 0
+            ? falcon_reference_submotion(source_submotion)
+            : NULL;
+
+    if (motion != NULL && motion->gameplay_frame_count != UINT16_C(0))
+    {
+        return (uint32_t)motion->gameplay_frame_count;
+    }
+    return (uint32_t)fighter->ledge_roll_ticks;
+}
+
 static int snapshot_content_state_consistent(
     const struct content *content,
     const pf_world_state *world)
@@ -2980,6 +3002,10 @@ static int snapshot_content_state_consistent(
         }
         const uint32_t ledge_attack_ticks =
             snapshot_ledge_attack_ticks(
+                &content->fighter,
+                source_submotion);
+        const uint32_t ledge_roll_ticks =
+            snapshot_ledge_roll_ticks(
                 &content->fighter,
                 source_submotion);
         const attack_data *ground_attack =
@@ -3107,7 +3133,7 @@ static int snapshot_content_state_consistent(
             (action == (uint8_t)PF_M4_ACTION_WALL_JUMP &&
              action_ticks >= content->fighter.wall_jump_ticks) ||
             (action == (uint8_t)PF_M4_ACTION_LEDGE_ROLL &&
-             action_ticks >= content->fighter.ledge_roll_ticks) ||
+             (uint32_t)action_ticks >= ledge_roll_ticks) ||
             (action == (uint8_t)PF_M4_ACTION_LEDGE_ATTACK &&
              (uint32_t)action_ticks >= ledge_attack_ticks) ||
             (ground_attack != NULL &&
