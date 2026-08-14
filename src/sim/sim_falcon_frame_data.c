@@ -1112,7 +1112,7 @@ int falcon_reference_direct_hsd_pose(
     float *out_frame_f32)
 {
     uint16_t submotion;
-    float frame_f32 = (int32_t)action_ticks * 1.0f;
+    float frame_f32 = (float)action_ticks;
 
     if (out_submotion == NULL || out_frame_f32 == NULL)
     {
@@ -1307,11 +1307,10 @@ int falcon_reference_hsd_fall_ecb_pose(
             return 0;
         }
         while (directional_frame_f32 >=
-            (int32_t)directional_motion->animation_frame_count * 1.0f)
+            (float)directional_motion->animation_frame_count)
         {
             directional_frame_f32 -=
-                (int32_t)directional_motion->animation_frame_count *
-                1.0f;
+                (float)directional_motion->animation_frame_count;
         }
         if (!hsd_evaluate_local_pose_f32(
                 &falcon_dynamic_hsd_data,
@@ -2165,7 +2164,7 @@ int falcon_reference_retained_hsd_pose(
             action_state == (uint8_t)PF_M4_ACTION_SHIELD_STUN ||
             action_state == (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN
             ? source_animation_frame_f32
-            : (int32_t)action_ticks * 1.0f;
+            : (float)action_ticks;
     return 1;
 }
 

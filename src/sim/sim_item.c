@@ -115,7 +115,7 @@ static void item_attach_to_player(
 {
     scratch->item_position_x_f32 =
         scratch->position_x_f32[player_index] +
-        (int32_t)scratch->facing[player_index] *
+        (float)scratch->facing[player_index] *
             item->held_offset_x_f32;
     scratch->item_position_y_f32 =
         scratch->position_y_f32[player_index] +

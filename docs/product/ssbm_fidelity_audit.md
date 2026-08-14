@@ -80,12 +80,12 @@ The later DBOOC/shield and damage-input domains complete direct Falcon-path
 boundary qualification for all eight targeted hooks. The Zelda grounded-Up-B
 cardinal exception remains outside this Falcon audit.
 
-The staged fast registry now contains 35 domains / 221 cases and passes with
+The staged fast registry now contains 35 domains / 238 cases and passes with
 replay under manifest SHA-256
-`9ef8f2ea5f5a21a0f8856dcc42fb8b5aa313de1f38cac31d8ab6f2a744180670`.
-Three sequential complete runs take 774.267-843.944 ms on Windows and
-1,117.820-1,984.600 ms in WSL.
-The preceding
+`5099bcdc63d0160c09bcda4248536a02c515892a466342ee9faa139f49542b5c`.
+The current completion run takes 589.781 ms. The preceding 221-case snapshot
+took 774.267-843.944 ms on Windows and 1,117.820-1,984.600 ms in WSL. The
+preceding
 31-domain / 189-case registry's 42,555-byte deterministic replay pins
 corpus/final/event SHA-256 values
 `a1d9c1d97a3f20bdb9c76094c39b856f731a1eb2c0cca64ac05dd28a6e121949`,
@@ -808,13 +808,36 @@ skips the ordinary early-Dash branch. The enlarged pack contains 39 cases /
 491 rows. Source and production hash to
 `c68d3bc9cd830283648f98b210502a471ca0724fc3b5197caea5b71aaa29a07b` and
 `dfdf53934818d7436fa02fc265e3febb129e97f34b1573d0b670cfc66075a6c6`;
-the sole difference is one allowed Q16 unit on the second held-Jump sample.
+the sole difference is a declared `0.0000152587890625` source-unit float32
+tolerance on the second held-Jump sample.
 This qualifies those two bounded callback/input rules, not whole-character
 movement equivalence. Remaining replay candidates and uncaptured callback
 owners remain open audit inputs.
 Action, displayed frame, facing, grounding, vertical motion, and applicable
 horizontal velocity are strict. Position masks cover only the Walk fixture's
-one-tick origin offset and accumulated 1-9-Q16 Run conversion differences;
+one-tick origin offset and accumulated bounded float32 Run conversion
+differences;
 grounded Falcon Dive's stale source ground-velocity field is excluded while
 its position and vertical velocity remain compared. This closes the eight
 represented directional callbacks, not every simultaneous Walk/Run input.
+
+### 2026-08-14 binary32 implementation closure
+
+The numeric migration is closed for the active implementation surface. A
+case-insensitive source audit finds no Q16, 16.16, or fixed-point identifiers
+in public headers, production, tests, tools, generated data, or CMake. Strict
+Release suites pass 47/47 on Windows/MSVC and 41/41 on WSL/GCC, and the pinned
+Emscripten 6.0.3 build passes its conversion-as-error contract.
+
+The complete 35-domain / 238-case stored registry, including deterministic
+replay, passes in 589.781 ms with zero generated-file changes under manifest
+SHA-256
+`5099bcdc63d0160c09bcda4248536a02c515892a466342ee9faa139f49542b5c`.
+The 42,572-byte, 240-input replay is bit-identical across native and
+WebAssembly: corpus/final/event SHA-256 values are
+`5b35706ece2a4bf54b2401d0257b7363e56a9182871563a463992300e1fee632`,
+`6b4364e6d2f93d5bb174193e5d09b01af367b70bce05502a14f7ff988a9531da`,
+and `bd40b6291385ada8027c37ea7c34af7cc7ef3c339a642ce53f037391b3a06f43`.
+Small source-oracle differences remain allowed only through an explicit
+field-specific float32 tolerance; discrete behavior and cross-target replay
+identity remain exact.

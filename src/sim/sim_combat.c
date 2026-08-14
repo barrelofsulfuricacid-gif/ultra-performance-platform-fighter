@@ -1833,11 +1833,11 @@ static uint8_t reference_hit_spheres_at_world(
     {
         out_spheres[sphere_index].center_x_f32 =
             position_x_f32 +
-            (int32_t)facing * source[sphere_index].offset_x_f32;
+            (float)facing * source[sphere_index].offset_x_f32;
         out_spheres[sphere_index].center_y_f32 =
             reference_origin_y_f32_value + source[sphere_index].offset_y_f32;
         out_spheres[sphere_index].center_z_f32 =
-            (int32_t)facing * source[sphere_index].offset_z_f32;
+            (float)facing * source[sphere_index].offset_z_f32;
         out_spheres[sphere_index].radius_f32 =
             source[sphere_index].radius_f32;
         out_spheres[sphere_index].effect_index =
@@ -2387,7 +2387,7 @@ static int shield_volume_for_player(
         fighter->shield_center_forward_f32 + animation_x_f32;
     center_up_f32 = fighter->shield_center_up_f32 + animation_y_f32;
     out_volume->center_x_f32 =
-        position_x_f32 + (int32_t)facing * center_forward_f32;
+        position_x_f32 + (float)facing * center_forward_f32;
     out_volume->center_y_f32 = position_y_f32 - center_up_f32;
     return 1;
 }
@@ -4754,7 +4754,7 @@ static pf_status resolve_grabs(
         {
             scratch->position_x_f32[target_index] =
                 scratch->position_x_f32[holder_index] +
-                (int32_t)scratch->facing[holder_index] *
+                (float)scratch->facing[holder_index] *
                     content->fighter.grabbed_offset_x_f32;
             scratch->position_y_f32[target_index] =
                 scratch->position_y_f32[holder_index] +
@@ -5016,7 +5016,7 @@ static pf_status resolve_grabs(
                 else
                 {
                     launch_velocity_x =
-                        (int32_t)scratch->facing[holder_index] *
+                        (float)scratch->facing[holder_index] *
                         scaled_throw_velocity(
                             throw_data->base_velocity_x_f32,
                             throw_data->velocity_growth_x_f32,
@@ -5416,7 +5416,7 @@ static pf_status resolve_grabs(
                     falcon_dive_grab != 0
                         ? scratch->position_x_f32[attacker_index]
                         : scratch->position_x_f32[attacker_index] +
-                              (int32_t)scratch->facing[attacker_index] *
+                              (float)scratch->facing[attacker_index] *
                                   content->fighter.grabbed_offset_x_f32;
                 scratch->position_y_f32[target_index] =
                     falcon_dive_grab != 0
@@ -5933,7 +5933,7 @@ static pf_status resolve_projectile_combat(
                     (uint8_t)owner_index,
                     target_index,
                     damage_f32,
-                    (int32_t)launch_direction * knockback_x,
+                    (float)launch_direction * knockback_x,
                     -knockback_y,
                     projectile->hitlag_ticks,
                     UINT16_MAX,
@@ -6032,13 +6032,13 @@ static pf_status resolve_falcon_side_special_searches(
                 const hit_sphere_inspection sphere = {
                     .center_x_f32 =
                         scratch->position_x_f32[attacker_index] +
-                        (int32_t)scratch->facing[attacker_index] *
+                        (float)scratch->facing[attacker_index] *
                             source->offset_x_f32,
                     .center_y_f32 =
                         scratch->position_y_f32[attacker_index] +
                         source->offset_y_f32,
                     .center_z_f32 =
-                        (int32_t)scratch->facing[attacker_index] *
+                        (float)scratch->facing[attacker_index] *
                         source->offset_z_f32,
                     .radius_f32 = source->radius_f32,
                     .effect_index = UINT8_C(0),

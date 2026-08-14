@@ -7060,3 +7060,25 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   as a real interaction scenario rather than weakening its coverage checks.
   Public replay results remain diagnostic until the exact disc and pinned UCF
   0.84 revision are independently proven.
+
+## 2026-08-14: complete IEEE-754 binary32 migration
+
+- Removed the retired Q16/16.16 representation from every active public
+  header, production source, test, tool, generated artifact, and build rule.
+  Historical milestone paragraphs retain their original unit labels rather
+  than rewriting old evidence.
+- The strict final matrix passes 47/47 Windows/MSVC Release tests, 41/41
+  WSL/GCC Release tests, and the pinned Emscripten 6.0.3 build. The Wasm
+  conversion-as-error gate exposed the final implicit integer-to-float paths
+  and three predicate helpers with float return types; all were corrected
+  without changing the native replay identity.
+- The complete stored registry passes 35 domains / 238 cases plus replay in
+  589.781 ms under manifest SHA-256
+  `5099bcdc63d0160c09bcda4248536a02c515892a466342ee9faa139f49542b5c`.
+- Native and WebAssembly exactly reproduce the same 42,572-byte, 240-input
+  replay. Corpus/final/event SHA-256 values are
+  `5b35706ece2a4bf54b2401d0257b7363e56a9182871563a463992300e1fee632`,
+  `6b4364e6d2f93d5bb174193e5d09b01af367b70bce05502a14f7ff988a9531da`,
+  and `bd40b6291385ada8027c37ea7c34af7cc7ef3c339a642ce53f037391b3a06f43`.
+  The rebuilt browser passes its headless-Chrome smoke at ABI 6 with 72
+  canonical replay events.

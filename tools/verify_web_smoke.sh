@@ -99,7 +99,7 @@ pf_require_dom()
 
 pf_require_dom \
     "simulation ABI status" \
-    'web-client-smoke=pass sim_abi=5 tick_hz=60'
+    'web-client-smoke=pass sim_abi=6 tick_hz=60'
 pf_require_dom \
     "WebGL2 status" \
     'webgl2=pass batch_draws=1'
@@ -120,7 +120,7 @@ pf_require_dom \
     'id="pf-replay-events"'
 pf_require_dom \
     "re-simulated canonical events" \
-    '82 typed events'
+    '72 typed events'
 pf_require_dom \
     "M4 browser integration status" \
     'playtest=ready gamepad_api=available wii_u_adapter_api=available controls=keyboard-gamepad-webusb-two-controller-duel-team-lab owner_checklist=ready-61'

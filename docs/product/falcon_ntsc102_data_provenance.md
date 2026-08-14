@@ -2456,3 +2456,22 @@ Three balanced checkpoint workers retain 156/155/156 rows and finish the two
 accepted captures in 12.410/14.011 seconds warm and 12.827/15.579 seconds
 cold. This reuses the existing checkpoint protocol, input probe, native CSV
 runner, and action mapping; no new runtime state or web probe exists.
+
+## 2026-08-14 binary32 completion evidence
+
+The retired Q16 implementation is absent from active public headers,
+production, tests, tools, generated data, and build definitions. Strict
+Windows/MSVC and WSL/GCC Release suites pass 47/47 and 41/41 respectively;
+the pinned Emscripten 6.0.3 build also passes with implicit numeric
+conversions treated as errors.
+
+The full stored-oracle registry passes 35 domains / 238 cases plus replay in
+589.781 ms, with zero generated-file drift, under manifest SHA-256
+`5099bcdc63d0160c09bcda4248536a02c515892a466342ee9faa139f49542b5c`.
+Native and WebAssembly reproduce the same 42,572-byte / 240-input replay with
+corpus/final/event SHA-256 values
+`5b35706ece2a4bf54b2401d0257b7363e56a9182871563a463992300e1fee632`,
+`6b4364e6d2f93d5bb174193e5d09b01af367b70bce05502a14f7ff988a9531da`,
+and `bd40b6291385ada8027c37ea7c34af7cc7ef3c339a642ce53f037391b3a06f43`.
+These values are the active float32 compatibility identity. Older Q16 hashes
+and unit counts elsewhere in this file remain historical provenance only.

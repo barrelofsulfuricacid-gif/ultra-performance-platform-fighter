@@ -249,8 +249,7 @@ static pf_status pf_web_capture_verified_checkpoint(
             (size_t)PF_WEB_REPLAY_EVENT_STRIDE;
 
         if (event->tick > (uint64_t)INT32_MAX ||
-            event->sequence > (uint32_t)INT32_MAX ||
-            event->value_f32 > (uint32_t)INT32_MAX)
+            event->sequence > (uint32_t)INT32_MAX)
         {
             return PF_STATUS_BUFFER_TOO_SMALL;
         }

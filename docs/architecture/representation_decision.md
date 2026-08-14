@@ -78,6 +78,18 @@ WebAssembly run the same C source with stable operation order and must match
 the canonical replay corpus exactly unless a future, reviewed cross-target
 case documents a bounded binary32 difference.
 
+### Closure evidence
+
+The 2026-08-14 completion gate found no Q16, 16.16, or fixed-point identifiers
+in active headers, source, tests, tools, generated data, or build rules.
+Windows/MSVC Release passes 47/47 tests, WSL/GCC Release passes 41/41, and the
+pinned Emscripten 6.0.3 build passes with implicit conversions treated as
+errors. The full 35-domain / 238-case stored registry plus replay passes under
+manifest SHA-256
+`5099bcdc63d0160c09bcda4248536a02c515892a466342ee9faa139f49542b5c`.
+Native and WebAssembly exactly agree on the canonical 240-input replay's
+state and event hashes.
+
 ## Reconsideration triggers
 
 - Reconsider numeric representation only through a new owner decision backed

@@ -327,18 +327,22 @@ Idle animation phase can vary between otherwise equivalent boots, so the
 verifier pins the ordered action/frame/float32 payload and explicit physical
 discriminator instead of hashing incidental idle rows.
 
-The registry currently contains 31 domains and 186 cases. Independent domain
+The registry currently contains 35 domains and 238 cases. Independent domain
 generation and execution run concurrently; each native-CSV domain also runs
 its independent cases concurrently, and both levels restore manifest order
-before counting or hashing. The preceding 30-domain / 174-case snapshot passed
+before counting or hashing. The complete current float32 registry plus replay
+passes in 589.781 ms under manifest SHA-256
+`5099bcdc63d0160c09bcda4248536a02c515892a466342ee9faa139f49542b5c`.
+The following measurements are retained as historical scaling evidence. The
+preceding 30-domain / 174-case snapshot passed
 the two-second guard in 1178.830/1319.197/1471.076 ms on native Windows and
 919.397/986.464/1270.306 ms in WSL. Its focused Run-to-RunBrake domain passed
 in 263.089 ms and 403.007 ms respectively. The added 12-case Turn-interrupt
-domain's three focused current runs take 304.855/347.483/307.646 ms on Windows
+domain's three focused runs took 304.855/347.483/307.646 ms on Windows
 and 415.305/458.985/376.784 ms in WSL. The complete current registry plus replay
-takes 1706.950/1922.805/1485.200 ms in three isolated Windows runs. One cold
-WSL run takes 5.8 seconds; the following three isolated warm runs take
-1127.462/1220.305/1096.947 ms. The current registry manifest SHA-256 is
+took 1706.950/1922.805/1485.200 ms in three isolated Windows runs. One cold
+WSL run took 5.8 seconds; the following three isolated warm runs took
+1127.462/1220.305/1096.947 ms. Its registry manifest SHA-256 was
 `ffb5f801f55e24ce9c7a94fcbc627e46b1bcf0a42ebb79db37d746a1c9938664`.
 Numeric C cases may narrow a domain's inherited serialized-field mask when a
 physical setup intentionally isolates only part of the response; the generated

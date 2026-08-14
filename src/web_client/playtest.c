@@ -720,8 +720,7 @@ static int pf_web_render(void)
             (int)event_index * PF_WEB_M4_VIEW_EVENT_STRIDE;
 
         if (event->tick > (uint64_t)INT32_MAX ||
-            event->sequence > (uint32_t)INT32_MAX ||
-            event->value_f32 > (uint32_t)INT32_MAX)
+            event->sequence > (uint32_t)INT32_MAX)
         {
             return 0;
         }
