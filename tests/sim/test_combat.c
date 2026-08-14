@@ -149,8 +149,8 @@ static int make_player_push_content(
 
     /* Each fighter starts 3.6 Melee units from center. This is just outside
        Falcon's strict 3.5 + 3.5 source-radius overlap boundary. */
-    out_content->stage.spawn_spacing_f32 = (int32_t)(
-        (INT64_C(216) * 1.0f + INT64_C(287)) / INT64_C(575));
+    out_content->stage.spawn_spacing_f32 =
+        3.6f * (12.0f / 115.0f);
     out_content->item.enabled = UINT8_C(0);
     return expect_status(
         make_content_view(out_content, out_view),
@@ -18672,29 +18672,30 @@ static int prepare_battlefield_surface_response(
     sim->world.position_x_f32[player_index] =
         ssbm_source_x_hundredths_to_sim_f32(source_x_hundredths);
     sim->world.position_y_f32[player_index] =
-        ssbm_source_y_hundredths_to_sim_f32(source_y_hundredths);
+        ssbm_source_y_hundredths_to_sim_f32(source_y_hundredths) -
+        sim->content.fighter.half_height_f32;
     sim->world.velocity_x_f32[player_index] = INT32_C(0);
     sim->world.velocity_y_f32[player_index] = INT32_C(0);
     sim->world.knockback_velocity_x_f32[player_index] =
         ssbm_source_velocity_f32_to_sim_f32(
-            -INT32_C(274154),
+            -4.1832571f,
             INT32_C(12),
             INT32_C(115));
     sim->world.knockback_velocity_y_f32[player_index] =
         -ssbm_source_velocity_f32_to_sim_f32(
-            INT32_C(264747),
+            4.03972435f,
             INT32_C(11),
             INT32_C(62));
     sim->world.ground_knockback_velocity_f32[player_index] = INT32_C(0);
     sim->world.action_state[player_index] =
         (uint8_t)PF_M4_ACTION_HITSTUN;
     sim->world.action_ticks[player_index] = UINT16_C(0);
-    sim->world.source_submotion[player_index] = UINT16_C(0);
+    sim->world.source_submotion[player_index] =
+        PF_M4_FALCON_SUBMOTION_DAMAGE_FLY_NEUTRAL;
     sim->world.grounded[player_index] = UINT8_C(0);
     sim->world.support[player_index] = (uint8_t)PF_M4_SURFACE_NONE;
     sim->world.fast_fall[player_index] = UINT8_C(0);
-    sim->world.damage_f32[player_index] =
-        UINT32_C(210) * (uint32_t)1.0f;
+    sim->world.damage_f32[player_index] = 210.0f;
     sim->world.hitlag_ticks[player_index] = UINT16_C(0);
     sim->world.hitstun_ticks[player_index] = UINT16_C(77);
     sim->world.tumble[player_index] = UINT8_C(1);
@@ -18905,8 +18906,7 @@ static int prepare_battlefield_bounce_recontact(
     sim->world.support[player_index] = (uint8_t)PF_M4_SURFACE_NONE;
     sim->world.fast_fall[player_index] = UINT8_C(0);
     sim->world.facing[player_index] = stored_case->initial_facing;
-    sim->world.damage_f32[player_index] =
-        UINT32_C(200) * (uint32_t)1.0f;
+    sim->world.damage_f32[player_index] = 200.0f;
     sim->world.hitlag_ticks[player_index] = UINT16_C(0);
     sim->world.hitstun_ticks[player_index] = UINT16_C(76);
     sim->world.tumble[player_index] = UINT8_C(1);

@@ -13,7 +13,7 @@ from ssbm_ecb_pose import canonical_sha256, semantic_payload
 
 
 EXPECTED_DISC_SHA256 = "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464"
-EXPECTED_SEMANTIC_SHA256 = "ba47ef2736a5677d1909262a20f32991b7c2515407fae26626d5869b95edd265"
+EXPECTED_SEMANTIC_SHA256 = "158267ef074f57056a6be09650757d375dcc0002aeb21de4347a97c2b736a206"
 EXPECTED_TRACK = ("crouch_wait", "CROUCHING", 0, 158)
 
 
@@ -49,7 +49,7 @@ def main() -> int:
     expected_semantic = profile_semantic(profile)
     profile_digest = canonical_sha256(expected_semantic)
     if (
-        profile.get("schema") != 1
+        profile.get("schema") != 2
         or profile.get("scope") != "ssbm-action-owned-ecb-pose-tracks"
         or profile.get("fighter") != "CPTFALCON"
         or profile.get("stage") != "FINAL_DESTINATION"

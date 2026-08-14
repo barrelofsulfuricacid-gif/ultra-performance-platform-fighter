@@ -978,7 +978,7 @@ if(BUILD_TESTING)
         set_tests_properties(
             sim.replay_corpus
             PROPERTIES PASS_REGULAR_EXPRESSION
-                       "sim-replay=pass ticks=240 players=4 bytes=42559")
+                       "sim-replay=pass ticks=240 players=4 bytes=42572")
     endif()
 
     if(PF_BUILD_HEADLESS)
