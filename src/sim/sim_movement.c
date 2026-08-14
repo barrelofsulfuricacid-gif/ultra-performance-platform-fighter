@@ -2806,6 +2806,27 @@ static int reference_ecb_pose_f32(
     {
         return 1;
     }
+    /* The live-qualified DamageFly track is the collision authority for the
+     * public hitstun state; source-submotion HSD is only the fallback. */
+    if (action_state == (uint8_t)PF_M4_ACTION_HITSTUN)
+    {
+        frame_index = damage_fly_ecb_frame_index(action_ticks);
+        out_pose->top_x_from_origin_f32 = 0.0f;
+        out_pose->top_y_from_origin_f32 =
+            pose->damage_fly_top_y_from_origin_f32[frame_index];
+        out_pose->bottom_x_from_origin_f32 = 0.0f;
+        out_pose->bottom_y_from_origin_f32 =
+            pose->damage_fly_bottom_y_from_origin_f32[frame_index];
+        out_pose->right_x_from_origin_f32 =
+            pose->damage_fly_side_x_from_origin_f32[frame_index];
+        out_pose->right_y_from_origin_f32 =
+            pose->damage_fly_side_y_from_origin_f32[frame_index];
+        out_pose->left_x_from_origin_f32 =
+            -pose->damage_fly_side_x_from_origin_f32[frame_index];
+        out_pose->left_y_from_origin_f32 =
+            pose->damage_fly_side_y_from_origin_f32[frame_index];
+        return 1;
+    }
     if ((action_uses_fall_special_pose(action_state) ||
          (action_state == (uint8_t)PF_M4_ACTION_AIRBORNE &&
           fall_animation_blend_f32 != INT32_C(0))) &&
@@ -2939,25 +2960,6 @@ static int reference_ecb_pose_f32(
     if (prone_pose != NULL)
     {
         *out_pose = *prone_pose;
-        return 1;
-    }
-    if (action_state == (uint8_t)PF_M4_ACTION_HITSTUN)
-    {
-        frame_index = damage_fly_ecb_frame_index(action_ticks);
-        out_pose->top_x_from_origin_f32 = INT32_C(0);
-        out_pose->top_y_from_origin_f32 =
-            pose->damage_fly_top_y_from_origin_f32[frame_index];
-        out_pose->bottom_x_from_origin_f32 = INT32_C(0);
-        out_pose->bottom_y_from_origin_f32 =
-            pose->damage_fly_bottom_y_from_origin_f32[frame_index];
-        out_pose->right_x_from_origin_f32 =
-            pose->damage_fly_side_x_from_origin_f32[frame_index];
-        out_pose->right_y_from_origin_f32 =
-            pose->damage_fly_side_y_from_origin_f32[frame_index];
-        out_pose->left_x_from_origin_f32 =
-            -pose->damage_fly_side_x_from_origin_f32[frame_index];
-        out_pose->left_y_from_origin_f32 =
-            pose->damage_fly_side_y_from_origin_f32[frame_index];
         return 1;
     }
     return 0;
