@@ -62,7 +62,7 @@
   "stored_oracle": {
     "kind": "numeric-trace-v1",
     "source_trace_sha256": "3c6ade86d516474c60b7559690b3b858f2b7a66b41982859e4f81df70a7c73f5",
-    "production_trace_sha256": "079a34868db4fff30719d7a784d7bd102aab7a81acd189ad6293c65a9056bc7a",
+    "production_trace_sha256": "04172ec36998c47b3e37326092b33e29bb11826490ec9aaf3d026ed0cae0703b",
     "samples_per_case": 24,
     "lanes_per_sample": 2,
     "serialized_fields": [

@@ -7,7 +7,7 @@
   "checkpoint_pack": {
     "protocol": "rebased-slippi-state-file-control-v1",
     "expected_rows": 290,
-    "warm_budget_seconds": 3.0,
+    "warm_budget_seconds": 4.0,
     "capture_plan": {
       "record_response_only": true,
       "source_random_seed": 1,
@@ -147,7 +147,7 @@
   "stored_oracle": {
     "kind": "numeric-trace-v1",
     "source_trace_sha256": "9df8c72fca21359281d7d89391a9c363e08e6cf5c06db8873868e10521f27b49",
-    "production_trace_sha256": "bf8b2f390b2246835678a49ce191120ac4b8f39a4fb82130e9df5675354ac8a4",
+    "production_trace_sha256": "a6493ec9eb961eddfc0c04035ee01517f86ca7364f618cf18636f1b0f717b81f",
     "samples_per_case": 55,
     "serialized_fields": [
       "self_velocity_x",

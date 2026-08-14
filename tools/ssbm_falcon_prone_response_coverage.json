@@ -646,7 +646,7 @@
   "stored_oracle": {
     "kind": "numeric-trace-v1",
     "source_trace_sha256": "db317711cb1a5b2c877d4dc8dd57e1ef38c31edd93638dd1d05e272b6d46cd8d",
-    "production_trace_sha256": "dc416f87ccd228a045c61e87350af2619bad244e6a83dc0708502b414886fefb",
+    "production_trace_sha256": "4c87af17996d93ea62063f66cb1946e8229ddc918f1848693c021b6bfce1308f",
     "samples_per_case": 12,
     "cases": [
       {

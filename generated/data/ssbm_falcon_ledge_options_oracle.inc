@@ -700,7 +700,7 @@ ssbm_falcon_ledge_options_cases[] = {
 #define PF_M4_SSBM_FALCON_LEDGE_OPTIONS_SOURCE_TRACE_SHA256 \
     "80c9ab75a98e2e7ef901055131b24f413c5e2672038315b526999f3143b38383"
 #define PF_M4_SSBM_FALCON_LEDGE_OPTIONS_PRODUCTION_TRACE_SHA256 \
-    "136f2c97c30bf041018014d0e1a5fb20caf0c942a77aca5a53ab465cd99adfcf"
+    "78a6938d1b7a55af091faefadac38d61d3b53a4e53665ae64de867bf153e700c"
 
 _Static_assert(
     sizeof(ssbm_falcon_ledge_options_cases) /

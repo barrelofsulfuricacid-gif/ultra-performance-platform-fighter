@@ -65,7 +65,7 @@
   "stored_oracle": {
     "kind": "native-csv-trace-v1",
     "source_trace_sha256": "67d6f164a7d94e7171f1b8d4ace195676fac180faf1c9f044351ebeaab3f4ae5",
-    "production_trace_sha256": "d2080f96a9477f5615f777d657e70cab9181015f7058b4257dba8c9c52334cc4",
+    "production_trace_sha256": "2b2db3bbc97c92885846d442684bee641083adfb87b4c6ac279a8f9c186d53e0",
     "serialized_fields": [
       "action_state",
       "action_ticks",

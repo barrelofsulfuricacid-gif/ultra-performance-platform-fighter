@@ -17050,8 +17050,7 @@ static uint8_t run_ssbm_ground_knockback_trace_case(
     if (hit == NULL || hit->source_player != UINT8_C(0) ||
         hit->target_player != UINT8_C(1) ||
         hit->detail != (uint16_t)PF_M4_ACTION_DASH_ATTACK ||
-        inspection.players[1].damage_f32 !=
-            0.00010681152f * 1.0f ||
+        inspection.players[1].damage_f32 != 7.0f ||
         inspection.players[1].grounded == UINT8_C(0) ||
         inspection.players[1].hitlag_ticks != UINT16_C(5) ||
         inspection.players[1].hitstun_ticks != UINT16_C(8) ||

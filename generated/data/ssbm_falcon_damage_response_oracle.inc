@@ -87,7 +87,7 @@ ssbm_falcon_damage_response_cases[] = {
 #define PF_M4_SSBM_FALCON_DAMAGE_RESPONSE_SOURCE_TRACE_SHA256 \
     "51402cd3605ba2761e3c11ed6baab74eb1b7ab22136822507b39d0a00cc40d95"
 #define PF_M4_SSBM_FALCON_DAMAGE_RESPONSE_PRODUCTION_TRACE_SHA256 \
-    "53471e3af8475959868a5f64361200151bc9fd9b640dbb5b3d66e4cd5031db4b"
+    "9a784fbbf234bd2d220eba09304364223ac38535003128ebf45cf4e395fa2026"
 
 _Static_assert(
     sizeof(ssbm_falcon_damage_response_cases) /

@@ -129,7 +129,7 @@ ssbm_falcon_player_push_cases[] = {
 #define PF_M4_SSBM_FALCON_PLAYER_PUSH_SOURCE_TRACE_SHA256 \
     "3c6ade86d516474c60b7559690b3b858f2b7a66b41982859e4f81df70a7c73f5"
 #define PF_M4_SSBM_FALCON_PLAYER_PUSH_PRODUCTION_TRACE_SHA256 \
-    "079a34868db4fff30719d7a784d7bd102aab7a81acd189ad6293c65a9056bc7a"
+    "04172ec36998c47b3e37326092b33e29bb11826490ec9aaf3d026ed0cae0703b"
 
 _Static_assert(
     sizeof(ssbm_falcon_player_push_cases) /

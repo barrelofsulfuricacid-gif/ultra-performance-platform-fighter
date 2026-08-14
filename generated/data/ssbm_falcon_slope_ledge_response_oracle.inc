@@ -271,7 +271,7 @@ ssbm_falcon_slope_ledge_response_cases[] = {
 #define PF_M4_SSBM_FALCON_SLOPE_LEDGE_RESPONSE_SOURCE_TRACE_SHA256 \
     "9df8c72fca21359281d7d89391a9c363e08e6cf5c06db8873868e10521f27b49"
 #define PF_M4_SSBM_FALCON_SLOPE_LEDGE_RESPONSE_PRODUCTION_TRACE_SHA256 \
-    "bf8b2f390b2246835678a49ce191120ac4b8f39a4fb82130e9df5675354ac8a4"
+    "a6493ec9eb961eddfc0c04035ee01517f86ca7364f618cf18636f1b0f717b81f"
 
 _Static_assert(
     sizeof(ssbm_falcon_slope_ledge_response_cases) /

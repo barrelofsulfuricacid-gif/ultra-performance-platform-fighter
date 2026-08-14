@@ -309,7 +309,7 @@ ssbm_falcon_prone_response_cases[] = {
 #define PF_M4_SSBM_FALCON_PRONE_RESPONSE_SOURCE_TRACE_SHA256 \
     "db317711cb1a5b2c877d4dc8dd57e1ef38c31edd93638dd1d05e272b6d46cd8d"
 #define PF_M4_SSBM_FALCON_PRONE_RESPONSE_PRODUCTION_TRACE_SHA256 \
-    "dc416f87ccd228a045c61e87350af2619bad244e6a83dc0708502b414886fefb"
+    "4c87af17996d93ea62063f66cb1946e8229ddc918f1848693c021b6bfce1308f"
 
 _Static_assert(
     sizeof(ssbm_falcon_prone_response_cases) /

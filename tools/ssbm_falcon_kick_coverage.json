@@ -47,8 +47,8 @@
   },
   "stored_oracle": {
     "kind": "native-csv-trace-v1",
-    "source_trace_sha256": "2c6f28a9701990b913adb2f2daa214433bb18174a610af6c96fc1dce39deaf33",
-    "production_trace_sha256": "19a4dd302f0e51fa9d01d8fe7193d57e1b3ea5979e496fb6138bc0c85f356f4e",
+    "source_trace_sha256": "4d110d29dd3ae542239b54c30105ed3cb024dee9ae854770799bf0721205639f",
+    "production_trace_sha256": "2565c7f9951d0222c5ac7539266fc3e2bd6c394afdea79ca1f2e152571089aab",
     "serialized_fields": [
       "action_state",
       "action_ticks",
