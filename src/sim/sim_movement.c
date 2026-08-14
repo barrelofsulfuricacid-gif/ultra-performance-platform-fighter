@@ -2869,6 +2869,22 @@ static int reference_ecb_pose_f32(
         *out_pose = *guard_pose;
         return 1;
     }
+    if (action_state == (uint8_t)PF_M4_ACTION_CEILING_BOUNCE)
+    {
+        frame_index = clamped_pose_index(
+            action_ticks,
+            PF_M4_FALCON_CEILING_BOUNCE_ECB_FRAME_COUNT);
+        *out_pose = pose->ceiling_bounce[frame_index];
+        return 1;
+    }
+    if (action_state == (uint8_t)PF_M4_ACTION_WALL_BOUNCE)
+    {
+        frame_index = clamped_pose_index(
+            action_ticks,
+            PF_M4_FALCON_WALL_BOUNCE_ECB_FRAME_COUNT);
+        *out_pose = pose->wall_bounce[frame_index];
+        return 1;
+    }
     if (falcon_reference_action_hsd_ecb_pose(
             action_state,
             action_ticks,
@@ -2942,22 +2958,6 @@ static int reference_ecb_pose_f32(
             -pose->damage_fly_side_x_from_origin_f32[frame_index];
         out_pose->left_y_from_origin_f32 =
             pose->damage_fly_side_y_from_origin_f32[frame_index];
-        return 1;
-    }
-    if (action_state == (uint8_t)PF_M4_ACTION_CEILING_BOUNCE)
-    {
-        frame_index = clamped_pose_index(
-            action_ticks,
-            PF_M4_FALCON_CEILING_BOUNCE_ECB_FRAME_COUNT);
-        *out_pose = pose->ceiling_bounce[frame_index];
-        return 1;
-    }
-    if (action_state == (uint8_t)PF_M4_ACTION_WALL_BOUNCE)
-    {
-        frame_index = clamped_pose_index(
-            action_ticks,
-            PF_M4_FALCON_WALL_BOUNCE_ECB_FRAME_COUNT);
-        *out_pose = pose->wall_bounce[frame_index];
         return 1;
     }
     return 0;
