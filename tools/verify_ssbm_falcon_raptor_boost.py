@@ -271,7 +271,7 @@ def main() -> int:
             if case_id in {"air_miss", "air_hit_floor"}
             else 0.0
         )
-        samples: list[dict[str, int]] = []
+        samples: list[dict[str, int | float]] = []
         retained_shield_strength = 0
         for sample_index, row in enumerate(rows):
             retained_shield_strength = normalized_shield_strength(
@@ -297,10 +297,10 @@ def main() -> int:
                     f"action-tick-mask case={case_id} sample={sample_index} "
                     f"qualified={int(ticks_qualified)} selected={int(ticks_selected)}"
                 )
-            sample: dict[str, int] = {}
+            sample: dict[str, int | float] = {}
             for field in selected_fields:
                 value = values.get(field)
-                if not isinstance(value, int):
+                if type(value) not in (int, float):
                     fail(
                         f"source-field case={case_id} sample={sample_index} "
                         f"field={field}"

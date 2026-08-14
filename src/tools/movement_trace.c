@@ -875,7 +875,7 @@ int main(int argc, char **argv)
      * original live projectile into later movement/collision frames.
      */
     content.projectile.enabled = UINT8_C(1);
-    content.projectile.speed_f32 = INT32_C(1);
+    content.projectile.speed_f32 = 0x1p-16f;
     content.projectile.lifetime_ticks = UINT16_C(1);
     content.reflector.enabled = UINT8_C(1);
     if (platform_mode == 0)
@@ -945,7 +945,7 @@ int main(int argc, char **argv)
     else if (raptor_boost_air_miss_mode != 0)
     {
         content.stage.spawn_spacing_f32 = 1.0f / INT32_C(32);
-        content.fighter.player_push_half_width_f32 = INT32_C(1);
+        content.fighter.player_push_half_width_f32 = 0x1p-16f;
     }
     else if (raptor_boost_ground_hit_mode != 0 ||
              raptor_boost_air_hit_mode != 0)
@@ -963,7 +963,7 @@ int main(int argc, char **argv)
         uint16_t displayed_frame;
 
         content.stage.spawn_spacing_f32 = 1.0f / INT32_C(32);
-        content.fighter.player_push_half_width_f32 = INT32_C(1);
+        content.fighter.player_push_half_width_f32 = 0x1p-16f;
         content.stage.revival_platform_half_width_f32 =
             content.fighter.half_width_f32;
         for (displayed_frame = UINT16_C(1);
@@ -1001,7 +1001,7 @@ int main(int argc, char **argv)
          * through the repository's exact horizontal world scale. */
         content.stage.spawn_spacing_f32 =
             (3588.0f * 12.0f) / (256.0f * 115.0f);
-        content.fighter.player_push_half_width_f32 = INT32_C(1);
+        content.fighter.player_push_half_width_f32 = 0x1p-16f;
     }
     else if (falcon_kick_ground_wall_mode != 0)
     {
@@ -1060,7 +1060,7 @@ int main(int argc, char **argv)
          * Final Destination capture.
          */
         content.stage.spawn_spacing_f32 = 1.0f / INT32_C(32);
-        content.fighter.player_push_half_width_f32 = INT32_C(1);
+        content.fighter.player_push_half_width_f32 = 0x1p-16f;
         content.stage.revival_platform_half_width_f32 =
             content.fighter.half_width_f32;
         content.stage.floor_right_f32 =
@@ -1074,7 +1074,7 @@ int main(int argc, char **argv)
          * releases inside Falcon's imported teeter snap distance, so the
          * first stdin row starts from Ottotto rather than mutating state. */
         content.stage.spawn_spacing_f32 = 1.0f;
-        content.fighter.player_push_half_width_f32 = INT32_C(1);
+        content.fighter.player_push_half_width_f32 = 0x1p-16f;
         content.stage.revival_platform_half_width_f32 =
             content.fighter.half_width_f32;
         content.stage.floor_right_f32 = INT32_C(5) * 1.0f;
