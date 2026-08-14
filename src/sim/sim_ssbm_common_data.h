@@ -18,7 +18,7 @@ typedef struct ssbm_damage_response_attributes
     float damage_level_2_threshold_f32;
     float grounded_damage_max_level_f32;
     float ground_knockback_max_speed_f32;
-    int32_t di_max_angle_radians_q30;
+    float di_max_angle_radians_f32;
     float ground_knockback_decay_scale_f32;
     float air_knockback_decay_f32;
     float sdi_distance_x_f32;
@@ -26,7 +26,7 @@ typedef struct ssbm_damage_response_attributes
     float asdi_distance_x_f32;
     float asdi_distance_y_f32;
     float shield_sdi_scale_f32;
-    int32_t hitlag_damage_scale_q30;
+    float hitlag_damage_scale_f32;
     float crouch_hitlag_scale_f32;
     float electric_hitlag_scale_f32;
     float crouch_knockback_scale_f32;
@@ -112,7 +112,6 @@ typedef struct ssbm_ground_input_attributes
     float grab_release_air_speed_x_f32;
     float grab_release_air_speed_y_f32;
     float throw_animation_weight_scale_f32;
-    int32_t throw_animation_weight_scale_q30;
     uint16_t teeter_turn_axis_threshold;
     uint16_t teeter_walk_axis_threshold;
     uint16_t walk_axis_threshold;

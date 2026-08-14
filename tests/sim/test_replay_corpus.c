@@ -10,6 +10,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdalign.h>
+#include <stdlib.h>
 #include <string.h>
 
 #define TEST_MEMORY_BYTES 4096U
@@ -352,6 +353,7 @@ int main(void)
     int grounded_roll_observed = 0;
     int spot_dodge_observed = 0;
     int hit_observed = 0;
+    const int trace_enabled = getenv("PF_REPLAY_TRACE") != NULL;
 
     if (!expect_status(
             pf_sim_default_config(
@@ -453,6 +455,38 @@ int main(void)
                  player_index < (uint32_t)PF_M2_REPLAY_PLAYERS;
                  ++player_index)
             {
+                if (trace_enabled != 0)
+                {
+                    const player_inspection *player =
+                        &combat_inspection.players[player_index];
+
+                    (void)fprintf(
+                        stderr,
+                        "replay-trace tick=%" PRIu64
+                        " player=%u action=%u action_tick=%u"
+                        " x=%.9g y=%.9g vx=%.9g vy=%.9g"
+                        " grounded=%u damage=%.9g hitlag=%u hitstun=%u"
+                        " last_hit=%u buttons=%" PRIu64
+                        " main_x=%d main_y=%d left=%u right=%u\n",
+                        tick,
+                        (unsigned int)player_index,
+                        (unsigned int)player->action_state,
+                        (unsigned int)player->action_ticks,
+                        (double)player->position_x_f32,
+                        (double)player->position_y_f32,
+                        (double)player->velocity_x_f32,
+                        (double)player->velocity_y_f32,
+                        (unsigned int)player->grounded,
+                        (double)player->damage_f32,
+                        (unsigned int)player->hitlag_ticks,
+                        (unsigned int)player->hitstun_ticks,
+                        (unsigned int)player->last_hit_valid,
+                        tick_inputs[player_index].buttons,
+                        (int)tick_inputs[player_index].main_stick_x,
+                        (int)tick_inputs[player_index].main_stick_y,
+                        (unsigned int)tick_inputs[player_index].left_trigger,
+                        (unsigned int)tick_inputs[player_index].right_trigger);
+                }
                 if (combat_inspection.players[player_index].
                         sdi_pulse_count > UINT8_C(0))
                 {

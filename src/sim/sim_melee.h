@@ -41,7 +41,7 @@ static inline uint16_t melee_hitlag_ticks(
     }
     hitlag_f32 =
         (float)damage_count *
-            ((float)common->hitlag_damage_scale_q30 / 1073741824.0f) +
+            common->hitlag_damage_scale_f32 +
         (float)common->hitlag_base_ticks;
     hitlag_f32 *= hitlag_multiplier_f32;
     if (target_crouching != UINT8_C(0))

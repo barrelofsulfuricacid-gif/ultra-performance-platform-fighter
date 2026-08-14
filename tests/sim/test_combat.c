@@ -15652,8 +15652,8 @@ static int run_ssbm_damage_source_test(const struct content *content)
         raw_words[0x4B4U / 4U] != UINT32_C(4) ||
         raw_words[0x4B8U / 4U] != UINT32_C(0x40c00000) ||
         raw_words[0x4BCU / 4U] != UINT32_C(0x40400000) ||
-        content->fighter.di_max_angle_radians_q30 !=
-            source->di_max_angle_radians_q30 ||
+        content->fighter.di_max_angle_radians_f32 !=
+            source->di_max_angle_radians_f32 ||
         content->fighter.ground_knockback_decay_scale_f32 !=
             source->ground_knockback_decay_scale_f32 ||
         content->fighter.air_knockback_decay_f32 !=
@@ -15813,7 +15813,7 @@ static int run_ssbm_damage_source_test(const struct content *content)
 
     if (!expect_status(
             ssbm_apply_di_f32(
-                source->di_max_angle_radians_q30,
+                source->di_max_angle_radians_f32,
                 INT16_C(0),
                 INT16_C(-32767),
                 &full_x,
@@ -15822,7 +15822,7 @@ static int run_ssbm_damage_source_test(const struct content *content)
             "ssbm-di-full") ||
         !expect_status(
             ssbm_apply_di_f32(
-                source->di_max_angle_radians_q30,
+                source->di_max_angle_radians_f32,
                 INT16_C(0),
                 INT16_C(-16384),
                 &half_x,
@@ -15831,7 +15831,7 @@ static int run_ssbm_damage_source_test(const struct content *content)
             "ssbm-di-half") ||
         !expect_status(
             ssbm_apply_di_f32(
-                source->di_max_angle_radians_q30,
+                source->di_max_angle_radians_f32,
                 INT16_C(0),
                 INT16_C(32767),
                 &down_x,
@@ -15840,7 +15840,7 @@ static int run_ssbm_damage_source_test(const struct content *content)
             "ssbm-di-down") ||
         !expect_status(
             ssbm_apply_di_f32(
-                source->di_max_angle_radians_q30,
+                source->di_max_angle_radians_f32,
                 INT16_C(32767),
                 INT16_C(0),
                 &parallel_x,

@@ -6,8 +6,6 @@
 #include <math.h>
 #include <stdint.h>
 
-#define PF_M4_Q30_SCALE 1073741824.0f
-
 static float ssbm_source_x(float world_x)
 {
     return world_x * (115.0f / 12.0f);
@@ -253,7 +251,7 @@ pf_status ssbm_mirror_velocity_f32(
 }
 
 pf_status ssbm_apply_di_f32(
-    int32_t max_angle_radians_q30,
+    float max_angle_radians_f32,
     int16_t stick_x,
     int16_t stick_y,
     float *velocity_x_f32,
@@ -269,7 +267,8 @@ pf_status ssbm_apply_di_f32(
     float sine;
     float cosine;
 
-    if (max_angle_radians_q30 < INT32_C(0) || velocity_x_f32 == NULL ||
+    if (!isfinite(max_angle_radians_f32) || max_angle_radians_f32 < 0.0f ||
+        velocity_x_f32 == NULL ||
         velocity_y_f32 == NULL)
     {
         return PF_STATUS_INVALID_ARGUMENT;
@@ -286,8 +285,7 @@ pf_status ssbm_apply_di_f32(
             source_y * ssbm_stick_axis(stick_x);
     projection = cross / speed / 32767.0f;
     turn_fraction = copysignf(projection * projection, cross);
-    angle = ((float)max_angle_radians_q30 / PF_M4_Q30_SCALE) *
-            turn_fraction;
+    angle = max_angle_radians_f32 * turn_fraction;
     sine = sinf(angle);
     cosine = cosf(angle);
     {

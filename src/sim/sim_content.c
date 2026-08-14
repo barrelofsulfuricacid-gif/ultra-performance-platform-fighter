@@ -1114,7 +1114,7 @@ static void hash_fighter(
     hash_u32(hash, fighter->crouch_cancel_max_damage_f32);
     hash_i32(hash, fighter->crouch_cancel_velocity_scale_f32);
     hash_i32(hash, fighter->crouch_cancel_hitstun_scale_f32);
-    hash_i32(hash, fighter->di_max_angle_radians_q30);
+    hash_f32_value(hash, fighter->di_max_angle_radians_f32);
     hash_i32(hash, fighter->ground_knockback_decay_scale_f32);
     hash_i32(hash, fighter->air_knockback_decay_f32);
     hash_i32(hash, fighter->sdi_distance_x_f32);
@@ -2166,8 +2166,8 @@ pf_status default_content(struct content *out_content)
         damage_response->crouch_knockback_scale_f32;
     fighter->crouch_cancel_hitstun_scale_f32 =
         damage_response->crouch_knockback_scale_f32;
-    fighter->di_max_angle_radians_q30 =
-        damage_response->di_max_angle_radians_q30;
+    fighter->di_max_angle_radians_f32 =
+        damage_response->di_max_angle_radians_f32;
     fighter->ground_knockback_decay_scale_f32 =
         damage_response->ground_knockback_decay_scale_f32;
     fighter->air_knockback_decay_f32 =
@@ -3208,8 +3208,9 @@ pf_status validate_content(const struct content *content)
         fighter->crouch_cancel_velocity_scale_f32 >= 1.0f ||
         fighter->crouch_cancel_hitstun_scale_f32 <= INT32_C(0) ||
         fighter->crouch_cancel_hitstun_scale_f32 >= 1.0f ||
-        fighter->di_max_angle_radians_q30 <= INT32_C(0) ||
-        fighter->di_max_angle_radians_q30 > INT32_C(1073741824) ||
+        !isfinite(fighter->di_max_angle_radians_f32) ||
+        fighter->di_max_angle_radians_f32 <= 0.0f ||
+        fighter->di_max_angle_radians_f32 > 1.0f ||
         fighter->ground_knockback_decay_scale_f32 <= INT32_C(0) ||
         fighter->ground_knockback_decay_scale_f32 > 1.0f ||
         fighter->air_knockback_decay_f32 <= INT32_C(0) ||

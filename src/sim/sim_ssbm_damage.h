@@ -46,7 +46,7 @@ pf_status ssbm_resolve_ground_damage_launch_f32(
     uint8_t *launch_grounded);
 
 pf_status ssbm_apply_di_f32(
-    int32_t max_angle_radians_q30,
+    float max_angle_radians_f32,
     int16_t stick_x,
     int16_t stick_y,
     float *velocity_x_f32,

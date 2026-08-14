@@ -330,9 +330,7 @@ def generate(raw: bytes) -> str:
         "ground_knockback_max_speed_f32": binary32(
             f32(0x164) * MELEE_X_TO_SIM
         ),
-        "di_max_angle_radians_q30": round(
-            math.radians(f32(0x1A8)) * float(1 << 30)
-        ),
+        "di_max_angle_radians_f32": binary32(math.radians(f32(0x1A8))),
         "ground_knockback_decay_scale_f32": binary32(f32(0x200)),
         # Knockback decay is a magnitude subtraction in Melee coordinates.
         # Keep the source scalar: per-axis conversion before the vector
@@ -345,9 +343,7 @@ def generate(raw: bytes) -> str:
         "asdi_distance_x_f32": binary32(f32(0x4BC) * MELEE_X_TO_SIM),
         "asdi_distance_y_f32": binary32(f32(0x4BC) * MELEE_Y_TO_SIM),
         "shield_sdi_scale_f32": binary32(f32(0x4C0)),
-        "hitlag_damage_scale_q30": round(
-            hitlag_damage_scale * float(1 << 30)
-        ),
+        "hitlag_damage_scale_f32": binary32(hitlag_damage_scale),
         "crouch_hitlag_scale_f32": binary32(crouch_hitlag_scale),
         "electric_hitlag_scale_f32": binary32(electric_hitlag_scale),
         "crouch_knockback_scale_f32": binary32(crouch_knockback_scale),
@@ -477,9 +473,6 @@ def generate(raw: bytes) -> str:
         ),
         "throw_animation_weight_scale_f32": binary32(
             throw_animation_weight_scale
-        ),
-        "throw_animation_weight_scale_q30": round(
-            throw_animation_weight_scale * float(1 << 30)
         ),
         "up_special_repress_interval_ticks": i32(0x01C),
         "teeter_turn_axis_threshold": round(
@@ -650,7 +643,7 @@ def generate(raw: bytes) -> str:
             f"    {c_f32(attributes['damage_level_2_threshold_f32'])},",
             f"    {c_f32(attributes['grounded_damage_max_level_f32'])},",
             f"    {c_f32(attributes['ground_knockback_max_speed_f32'])},",
-            f"    INT32_C({attributes['di_max_angle_radians_q30']}),",
+            f"    {c_f32(attributes['di_max_angle_radians_f32'])},",
             f"    {c_f32(attributes['ground_knockback_decay_scale_f32'])},",
             f"    {c_f32(attributes['air_knockback_decay_f32'])},",
             f"    {c_f32(attributes['sdi_distance_x_f32'])},",
@@ -658,7 +651,7 @@ def generate(raw: bytes) -> str:
             f"    {c_f32(attributes['asdi_distance_x_f32'])},",
             f"    {c_f32(attributes['asdi_distance_y_f32'])},",
             f"    {c_f32(attributes['shield_sdi_scale_f32'])},",
-            f"    INT32_C({attributes['hitlag_damage_scale_q30']}),",
+            f"    {c_f32(attributes['hitlag_damage_scale_f32'])},",
             f"    {c_f32(attributes['crouch_hitlag_scale_f32'])},",
             f"    {c_f32(attributes['electric_hitlag_scale_f32'])},",
             f"    {c_f32(attributes['crouch_knockback_scale_f32'])},",
@@ -744,7 +737,6 @@ def generate(raw: bytes) -> str:
             f"    {c_f32(ground_input_attributes['grab_release_air_speed_x_f32'])},",
             f"    {c_f32(ground_input_attributes['grab_release_air_speed_y_f32'])},",
             f"    {c_f32(ground_input_attributes['throw_animation_weight_scale_f32'])},",
-            f"    INT32_C({ground_input_attributes['throw_animation_weight_scale_q30']}),",
             f"    UINT16_C({ground_input_attributes['teeter_turn_axis_threshold']}),",
             f"    UINT16_C({ground_input_attributes['teeter_walk_axis_threshold']}),",
             f"    UINT16_C({ground_input_attributes['walk_axis_threshold']}),",

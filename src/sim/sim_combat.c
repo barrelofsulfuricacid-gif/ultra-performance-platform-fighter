@@ -209,7 +209,7 @@ static pf_status reference_zero_hitlag_throw_damage_step(
      * entry-angle calculation consumes the previously processed main stick.
      * This is observably different from using the release pre-frame sample. */
     if (ssbm_apply_di_f32(
-            content->fighter.di_max_angle_radians_q30,
+            content->fighter.di_max_angle_radians_f32,
             world->previous_main_stick_x[target_index],
             world->previous_main_stick_y[target_index],
             &scratch->knockback_velocity_x_f32[target_index],

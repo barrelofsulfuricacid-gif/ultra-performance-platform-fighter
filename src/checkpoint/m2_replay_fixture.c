@@ -250,6 +250,52 @@ void pf_m2_replay_make_tick_inputs(
         inputs[0].buttons = UINT64_C(0);
         inputs[0].left_trigger = UINT16_MAX;
     }
+
+    /* Keep one compact, physically acquired collision lane independent of
+     * the broader periodic-input stress patterns above. Player zero closes
+     * the initial spacing while player one remains a stable target. A fresh
+     * horizontal shield edge first exercises grounded roll; after recovery,
+     * the attack edge provides real hit/hitlag/SDI evidence for the replay
+     * corpus instead of relying on incidental float-sensitive spacing. */
+    if (tick <= UINT64_C(80))
+    {
+        inputs[0].main_stick_x = INT16_MAX;
+        inputs[0].main_stick_y = INT16_C(0);
+        inputs[0].buttons =
+            tick == UINT64_C(70)
+                ? PF_INPUT_BUTTON_ATTACK
+                : UINT64_C(0);
+        inputs[0].left_trigger = UINT16_C(0);
+        inputs[0].right_trigger = UINT16_C(0);
+
+        inputs[1].main_stick_x =
+            tick == UINT64_C(33) ? INT16_MAX : INT16_C(0);
+        inputs[1].main_stick_y = INT16_C(0);
+        inputs[1].buttons = UINT64_C(0);
+        inputs[1].left_trigger =
+            tick == UINT64_C(32) || tick == UINT64_C(33)
+                ? UINT16_MAX
+                : UINT16_C(0);
+        inputs[1].right_trigger = UINT16_C(0);
+    }
+    if (tick == UINT64_C(84))
+    {
+        inputs[1].main_stick_x = INT16_C(0);
+        inputs[1].main_stick_y = INT16_C(0);
+    }
+    if (tick == UINT64_C(85))
+    {
+        inputs[1].main_stick_x = INT16_MAX;
+        inputs[1].main_stick_y = INT16_C(0);
+    }
+    if (tick == UINT64_C(129))
+    {
+        inputs[1].main_stick_x = INT16_C(0);
+        inputs[1].main_stick_y = INT16_MAX;
+        inputs[1].buttons = UINT64_C(0);
+        inputs[1].left_trigger = UINT16_MAX;
+        inputs[1].right_trigger = UINT16_C(0);
+    }
     if (tick + UINT64_C(1) == PF_M2_REPLAY_TICKS)
     {
         inputs[3].buttons |= PF_INPUT_BUTTON_FORFEIT;

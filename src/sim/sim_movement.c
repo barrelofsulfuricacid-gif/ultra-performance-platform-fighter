@@ -9269,7 +9269,7 @@ pf_status step_player(
                     }
                 }
                 status = ssbm_apply_di_f32(
-                    fighter->di_max_angle_radians_q30,
+                    fighter->di_max_angle_radians_f32,
                     world->previous_main_stick_x[player_index],
                     world->previous_main_stick_y[player_index],
                     &scratch

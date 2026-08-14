@@ -564,7 +564,7 @@ typedef struct fighter_data
     float crouch_cancel_max_damage_f32;
     float crouch_cancel_velocity_scale_f32;
     float crouch_cancel_hitstun_scale_f32;
-    int32_t di_max_angle_radians_q30;
+    float di_max_angle_radians_f32;
     float ground_knockback_decay_scale_f32;
     float air_knockback_decay_f32;
     float sdi_distance_x_f32;
