@@ -120,7 +120,7 @@ ssbm_falcon_surface_response_cases[] = {
 #define PF_M4_SSBM_FALCON_SURFACE_RESPONSE_SOURCE_TRACE_SHA256 \
     "5339134dd04cff9612e8c8a3e1d460f85018ae4c081ac7426fbad3cee3b785f5"
 #define PF_M4_SSBM_FALCON_SURFACE_RESPONSE_PRODUCTION_TRACE_SHA256 \
-    "ad2a2a5189e586e1e3da2a561f20a43e631fbf6a930989e58fa768a501779fee"
+    "5ad7cbcfbb797b284228c3ec779767a78111bfbe638f63ec3f5b70546624c67f"
 
 _Static_assert(
     sizeof(ssbm_falcon_surface_response_cases) /

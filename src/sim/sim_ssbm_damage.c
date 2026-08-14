@@ -6,26 +6,6 @@
 #include <math.h>
 #include <stdint.h>
 
-static float ssbm_source_x(float world_x)
-{
-    return world_x * (115.0f / 12.0f);
-}
-
-static float ssbm_source_y_math(float world_y)
-{
-    return -world_y * (62.0f / 11.0f);
-}
-
-static float ssbm_world_x(float source_x)
-{
-    return source_x * (12.0f / 115.0f);
-}
-
-static float ssbm_world_y(float source_y_math)
-{
-    return -source_y_math * (11.0f / 62.0f);
-}
-
 ssbm_damage_floor_response ssbm_select_damage_floor_response_f32(
     float knockback_velocity_x_f32,
     float knockback_velocity_y_f32,
@@ -33,8 +13,10 @@ ssbm_damage_floor_response ssbm_select_damage_floor_response_f32(
 {
     const ssbm_damage_response_attributes *common =
         ssbm_common_reference_damage_response();
-    const float source_x = ssbm_source_x(knockback_velocity_x_f32);
-    const float source_y = ssbm_source_y_math(knockback_velocity_y_f32);
+    const float source_x =
+        ssbm_world_x_to_source_f32(knockback_velocity_x_f32);
+    const float source_y =
+        ssbm_world_y_to_source_f32(knockback_velocity_y_f32);
     const float magnitude_squared = source_x * source_x + source_y * source_y;
 
     if (force_down_bound != UINT8_C(0) ||
@@ -78,8 +60,8 @@ pf_status ssbm_resolve_ground_damage_launch_f32(
         return PF_STATUS_INVALID_ARGUMENT;
     }
 
-    source_x = ssbm_source_x(*velocity_x_f32);
-    source_y = ssbm_source_y_math(*velocity_y_f32);
+    source_x = ssbm_world_x_to_source_f32(*velocity_x_f32);
+    source_y = ssbm_world_y_to_source_f32(*velocity_y_f32);
     dot = source_x * source_normal_x_f32 +
           source_y * source_normal_y_f32;
     *ground_scalar_f32 = 0.0f;
@@ -140,8 +122,10 @@ pf_status ssbm_select_damage_motion(
     }
     if (launch_velocity_y_f32 < 0.0f)
     {
-        const float horizontal = fabsf(ssbm_source_x(launch_velocity_x_f32));
-        const float vertical = ssbm_source_y_math(launch_velocity_y_f32);
+        const float horizontal = fabsf(
+            ssbm_world_x_to_source_f32(launch_velocity_x_f32));
+        const float vertical =
+            ssbm_world_y_to_source_f32(launch_velocity_y_f32);
 
         if (horizontal < vertical * common->damage_fly_top_horizontal_ratio_f32)
         {
@@ -201,8 +185,8 @@ pf_status ssbm_decay_air_knockback_f32(
     {
         return PF_STATUS_INVALID_ARGUMENT;
     }
-    source_x = ssbm_source_x(*velocity_x_f32);
-    source_y = ssbm_source_y_math(*velocity_y_f32);
+    source_x = ssbm_world_x_to_source_f32(*velocity_x_f32);
+    source_y = ssbm_world_y_to_source_f32(*velocity_y_f32);
     magnitude = sqrtf(source_x * source_x + source_y * source_y);
     if (!(magnitude > decay_f32))
     {
@@ -211,8 +195,8 @@ pf_status ssbm_decay_air_knockback_f32(
         return PF_STATUS_OK;
     }
     remaining = (magnitude - decay_f32) / magnitude;
-    *velocity_x_f32 = ssbm_world_x(source_x * remaining);
-    *velocity_y_f32 = ssbm_world_y(source_y * remaining);
+    *velocity_x_f32 = ssbm_source_x_to_world_f32(source_x * remaining);
+    *velocity_y_f32 = ssbm_source_y_to_world_f32(source_y * remaining);
     return isfinite(*velocity_x_f32) && isfinite(*velocity_y_f32)
                ? PF_STATUS_OK
                : PF_STATUS_DETERMINISTIC_FAULT;
@@ -235,16 +219,16 @@ pf_status ssbm_mirror_velocity_f32(
     {
         return PF_STATUS_INVALID_ARGUMENT;
     }
-    source_x = ssbm_source_x(*velocity_x_f32);
-    source_y = ssbm_source_y_math(*velocity_y_f32);
+    source_x = ssbm_world_x_to_source_f32(*velocity_x_f32);
+    source_y = ssbm_world_y_to_source_f32(*velocity_y_f32);
     dot = source_x * source_normal_x_f32 +
           source_y * source_normal_y_f32;
     source_x = (source_x - 2.0f * dot * source_normal_x_f32) *
                multiplier_f32;
     source_y = (source_y - 2.0f * dot * source_normal_y_f32) *
                multiplier_f32;
-    *velocity_x_f32 = ssbm_world_x(source_x);
-    *velocity_y_f32 = ssbm_world_y(source_y);
+    *velocity_x_f32 = ssbm_source_x_to_world_f32(source_x);
+    *velocity_y_f32 = ssbm_source_y_to_world_f32(source_y);
     return isfinite(*velocity_x_f32) && isfinite(*velocity_y_f32)
                ? PF_STATUS_OK
                : PF_STATUS_DETERMINISTIC_FAULT;
@@ -273,8 +257,8 @@ pf_status ssbm_apply_di_f32(
     {
         return PF_STATUS_INVALID_ARGUMENT;
     }
-    source_x = ssbm_source_x(*velocity_x_f32);
-    source_y = ssbm_source_y_math(*velocity_y_f32);
+    source_x = ssbm_world_x_to_source_f32(*velocity_x_f32);
+    source_y = ssbm_world_y_to_source_f32(*velocity_y_f32);
     speed = sqrtf(source_x * source_x + source_y * source_y);
     if (!(speed > 0.0f) ||
         (stick_x == INT16_C(0) && stick_y == INT16_C(0)))
@@ -292,8 +276,8 @@ pf_status ssbm_apply_di_f32(
         const float rotated_x = source_x * cosine - source_y * sine;
         const float rotated_y = source_x * sine + source_y * cosine;
 
-        *velocity_x_f32 = ssbm_world_x(rotated_x);
-        *velocity_y_f32 = ssbm_world_y(rotated_y);
+        *velocity_x_f32 = ssbm_source_x_to_world_f32(rotated_x);
+        *velocity_y_f32 = ssbm_source_y_to_world_f32(rotated_y);
     }
     return isfinite(*velocity_x_f32) && isfinite(*velocity_y_f32)
                ? PF_STATUS_OK

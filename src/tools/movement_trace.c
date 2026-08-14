@@ -112,7 +112,7 @@ static int run_teeter_pre_roll(
                 : inspection->players[0].position_x_f32 -
                       content->stage.floor_left_f32;
         const float velocity_f32 =
-            direction * inspection->players[0].velocity_x_f32;
+            (float)direction * inspection->players[0].velocity_x_f32;
         const float release_velocity_f32 =
             velocity_f32 > content->fighter.traction_f32
                 ? velocity_f32 - content->fighter.traction_f32

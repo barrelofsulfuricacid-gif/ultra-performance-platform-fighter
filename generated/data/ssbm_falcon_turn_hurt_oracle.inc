@@ -25,9 +25,9 @@ ssbm_falcon_turn_hurt_cases[] = {
 #define PF_M4_SSBM_FALCON_TURN_HURT_PRODUCTION_SERIALIZATION \
     "action-name-nul,source-frame-u16le,capsule-count-u8,capsules-seven-f32le-four-u8-v2"
 #define PF_M4_SSBM_FALCON_TURN_HURT_SOURCE_POSE_SHA256 \
-    "1c004b685babaecff0a105774766e389e7babccf7a3905877d277a29e01022ea"
+    "d77caa770bafaf5cc34267e94b4abc744707849891aff26b2dcf7ea558175d35"
 #define PF_M4_SSBM_FALCON_TURN_HURT_PRODUCTION_POSE_SHA256 \
-    "0750e32d78d2b51b49f4e917dde6088a266e6940d92351250c8a167422563d07"
+    "8ee22a8058f4d787541b9d3c9a0a99541b4b9ddec9e6b70cd24658e6fa94c026"
 
 _Static_assert(
     sizeof(ssbm_falcon_turn_hurt_pose_tracks) /

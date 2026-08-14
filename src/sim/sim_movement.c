@@ -3333,7 +3333,28 @@ static float floor_contact_bottom_extent_f32(
             source_submotion,
             action_ticks);
     }
-    if (reference_ecb_pose_f32(
+    if (action_state == (uint8_t)PF_M4_ACTION_HITSTUN &&
+        source_submotion ==
+            (uint16_t)PF_M4_FALCON_SUBMOTION_DAMAGE_NEUTRAL_2 &&
+        falcon_reference_damage_hsd_ecb_pose(
+            source_submotion,
+            source_animation_frame_f32,
+            facing,
+            total_velocity_x_f32,
+            total_velocity_y_f32,
+            grounded != UINT8_C(0),
+            inherited_locked_bottom_y_f32,
+            &action_pose))
+    {
+        /* The live-qualified DamageNeutral2 motion retains its source pose
+         * after the public action coalesces into Hitstun. Its HSD ECB owns the
+         * floor sweep; wall/air collision keeps the separately qualified
+         * public DamageFly track. */
+        bottom_y_from_origin_f32 = action_pose.bottom_y_from_origin_f32;
+        has_reference_pose = 1;
+        exact_reference_pose = 1;
+    }
+    else if (reference_ecb_pose_f32(
             fighter,
             action_state,
             action_ticks,
@@ -7519,8 +7540,7 @@ reference_project_callback_owner(
         owner.entered_this_tick = UINT8_C(1);
     }
     else if (action_state == (uint8_t)PF_M4_ACTION_RUN_TURNAROUND &&
-             (uint32_t)action_ticks + UINT32_C(1) >=
-                 (uint32_t)fighter->run_turnaround_ticks)
+             action_ticks >= fighter->run_turnaround_ticks)
     {
         const int target_held =
             axis_direction(
@@ -13755,8 +13775,7 @@ pf_status step_player(
                 horizontal_magnitude >=
                     fighter->run_continue_axis_threshold;
 
-            if ((uint32_t)action_ticks + UINT32_C(1) >=
-                (uint32_t)fighter->run_turnaround_ticks)
+            if (action_ticks >= fighter->run_turnaround_ticks)
             {
                 dash_direction = INT8_C(0);
                 action_ticks = UINT16_C(0);
@@ -13789,7 +13808,8 @@ pf_status step_player(
                  * facing flip occurs one physics tick after the crossing.
                  */
                 if (facing != target_direction &&
-                    velocity_x * (float)facing <= 0.01f)
+                    velocity_x * (float)facing <=
+                        ssbm_source_x_to_world_f32(0.01f))
                 {
                     facing = target_direction;
                 }

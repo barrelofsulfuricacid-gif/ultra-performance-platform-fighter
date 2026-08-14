@@ -17239,7 +17239,7 @@ static int run_reference_callback_owner_test(
     sim->world.action_state[0] =
         (uint8_t)PF_M4_ACTION_RUN_TURNAROUND;
     sim->world.action_ticks[0] =
-        (uint16_t)(content->fighter.run_turnaround_ticks - UINT16_C(1));
+        content->fighter.run_turnaround_ticks;
     sim->world.source_submotion[0] =
         (uint16_t)PF_M4_FALCON_SUBMOTION_TURN_RUN;
     sim->world.facing[0] = INT8_C(-1);

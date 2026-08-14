@@ -171,7 +171,7 @@ ssbm_falcon_ground_slope_damage_cases[] = {
 #define PF_M4_SSBM_FALCON_GROUND_SLOPE_DAMAGE_SOURCE_TRACE_SHA256 \
     "2ad67d79ef1fa278e5ea55096b663b0e59793167161eedc870e4c7663fe7a6a5"
 #define PF_M4_SSBM_FALCON_GROUND_SLOPE_DAMAGE_PRODUCTION_TRACE_SHA256 \
-    "cb0b203a0a211baa55b800cd9e0cf0eb8e4595eaa069c8e865369cad8c94de61"
+    "ad940d76532c5f58406b208299a3777ceda3837a9ad2dff6b41614d7706360ed"
 
 _Static_assert(
     sizeof(ssbm_falcon_ground_slope_damage_cases) /

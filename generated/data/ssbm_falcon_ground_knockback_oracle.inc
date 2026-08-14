@@ -39,7 +39,7 @@ ssbm_falcon_ground_knockback_cases[] = {
 #define PF_M4_SSBM_FALCON_GROUND_KNOCKBACK_SOURCE_TRACE_SHA256 \
     "e08d7149e3f46d814d5c4a709e316cf3063208bb9673141effe6b1958f03fc79"
 #define PF_M4_SSBM_FALCON_GROUND_KNOCKBACK_PRODUCTION_TRACE_SHA256 \
-    "729798c184414c35a0528553ba34c4c6920c4ae50ba1942d832677d78f061a51"
+    "ccb0b54037697d91913ae1d79364d000f9997dcce849ace606e46dbbd8f16999"
 
 _Static_assert(
     sizeof(ssbm_falcon_ground_knockback_cases) /

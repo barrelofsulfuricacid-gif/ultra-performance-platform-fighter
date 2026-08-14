@@ -19532,6 +19532,21 @@ static int prepare_hyrule_ledge_departure(
     {
         return 0;
     }
+    /* The compact authored jab reproduces the qualified launch vector but
+     * does not carry Melee's damage-level metadata.  The live fixture enters
+     * DamageFlyNeutral, so retain that exact source motion while hitlag holds
+     * frame 1 instead of inheriting the authored jab's ordinary DamageNeutral
+     * selector. */
+    sim->world.source_submotion[1] =
+        (uint16_t)PF_M4_FALCON_SUBMOTION_DAMAGE_FLY_NEUTRAL;
+    sim->world.source_animation_frame_f32[1] = 1.0f;
+    if (!expect_status(
+            inspect(sim, out_inspection),
+            PF_STATUS_OK,
+            "inspect-hyrule-ledge-departure-source-motion"))
+    {
+        return 0;
+    }
     return out_inspection->players[1].action_state ==
                (uint8_t)PF_M4_ACTION_HITLAG &&
            out_inspection->players[1].hitlag_resume_action ==

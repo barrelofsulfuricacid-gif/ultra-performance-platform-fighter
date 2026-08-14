@@ -27,6 +27,26 @@ static inline uint32_t pf_sim_f32_bits(float value)
     return bits;
 }
 
+static inline float ssbm_world_x_to_source_f32(float world_x_f32)
+{
+    return world_x_f32 * (115.0f / 12.0f);
+}
+
+static inline float ssbm_source_x_to_world_f32(float source_x_f32)
+{
+    return source_x_f32 * (12.0f / 115.0f);
+}
+
+static inline float ssbm_world_y_to_source_f32(float world_y_f32)
+{
+    return -world_y_f32 * (62.0f / 11.0f);
+}
+
+static inline float ssbm_source_y_to_world_f32(float source_y_f32)
+{
+    return -source_y_f32 * (11.0f / 62.0f);
+}
+
 static inline int pf_sim_vertical_coordinate_is_within_arena(
     float coordinate_f32,
     float arena_extent_f32)
