@@ -18692,6 +18692,8 @@ static int prepare_battlefield_surface_response(
     sim->world.action_ticks[player_index] = UINT16_C(0);
     sim->world.source_submotion[player_index] =
         PF_M4_FALCON_SUBMOTION_DAMAGE_FLY_NEUTRAL;
+    sim->world.source_animation_frame_f32[player_index] = 1.0f;
+    sim->world.source_animation_rate_f32[player_index] = 1.0f;
     sim->world.grounded[player_index] = UINT8_C(0);
     sim->world.support[player_index] = (uint8_t)PF_M4_SURFACE_NONE;
     sim->world.fast_fall[player_index] = UINT8_C(0);

@@ -57,7 +57,7 @@ ssbm_falcon_battlefield_surface_response_cases[] = {
 #define PF_M4_SSBM_FALCON_BATTLEFIELD_SURFACE_RESPONSE_SOURCE_TRACE_SHA256 \
     "8a0c463ffae10b1567815013c85c500bcb25869727874086c96d0e9c522a2f68"
 #define PF_M4_SSBM_FALCON_BATTLEFIELD_SURFACE_RESPONSE_PRODUCTION_TRACE_SHA256 \
-    "107ea657a7bad069ea8ee02cb98306dd116b78838c8e6899a4adf9ff6fcf0982"
+    "8482a6afe2b85b1eec11f307775cf5da4b2a638a8887d0d4a7bf4f9083b51416"
 
 _Static_assert(
     sizeof(ssbm_falcon_battlefield_surface_response_cases) /
