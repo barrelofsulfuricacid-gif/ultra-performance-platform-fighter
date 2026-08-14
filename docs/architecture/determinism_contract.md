@@ -27,32 +27,42 @@ not enter deterministic state.
 
 ## Arithmetic rules
 
-The approved numeric representation uses signed float32 values for deterministic
-motion and geometry, with signed 64-bit intermediates. This became binding when
-the owner accepted the M0 decision on 2026-07-27.
+The approved numeric representation uses IEEE-754 binary32 values for motion,
+geometry, damage, shield state, animation clocks, and other formerly
+quantized simulation channels. This became binding with the project-wide
+float32 migration on 2026-08-13.
 
 The following arithmetic rules are binding:
 
-- Signed overflow is forbidden.
-- Negative signed shifts and implementation-defined right shifts are not used
-  to define rounding.
-- Every multiply/divide states its widening, rounding, saturation, and
-  divide-by-zero behavior.
-- Conversion from authored decimal values happens in the validated packer, not
-  during a tick.
-- Trigonometric and other nonlinear values are generated as versioned tables or
-  implemented by a tested integer algorithm.
-- Negligible values have an explicit canonical zero rule; denormals cannot
-  silently change performance or results.
-- Compiler flags that relax arithmetic semantics are excluded from
-  deterministic targets unless cross-target hash tests prove an explicitly
-  versioned replacement contract.
+- Supported targets must satisfy the public compile-time binary32 assertions:
+  8-bit bytes, 4-byte `float`, radix 2, 24-bit significand, and exponent range
+  128.
+- Every deterministic target uses `-fno-fast-math` and disables floating-point
+  contraction, or the compiler-specific equivalent. Reassociation and implicit
+  fused operations are not allowed.
+- Source operation order is part of the contract. Shared inline helpers own
+  conversions and nonlinear operations so native and Wasm do not grow separate
+  formulas.
+- Canonical state accepts finite values only. Negative zero is normalized at
+  state boundaries where sign is not semantic; NaN and infinity are rejected.
+- Serialization writes each binary32 value as its exact IEEE bit pattern in
+  little-endian order. Hashing consumes those canonical bytes rather than host
+  structure memory.
+- Authored decimal and big-endian source floats are rounded once to binary32 by
+  validated importers. Runtime code does not route them through a legacy
+  quantization layer.
+- Small source-oracle tolerances must be finite, field-specific, and
+  manifest-owned. They never relax action, callback, clock, support, or
+  collision-result equality.
+- Compiler flags that relax these semantics are excluded unless a versioned
+  replacement contract and the full native/Wasm replay gate prove it.
 
 ## State rules
 
-- State contains fixed-width integers, stable indices, bounded arrays, and
-  versioned IDs. It contains no owning pointers, native handles, locks, atomics,
-  function pointers, wall-clock values, file paths, or presentation objects.
+- State contains canonical binary32 values, fixed-width integers, stable
+  indices, bounded arrays, and versioned IDs. It contains no owning pointers,
+  native handles, locks, atomics, function pointers, wall-clock values, file
+  paths, or presentation objects.
 - Capacities are compile-time or content-pack constants validated before match
   start. Exhaustion returns a deterministic fault instead of allocating.
 - Iteration order is explicit. Removal uses a documented stable or
@@ -66,7 +76,8 @@ The following arithmetic rules are binding:
 
 ## Canonical serialization and hashing
 
-- Wire integers are little-endian and emitted field by field.
+- Wire integers and binary32 bit patterns are little-endian and emitted field
+  by field.
 - A save state begins with format version, simulation ABI, content hash, match
   configuration hash, tick, payload length, and payload checksum.
 - Serialization order is schema order, never memory-address order.

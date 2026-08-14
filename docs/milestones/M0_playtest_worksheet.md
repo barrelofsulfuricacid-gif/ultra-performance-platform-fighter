@@ -1,9 +1,10 @@
 # M0 movement representation playtest worksheet
 
-**Status:** Complete; float32 approved by the owner.
+**Status:** Historical comparison complete; current production is float32.
 
-**Purpose:** Compare the subjective movement feel of the float32 and float32
-candidates before accepting the M0 representation architecture.
+**Purpose:** Preserve the protocol that compared the retired
+16-fractional-bit integer candidate with float32 before the original M0
+representation decision.
 
 ## Setup
 
@@ -60,10 +61,10 @@ checkpoint.
 - Was the difference repeatable after reset?
 - Did either candidate produce a critical snag, jitter, tunneling, or
   unexplained platform contact?
-- Preferred candidate: float32 / float32 / no preference / retest required
+- Preferred candidate: retired integer / float32 / no preference / retest required
 - Does the preference change when considering the existing throughput,
   snapshot, and determinism evidence?
-- Owner decision: approve float32 / approve float32 / request changes and retest
+- Owner decision: approve retired integer / approve float32 / request changes and retest
 
 M0 closed when the owner selected a representation on 2026-07-27.
 
@@ -74,9 +75,10 @@ M0 closed when the owner selected a representation on 2026-07-27.
   `897e5e90c9e96cfd20d38b32c1068fce5ed0c17e`
 - Difference perceptible: No
 - Preferred candidate based on feel: No preference
-- Owner decision: Approve float32
-- Decision basis: No perceptible feel difference; float32 retained the measured
-  throughput and determinism advantages with equal tested motion-state bytes.
+- Original owner decision: Approve the retired integer candidate
+- Current superseding decision: Use IEEE-754 binary32 throughout production
+- Decision basis: The 2026-08-13 migration explicitly replaced the original
+  representation after the blind test found no perceptible feel difference.
 
 Scores and environment details were not supplied and are intentionally left
 blank rather than inferred.

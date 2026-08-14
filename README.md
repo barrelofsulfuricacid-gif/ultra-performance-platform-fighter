@@ -20,9 +20,10 @@ L-cancel practice, SHFFL, grounded forward and backward rolls, spot dodge,
 grounded low-percent crouch cancel, target-weighted hit reaction, grab pummels,
 four directional throws, and a deterministic four-stock
 KO/respawn/match-result loop in the live
-two-player browser playtest. M0 selected
-float32 deterministic motion and geometry after benchmark,
-verifier, and blind human-playtest evidence. The accepted
+two-player browser playtest. The original M0 integer representation was
+superseded on 2026-08-13 by the project-wide IEEE-754 binary32 migration.
+Production motion, geometry, canonical state, snapshots, replay, and
+observations now use float32. The accepted
 milestones are summarized in
 [`docs/milestones/M0_checkpoint_report.md`](docs/milestones/M0_checkpoint_report.md)
 and
@@ -131,7 +132,7 @@ stock KOs show results/rematch, and simultaneous final-stock KOs enter the
 300% sudden-death fixture. A sequenced deterministic feed shows the current
 hit, shield, grab, pummel, throw, KO, respawn, sudden-death, and result events.
 It must report
-`web-client-smoke=pass sim_abi=5 tick_hz=60`, `webgl2=pass batch_draws=1`,
+`web-client-smoke=pass sim_abi=6 tick_hz=60`, `webgl2=pass batch_draws=1`,
 `replay=pass ticks=240 winner_mask=5`, and the browser-specific startup and
 bridge gates as `pass`.
 The collapsible owner-evidence panel presents all 61 registry recipes, saves a
@@ -196,11 +197,13 @@ directories, templates, lifecycle samples, and recursion guard with:
 ./tools/verify_m1_workflow.sh
 ```
 
-## Reproduce the M0 movement playtest
+## Reproduce the current M0 movement smoke
 
-The completed M0 gate used a blind human comparison of float32 and float32
-movement. The archived pure-C models, SDL3 client, build instructions,
-controls, and protocol remain in
+The completed M0 gate originally compared the retired quantized integer model
+with float32. The project-wide migration removed the retired implementation;
+the remaining pure-C model, SDL3 client, build instructions, controls, and
+protocol now exercise only the accepted float32 path and preserve the old
+human result as historical evidence. They remain in
 [`experiments/m0_playtest/`](experiments/m0_playtest/).
 
 ```sh
@@ -211,8 +214,9 @@ ctest --test-dir build/m0_playtest --output-on-failure
 
 Use
 [`docs/milestones/M0_playtest_worksheet.md`](docs/milestones/M0_playtest_worksheet.md)
-to reproduce the comparison. The owner reported no perceptible difference and
-approved float32 on 2026-07-27; M1 is unblocked.
+to review the original comparison protocol. The owner reported no perceptible
+difference in that comparison. The 2026-08-13 migration decision supersedes
+the original representation choice.
 
 ## Repository guide
 

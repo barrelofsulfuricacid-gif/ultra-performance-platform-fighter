@@ -3,10 +3,11 @@
 This document fixes interface shape rather than wire layout. M2 implements the
 contracts incrementally in public headers and conformance tests.
 
-The active UCF/raw-input slice uses ABI 5, input schema 6, content schema 78,
-fighter schema 70, canonical state schema 78, save format 68, and magic
-`PFSAVE60`. Its fixed checkpoint is a 140-byte header plus a 1,647-byte payload,
-1,787 bytes total. State schema 77 appends the rollback state consumed by the
+The active float32/UCF slice uses ABI 6, configuration schema 3, arithmetic
+version 2, input schema 6, content schema 78, fighter schema 70, canonical
+state schema 82, observation schema 14, save format 72, and magic `PFSAVE60`.
+Its fixed checkpoint is a 140-byte header plus a 1,660-byte payload, 1,800
+bytes total. State schema 77 appends the rollback state consumed by the
 pinned UCF 0.84 controller hooks: each player's prior processed main-stick X/Y,
 UCF X/Y tilt ages, raw main-stick X/Y from two samples earlier, and pad-buffer
 count. State schema 76 remains the historical same-layout correction that
@@ -21,9 +22,17 @@ PlCo `x68` initializes it to three only for Run and late-Dash Guard entry;
 GuardOn checks A before expiry, while other entry owners and action changes
 clear it.
 
+Schemas 79 through 81 add the complete-match input lock, per-player delayed
+crouch-pass callback state, damage-time-since-hit ages, and buffered up-special
+input ages. State schema 82/save format 72 keeps that 1,660-byte layout but
+changes every former quantized motion, geometry, damage, shield, clock, and
+observation field to canonical IEEE-754 binary32. ABI 6, configuration schema
+3, arithmetic version 2, and observation schema 14 make the public type and
+semantic change fail closed.
+
 Inspection schema 57 exposes that existing age through a previously unused
-inspection byte, and browser view schema 48 replaces the retired action labels
-and appends exact imported hit-sphere records for a 603-value layout. The
+inspection byte. Browser view schema 49 publishes float32 simulation values in
+its 603-value layout. The
 reference configuration is GALE01 NTSC 1.02 with pinned UCF 0.84 enabled. The
 vanilla decomp remains the base source for input-age and Dash callbacks. The
 live acquisition lane now pins the active UCF policy and qualifies exact
@@ -111,13 +120,16 @@ Rules:
 - Observations and legal-action masks have separately versioned schemas.
 - Single and batched RL entry points invoke the same internal tick semantics.
 
-Save formats 1–67 remain historical checkpoints. The current M4 state uses
-save format 68: a fixed 1,787-byte checkpoint with state schema 78 and a
-1,647-byte payload. Relative to schema 76, schema 77 appends 36 bytes: four
+Save formats 1–71 remain historical checkpoints. The current M4 state uses
+save format 72: a fixed 1,800-byte checkpoint with state schema 82 and a
+1,660-byte payload. Relative to schema 76, schema 77 appends 36 bytes: four
 players' prior processed main-stick X/Y values, UCF X/Y tilt ages, raw
 main-stick X/Y values from two samples earlier, and pad-buffer counts. These
 fields affect future UCF decisions and therefore participate in save/load,
-rollback, replay, validation, and hashing. Historical state schema 76 changes
+rollback, replay, validation, and hashing. Schemas 78 through 81 add the
+GuardOn provenance and complete-match callback/input history described above.
+Schema 82 retains their byte layout and serializes all migrated float channels
+as exact little-endian binary32 bit patterns. Historical state schema 76 changes
 no schema-75 payload bytes; it makes reserved action values 71/72 and their
 hitlag-resume use fail closed while the existing horizontal tilt age follows
 the source Dash-entry interpretation.
@@ -560,11 +572,11 @@ not duplicated per match.
 
 ## Event journal
 
-ABI 5 exposes up to 16 caller-owned, fixed-size events in every tick result.
+ABI 6 exposes up to 16 caller-owned, fixed-size events in every tick result.
 Each event records the processed input tick, a match-monotonic sequence,
-type, flags, source and target slots, one 32-bit value, one signed 32-bit
-velocity pair, and a type-specific 16-bit detail. Combat records normally use
-float32 numeric semantics; action-transition records pack raw action bytes.
+type, flags, source and target slots, one binary32 value, one binary32 velocity
+pair, and a type-specific 16-bit detail. Action-transition records pack raw
+action bytes into the explicitly documented nonnumeric fields.
 `255` denotes a system/no-player
 endpoint. The currently produced types are hit, shield block, powershield,
 shield break, grab, grab escape, throw, item pickup/drop/throw/hit/reset,
@@ -620,7 +632,7 @@ server re-simulates it with the identified headless build/content pair before
 rating is finalized.
 
 Replay format 1 uses five checksummed required chunks and mandatory per-tick
-hashes. Replay API schema 3 carries ABI-5 tick results, but the format-1 result
+hashes. Replay API schema 3 carries ABI-6 tick results, but the format-1 result
 chunk intentionally retains its original 16-byte terminal summary and does
 not encode the inline last-tick journal. Verification re-simulates the journal;
 the canonical cross-target corpus separately hashes every emitted event under
@@ -631,7 +643,7 @@ golden-corpus rules are recorded in
 `pf_replay_verify_observed` adds replay-observer schema 1 without changing the
 container. After the initial save and each subsequent tick pass their stored
 SHA-256 comparison, the caller receives the read-only simulation, total replay
-tick count, verified checkpoint hash, and that transition's exact ABI-5 tick
+tick count, verified checkpoint hash, and that transition's exact ABI-6 tick
 result. Checkpoint zero has an empty journal; checkpoint `N` carries the events
 emitted while processing input tick `N - 1`. Callback failure aborts inspection
 and is reported through the ordinary verification status, so presentation and
@@ -662,8 +674,8 @@ The production pack contains:
 - Magic, pack/schema versions, endian marker, total length, and section
   directory.
 - Source workbook SHA-256 and canonical content hash.
-- Fixed-width integer/fixed-point values already converted using the chosen
-  rounding rules.
+- Fixed-width integers and validated IEEE-754 binary32 values, with exact
+  source-to-simulation unit conversion and no legacy quantization layer.
 - Offset/count pairs rather than pointers.
 - Deduplicated string/asset IDs outside hot simulation tables.
 - A checksum for each section and the complete pack.

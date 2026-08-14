@@ -18,8 +18,8 @@ the fixed item slot, projectile slot, per-player special charge, per-player
 recovery availability, per-player smash charge, raw shield strength, shield
 health, and shield tilt.
 The current contract is RL schema 14, action schema 1, transition schema 12,
-structured observation schema 13, and compact observation schema 13. Its
-transition result embeds the ABI-5 event journal.
+structured observation schema 14, and compact observation schema 14. Its
+transition result embeds the ABI-6 float32 event journal.
 
 ## Actions
 
@@ -71,12 +71,12 @@ The compact layout is:
 | 4–5 | Maximum ticks, low/high 32-bit words |
 | 6 | Deterministic fault flags |
 | 7 | Packed player count (bits 0–7), mode (8–15), termination (16), truncation (17), sudden death (18), configured stock count (19–25), and winner mask (26–29) |
-| 8–17 | Player 0 previous-button words, position x/y, velocity x/y, packed slot/team/grounded/active/recovery-ready/prone-orientation flags, stocks remaining, respawn ticks, and respawn-invulnerability ticks |
+| 8–17 | Player 0 previous-button words, binary32 position x/y and velocity x/y bit patterns, packed slot/team/grounded/active/recovery-ready/prone-orientation flags, stocks remaining, respawn ticks, and respawn-invulnerability ticks |
 | 18–27 | Player 1 fields |
 | 28–37 | Player 2 fields |
 | 38–47 | Player 3 fields |
-| 48–55 | Fixed item position/velocity, packed lifecycle/ownership fields, and timers |
-| 56–61 | Fixed projectile position/velocity and packed lifecycle/owner fields |
+| 48–55 | Fixed item binary32 position/velocity bit patterns, packed lifecycle/ownership fields, and timers |
+| 56–61 | Fixed projectile binary32 position/velocity bit patterns and packed lifecycle/owner fields |
 | 62–65 | Per-player Arc Reservoir charge ticks |
 | 66–69 | Per-player smash-charge ticks |
 | 70–73 | Per-player raw shield strength; zero outside shield, shield stun, or hitlag resuming into shield stun |
@@ -99,7 +99,7 @@ define or enter simulation.
 
 ## Rewards and episode signals
 
-Rewards are signed float32 integers and combine two advertised components:
+Rewards are binary32 values and combine two advertised components:
 
 1. A bounded engagement-potential delta on every successful step.
 2. A terminal match-outcome component.
@@ -110,9 +110,9 @@ For active player `i`, the provisional M2 engagement potential is:
 128 units`
 
 The step component is `potential(after) - potential(before)`. Opponents are
-active players on a different team. The fixed-point implementation uses
-integer arithmetic, exposes the `0.25` (`16384` float32) potential limit in
-`pf_rl_spec`, and uses a fixed 128-world-unit reference distance so the
+active players on a different team. The implementation uses controlled
+binary32 arithmetic, exposes the `0.25f` potential limit in `pf_rl_spec`, and
+uses a fixed 128-world-unit reference distance so the
 per-unit signal does not change with stage width. It remains the provisional
 M2 horizontal-distance contract even though M4 now has an initial combat
 state. Closing distance produces a small positive reward, separating produces
@@ -123,8 +123,8 @@ could be farmed without interaction.
 On the transition that deterministically terminates a match, the outcome
 component is added to any engagement delta:
 
-- Every winning player receives `+1.0` (`+65536`).
-- Every losing player receives `-1.0` (`-65536`).
+- Every winning player receives `+1.0f`.
+- Every losing player receives `-1.0f`.
 - A terminal draw/no-winner result gives every player zero.
 - A post-terminal step returns `PF_STATUS_EPISODE_DONE` and does not repeat the
   reward.

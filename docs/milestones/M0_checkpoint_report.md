@@ -1,6 +1,6 @@
 # M0 checkpoint report
 
-**Status:** Complete; float32 accepted by the owner on 2026-07-27.
+**Status:** Historical M0 complete; production superseded by float32 on 2026-08-13.
 
 **Date:** 2026-07-27
 
@@ -25,8 +25,9 @@ M0 now contains:
 - Authored-C/foreign-C++ ABI rules implementing D2-A.
 - Current first-spike dependency pins, licenses, target roles, replacement
   seams, and adoption gates.
-- A blind, randomized, side-by-side SDL3 movement prototype comparing the
-  float32 and float32 candidates with identical normalized input.
+- A blind, randomized, side-by-side SDL3 movement prototype that originally
+  compared the retired 16-fractional-bit integer candidate with float32 using
+  identical normalized input.
 
 No external game assets or third-party game implementation data are present.
 
@@ -63,8 +64,9 @@ The accepted architecture is:
 
 Key evidence:
 
-- float32 motion: 1.410× float32, 95% CI [1.389, 1.440], equal tested motion
-  state bytes.
+- Retired integer motion: 1.410× float32, 95% CI [1.389, 1.440], equal
+  tested motion-state bytes. This throughput result is historical and no
+  longer selects production representation.
 - SoA update: 7.076× AoS-with-cold, 95% CI [6.966, 7.193].
 - Dense uniform grid: 2.678× naive, 95% CI [2.556, 2.764].
 - Data-table dispatch: 2.893× switch, 95% CI [2.752, 2.937].
@@ -78,11 +80,11 @@ reconsideration triggers are in
 
 ## Human result and owner decision
 
-M0 requires a human comparison of leading quantized and higher-precision
+M0 required a human comparison of the leading quantized and higher-precision
 movement prototypes. On 2026-07-27, the owner completed the corrected blind
-browser playtest and reported no perceptible difference between float32 and
-float32. The owner then explicitly selected decision option A and approved
-float32.
+browser playtest and reported no perceptible difference. The 2026-08-13
+project-wide migration later superseded the original representation choice
+and selected IEEE-754 binary32 for current production.
 
 The prototype is under `experiments/m0_playtest/`. It randomizes which
 representation is Candidate A/B, feeds both the same keyboard or gamepad input,
@@ -91,7 +93,8 @@ pass-through platforms, and platform drops, and reveals the assignment only
 when requested. The focused protocol and scoring form are in
 `docs/milestones/M0_playtest_worksheet.md`.
 
-The M0 human gate is closed and M1 implementation is unblocked.
+The M0 human result remains historical evidence; the current float32 contract
+is governed by `docs/architecture/representation_decision.md`.
 
 ## Source research
 

@@ -1,6 +1,6 @@
 # TDR-0006: Canonical state format and hash
 
-- **Status:** Accepted through save format 68 / state schema 78
+- **Status:** Accepted through save format 72 / state schema 82
 - **Date:** 2026-08-01
 
 ## Decision
@@ -76,6 +76,10 @@ Save formats are fixed, field-by-field little-endian encodings:
 | 66 | 76 | 140 | 1607 | 1747 | Schema-75 byte layout with action values 71/72 retired as reserved invalid holes and source-exact horizontal tilt-age/Dash-entry interpretation; no schema-75 payload-layout change |
 | 67 | 77 | 140 | 1643 | 1783 | Per-player prior processed main-stick X/Y, UCF X/Y tilt ages, raw main-stick X/Y from two samples earlier, and UCF pad-buffer count |
 | 68 | 78 | 140 | 1647 | 1787 | One imported GuardOn dash-grab provenance/expiry byte per player; Run and late-Dash entry set the three-update window |
+| 69 | 79 | 140 | 1648 | 1788 | One complete-match controller-input lock countdown shared by the reference match lifecycle |
+| 70 | 80 | 140 | 1652 | 1792 | One delayed crouch-pass callback countdown per player |
+| 71 | 81 | 140 | 1660 | 1800 | Per-player damage-time-since-hit and buffered up-special input ages |
+| 72 | 82 | 140 | 1660 | 1800 | No layout growth; all former quantized simulation channels become canonical IEEE-754 binary32, with ABI 6/configuration schema 3/arithmetic version 2/observation schema 14 |
 
 The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE05`, `PFSAVE06`, `PFSAVE07`, `PFSAVE08`, `PFSAVE09`, `PFSAVE10`, or
@@ -87,7 +91,7 @@ The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE41`, `PFSAVE42`, `PFSAVE43`, `PFSAVE44`, `PFSAVE45`, `PFSAVE46`,
 `PFSAVE47`, `PFSAVE48`, `PFSAVE49`, `PFSAVE50`, `PFSAVE51`, `PFSAVE52`,
 `PFSAVE53`, `PFSAVE54`, `PFSAVE58`, `PFSAVE59`, or `PFSAVE60`.
-The active M4 runtime emits and accepts format 68 with state schema 78 and
+The active M4 runtime emits and accepts format 72 with state schema 82 and
 magic `PFSAVE60`; formats 61-63 were compatibility steps inside the same
 unverified static slice and are not accepted by the final reader. Earlier
 schemas and formats remain documented as historical evidence rather than
@@ -129,6 +133,15 @@ the window, while Wait-origin Guard entry and every non-Guard owner clear it.
 The field is bounded by the imported value, zero for inactive players, and
 serialized because rollback during GuardOn can change a future ordinary grab
 into CatchDash.
+
+State schemas 79 through 81 add the complete-match controller lock, delayed
+crouch-pass callback state, damage-time-since-hit ages, and buffered up-special
+input ages. State schema 82/save format 72 then migrates every 32-bit
+quantized simulation channel in the established layout to IEEE-754 binary32.
+The serializer emits each float's canonical little-endian bit pattern and the
+validator rejects non-finite state. ABI 6, configuration schema 3, arithmetic
+version 2, and observation schema 14 make the public and semantic change fail
+closed while the checkpoint remains 140 + 1,660 = 1,800 bytes.
 
 The reference configuration is GALE01 NTSC 1.02 with pinned UCF 0.84 enabled.
 The vanilla decomp proves the base age and Dash-entry rules. The live
