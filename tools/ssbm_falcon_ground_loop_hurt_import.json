@@ -88,6 +88,8 @@
     { "submotion_index": 180, "c_submotion": "PF_M4_FALCON_SUBMOTION_DAMAGE_FLY_TOP", "action_frame_offset": 0 },
     { "submotion_index": 181, "c_submotion": "PF_M4_FALCON_SUBMOTION_DAMAGE_FLY_ROLL", "action_frame_offset": 0 },
     { "submotion_index": 205, "c_submotion": "PF_M4_FALCON_SUBMOTION_FURAFURA" },
+    { "submotion_index": 210, "c_submotion": "PF_M4_FALCON_SUBMOTION_TEETER" },
+    { "submotion_index": 211, "c_submotion": "PF_M4_FALCON_SUBMOTION_TEETER_WAIT" },
     { "submotion_index": 242, "c_submotion": "PF_M4_FALCON_SUBMOTION_CATCH", "action_frame_offset": -1 },
     { "submotion_index": 243, "c_submotion": "UINT16_C(243)", "action_frame_offset": -1 },
     { "submotion_index": 244, "c_submotion": "PF_M4_FALCON_SUBMOTION_CATCH_WAIT" },
@@ -155,11 +157,11 @@
     "source_joint_count": 63,
     "runtime_part_count": 63,
     "joint_count": 26,
-    "motion_count": 94,
+    "motion_count": 96,
     "wait_animation_count": 3,
     "compact_motion_count": 6,
-    "track_count": 6205,
-    "key_count": 58074,
+    "track_count": 6345,
+    "key_count": 59209,
     "capsule_count": 11,
     "rotation_joint_count": 19,
     "translation_joint_count": 6,
@@ -167,7 +169,7 @@
     "static_local_pose_count": 1,
     "joint_point_set_count": 2,
     "pose_branch_count": 1,
-    "data_sha256": "a681a8bbb06d4bcbda475a5dc8bfcf81140c3c4afc69a9968bdcc9309601a79c"
+    "data_sha256": "d25586c43e3b3b9fee33c67daad3c0144de30b7e7aea6122d0d859472df41fe2"
   },
   "damage_pose_qualification": {
     "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",

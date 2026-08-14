@@ -6263,6 +6263,65 @@ static int run_teeter_cancel_test(
             "m4-movement=fail operation=teeter-expiry\n");
         return 0;
     }
+    if (!step_duel_triggers(
+            source,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            UINT16_C(0),
+            &source_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD ||
+        source_inspection.players[0].action_ticks != UINT16_C(0) ||
+        source->world.source_submotion[0] !=
+            (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD_ON ||
+        source->world.ground_blend_progress_f32[0] <= 0.0f)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=teeter-wait-guard-blend"
+            " action=%u ticks=%u submotion=%u blend=%.9g\n",
+            (unsigned int)source_inspection.players[0].action_state,
+            (unsigned int)source_inspection.players[0].action_ticks,
+            (unsigned int)source->world.source_submotion[0],
+            source->world.ground_blend_progress_f32[0]);
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(source, UINT64_C(0x7ee7e7)),
+            PF_STATUS_OK,
+            "teeter-start-guard-reset") ||
+        !enter_right_teeter(
+            source,
+            content,
+            &source_inspection) ||
+        !step_duel_triggers(
+            source,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            UINT16_C(0),
+            &source_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD ||
+        source_inspection.players[0].action_ticks != UINT16_C(0) ||
+        source->world.source_submotion[0] !=
+            (uint16_t)PF_M4_FALCON_SUBMOTION_GUARD_ON ||
+        source->world.ground_blend_progress_f32[0] <= 0.0f)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=teeter-start-guard-blend"
+            " action=%u ticks=%u submotion=%u blend=%.9g\n",
+            (unsigned int)source_inspection.players[0].action_state,
+            (unsigned int)source_inspection.players[0].action_ticks,
+            (unsigned int)source->world.source_submotion[0],
+            source->world.ground_blend_progress_f32[0]);
+        return 0;
+    }
     return 1;
 }
 

@@ -918,6 +918,26 @@ static int falcon_ground_blend_source_pose(
                 ? world->action_ticks[player_index] + UINT16_C(1)
                 : turn->animation_frame_count - UINT16_C(1));
     }
+    else if (previous_action == (uint8_t)PF_M4_ACTION_TEETER)
+    {
+        const falcon_submotion_data *teeter =
+            falcon_reference_submotion(
+                world->source_submotion[player_index]);
+
+        if (teeter == NULL ||
+            (world->source_submotion[player_index] !=
+                 (uint16_t)PF_M4_FALCON_SUBMOTION_TEETER &&
+             world->source_submotion[player_index] !=
+                 (uint16_t)PF_M4_FALCON_SUBMOTION_TEETER_WAIT) ||
+            teeter->animation_frame_count == UINT16_C(0))
+        {
+            return 0;
+        }
+        source_submotion = world->source_submotion[player_index];
+        source_frame_f32 = (float)(
+            (uint32_t)(world->action_ticks[player_index] + UINT16_C(1)) %
+            (uint32_t)teeter->animation_frame_count);
+    }
     else if (action_is_damage(previous_action) &&
              world->source_animation_rate_f32[player_index] > INT32_C(0))
     {
