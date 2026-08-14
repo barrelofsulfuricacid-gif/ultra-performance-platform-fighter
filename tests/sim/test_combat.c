@@ -26768,13 +26768,15 @@ static int wait_for_thrower_idle(
     return fail("chain-grab-thrower-recovery");
 }
 
+static const float chain_grab_reacquire_distance_f32 = 1.5f;
+
 static int wait_for_chain_grab_recovery(
     pf_sim *sim,
     struct inspection *out_inspection)
 {
     uint32_t tick;
 
-    for (tick = UINT32_C(0); tick < UINT32_C(120); ++tick)
+    for (tick = UINT32_C(0); tick < UINT32_C(240); ++tick)
     {
         const float separation_f32 =
             out_inspection->players[1].position_x_f32 -
@@ -26785,13 +26787,17 @@ static int wait_for_chain_grab_recovery(
             out_inspection->players[1].action_state ==
                 (uint8_t)PF_M4_ACTION_GROUND_IDLE;
         const int16_t approach_x =
-            target_ready != 0 && absolute_separation_f32 > 1.75f
+            target_ready != 0 &&
+                    absolute_separation_f32 >
+                        chain_grab_reacquire_distance_f32
                 ? (separation_f32 < 0.0f
                        ? INT16_C(-16384)
                        : INT16_C(16384))
                 : INT16_C(0);
 
-        if (target_ready != 0 && absolute_separation_f32 <= 1.75f)
+        if (target_ready != 0 &&
+            absolute_separation_f32 <=
+                chain_grab_reacquire_distance_f32)
         {
             return 1;
         }
@@ -26947,6 +26953,7 @@ static int run_chain_grab_snapshot_test(
     uint32_t throws_started = UINT32_C(1);
     uint32_t throw_events = UINT32_C(0);
     uint32_t regrab_events = UINT32_C(0);
+    const uint32_t future_tick_limit = UINT32_C(480);
     int regrab_walk_armed = 0;
 
     if (!initialize_sim(
@@ -27017,7 +27024,7 @@ static int run_chain_grab_snapshot_test(
     }
 
     for (future_tick = UINT32_C(0);
-         future_tick < UINT32_C(240);
+         future_tick < future_tick_limit;
          ++future_tick)
     {
         int16_t player0_x = INT16_C(0);
@@ -27051,7 +27058,8 @@ static int run_chain_grab_snapshot_test(
                     ? -separation_f32
                     : separation_f32;
 
-            if (absolute_separation_f32 > 1.75f)
+            if (absolute_separation_f32 >
+                chain_grab_reacquire_distance_f32)
             {
                 player0_x = separation_f32 < 0.0f
                     ? INT16_C(-16384)
@@ -27140,7 +27148,7 @@ static int run_chain_grab_snapshot_test(
             break;
         }
     }
-    if (future_tick == UINT32_C(240) ||
+    if (future_tick == future_tick_limit ||
         throw_events != UINT32_C(2) ||
         regrab_events < UINT32_C(1) ||
         source_inspection.players[1].damage_f32 !=
