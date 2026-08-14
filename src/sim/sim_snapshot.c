@@ -2387,8 +2387,10 @@ static int snapshot_source_submotion_valid_for_action(
     }
     else if (effective_action == (uint8_t)PF_M4_ACTION_RUN_TURNAROUND)
     {
-        identity_valid =
-            submotion == (uint16_t)PF_M4_FALCON_SUBMOTION_TURN_RUN;
+        return motion != NULL &&
+               submotion ==
+                   (uint16_t)PF_M4_FALCON_SUBMOTION_TURN_RUN &&
+               action_ticks <= motion->animation_frame_count;
     }
     else if (effective_action == (uint8_t)PF_M4_ACTION_CROUCH)
     {

@@ -3748,6 +3748,7 @@ static int run_ground_control_test(
     test_sim_storage storage;
     pf_sim *sim = NULL;
     struct inspection inspection;
+    pf_state_hash run_turnaround_terminal_hash;
     float slow_walk_velocity;
     float fast_walk_velocity;
     float dash_velocity;
@@ -3759,6 +3760,7 @@ static int run_ground_control_test(
     int16_t crouch_dash_axis;
     int8_t crouch_facing;
     uint32_t tick;
+    int run_turnaround_terminal_observed = 0;
 
     if (ground_input == NULL ||
         !initialize_sim(
@@ -4153,8 +4155,23 @@ static int run_ground_control_test(
                 "m4-movement=fail operation=run-turnaround-window\n");
             return 0;
         }
+        if (inspection.players[0].action_state ==
+                (uint8_t)PF_M4_ACTION_RUN_TURNAROUND &&
+            inspection.players[0].action_ticks ==
+                content->fighter.run_turnaround_ticks)
+        {
+            if (!expect_status(
+                    pf_sim_hash(sim, &run_turnaround_terminal_hash),
+                    PF_STATUS_OK,
+                    "run-turnaround-terminal-hash"))
+            {
+                return 0;
+            }
+            run_turnaround_terminal_observed = 1;
+        }
     }
-    if (inspection.players[0].action_state !=
+    if (!run_turnaround_terminal_observed ||
+        inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_RUN ||
         inspection.players[0].facing != INT8_C(1) ||
         inspection.players[0].velocity_x_f32 <= 0.0f ||
