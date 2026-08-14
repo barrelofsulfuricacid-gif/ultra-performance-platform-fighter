@@ -41,12 +41,12 @@ typedef struct Controls
 typedef struct Playtest
 {
     M0MovementPair pair;
-    Trail float_trail;
-    Trail fixed_trail;
+    Trail primary_trail;
+    Trail repeat_trail;
     SDL_Gamepad *gamepad;
     uint64_t seed;
     double max_delta;
-    int float_is_a;
+    int primary_is_a;
     int focused_candidate;
     int reveal;
     int paused;
@@ -88,12 +88,12 @@ static void trail_push(Trail *trail, M0MovementView sample)
 static void playtest_reset(Playtest *playtest)
 {
     m0_pair_reset(&playtest->pair);
-    trail_clear(&playtest->float_trail);
-    trail_clear(&playtest->fixed_trail);
-    trail_push(&playtest->float_trail,
-               m0_float_view(&playtest->pair.float32));
-    trail_push(&playtest->fixed_trail,
-               m0_fixed_view(&playtest->pair.q16_16));
+    trail_clear(&playtest->primary_trail);
+    trail_clear(&playtest->repeat_trail);
+    trail_push(&playtest->primary_trail,
+               m0_view(&playtest->pair.primary));
+    trail_push(&playtest->repeat_trail,
+               m0_view(&playtest->pair.repeat));
     playtest->max_delta = 0.0;
     playtest->jump_pending = 0;
 }
@@ -102,7 +102,7 @@ static void playtest_init(Playtest *playtest, uint64_t seed)
 {
     memset(playtest, 0, sizeof(*playtest));
     playtest->seed = seed;
-    playtest->float_is_a = (int)(mix_seed(seed) & UINT64_C(1));
+    playtest->primary_is_a = (int)(mix_seed(seed) & UINT64_C(1));
     playtest->focused_candidate = CANDIDATE_A;
     playtest->show_trails = 1;
     playtest_reset(playtest);
@@ -111,33 +111,34 @@ static void playtest_init(Playtest *playtest, uint64_t seed)
 static M0MovementView candidate_view(const Playtest *playtest,
                                      Candidate candidate)
 {
-    int wants_float =
-        (candidate == CANDIDATE_A) == (playtest->float_is_a != 0);
-    return wants_float ? m0_float_view(&playtest->pair.float32)
-                       : m0_fixed_view(&playtest->pair.q16_16);
+    const int wants_primary =
+        (candidate == CANDIDATE_A) == (playtest->primary_is_a != 0);
+    return wants_primary ? m0_view(&playtest->pair.primary)
+                         : m0_view(&playtest->pair.repeat);
 }
 
 static const Trail *candidate_trail(const Playtest *playtest,
                                     Candidate candidate)
 {
-    int wants_float =
-        (candidate == CANDIDATE_A) == (playtest->float_is_a != 0);
-    return wants_float ? &playtest->float_trail : &playtest->fixed_trail;
+    const int wants_primary =
+        (candidate == CANDIDATE_A) == (playtest->primary_is_a != 0);
+    return wants_primary ? &playtest->primary_trail
+                         : &playtest->repeat_trail;
 }
 
 static const char *candidate_model(const Playtest *playtest,
                                    Candidate candidate)
 {
-    int wants_float =
-        (candidate == CANDIDATE_A) == (playtest->float_is_a != 0);
-    return wants_float ? "FLOAT32" : "float32";
+    const int wants_primary =
+        (candidate == CANDIDATE_A) == (playtest->primary_is_a != 0);
+    return wants_primary ? "FLOAT32 PRIMARY" : "FLOAT32 REPEAT";
 }
 
 static void playtest_tick(Playtest *playtest, Controls controls)
 {
     M0MovementInput input;
-    M0MovementView float_view;
-    M0MovementView fixed_view;
+    M0MovementView primary_view;
+    M0MovementView repeat_view;
     double delta_x;
     double delta_y;
 
@@ -148,13 +149,13 @@ static void playtest_tick(Playtest *playtest, Controls controls)
     playtest->jump_pending = 0;
 
     m0_pair_step(&playtest->pair, input);
-    float_view = m0_float_view(&playtest->pair.float32);
-    fixed_view = m0_fixed_view(&playtest->pair.q16_16);
-    trail_push(&playtest->float_trail, float_view);
-    trail_push(&playtest->fixed_trail, fixed_view);
+    primary_view = m0_view(&playtest->pair.primary);
+    repeat_view = m0_view(&playtest->pair.repeat);
+    trail_push(&playtest->primary_trail, primary_view);
+    trail_push(&playtest->repeat_trail, repeat_view);
 
-    delta_x = fabs(float_view.x - fixed_view.x);
-    delta_y = fabs(float_view.y - fixed_view.y);
+    delta_x = fabs((double)primary_view.x - (double)repeat_view.x);
+    delta_y = fabs((double)primary_view.y - (double)repeat_view.y);
     if (delta_x > playtest->max_delta)
     {
         playtest->max_delta = delta_x;
@@ -437,10 +438,12 @@ static void render_scene(SDL_Renderer *renderer, const Playtest *playtest,
     SDL_FRect left_panel = {margin, 116.0f, panel_width, panel_height};
     SDL_FRect right_panel = {
         margin + panel_width + gap, 116.0f, panel_width, panel_height};
-    M0MovementView float_view = m0_float_view(&playtest->pair.float32);
-    M0MovementView fixed_view = m0_fixed_view(&playtest->pair.q16_16);
-    double current_delta_x = fabs(float_view.x - fixed_view.x);
-    double current_delta_y = fabs(float_view.y - fixed_view.y);
+    const M0MovementView primary_view = m0_view(&playtest->pair.primary);
+    const M0MovementView repeat_view = m0_view(&playtest->pair.repeat);
+    const double current_delta_x =
+        fabs((double)primary_view.x - (double)repeat_view.x);
+    const double current_delta_y =
+        fabs((double)primary_view.y - (double)repeat_view.y);
     const char *device = "KEYBOARD";
 
     if (playtest->gamepad != NULL &&
@@ -455,7 +458,7 @@ static void render_scene(SDL_Renderer *renderer, const Playtest *playtest,
     set_color(renderer, 232, 236, 242, 255);
     (void)SDL_RenderDebugText(
         renderer, margin, 18.0f,
-        "M0 BLIND MOVEMENT REPRESENTATION PLAYTEST");
+        "M0 BLIND FLOAT32 PARITY PLAYTEST");
     (void)SDL_RenderDebugText(
         renderer, margin, 36.0f,
         "DASH: A/D   WALK: SHIFT+A/D   JUMP: SPACE/PAD SOUTH   DOWN: S/DOWN");
@@ -464,7 +467,8 @@ static void render_scene(SDL_Renderer *renderer, const Playtest *playtest,
         "1/2 FOCUS   R RESET   P PAUSE   N STEP   T TRAILS   V REVEAL   ESC QUIT");
     (void)SDL_RenderDebugTextFormat(
         renderer, margin, 68.0f, "INPUT: %s   TICK: %" PRIu32 "   %s",
-        device, float_view.tick, playtest->paused ? "PAUSED" : "RUNNING");
+        device, primary_view.tick,
+        playtest->paused ? "PAUSED" : "RUNNING");
 
     render_candidate(renderer, playtest, CANDIDATE_A, &left_panel,
                      48, 205, 190);
@@ -611,9 +615,9 @@ static int run_software_smoke(uint64_t seed, const char *screenshot_path)
     SDL_DestroySurface(surface);
 
     printf("sdl-smoke=pass ticks=%" PRIu32 " pixel_hash=%" PRIu64
-           " fixed_hash=%" PRIu64 "\n",
-           playtest.pair.q16_16.tick, pixel_hash,
-           m0_fixed_hash(&playtest.pair.q16_16));
+           " float32_hash=%" PRIu64 "\n",
+           playtest.pair.repeat.tick, pixel_hash,
+           m0_hash(&playtest.pair.repeat));
     return EXIT_SUCCESS;
 }
 

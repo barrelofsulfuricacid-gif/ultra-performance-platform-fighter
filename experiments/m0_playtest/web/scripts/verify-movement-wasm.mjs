@@ -19,7 +19,7 @@ for (const name of [
 ]) {
   assert.equal(typeof api[name], "function", `missing export ${name}`);
 }
-assert.equal(api.m0_version(), 2);
+assert.equal(api.m0_version(), 3);
 
 api.m0_reset(20260727);
 api.m0_step(13500, 0, 0, 0);
@@ -132,10 +132,7 @@ const second = runTrace();
 assert.deepEqual(second, first, "WebAssembly replay diverged");
 assert.equal(first.a[4], 7200);
 assert.equal(first.b[4], 7200);
-assert.ok(
-  Math.abs(first.maxDelta - 0.0016994476318359375) < 1e-12,
-  `unexpected trace delta ${first.maxDelta}`,
-);
+assert.equal(first.maxDelta, 0, "float32 repeat lane diverged");
 
 console.log(
   `wasm-self-test=pass trace_ticks=7200 max_position_delta=${first.maxDelta.toFixed(9)}`,

@@ -37,7 +37,6 @@ compile_sim_test()
         "$root/src/sim/sim_combat.c" \
         "$root/src/sim/sim_content.c" \
         "$root/src/sim/sim_falcon_frame_data.c" \
-        "$root/src/sim/sim_fixed_math.c" \
         "$root/src/sim/sim_hsd_pose.c" \
         "$root/src/sim/sim_ssbm_common_data.c" \
         "$root/src/sim/sim_ssbm_stage_data.c" \
@@ -54,6 +53,7 @@ compile_sim_test()
         "$root/src/sim/sim_snapshot.c" \
         "$root/src/sim/sim_tick.c" \
         "$@" \
+        -lm \
         -o "$output"
 }
 
@@ -113,8 +113,6 @@ compile_sim_object \
     "$root/src/sim/sim_falcon_frame_data.c" \
     "$output_dir/sim_falcon_frame_data.o"
 compile_sim_object \
-    "$root/src/sim/sim_fixed_math.c" "$output_dir/sim_fixed_math.o"
-compile_sim_object \
     "$root/src/sim/sim_hsd_pose.c" "$output_dir/sim_hsd_pose.o"
 compile_sim_object \
     "$root/src/sim/sim_ssbm_common_data.c" \
@@ -153,7 +151,6 @@ if command -v nm >/dev/null 2>&1; then
         "$output_dir/sim_combat.o" \
         "$output_dir/sim_content.o" \
         "$output_dir/sim_falcon_frame_data.o" \
-        "$output_dir/sim_fixed_math.o" \
         "$output_dir/sim_hsd_pose.o" \
         "$output_dir/sim_ssbm_common_data.o" \
         "$output_dir/sim_ssbm_stage_data.o" \

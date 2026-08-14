@@ -1,15 +1,16 @@
-# M0 movement representation playtest
+# M0 float32 parity playtest
 
-This disposable prototype closes the human-feel acceptance item in M0. It
-applies the same normalized input, 60 Hz stage rules, and movement parameters
-to two pure-C candidates:
+This disposable prototype originally compared two numeric representations.
+The project-wide float32 migration retired the fixed-point candidate. The
+prototype now applies the same normalized input, 60 Hz stage rules, and
+movement parameters to two independent float32 lanes:
 
-- IEEE float32 position and velocity.
-- Signed float32 fixed-point position and velocity with 64-bit intermediates
-  and explicit rounding.
+- the primary IEEE binary32 lane;
+- an independently stepped repeat lane used to detect replay or Wasm drift.
 
-The prototype is deliberately movement-only. It is evidence for the numeric
-representation decision, not permanent engine code or a combat vertical slice.
+The prototype is deliberately movement-only. It is regression evidence for
+float32 determinism and native/Wasm parity, not permanent engine code or a
+combat vertical slice.
 
 ## Browser playtest
 
@@ -17,7 +18,7 @@ The same pure-C movement core is available as an owner-only browser build:
 
 <https://m0-movement-playtest.lol1234.chatgpt.site>
 
-It runs the float32 and float32 candidates as WebAssembly at a fixed 60 Hz and
+It runs both float32 lanes as WebAssembly at a fixed 60 Hz and
 includes keyboard, controller, touch, blind scoring, reveal, and result-copy
 flows. The browser adapter source and deterministic trace verifier live in
 [`web/`](web/).
@@ -64,10 +65,10 @@ cc -std=c17 -O2 -Wall -Wextra -Wpedantic -Werror \
 build/m0_movement_verify
 ```
 
-## Blind playtest protocol
+## Parity playtest protocol
 
-The interactive application randomizes which representation is Candidate A
-and Candidate B. Do not reveal the assignment until both trials are complete.
+The interactive application randomizes which float32 lane is Candidate A and
+Candidate B. Do not reveal the assignment until both trials are complete.
 
 1. Focus Candidate A, reset, and perform repeated dash-dances, analog
    walk/run changes, short hops, full hops, aerial reversals, double jumps,
@@ -75,8 +76,8 @@ and Candidate B. Do not reveal the assignment until both trials are complete.
 2. Focus Candidate B, reset, and repeat the same maneuvers.
 3. Rate each candidate for response, precision, consistency, movement
    expression, visual stability, and fun using the M0 rubric.
-4. Reveal the assignment and record whether any difference was perceptible,
-   repeatable, and preference-changing.
+4. Reveal the primary/repeat assignment. Any perceptible or numeric difference
+   is a parity defect to investigate.
 
 The candidates always receive the same input even when one is visually
 focused. This preserves trace comparability. The on-screen delta is diagnostic

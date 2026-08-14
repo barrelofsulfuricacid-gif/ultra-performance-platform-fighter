@@ -1,12 +1,12 @@
 {
-  "abi": 2,
+  "abi": 3,
   "compiler": "@yowasp/clang 22.0.0-git20542-10",
   "sourceHashes": {
-    "movement_model.c": "5b93523280aa820f4c8783cca379bc6cae500fc9d003ab33f54349acc13f77ac",
-    "movement_model.h": "5c6a4f89549017095aa7b5f11963da37278c35c903090cc58f90dff97e234020",
-    "movement_web.c": "13fef5cee22a701738fa59ff89a1c18b27fe1ab4eeecf3038c5df4936cee6ab5",
-    "movement_web_runtime.c": "a3a4d42a7d1cceb1b8f9e69e7118ec3c885c65b5d2c1ababf545aa89980e7ee8"
+    "movement_model.c": "a1c3f304fdab43d2d43a663349633f16f40b9264f57e61a4bea5befd8aa954a5",
+    "movement_model.h": "9d0cda0b79c7bc364e5b6a6d4fe0beb4993ddbdd55e6b12ad855f26922475a2a",
+    "movement_web.c": "4d9407193f87e0f26a7f54d708f24d97bbc4006339e0269b6238e2c6142bff41",
+    "movement_web_runtime.c": "fa3b1f7354aefe900aabf6a856f5278ab0993848a41782545dd5306ec466b187"
   },
-  "wasmBytes": 4548,
-  "wasmSha256": "cc33c22d9a3162d5d805563a14bf639d0cd99b947ff051ba6aee70aece99389c"
+  "wasmBytes": 2858,
+  "wasmSha256": "16201eaf17d1eae63ec4476189530ed958cbf620f6dd96a0ff6e5e9cf5eab5c0"
 }

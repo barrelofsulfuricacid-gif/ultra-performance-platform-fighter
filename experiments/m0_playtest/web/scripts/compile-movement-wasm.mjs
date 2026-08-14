@@ -58,7 +58,7 @@ const sourceHashes = Object.fromEntries(
   ]),
 );
 const manifest = {
-  abi: 2,
+  abi: 3,
   compiler: "@yowasp/clang 22.0.0-git20542-10",
   sourceHashes,
   wasmBytes: wasm.byteLength,

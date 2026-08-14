@@ -11,13 +11,13 @@
 
 enum
 {
-    M0_MODEL_FLOAT32 = 0,
-    M0_MODEL_Q16_16 = 1
+    M0_MODEL_PRIMARY = 0,
+    M0_MODEL_REPEAT = 1
 };
 
 static M0MovementPair g_pair;
 static uint32_t g_seed;
-static int g_float_candidate;
+static int g_primary_candidate;
 
 static uint32_t mix_seed(uint32_t value)
 {
@@ -30,30 +30,30 @@ static uint32_t mix_seed(uint32_t value)
 static int model_for_candidate(int candidate)
 {
     int normalized = candidate == 0 ? 0 : 1;
-    return normalized == g_float_candidate ? M0_MODEL_FLOAT32
-                                            : M0_MODEL_Q16_16;
+    return normalized == g_primary_candidate ? M0_MODEL_PRIMARY
+                                              : M0_MODEL_REPEAT;
 }
 
 static M0MovementView view_for_candidate(int candidate)
 {
-    if (model_for_candidate(candidate) == M0_MODEL_FLOAT32)
+    if (model_for_candidate(candidate) == M0_MODEL_PRIMARY)
     {
-        return m0_float_view(&g_pair.float32);
+        return m0_view(&g_pair.primary);
     }
-    return m0_fixed_view(&g_pair.q16_16);
+    return m0_view(&g_pair.repeat);
 }
 
 M0_EXPORT("m0_version")
 int m0_web_version(void)
 {
-    return 2;
+    return 3;
 }
 
 M0_EXPORT("m0_reset")
 void m0_web_reset(uint32_t seed)
 {
     g_seed = seed;
-    g_float_candidate = (int)(mix_seed(seed) & 1U);
+    g_primary_candidate = (int)(mix_seed(seed) & 1U);
     m0_pair_reset(&g_pair);
 }
 

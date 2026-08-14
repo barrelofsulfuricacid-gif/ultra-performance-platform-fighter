@@ -33,7 +33,6 @@ common_flags="
     "$root/src/sim/sim_combat.c" \
     "$root/src/sim/sim_content.c" \
     "$root/src/sim/sim_falcon_frame_data.c" \
-    "$root/src/sim/sim_fixed_math.c" \
     "$root/src/sim/sim_hsd_pose.c" \
     "$root/src/sim/sim_ssbm_common_data.c" \
     "$root/src/sim/sim_ssbm_damage.c" \
@@ -51,6 +50,7 @@ common_flags="
     "$root/src/sim/sim_tick.c" \
     "$root/src/checkpoint/m2_replay_fixture.c" \
     "$root/tests/sim/test_replay_corpus.c" \
+    -lm \
     -o "$output_dir/native_replay_corpus"
 
 "$output_dir/native_replay_corpus" >"$output_dir/native.txt"

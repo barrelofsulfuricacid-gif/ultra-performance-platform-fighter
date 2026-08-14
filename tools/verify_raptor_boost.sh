@@ -43,7 +43,6 @@ common_flags="
     "$root/src/sim/sim_combat.c" \
     "$root/src/sim/sim_content.c" \
     "$root/src/sim/sim_falcon_frame_data.c" \
-    "$root/src/sim/sim_fixed_math.c" \
     "$root/src/sim/sim_hsd_pose.c" \
     "$root/src/sim/sim_ssbm_common_data.c" \
     "$root/src/sim/sim_ssbm_damage.c" \
@@ -60,6 +59,7 @@ common_flags="
     "$root/src/sim/sim_snapshot.c" \
     "$root/src/sim/sim_tick.c" \
     "$root/src/tools/movement_trace.c" \
+    -lm \
     -o "$output_dir/movement_trace"
 
 "$python" "$root/tools/compare_ssbm_movement.py" \

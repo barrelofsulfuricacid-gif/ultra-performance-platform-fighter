@@ -1,4 +1,4 @@
-# M0 browser movement playtest
+# M0 browser float32 parity playtest
 
 Open the owner-only hosted playtest:
 
@@ -7,7 +7,8 @@ Open the owner-only hosted playtest:
 The browser build preserves the native checkpoint boundary:
 
 - `../movement_model.c` and `../movement_model.h` remain the canonical pure-C
-  float32 and float32 implementations.
+  float32 implementation; the pair wrapper steps it twice without duplicating
+  movement logic.
 - `native/movement_web.c` is a narrow C ABI that randomizes Candidate A/B and
   exposes movement state without moving simulation policy into JavaScript.
 - `public/movement_core.wasm` is compiled from those C sources. Its adjacent
@@ -31,7 +32,7 @@ The verifier runs the same 7,200-tick trace as the native M0 verifier. Expected
 output includes:
 
 ```text
-wasm-self-test=pass trace_ticks=7200 max_position_delta=0.001699448
+wasm-self-test=pass trace_ticks=7200 max_position_delta=0.000000000
 ```
 
 Keyboard controls use full-strength <kbd>A</kbd>/<kbd>D</kbd> presses for the

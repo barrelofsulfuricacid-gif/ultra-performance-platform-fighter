@@ -309,7 +309,7 @@ export default function Home() {
     const api = apiRef.current;
     if (!api || !scoresComplete) return;
     const label = (candidate: Candidate) =>
-      api.m0_model(candidate) === 0 ? "float32" : "float32";
+      api.m0_model(candidate) === 0 ? "float32 primary" : "float32 repeat";
     setMapping([label(0), label(1)]);
   }, [scoresComplete]);
 
@@ -472,7 +472,7 @@ export default function Home() {
         `- ${dimension}: A ${scores[dimension][0]}/5, B ${scores[dimension][1]}/5`,
     );
     const result = [
-      "M0 movement representation playtest",
+      "M0 float32 parity playtest",
       `Seed: ${seed}`,
       `Input: ${gamepadConnected ? "gamepad/browser" : "keyboard or touch/browser"}`,
       `Maximum observed position delta: ${maxDelta.toFixed(9)}`,
@@ -504,7 +504,7 @@ export default function Home() {
           <p className="eyebrow">Ultra Performance Platform Fighter · M0</p>
           <h1>Movement Lab</h1>
           <p className="hero-copy">
-            A blind feel test between two numeric representations, running the
+            A parity test between two independent float32 lanes running the
             same pure-C movement model at a fixed 60 Hz in WebAssembly.
           </p>
         </div>
@@ -550,7 +550,7 @@ export default function Home() {
                 disabled={!scoresComplete}
                 title={
                   scoresComplete
-                    ? "Reveal the randomized model assignment"
+                    ? "Reveal the randomized lane assignment"
                     : "Complete the blind scorecard below first"
                 }
                 onClick={reveal}
@@ -558,7 +558,7 @@ export default function Home() {
                 {mapping
                   ? "Revealed"
                   : scoresComplete
-                    ? "Reveal models"
+                    ? "Reveal lanes"
                     : `Score first · ${scoredCount}/14`}
               </button>
             </div>
@@ -745,8 +745,8 @@ export default function Home() {
                 <span>Owner decision</span>
                 <select value={decision} onChange={(event) => setDecision(event.target.value)}>
                   <option value="">Choose…</option>
-                  <option>Approve float32</option>
-                  <option>Approve float32</option>
+                  <option>Approve float32 parity</option>
+                  <option>Request native/Wasm parity investigation</option>
                   <option>Request changes and retest</option>
                 </select>
               </label>
